@@ -1,9 +1,8 @@
 import { useEffect, useEffectEvent, useRef, useState, type RefObject } from "react"
 import { createPortal } from "react-dom"
-import type { BadgeFilter } from "../diagram/badge-cluster.js"
-import type { Decorations } from "../diagram/decoration-layer.js"
+import type { BadgeFilter, Decorations } from "../diagram/decorations.js"
 import { ReactOverlaySink, type OverlaySlot } from "../diagram/overlay-slots.js"
-import { RuntimeCanvas } from "../diagram/runtime-canvas.js"
+import { RuntimeCanvas, type Viewbox } from "../diagram/runtime-canvas.js"
 import { useHost } from "../host/host-context.js"
 import { EmptyHint } from "./empty-hint.js"
 
@@ -15,6 +14,14 @@ export interface RuntimeDiagramProps {
   readonly label?: string
   readonly remembersView?: boolean
   readonly keysOnCanvas?: boolean
+  readonly onHover?: (elementId: string | undefined) => void
+  readonly onViewChange?: () => void
+  readonly onCanvas?: (canvas: DiagramView | undefined) => void
+}
+
+interface DiagramView {
+  viewbox(): Viewbox
+  showViewbox(box: Viewbox): void
 }
 
 interface DrawnCanvas {
@@ -32,16 +39,7 @@ function useRuntimeCanvas(props: RuntimeDiagramProps): DrawnCanvas {
   const [slots, setSlots] = useState<readonly OverlaySlot[]>([])
   const remembersView = props.remembersView !== false
   const keysOnCanvas = props.keysOnCanvas === true
-  const selectElement = useEffectEvent<BadgeFilter>((elementId, scope) => {
-    props.onSelectElement(elementId, scope)
-  })
-  const imported = useEffectEvent((names: ReadonlyMap<string, string>) => {
-    setFailure(undefined)
-    props.onNames(names)
-  })
-  const drawLatest = useEffectEvent((created: RuntimeCanvas) => {
-    void created.update(props.xml, props.decorations)
-  })
+  const latest = useEffectEvent((): RuntimeDiagramProps => props)
   useEffect(() => {
     if (hostElement.current === null) {
       return undefined
@@ -52,7 +50,7 @@ function useRuntimeCanvas(props: RuntimeDiagramProps): DrawnCanvas {
       overlays: sink,
       stateApi: api,
       onSelectElement: (elementId, scope) => {
-        selectElement(elementId, scope)
+        latest().onSelectElement(elementId, scope)
       },
       onOpenCall: (elementId, toSide) => {
         host.post({ type: "openCall", elementId, toSide })
@@ -61,15 +59,20 @@ function useRuntimeCanvas(props: RuntimeDiagramProps): DrawnCanvas {
         host.post({ type: "openCode", elementId })
       },
       onImported: (names) => {
-        imported(names)
+        setFailure(undefined)
+        latest().onNames(names)
       },
       onImportFailed: setFailure,
       remembersView,
       keysOnCanvas,
+      onHover: (elementId) => latest().onHover?.(elementId),
+      onViewChange: () => latest().onViewChange?.(),
     })
     canvas.current = created
-    drawLatest(created)
+    void created.update(latest().xml, latest().decorations)
+    latest().onCanvas?.(created)
     return () => {
+      latest().onCanvas?.(undefined)
       canvas.current = null
       sink.detach()
       created.destroy()

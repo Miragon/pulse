@@ -1,0 +1,10 @@
+{
+  // The tests under test/. They see the same globals as src/ (no DOM, no Node): the builder's
+  // tests read the contract over the kit's fake, as every surface reads it over its runtime.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["test"]
+}

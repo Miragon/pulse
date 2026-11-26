@@ -26,9 +26,23 @@ const MINUTES: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit"
 const SECONDS: Intl.DateTimeFormatOptions = { ...MINUTES, second: "2-digit" }
 const MILLISECONDS: Intl.DateTimeFormatOptions = { ...SECONDS, fractionalSecondDigits: 3 }
 
+/** Whether the view's locale reads a 12-hour clock (`en-US`), not a 24-hour one (`de`, `-u-hc-h23`). */
+function twelveHour(): boolean {
+  const { hourCycle } = new Intl.DateTimeFormat(localeTag(), { hour: "numeric" }).resolvedOptions()
+  return hourCycle === "h11" || hourCycle === "h12"
+}
+
+/**
+ * The hour as its clock writes it: two digits on a 24-hour clock (`09:05`), no leading zero on a
+ * 12-hour one (`9:05 AM`, never `09:05 AM`).
+ */
+function onTheClock(parts: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions {
+  return twelveHour() ? { ...parts, hour: "numeric" } : parts
+}
+
 function timeParts(opts: TimeOptions): Intl.DateTimeFormatOptions | undefined {
-  if (opts.milliseconds) return MILLISECONDS
-  return opts.seconds === false ? MINUTES : undefined
+  if (opts.milliseconds) return onTheClock(MILLISECONDS)
+  return opts.seconds === false ? onTheClock(MINUTES) : undefined
 }
 
 function timeOf(date: Date, opts: TimeOptions): string {
@@ -52,7 +66,8 @@ function sameDay(a: Date, b: Date): boolean {
 
 /**
  * The time of day alone when it falls on today in the view's time zone, else with its day before
- * it (`09:05` / `Oct 21, 09:05`): for a list or a stamp, where the day is mostly today.
+ * it (`09:05` / `Oct 21, 09:05`, on a 12-hour clock `9:05 AM` / `Oct 21, 9:05 AM`): for a list or
+ * a stamp, where the day is mostly today.
  */
 export function formatClock(iso: string | null | undefined, opts: ClockOptions = {}): string {
   if (!iso) return EMPTY
@@ -60,7 +75,8 @@ export function formatClock(iso: string | null | undefined, opts: ClockOptions =
   if (!date) return EMPTY
   if (sameDay(date, opts.now ?? new Date())) return timeOf(date, opts)
   const day: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" }
-  return date.toLocaleString(localeTag(), zoned({ ...day, ...(timeParts(opts) ?? SECONDS) }))
+  const time = timeParts(opts) ?? onTheClock(SECONDS)
+  return date.toLocaleString(localeTag(), zoned({ ...day, ...time }))
 }
 
 /** The full instant in the view's time zone and in UTC, for a tooltip beside a clock. */

@@ -2,10 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { TestViewHost, type FollowUp } from "@miragon/pulse-widget-shell/widgets"
-import type { CockpitDashboardData, IncidentInstance } from "../view-models.js"
+import type { CockpitDashboardData, IncidentInstance, JobPanelData } from "../view-models.js"
 import { ProcessDefinitionsTable } from "./cockpit-dashboard/definitions-table.js"
+import { JobPanelWidget } from "./job-panel.js"
 import { NavProvider, type NavIntent } from "./navigation.js"
-import { IncidentTable } from "./process-incidents/incident-table.js"
+import { IncidentTable, type IncidentTarget } from "./process-incidents/incident-table.js"
 import type { IncidentRecoveryState } from "./process-incidents/use-incident-recovery.js"
 
 // One row convention on every surface (owner direction 2026-11-18): a table row opens what it
@@ -108,16 +109,24 @@ function recoveryOf({
 }
 
 function renderIncidents(
-  options: { retry?: boolean; done?: string[]; followUp?: FollowUp; subject?: "element" } = {},
+  options: {
+    retry?: boolean
+    done?: string[]
+    followUp?: FollowUp
+    subject?: "element"
+    incidents?: IncidentInstance[]
+  } = {},
 ) {
-  const onAnalyze = vi.fn<(id: string) => void>()
+  const onAnalyze = vi.fn<(target: IncidentTarget) => void>()
   render(
     <TestViewHost followUp={options.followUp ?? "chat"}>
       <IncidentTable
-        incidents={[
-          incident("1"),
-          incident("2", { incidentTimestamp: "2026-10-09T11:45:00.000+0000" }),
-        ]}
+        incidents={
+          options.incidents ?? [
+            incident("1"),
+            incident("2", { incidentTimestamp: "2026-10-09T11:45:00.000+0000" }),
+          ]
+        }
         recovery={recoveryOf(options)}
         onAnalyze={onAnalyze}
         subject={options.subject}
@@ -135,8 +144,49 @@ describe("an incident table's rows", () => {
     fireEvent.keyDown(row, { key: "Enter" })
     fireEvent.click(within(row).getByRole("button", { name: "Retry" }))
     fireEvent.click(within(row).getByRole("button", { name: /^More actions/ }))
-    expect(onAnalyze.mock.calls).toEqual([["1"], ["1"]])
+    const own = { incidentId: "1", label: "Charge card" }
+    expect(onAnalyze.mock.calls).toEqual([[own], [own]])
     expect(screen.queryAllByRole("button", { name: /^Open/ })).toEqual([])
+  })
+
+  // A call activity's copy of a called instance's incident is no incident of its own on screen:
+  // its row stands for the root incident, which it opens, names and copies.
+  const copyOf = (cause: IncidentInstance["rootCause"]) =>
+    incident("copy-1", {
+      incidentMessage: null,
+      activityId: "callCheck",
+      activityName: "Call check",
+      rootIncidentId: "root-1",
+      rootCause: cause,
+    })
+  const ROOT = {
+    incidentId: "root-1",
+    message: "Blacklist provider unreachable",
+    activityId: "checkBlacklist",
+    activityName: "Check blacklist",
+    processInstanceId: "a1b2c3d4-0000-4000-8000-000000000001",
+  }
+
+  it("open a copy's root incident, named by its element and its called instance, and copy its id", async () => {
+    const onAnalyze = renderIncidents({ subject: "element", incidents: [copyOf(ROOT)] })
+    const row = screen.getByRole("row", {
+      name: /^Incident at Check blacklist in the called instance a1b2c3d4…, /,
+    })
+    fireEvent.keyDown(row, { key: "Enter" })
+    fireEvent.click(within(row).getByText("Blacklist provider unreachable"))
+    const root = { incidentId: "root-1", label: "Check blacklist" }
+    expect(onAnalyze.mock.calls).toEqual([[root], [root]])
+
+    fireEvent.keyDown(row, { key: "c", ctrlKey: true })
+    expect(await screen.findByText("ID copied")).toBeTruthy()
+    expect(writeText).toHaveBeenCalledWith("root-1")
+  })
+
+  it("open a copy's root incident even where its root was not read, named as a called instance's", () => {
+    const onAnalyze = renderIncidents({ incidents: [copyOf(null)] })
+    const row = screen.getByRole("row", { name: /^Incident in a called instance, / })
+    fireEvent.keyDown(row, { key: "Enter" })
+    expect(onAnalyze.mock.calls).toEqual([[{ incidentId: "root-1", label: null }]])
   })
 
   it("name an instance's incidents by their element and their time, each its own", () => {
@@ -167,5 +217,56 @@ describe("an incident table's rows", () => {
     cleanup()
     renderIncidents({ followUp: "none", retry: true })
     expect(screen.getByRole("columnheader", { name: "Actions" })).toBeTruthy()
+  })
+})
+
+const JOBS: JobPanelData = {
+  totalCount: 1,
+  allCount: 3,
+  failedCount: 1,
+  fetchedAt: "2026-10-09T09:30:00.000Z",
+  jobs: [
+    {
+      id: "job-7",
+      processInstanceId: "pi-7",
+      processDefinitionKey: "invoice",
+      processDefinitionId: "invoice:1:d",
+      processDefinitionName: "Invoice receipt",
+      activityId: "charge",
+      activityName: "Charge card",
+      retries: 0,
+      exceptionMessage: "Card declined",
+      dueDate: null,
+      suspended: false,
+      priority: 0,
+      createTime: "2026-10-09T09:00:00.000Z",
+    },
+  ],
+  filters: { failedOnly: true },
+  engineId: "prod",
+}
+
+// The jobs had no row target (A2): a job has no view of its own, so its row opens its instance,
+// where its incident shows, and copies the job's own id.
+describe("the jobs' rows", () => {
+  it("open their job's instance on a click or Enter and copy the job's id", async () => {
+    const go = vi.fn<(intent: NavIntent) => void>()
+    render(
+      <TestViewHost>
+        <NavProvider value={go}>
+          <JobPanelWidget data={JOBS} engine="prod" failedOnly />
+        </NavProvider>
+      </TestViewHost>,
+    )
+    const row = screen.getByRole("row", { name: "Job at Charge card, instance pi-7" })
+    fireEvent.click(within(row).getByText("Card declined"))
+    fireEvent.keyDown(row, { key: "Enter" })
+    expect(go.mock.calls.map(([intent]) => intent)).toEqual([
+      { type: "instance-detail", processInstanceId: "pi-7" },
+      { type: "instance-detail", processInstanceId: "pi-7" },
+    ])
+    fireEvent.keyDown(row, { key: "c", metaKey: true })
+    expect(await screen.findByText("Job ID copied")).toBeTruthy()
+    expect(writeText).toHaveBeenCalledWith("job-7")
   })
 })

@@ -52,16 +52,21 @@ same provider, which the gate checked before the session kept it, and `/mcp` ver
 every forwarded call like any bearer token: the caller is its subject, and nothing the browser
 chooses names one. Under passthrough an engine gets the user's own token, as from a chat; a
 Camunda 8 cluster never does: the server reads it with its own client, so everyone signed in sees
-on a board what that client may read ([Camunda 8](../mcp/camunda8.md#one-client-per-server)). The
-per-caller caches key on the token, so a renewed token starts afresh.
+what that client may read, on boards and on the screens: its instances, variables and incident
+texts ([Camunda 8](../mcp/camunda8.md#one-client-per-server)). The per-caller caches key on the
+token, so a renewed token starts afresh.
 
 ## What a page may call
 
 `POST /app/api/call` takes `{ name, arguments }` as JSON of at most 64 KiB, with the CSRF token. It
 admits a tool a view calls that only reads (`readOnlyHint`): the view tool `engine_open_cockpit`,
-the app-only `*_data` feeds and the model tools marked `forViews` because the widgets read them
-(`engine_list_engines`, `engine_query_historic_activity_instances`, `engine_get_task_form`). Any
-other tool gets 403 `WEB_NOT_FOR_PAGES`, a write 403 `WEB_READ_ONLY`, before it runs.
+the app-only `*_data` feeds (the page's own screens read them too: `engine_screen_processes_data`,
+`engine_screen_process_data`, `engine_screen_instances_data`, `engine_screen_variable_names_data`,
+`engine_screen_instance_data`, `engine_screen_incident_text_data`, the search's
+`engine_screen_find_data`, `engine_screen_verdict_data` of Camunda 7, one call per engine) and the
+model tools marked `forViews` because the widgets read them (`engine_list_engines`,
+`engine_query_historic_activity_instances`, `engine_get_task_form`). Any other tool gets 403
+`WEB_NOT_FOR_PAGES`, a write 403 `WEB_READ_ONLY`, before it runs.
 
 The server then sends one `tools/call` in-process to `/mcp` with the session's bearer token and an
 MCP client's headers, so the edge guard, the OAuth gate, toolsets, engine routing, read-only
@@ -81,16 +86,24 @@ tool without `readOnlyHint`.
 
 ## The page
 
-`apps/web` is a Vite build on React, `@miragon/pulse-ui` and widget-shell. It mounts the engine
-module's views with `mountPage` from `@miragon/pulse-widget-shell/widgets` under a frame of its own
-(the bar, the session's notices), reads its session with `readWebSession()` and calls tools through
+`apps/web` is a Vite build on React, `@miragon/pulse-ui` and widget-shell. It mounts an app of its
+own with `mountApp` from `@miragon/pulse-widget-shell/widgets`: a frame (the side navigation, a
+drawer under 64rem, the session's notices) around the engine module's view its address names, which
+`PageView` calls with the page's chrome, so the cockpit leaves its head to the navigation, or a
+screen of its own: the start page (every engine summed), an engine's processes, a process in one
+version, an instance and an incident under it, the building blocks of `@miragon/pulse-blocks` over
+the screen feeds, whose places the page claims, so the cockpit embedded elsewhere never shows them.
+A screen but the start page fills the window's height from 64rem on and scrolls its regions in themselves; an incident's text is read only when it opens,
+a version's variable names when the condition dialog does. The reads that load an engine's database
+(an engine's processes with their counts, a version's element statistics, an instance list's first
+page with its counts, the variable names, a search, its engine's history gap apart for every text,
+the verdict's incident scan beside its engine's processes, whose read it shares, on the processes page once they show) stand on a floor of
+30 s per signed-in user and arguments at the server, so a Refresh within it shows the same read. Its router gives each view its address and leads Back, Forward and its links to the
+view, which goes there itself or starts anew there, never loading the page; it replaces an old
+`/app/cockpit?view=…` by the view's own address, `/app/fleet` by `/app`. It reads its session with `readWebSession()` and calls tools through
 `webToolCaller(session)`, which posts each call with the CSRF token and rejects a refusal as a
-`WebApiError`. The build holds `index.html`, `pages.json` (router patterns under `/app`, never a
-route of the server's own) and `assets/`:
-
-```json
-{ "pages": ["/app", "/app/cockpit", "/app/boards/:id"] }
-```
+`WebApiError`. The build holds `index.html`, `pages.json` (the addresses' router patterns under
+`/app`, such as `/app/engines/:engine/jobs`, never a route of the server's own) and `assets/`.
 
 The server reads the build once at boot, so no request touches the file system, and compresses each
 text asset over 1 KiB once, in brotli and gzip, keeping an encoding only where it is smaller. The

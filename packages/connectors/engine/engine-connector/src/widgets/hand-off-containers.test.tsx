@@ -13,7 +13,7 @@ import type {
 } from "../view-models.js"
 import { ClusterDetailWidget } from "./cluster-detail.js"
 import { HistoryTimelineWidget } from "./history-timeline.js"
-import { IncidentOverviewKpi } from "./incidents-dashboard/overview-kpi.js"
+import { IncidentsBar } from "./incidents-dashboard/incidents-bar.js"
 import { VariablesTab } from "./instance-detail/variables-tab.js"
 import { JobPanelWidget } from "./job-panel.js"
 import { IncidentTable } from "./process-incidents/incident-table.js"
@@ -126,8 +126,8 @@ describe("the variables tab", () => {
 const DASHBOARD: IncidentsDashboardData = {
   totalCount: 3,
   processCount: 1,
+  fetchedAt: "2026-10-26T08:00:00.000Z",
   affectedActivityCount: 1,
-  last24hCount: 1,
   latestIncident: null,
   processes: [],
   filters: {},
@@ -137,7 +137,9 @@ const DASHBOARD: IncidentsDashboardData = {
 
 const JOBS: JobPanelData = {
   totalCount: 1,
+  allCount: 1,
   failedCount: 1,
+  fetchedAt: "2026-10-26T08:00:00.000Z",
   jobs: [
     {
       id: "job-1",
@@ -183,10 +185,10 @@ const CLUSTER: ClusterDetailData = {
   incidentCount: 2,
   scannedIncidentCount: 2,
   lastHourCount: 1,
-  last24hCount: 2,
   firstSeen: null,
   latestIncident: null,
-  processDefinitionKeys: ["shipping"],
+  // Two processes: no single one for the bar to open, so its one action is the hand-off.
+  processDefinitionKeys: ["shipping", "returns"],
   representativeMessage: "Connection timeout",
   incidents: [],
   totalMatching: 0,
@@ -196,7 +198,7 @@ const CLUSTER: ClusterDetailData = {
 
 /** Each view whose bar holds one action, its hand-off. */
 const BARS: ReadonlyArray<[view: string, bar: ReactElement]> = [
-  ["the incidents' overview", <IncidentOverviewKpi key="kpi" data={DASHBOARD} engine="prod" />],
+  ["the incidents' bar", <IncidentsBar key="bar" data={DASHBOARD} engine="prod" />],
   ["the jobs", <JobPanelWidget key="jobs" data={JOBS} engine="prod" />],
   [
     "the instance list",
@@ -208,6 +210,7 @@ const BARS: ReadonlyArray<[view: string, bar: ReactElement]> = [
       total={3}
       engine="prod"
       filters={{}}
+      fetchedAt="2026-10-26T08:00:00.000Z"
     />,
   ],
   [

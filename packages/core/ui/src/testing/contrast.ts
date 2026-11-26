@@ -31,7 +31,17 @@ export interface Rgba {
 export interface ThemeVariables {
   light: Map<string, string>
   dark: Map<string, string>
+  /**
+   * The dark of a page whose root names no mode, on a dark OS: everything the dark scopes set,
+   * then the blocks for the OS's dark root (`@media (prefers-color-scheme: dark)` on
+   * `:root:where(:not([data-theme], [data-cd-theme], [data-theme-mode]))`), in their order.
+   * `parseThemeVariables` fills it; `measureContrast` measures it where it differs from `dark`.
+   */
+  os?: Map<string, string>
 }
+
+/** What a contrast result was measured in: a mode, or the OS's dark (`ThemeVariables.os`). */
+export type ContrastMode = ThemeMode | "os-dark"
 
 /** A comment may quote a rule it forbids; a linear scan, not a lazy regex, since it reads consumer CSS. */
 function stripComments(css: string): string {
@@ -134,21 +144,79 @@ const DENSITY: ReadonlySet<string> = new Set(POINTER_ROLES)
 const switchesDensityOnly = (block: RuleBlock) =>
   block.declarations.every(([name]) => DENSITY.has(name))
 
+/** The OS's dark mode, as a block's one parent names it (whitespace folded). */
+const OS_DARK_MEDIA = "@media(prefers-color-scheme:dark)"
+
 /**
- * Descendant scopes reach no root variable and are skipped; any other root-theme rule
- * (higher specificity, media query, layer) throws instead of measuring the wrong colour,
- * unless it is nested and sets density roles only (`@media (any-pointer: coarse)`).
+ * The OS's dark root, a root that names no mode (whitespace folded): as theme.css writes it, its
+ * `:where()` keeping the dark scopes' specificity, or as a plain `:not()`.
  */
-function rootScope(block: RuleBlock): { light: boolean; dark: boolean } {
+const OS_DARK_ROOTS: readonly string[] = [
+  ":root:where(:not([data-theme],[data-cd-theme],[data-theme-mode]))",
+  ":root:not([data-theme],[data-cd-theme],[data-theme-mode])",
+]
+
+const folded = (text: string) => text.replace(/\s+/g, "")
+
+/** A selector with what its parentheses and brackets hold left out: `:not(a, b)` is no combinator. */
+function outsideGroups(selector: string): string {
+  let depth = 0
+  let out = ""
+  for (const ch of selector) {
+    if (ch === "(" || ch === "[") depth++
+    if (depth === 0) out += ch
+    if (ch === ")" || ch === "]") depth--
+  }
+  return out
+}
+
+interface Scope {
+  light: boolean
+  dark: boolean
+  /** The OS's dark root (`ThemeVariables.os`). */
+  os: boolean
+}
+
+const NO_SCOPE: Scope = { light: false, dark: false, os: false }
+
+/**
+ * A block for the OS's dark root: its one parent the OS's dark mode, every selector that root
+ * alone (its scope), or that root with more (a light island inside it, its high contrast: the
+ * copies of rules the plain scopes skip as well, so they are skipped too).
+ */
+function osDarkScope(block: RuleBlock, selectors: readonly string[]): Scope | null {
+  if (block.parents.length !== 1 || folded(block.parents[0] ?? "") !== OS_DARK_MEDIA) return null
+  const roots = selectors.map((s) => {
+    const f = folded(s)
+    return OS_DARK_ROOTS.find((root) => f.startsWith(root)) === undefined
+      ? null
+      : OS_DARK_ROOTS.includes(f)
+  })
+  if (roots.some((root) => root === null)) return null
+  return roots.some(Boolean) ? { light: false, dark: false, os: true } : NO_SCOPE
+}
+
+/**
+ * Descendant scopes reach no root variable and are skipped; the OS's dark root is the `os`
+ * scope; any other root-theme rule (higher specificity, media query, layer) throws instead of
+ * measuring the wrong colour, unless it is nested and sets density roles only
+ * (`@media (any-pointer: coarse)`). In a nested block a space inside a group (`:not(a, b)`) is
+ * no combinator, so no root rule escapes the throw by the spaces of its own selector.
+ */
+function rootScope(block: RuleBlock): Scope {
   const selectors = selectorList(block.prelude)
   const unsupported = () =>
     new Error(
       `Unsupported theme rule "${[...block.parents, block.prelude].join(" { ")}": declare theme variables in plain :root and .dark blocks`,
     )
-  const reachesRoot = selectors.some((s) => ROOT_THEME.test(s) && !/[\s>+~]/.test(s))
   if (block.parents.length > 0) {
+    const os = osDarkScope(block, selectors)
+    if (os) return os
+    const reachesRoot = selectors.some(
+      (s) => ROOT_THEME.test(s) && !/[\s>+~]/.test(outsideGroups(s)),
+    )
     if (reachesRoot && !switchesDensityOnly(block)) throw unsupported()
-    return { light: false, dark: false }
+    return NO_SCOPE
   }
   let light = false
   let dark = false
@@ -159,23 +227,27 @@ function rootScope(block: RuleBlock): { light: boolean; dark: boolean } {
       throw unsupported()
     }
   }
-  return { light, dark }
+  return { light, dark, os: dark }
 }
 
 const isThemeBlock = (block: RuleBlock) => /^@theme\b/.test(block.prelude)
 
 /**
  * `@theme` blocks sit below every unlayered rule. Dark reads `:root` AND `.dark`, so a
- * later light-only `:root` override reaches dark too, as in the browser.
+ * later light-only `:root` override reaches dark too, as in the browser. The OS's dark (`os`)
+ * reads what dark reads and the blocks for the OS's dark root on top, in their order, so a
+ * brand's dark values are measured in both places it writes them.
  */
 export function parseThemeVariables(...stylesheets: string[]): ThemeVariables {
   const blocks = stylesheets.flatMap((css) => ruleBlocks(stripComments(css)))
   const light = new Map<string, string>()
   const dark = new Map<string, string>()
+  const os = new Map<string, string>()
   for (const block of blocks.filter((b) => isThemeBlock(b) && b.parents.length === 0)) {
     for (const [name, value] of block.declarations) {
       light.set(name, value)
       dark.set(name, value)
+      os.set(name, value)
     }
   }
   for (const block of blocks) {
@@ -184,9 +256,10 @@ export function parseThemeVariables(...stylesheets: string[]): ThemeVariables {
     for (const [name, value] of block.declarations) {
       if (scope.light) light.set(name, value)
       if (scope.dark) dark.set(name, value)
+      if (scope.os) os.set(name, value)
     }
   }
-  return { light, dark }
+  return { light, dark, os }
 }
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x))
@@ -362,25 +435,42 @@ export interface ContrastPair {
 }
 
 export interface ContrastResult {
-  mode: ThemeMode
+  mode: ContrastMode
   label: string
   ratio: number
   min: number
 }
 
+function ratioOf(vars: Map<string, string>, pair: ContrastPair): number {
+  const color = (name: string) => resolveColor(`var(${name})`, vars)
+  const base = composite(color(pair.over ?? "--card"), { r: 1, g: 1, b: 1, a: 1 })
+  const bg = composite(color(pair.bg), base)
+  const fg = composite(color(pair.fg), bg)
+  return contrastRatio(fg, bg)
+}
+
+/**
+ * Each pair in light and dark, and in the OS's dark (`os-dark`) where that resolves the pair to
+ * another ratio than dark does: a theme that repeats its dark values for the OS, as the kit's
+ * does, measures them once.
+ */
 export function measureContrast(
   theme: ThemeVariables,
   pairs: readonly ContrastPair[],
 ): ContrastResult[] {
   const results: ContrastResult[] = []
   for (const mode of ["light", "dark"] as const) {
-    const vars = theme[mode]
-    const color = (name: string) => resolveColor(`var(${name})`, vars)
     for (const pair of pairs) {
-      const base = composite(color(pair.over ?? "--card"), { r: 1, g: 1, b: 1, a: 1 })
-      const bg = composite(color(pair.bg), base)
-      const fg = composite(color(pair.fg), bg)
-      results.push({ mode, label: pair.label, ratio: contrastRatio(fg, bg), min: pair.min })
+      results.push({ mode, label: pair.label, ratio: ratioOf(theme[mode], pair), min: pair.min })
+    }
+  }
+  const { os } = theme
+  if (os) {
+    for (const pair of pairs) {
+      const ratio = ratioOf(os, pair)
+      if (Math.abs(ratio - ratioOf(theme.dark, pair)) > 1e-9) {
+        results.push({ mode: "os-dark", label: pair.label, ratio, min: pair.min })
+      }
     }
   }
   return results

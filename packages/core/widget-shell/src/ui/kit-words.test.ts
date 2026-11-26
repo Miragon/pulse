@@ -6,9 +6,11 @@ import {
   PRODUCT_GLOSSARY,
 } from "@miragon/pulse-ui/testing"
 import { ASK_AI_PROMPT_LABELS } from "./ask-ai-prompt.js"
+import { ARTIFACT_PAGE_HINTS } from "./claude-artifact/artifact-hints.js"
 import { ERROR_KINDS } from "./describe-error.js"
 import { ERROR_LABELS, type ErrorLabels, type ErrorSource } from "./error-labels.js"
 import { KIT_LABELS } from "./kit-labels.js"
+import { PAGE_HINTS } from "./page-hints.js"
 
 // The kit's words: the catalog text and glossary half of the brand gates, next to the catalogs
 // it reads. The scans of the kit's code read sources from disk, which the browser-only
@@ -22,7 +24,10 @@ const ERROR_SOURCES: ReadonlyArray<[key: string, source: ErrorSource]> = [
 ]
 
 /** The gates' sample parameters (every property 1) would only reach the fallback branch, so every branch is rendered here. */
-function renderedErrorWords(labels: ErrorLabels): Record<string, string> {
+function renderedErrorWords(
+  labels: ErrorLabels,
+  pageHints: (typeof PAGE_HINTS)[keyof typeof PAGE_HINTS],
+): Record<string, string> {
   const status = labels.status({ status: 503 })
   const words: Record<string, string> = { status }
   for (const [key, source] of ERROR_SOURCES) {
@@ -30,13 +35,11 @@ function renderedErrorWords(labels: ErrorLabels): Record<string, string> {
     words[`source.${key}`] = subject
     for (const kind of ERROR_KINDS) {
       words[`${kind}.title.${key}`] = labels[kind].title({ source: subject, status })
-      words[`${kind}.hint.${source.type}`] = labels[kind].hint({ source: source.type, page: false })
-      words[`${kind}.pageHint.${source.type}`] = labels[kind].hint({
-        source: source.type,
-        page: true,
-      })
+      words[`${kind}.hint.${source.type}`] = labels[kind].hint({ source: source.type })
     }
   }
+  // A page's words of what to do, which its host brings in place of a chat's (`page-hints.ts`).
+  for (const [kind, hint] of Object.entries(pageHints)) words[`${kind}.pageHint`] = hint
   const title = labels.failed.title({
     source: labels.source({ source: ERROR_SOURCES[0][1] }),
     status,
@@ -48,8 +51,14 @@ function renderedErrorWords(labels: ErrorLabels): Record<string, string> {
 }
 
 const ERROR_WORDS = {
-  de: renderedErrorWords(ERROR_LABELS.de),
-  en: renderedErrorWords(ERROR_LABELS.en),
+  de: renderedErrorWords(ERROR_LABELS.de, PAGE_HINTS.de),
+  en: renderedErrorWords(ERROR_LABELS.en, PAGE_HINTS.en),
+}
+
+/** What a Claude artifact shows: the same words with its own hints and claude.ai's place. */
+const ARTIFACT_WORDS = {
+  de: renderedErrorWords(ERROR_LABELS.de, ARTIFACT_PAGE_HINTS.de),
+  en: renderedErrorWords(ERROR_LABELS.en, ARTIFACT_PAGE_HINTS.en),
 }
 
 describe("the error words are rendered branch by branch", () => {
@@ -72,6 +81,8 @@ describe("kit copy follows the voice rules", () => {
     ["hand-off fence (en)", ASK_AI_PROMPT_LABELS.en, "en"],
     ["error words (de)", ERROR_WORDS.de, "de"],
     ["error words (en)", ERROR_WORDS.en, "en"],
+    ["an artifact's error words (de)", ARTIFACT_WORDS.de, "de"],
+    ["an artifact's error words (en)", ARTIFACT_WORDS.en, "en"],
   ] as const)("%s", (_, catalog, language) => {
     expect(catalogTextFindings(catalog, { language })).toEqual([])
   })
@@ -89,18 +100,29 @@ describe("the frame's words for a page", () => {
   })
 
   it.each([
-    ["de", /Chat/],
-    ["en", /chat/i],
+    ["de", "PAGE_HINTS", ERROR_WORDS, /Chat/],
+    ["en", "PAGE_HINTS", ERROR_WORDS, /chat/i],
+    ["de", "ARTIFACT_PAGE_HINTS", ARTIFACT_WORDS, /Chat/],
+    ["en", "ARTIFACT_PAGE_HINTS", ARTIFACT_WORDS, /chat/i],
   ] as const)(
-    "%s: the error words for a page never send the reader to a chat",
-    (language, chat) => {
-      const words = Object.entries(ERROR_WORDS[language])
-      const page = words.filter(([key]) => key.includes(".pageHint."))
-      expect(page).toHaveLength(ERROR_KINDS.length * 2)
-      for (const [key, text] of page) expect(text, key).not.toMatch(chat)
-      // The chat's own words do, where a chat is the way out: the page's differ there.
-      const asksChat = words.filter(([key, text]) => key.includes(".hint.") && chat.test(text))
+    "%s: the error words for a page with %s never send the reader to a chat",
+    (language, _, catalog, chat) => {
+      const words: Readonly<Record<string, string | undefined>> = catalog[language]
+      // What a page shows: its host's hint where it brings one, else the kind's one hint.
+      for (const kind of ERROR_KINDS) {
+        for (const source of ["engine", "unknown"]) {
+          const text = words[`${kind}.pageHint`] ?? words[`${kind}.hint.${source}`]
+          expect(text, `${kind} (${source})`).not.toMatch(chat)
+        }
+      }
+      // The chat's own words do, where a chat is the way out: the page brings its own for each.
+      const asksChat = Object.entries(words).filter(
+        ([key, text]) => key.includes(".hint.") && chat.test(text ?? ""),
+      )
       expect(asksChat.length).toBeGreaterThan(0)
+      for (const [key] of asksChat) {
+        expect(words[`${String(key.split(".")[0])}.pageHint`], key).toBeDefined()
+      }
     },
   )
 })
@@ -124,5 +146,64 @@ describe("kit copy uses the product glossary", () => {
 
   it.each(["de", "en"] as const)("error words (%s)", (language) => {
     expect(glossaryFindings(ERROR_WORDS[language], rules[language])).toEqual([])
+  })
+
+  it.each(["de", "en"] as const)("an artifact's error words (%s)", (language) => {
+    expect(glossaryFindings(ARTIFACT_WORDS[language], rules[language])).toEqual([])
+  })
+})
+
+/**
+ * The kinds of the Pulse server's own codes (`[ENGINE_PROFILE_REFUSED]`, `[ENGINE_READ_ONLY]`,
+ * `[ENGINE_DIALECT_NOT_SERVED]`, `[UNKNOWN_BOARD]`, `[BOARD_REFUSED]`): only their words may name
+ * Pulse, since any other kind is a failure any MCP server's tool may give.
+ */
+const PULSE_KINDS: ReadonlySet<string> = new Set([
+  "profileRefused",
+  "readOnly",
+  "notServed",
+  "unknownBoard",
+  "boardRefused",
+])
+
+describe("a Claude artifact's words (ARTIFACT_PAGE_HINTS)", () => {
+  it("hold the same keys in English and German", () => {
+    expect(Object.keys(ARTIFACT_PAGE_HINTS.de).sort()).toEqual(
+      Object.keys(ARTIFACT_PAGE_HINTS.en).sort(),
+    )
+  })
+
+  it.each(["de", "en"] as const)(
+    "%s: name claude.ai's settings as the place of the page's connectors",
+    (language) => {
+      expect(ARTIFACT_PAGE_HINTS[language].connectionPlace).toMatch(/^in claude\.ai\b.*Connectors$/)
+    },
+  )
+
+  it.each([
+    ["de", /\bEngine/],
+    ["en", /\bengine/i],
+  ] as const)(
+    "%s: blame no Pulse server and no engine for a failure any server may give, only for Pulse's own codes",
+    (language, engine) => {
+      const generic = Object.entries(ARTIFACT_PAGE_HINTS[language]).filter(
+        ([kind]) => kind !== "connectionPlace" && !PULSE_KINDS.has(kind),
+      )
+      expect(generic.map(([kind]) => kind)).toEqual(
+        expect.arrayContaining([
+          "failed",
+          "unknown",
+          "invalidArguments",
+          "notOnServer",
+          "unreachable",
+        ]),
+      )
+      expect(generic.filter(([, hint]) => /Pulse/.test(hint ?? ""))).toEqual([])
+      expect(generic.filter(([, hint]) => engine.test(hint ?? ""))).toEqual([])
+    },
+  )
+
+  it("know the kinds of Pulse's own codes by the kit's names", () => {
+    expect(ERROR_KINDS).toEqual(expect.arrayContaining([...PULSE_KINDS]))
   })
 })

@@ -25,6 +25,7 @@ page: [CLI development](docs/cli/development.md), the [VS Code extension](apps/v
 | Path                                                                                          | Package                                             | Role                                                                          |
 | --------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- |
 | [`apps/mcp-server/`](apps/mcp-server)                                                         | `ghcr.io/miragon/pulse-server`                      | The MCP server: composes the modules, serves HTTP on `:8400`                  |
+| [`apps/mcp-server/skills/pulse-artifact/`](apps/mcp-server/skills/pulse-artifact)             | `pulse-artifact` (a Claude Code plugin)             | The skill that builds a Claude artifact from the template                     |
 | [`apps/cli/`](apps/cli)                                                                       | `@miragon/pulse-cli`                                | The command line interface                                                    |
 | [`apps/vscode/`](apps/vscode)                                                                 | `pulse-cockpit` (a .vsix)                           | Pulse for VS Code                                                             |
 | [`apps/orca/`](apps/orca)                                                                     | `pulse-cockpit` (an Orca plugin, not published yet) | Pulse for Orca                                                                |
@@ -40,10 +41,12 @@ page: [CLI development](docs/cli/development.md), the [VS Code extension](apps/v
 | [`packages/core/runtime-view/`](packages/core/runtime-view)                                   | `@miragon/pulse-runtime-view` (private)             | The runtime view the VS Code extension and the Orca plugin share              |
 | [`packages/core/profile/`](packages/core/profile)                                             | `@miragon/pulse-profile`                            | One profile format for the CLI, the editors and the MCP server                |
 | [`packages/core/board/`](packages/core/board)                                                 | `@miragon/pulse-board`                              | One board file format and builder for every surface that shows a board        |
+| [`packages/core/screens/`](packages/core/screens)                                             | `@miragon/pulse-screens`                            | Screens as data: the editors' engine, process and instance numbers            |
 | [`packages/core/blocks/`](packages/core/blocks)                                               | `@miragon/pulse-blocks`                             | Building blocks every surface renders alike, today the tiles of a board       |
 | [`packages/core/http/`](packages/core/http)                                                   | `@miragon/pulse-http`                               | One engine transport for the CLI, the editors and the MCP server              |
 | [`playground/`](playground)                                                                   | —                                                   | Demo engine, Compose stack and the public playground                          |
 | [`templates/composed-server/`](templates/composed-server)                                     | `Miragon/pulse-starter`                             | [Starter](docs/mcp/build-your-own.md) for your own server                     |
+| [`templates/claude-artifact/`](templates/claude-artifact)                                     | —                                                   | [Template](docs/mcp/claude-artifacts.md) of a Claude artifact on Pulse        |
 
 The rules for code changes, the architecture invariants and what each check covers are in
 [`CLAUDE.md`](CLAUDE.md).

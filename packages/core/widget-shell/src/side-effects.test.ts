@@ -23,7 +23,10 @@ const SERVER_CODE =
 /** A Node built-in stays external, so a leak shows as an import of the output. */
 const NODE_BUILTINS = [...builtinModules, ...builtinModules.map((name) => `node:${name}`)]
 
-/** The page root among them: a page outside a chat mounts its views without ext-apps. */
+/**
+ * The page root among them: a page outside a chat mounts its views without ext-apps, and reads its
+ * sections without it.
+ */
 const BLOCKS = [
   "ListTable",
   "describeError",
@@ -31,12 +34,19 @@ const BLOCKS = [
   "TestViewHost",
   "useToolQuery",
   "mountPage",
+  "mountApp",
+  "PageView",
+  "useSectionRead",
+  "PageGate",
 ]
 
-/** Bundles one export of the barrel: the server-side packages in the output, and its imports. */
-async function bundleOne(name: string) {
+/**
+ * Bundles one export of an entry (the barrel's): the server-side packages in the output, and its
+ * imports.
+ */
+async function bundleOne(name: string, entry = "./ui/index.js") {
   const result = await build({
-    stdin: { contents: `export { ${name} } from "./ui/index.js"`, resolveDir: here, loader: "ts" },
+    stdin: { contents: `export { ${name} } from "${entry}"`, resolveDir: here, loader: "ts" },
     bundle: true,
     write: false,
     metafile: true,
@@ -69,6 +79,16 @@ describe("the /widgets barrel tree-shakes", () => {
     },
     30_000,
   )
+
+  // A Claude artifact mounts from its own entry, a page as the others are.
+  it("mountClaudeArtifact (./claude-artifact) carries no MCP runtime, no server library and no Node built-in", async () => {
+    const { serverCode, imports } = await bundleOne(
+      "mountClaudeArtifact",
+      "./ui/claude-artifact/index.js",
+    )
+    expect(serverCode).toEqual([])
+    expect(imports).toEqual([])
+  }, 30_000)
 
   it("sees the runtime where it belongs: mountViews carries ext-apps", async () => {
     const { serverCode } = await bundleOne("mountViews")

@@ -8,30 +8,50 @@ the ports, read models and failure kinds every dialect answers in, the conforman
 fake (`./testing`), which its layers and the hosts import directly (owner decision 2026-11-09 on
 #585: one home of the contract, no second copy here).
 
-| Layer    | Path                | Entry                                               | Holds                                                                                                                                                                                                 |
-| -------- | ------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ports    | `src/ports`         | `@miragon/pulse-runtime-view/ports`                 | the ports only the editor hosts need: `EngineAdapter` with the `BpmnDialect` an adapter brings, the local model and its code                                                                          |
-| core     | `src/core`          | `@miragon/pulse-runtime-view/core`                  | panels, boards (the board format and builder of `@miragon/pulse-board`, serialized by `BoardViews` with `BoardJson.of`), refresh loops, view models                                                   |
-| protocol | `src/core/protocol` | `@miragon/pulse-runtime-view/protocol`              | the JSON messages and view models between a host and the webview, a board's tiles in the board's JSON form                                                                                            |
-| model    | `src/model`         | `@miragon/pulse-runtime-view/model`                 | the local `.bpmn` reader and the code locator, behind the local ports                                                                                                                                 |
-| webview  | `src/webview`       | `@miragon/pulse-runtime-view/webview-build-options` | the webview, React on pulse-ui, each host bundles into its frames                                                                                                                                     |
-| host kit | `src/host-kit`      | `@miragon/pulse-runtime-view/host-kit`              | the rules every editor host shares: `EngineRoot` (the adapters per dialect, the local target, the dialects), targets from `.pulse.json` and the CLI's user config, write and live policies, the audit |
+| Layer    | Path                | Entry                                               | Holds                                                                                                                                                                                                                                                             |
+| -------- | ------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ports    | `src/ports`         | `@miragon/pulse-runtime-view/ports`                 | the ports only the editor hosts need: `EngineAdapter` with the `BpmnDialect` an adapter brings, the local model and its code                                                                                                                                      |
+| core     | `src/core`          | `@miragon/pulse-runtime-view/core`                  | panels, boards (the board format and builder of `@miragon/pulse-board`, serialized by `BoardViews` with `BoardJson.of`), the migration plan preview (`MigrationPlanPanel` over a plan file read with `@miragon/pulse-migration-plan`), refresh loops, view models |
+| protocol | `src/core/protocol` | `@miragon/pulse-runtime-view/protocol`              | the JSON messages and view models between a host and the webview, a board's tiles in the board's JSON form                                                                                                                                                        |
+| model    | `src/model`         | `@miragon/pulse-runtime-view/model`                 | the local `.bpmn` reader and the code locator, behind the local ports                                                                                                                                                                                             |
+| webview  | `src/webview`       | `@miragon/pulse-runtime-view/webview-build-options` | the webview, React on pulse-ui, each host bundles into its frames                                                                                                                                                                                                 |
+| host kit | `src/host-kit`      | `@miragon/pulse-runtime-view/host-kit`              | the rules every editor host shares: `EngineRoot` (the adapters per dialect, the local target, the dialects), targets from `.pulse.json` and the CLI's user config, write and live policies, the audit                                                             |
 
 Each layer has its own `tsconfig.<layer>.json` with its runtime's globals only, and its own
 closed-world dependency rules (`.dependency-cruiser.cjs`, `pnpm lint:architecture:runtime-view`):
 the ports, the core, the model reader and the host kit import engine-core's main entry, the core
 and the webview Pulse's UI foundation (`@miragon/pulse-ui/tones`, `@miragon/pulse-ui/format`), the
 webview also pulse-ui's React kit and its `theme.css` and Pulse's building blocks
-(`@miragon/pulse-blocks`, its main entry: a board's tiles), the host kit's
+(`@miragon/pulse-blocks`, its main entry: a board's tiles, the engine's process list, an instance's and a process's blocks), the host kit's
 connections the profile format (`@miragon/pulse-profile`), the core the board format
 (`@miragon/pulse-board`, its main entry; the protocol keeps a copy of the tiles of a board's JSON
 form, `BoardData`, which `test/core/board-format.test.ts` holds equal to the format's) and its
 builder (`@miragon/pulse-board/builder`: a board's numbers, which `BoardViews` serializes with
 `BoardJson.of` and hands the webview with what only the editors add, the targets the core checks
 a click against and the diagram's XML, a problem staying a code, and the roll-up onto collapsed
-sub-processes the definition and instance views draw too), and no layer a dialect's core. The
-webview renders a board's tiles with the building blocks under an English `LocaleProvider`, which
-word them, and brings their slots: its table, its short id and its diagram canvas.
+sub-processes the definition and instance views draw too), the core also the screens
+(`@miragon/pulse-screens` and its `./builder`: the engine screen's numbers and the process list's
+filter, a process's versions, badges, call targets and the older versions' notice and an
+instance list's page, counts and query, and an instance's incident cards, wait rows, path, call
+links, head strip and markers, whose JSON forms the core words in English into the definition and
+instance views, their protocol unchanged; the protocol keeps a copy of the engine screen's JSON
+form of a process row, its filter, its scope counts and its totals, which
+`test/core/engine-screen-format.test.ts` holds equal to the format's, and of a badge, an instance
+list's filter, its counts and a variable condition's type rule, which
+`test/core/process-screen-format.test.ts` holds equal), the core's `src/core/plans` alone the
+migration plan format (`@miragon/pulse-migration-plan`, its main entry: the parser, the words of
+its problems and the rule that resolves a version number; the repository's
+`migration-plan-consumers`), which `plans-start-nothing` keeps from importing a write or a panel
+that brings one in, and whose behaviour the test 'starts nothing' in
+`test/core/migration-plan-panel.test.ts` holds, and no layer a
+dialect's core. The webview renders a board's tiles, the engine's
+process list and the instance view's facts, head strip, incident cards, tables of waits, path and
+variables and marker legend with the building blocks under an English `LocaleProvider`, which
+word them, and brings their slots: its table, its short id or named id, its diagram canvas, its
+links and copy (`src/webview/screens/instance-slots.tsx`), and the instance's writes (the retry,
+the variable editor, a move from a wait) and its stacktrace document in the slots of the block
+that shows them; the protocol's instance rows carry what the blocks word beside the core's
+words, which `test/core/instance-screen-format.test.ts` holds to the instance screen's form.
 That edge of `packages/core` into the engine family is the one the owner accepted
 (`runtime-view-builds-on-the-engine-contract` in the repository's `.dependency-cruiser.cjs`).
 The hosts read the types from the build (`dist`, declarations only) and bundle the sources.
@@ -85,14 +105,19 @@ harness's. The hooks:
 | bar and states    | `context-bar` (`data-kind`: engine, definition, instance, migration, board, pending), `context-subject`, `context-key`, `access`, `freshness`, `strips`                                                                       |
 | notices           | `status-strip`, `strip-title`, `status-box`, `bulk-strip`, `empty-hint`, `loading-layout`, `skeleton`                                                                                                                         |
 | lists             | `data-table` (`data-state`: auto, fixed), `column-label`, `table-empty`, `table-footer`, `filter-bar`, `filter-chip`, `filter-summary`, `segment-count`, `selection-count`, `tab-bar`                                         |
-| states and counts | `state-label`, `incident-flag`, `count-badge`, `incident-count`                                                                                                                                                               |
-| instance          | `incident-card`, `variable-name`, `editor-hint`, `editor-warning`, `caller-link`, `called-instance-link`                                                                                                                      |
+| states and counts | `state-label`, `incident-flag`, `count-badge`, `incident-count`, `root-incident-count`                                                                                                                                        |
+| instance          | `incident-card`, `variable-name`, `shadow-warning`, `editor-hint`, `editor-warning`, `caller-link`, `called-instance-link`                                                                                                    |
 | diagram           | `diagram`, `diagram-canvas`, `diagram-failure`, `badge-count`, `call-button`, `element-actions`, `move-entry`, `move-badge`, `code-button`, `move-panel`, `move-warning`                                                      |
-| migration         | `migration-diagram`, `migration-summary`, `migration-refusal`, `mapping-note`                                                                                                                                                 |
+| migration         | `migration-diagram`, `migration-summary`, `migration-refusal`, `mapping-note`, `plan-verdict`, `plan-facts`                                                                                                                   |
 | boards            | `board-card` (`data-kind`: the tile's kind, `refused` for a widget the file breaks), `refused-reason`, `board-notes`, `counter-value`, `counter-partial`, `counter-threshold`, `counter-entry`, `counter-count`, `group-note` |
 
 The board's parts are the building blocks' own (`@miragon/pulse-blocks` carries the boards row's
-hooks but `board-notes`, and `incident-flag` and `empty-hint` in its tiles). The kit's slots a part
+hooks but `board-notes`, and `incident-flag` and `empty-hint` in its tiles), and so are the engine
+tab's `filter-bar`, `segment-count`, `incident-count` and `root-incident-count` (its process table and
+filter bar), and the
+instance view's `incident-card` and `variable-name` (its incident cards and variables table), and
+the definition view's `filter-bar`, `segment-count`, `filter-chip`, `incident-flag`, `badge-count`
+and `call-button` (its filter bar, instance table, badge clusters and call buttons). The kit's slots a part
 resolves to as well: `context-bar` `view-bar`, `context-subject`
 `view-bar-subject`, `access` `view-bar-access`, `freshness` `view-bar-freshness`, `status-strip`
 `status-strip`, `strip-title` the strip's first text, `state-label` `state-label`,

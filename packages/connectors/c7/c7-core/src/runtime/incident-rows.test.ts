@@ -1,6 +1,6 @@
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
-import { incidentRowOf, incidentRowsOf, isRootIncident, recoveryIdOf } from "./incident-rows.js"
+import { incidentRowOf, incidentRowsOf, recoveryIdOf } from "./incident-rows.js"
 
 const REQUIRED = {
   id: "inc-1",
@@ -86,20 +86,6 @@ describe("incidentRowsOf", () => {
     ["a row that is no object", [FULL, "inc-2"], "incidents[1] is not an object"],
   ])("fails %s as unexpected", (_kind, answer, message) => {
     expectUnexpected(() => incidentRowsOf(answer), message)
-  })
-})
-
-describe("isRootIncident", () => {
-  it("is an incident that names no root cause", () => {
-    expect(isRootIncident({ id: "inc-1" })).toBe(true)
-  })
-
-  it("is an incident that names itself as its root cause", () => {
-    expect(isRootIncident({ id: "inc-1", rootCauseIncidentId: "inc-1" })).toBe(true)
-  })
-
-  it("is no incident copied up from a called instance", () => {
-    expect(isRootIncident({ id: "inc-2", rootCauseIncidentId: "inc-1" })).toBe(false)
   })
 })
 

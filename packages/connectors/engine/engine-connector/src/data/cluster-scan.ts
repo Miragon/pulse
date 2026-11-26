@@ -1,4 +1,7 @@
+import type { Client } from "@miragon/pulse-c7-client"
+import { getIncidents } from "@miragon/pulse-c7-client/sdk"
 import { earliestEngineDate, engineDateMillis } from "@miragon/pulse-c7-core"
+import { rowsOf } from "./engine-reads.js"
 
 export const HOUR_MS = 60 * 60 * 1000
 
@@ -18,6 +21,26 @@ export interface IncidentLike {
   activityId?: string | null
   incidentMessage?: string | null
   incidentTimestamp?: string | null
+  /**
+   * The incident it copies (a call activity's copy of a called instance's); its own id on a root,
+   * which c7-core's `isRootIncident` tells. A cause is formed from root incidents alone, as
+   * c7-core's `groupIncidents` forms `engine_status`'s groups, so a failure is one cause however
+   * deep it was called; the counts keep every incident.
+   */
+  rootCauseIncidentId?: string | null
+}
+
+/**
+ * The newest open incidents of the engine, `CLUSTER_SCAN_LIMIT` at most, copies included: the
+ * scan the cockpit's overview builds its clusters from and the verdict reads its lower bounds of
+ * (the root incidents outside any process, the largest cause), the overview's and the web app's
+ * verdict feed's alike.
+ */
+export function scanOpenIncidents(client: Client): Promise<IncidentLike[]> {
+  return getIncidents({
+    client,
+    query: { maxResults: CLUSTER_SCAN_LIMIT, sortBy: "incidentTimestamp", sortOrder: "desc" },
+  }).then((rows) => rowsOf<IncidentLike>(rows))
 }
 
 export interface ScanCoverage {

@@ -27,6 +27,29 @@ const SAMPLES: Record<string, unknown[]> = {
   edit: [{ label: "amount > 100" }],
   remove: [{ label: "amount > 100" }],
   atLeast: [{ count: "2,000" }],
+  asOf: [{ time: "14:32" }],
+  ...Object.fromEntries(
+    [
+      "needsReauth",
+      "needsReauthHint",
+      "notConnected",
+      "notConnectedHint",
+      "notAllowed",
+      "notAllowedHint",
+      "approvalRequired",
+      "approvalRequiredHint",
+      "unavailable",
+      "unavailableHint",
+      "toolError",
+      "toolErrorHint",
+    ].map((key) => [
+      key,
+      [{ connector: "Pulse", place: "in claude.ai, in Settings under Connectors" }],
+    ]),
+  ),
+  countRunning: [{ element: "Approve order", count: "3" }],
+  countIncidents: [{ element: "Approve order", count: "1" }],
+  countIncidentsInCalledInstances: [{ element: "Ship order", count: "2" }],
 }
 
 /** Every message of a catalog as `[path, rendered text]`. */
@@ -116,7 +139,7 @@ describe("kit catalogs", () => {
     const identical = flatten(UI_MESSAGES.de)
       .filter(([path, text]) => en.get(path) === text)
       .map(([, text]) => text)
-    expect([...new Set(identical)].sort()).toEqual(["Details", "Incident", "Live"])
+    expect([...new Set(identical)].sort()).toEqual(["Details", "Incident"])
   })
 
   it("renders counts and names into the parametrised messages", () => {
@@ -188,7 +211,9 @@ describe("resolveUiMessages", () => {
       "copyableId",
       "conditionChip",
       "stateLabel",
-      "pills",
+      "freshness",
+      "sectionState",
+      "pageError",
     ] as const) {
       expect(merged[section]).toEqual(UI_MESSAGES.de[section])
     }

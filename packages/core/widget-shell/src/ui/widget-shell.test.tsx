@@ -51,6 +51,34 @@ describe("WidgetShell", () => {
     expect(document.body.innerHTML).not.toContain("bar-inset")
   })
 
+  it("fills a page's flex column with fill, its content taking the room under the header", () => {
+    render(
+      <WidgetShell fill header={<header data-testid="bar">bar</header>}>
+        <p data-testid="content">a</p>
+      </WidgetShell>,
+    )
+    const content = holderOf("content")
+    const shell = shellOf(content)
+    const FILLS = ["min-h-0", "flex-1"]
+    expect(classesOf(content)).toEqual(expect.arrayContaining(FILLS))
+    expect(classesOf(shell)).toEqual(expect.arrayContaining([...FILLS, "w-full"]))
+    expect(classesOf(shell.parentElement!)).toEqual(
+      expect.arrayContaining([...FILLS, "flex", "flex-col"]),
+    )
+  })
+
+  it("takes its content's height without fill, as a chat's view does", () => {
+    render(
+      <WidgetShell>
+        <p data-testid="content">a</p>
+      </WidgetShell>,
+    )
+    const content = holderOf("content")
+    for (const element of [content, shellOf(content), shellOf(content).parentElement!]) {
+      expect(classesOf(element)).not.toContain("flex-1")
+    }
+  })
+
   it("draws no empty content under a header alone", () => {
     render(<WidgetShell header={<header data-testid="bar">bar</header>} />)
     expect(document.querySelector('[data-slot="widget-content"]')).toBeNull()

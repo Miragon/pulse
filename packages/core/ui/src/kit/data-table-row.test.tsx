@@ -29,11 +29,14 @@ function Orders({
   onOpen = vi.fn(),
   onCopy,
   copyHint,
+  linked = false,
 }: {
   orders?: Order[]
   onOpen?: (order: Order, how: RowActivation) => void
   onCopy?: (order: Order) => void
   copyHint?: string
+  /** Each row a link to its order's address, as a page with addresses has them. */
+  linked?: boolean
 }) {
   return (
     <DataTable
@@ -47,6 +50,7 @@ function Orders({
           label={`Order ${order.id}`}
           onActivate={order.closed ? undefined : (how) => onOpen(order, how)}
           onCopy={onCopy && (() => onCopy(order))}
+          href={linked ? `/orders/${order.id}` : undefined}
         >
           <Td>{order.name}</Td>
           <Td>
@@ -145,6 +149,37 @@ describe("DataTableRow: a composed row as a target", () => {
       [ORDERS[2], { toSide: false }],
       [ORDERS[2], { toSide: true }],
     ])
+  })
+
+  it("opens a row with an address in a new tab with Ctrl or Cmd and on a middle click, in place else", () => {
+    const onOpen = vi.fn()
+    const opened = vi.spyOn(window, "open").mockReturnValue(null)
+    render(<Orders onOpen={onOpen} linked />)
+    const [first, closed, third] = bodyRows()
+    expect(first.dataset.href).toBe("/orders/o-1")
+    fireEvent.keyDown(first, { key: "Enter" })
+    fireEvent.keyDown(first, { key: "Enter", ctrlKey: true })
+    fireEvent.click(within(third).getByText("Lock"), { metaKey: true })
+    fireEvent(
+      within(third).getByText("Lock"),
+      new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }),
+    )
+    // The right button is the browser's menu; a row that opens nothing links nowhere.
+    fireEvent(third, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 2 }))
+    fireEvent(closed, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }))
+    // A control in the row keeps its own middle click.
+    fireEvent(
+      screen.getByRole("button", { name: "Retry o-1" }),
+      new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }),
+    )
+    expect(onOpen.mock.calls).toEqual([[ORDERS[0], { toSide: false }]])
+    expect(opened.mock.calls).toEqual([
+      ["/orders/o-1", "_blank", "noopener,noreferrer"],
+      ["/orders/o-3", "_blank", "noopener,noreferrer"],
+      ["/orders/o-3", "_blank", "noopener,noreferrer"],
+    ])
+    expect(closed.hasAttribute("data-href")).toBe(false)
+    opened.mockRestore()
   })
 
   it("leaves a control and a disclosure in the row to themselves", () => {

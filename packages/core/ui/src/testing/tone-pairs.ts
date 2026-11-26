@@ -159,6 +159,38 @@ export const ROLE_CONTRAST_PAIRS: readonly ContrastPair[] = [
     bg: `--${tone}-surface`,
     min: 4.5,
   })),
+  // The dark BPMN canvas of widget-shell paints these roles (owner decision D10, point 7): a
+  // marked shape's outline in its tone on its status surface, its name in the foreground on it,
+  // and the count badges' fixed fills on the ground, the dark paper.
+  ...(["danger", "info"] as const).flatMap((tone): ContrastPair[] => [
+    { label: `${tone} on ${tone}-surface`, fg: `--${tone}`, bg: `--${tone}-surface`, min: 3 },
+    {
+      label: `foreground on ${tone}-surface`,
+      fg: "--foreground",
+      bg: `--${tone}-surface`,
+      min: 4.5,
+    },
+  ]),
+  ...(["blau", "danger"] as const).map((token): ContrastPair => ({
+    label: `count badge (--cd-${token}) on background`,
+    fg: `--cd-${token}`,
+    bg: "--background",
+    over: "--background",
+    min: 3,
+  })),
+  // A chart's marks (BarChart, LineChart, Sparkline, MeterRows): its two series on the ramp and
+  // its incidents in red, on the card and the ground it sits on, a meter's track and the hovered
+  // bars' band (muted) and the tooltip whose keys name the series (popover). The series'
+  // lightness apart is the kit's own test (chart-ramp.test.ts).
+  ...(["--chart-1", "--chart-2", "--danger"] as const).flatMap((fg): ContrastPair[] =>
+    (["--card", "--background", "--muted", "--popover"] as const).map((bg) => ({
+      label: `chart mark ${fg} on ${bg.slice(2)}`,
+      fg,
+      bg,
+      ...(bg === "--background" ? { over: "--background" } : {}),
+      min: 3,
+    })),
+  ),
 ]
 
 /**

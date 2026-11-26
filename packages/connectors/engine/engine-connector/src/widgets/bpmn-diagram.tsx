@@ -1,28 +1,36 @@
-import { useEffect, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import { ErrorState, Skeleton } from "@miragon/pulse-ui"
 import {
-  BpmnZoomControls,
+  BpmnDiagram as Diagram,
+  type DiagramDecoration,
+  type DiagramMarker,
+} from "@miragon/pulse-ui/bpmn"
+import {
   QueryFallback,
-  injectBpmnOverlayCss,
-  useBpmnViewer,
-  useHostDisplayMode,
+  useDiagramMaxHeight,
   useToolQuery,
 } from "@miragon/pulse-widget-shell/widgets"
 import { useT } from "../messages/use-t.js"
 import { ENGINE_BPMN_XML_DATA } from "../tool-names.js"
-import { applyHighlights, type BpmnHighlight } from "./bpmn-highlights.js"
 
-// Re-exported so callers import the diagram and its highlight type from one place.
-export { applyHighlights, dedupe, HIGHLIGHT_COLORS, type BpmnHighlight } from "./bpmn-highlights.js"
+/**
+ * What the cockpit draws on a diagram, in the one badge scheme of pulse-ui's `BpmnDiagram` (owner
+ * decision 2026-11-24, the shared screens'): the counts of each element (`decorations`, a badge
+ * each over its top right corner, an own root incident outlined) and the outlines an instance's
+ * state gives without a count (`markers`).
+ */
+export interface DiagramMarks {
+  decorations?: ReadonlyArray<DiagramDecoration>
+  markers?: ReadonlyArray<DiagramMarker>
+}
 
-export interface BpmnDiagramProps {
+export interface BpmnDiagramProps extends DiagramMarks {
   /** Its XML is read by id from `engine_bpmn_xml_data`, never carried in the payload. */
   definitionId: string
   /** The engine the view reads (its payload's `engineId`); the default engine when absent. */
   engineId?: string
   /** A fixed frame height; default: the diagram's own (240–560 px, the kit's `diagramHeight`). */
   height?: number
-  highlights?: ReadonlyArray<BpmnHighlight>
 }
 
 interface DefinitionXml {
@@ -43,10 +51,18 @@ export function useDefinitionXml(definitionId: string, engineId?: string) {
   )
 }
 
-export function BpmnDiagram({ definitionId, engineId, height, highlights }: BpmnDiagramProps) {
+export function BpmnDiagram({
+  definitionId,
+  engineId,
+  height,
+  decorations,
+  markers,
+}: BpmnDiagramProps) {
   return (
     <WithDefinitionXml definitionId={definitionId} engineId={engineId} height={height}>
-      {(bpmnXml) => <BpmnCanvas bpmnXml={bpmnXml} height={height} highlights={highlights} />}
+      {(bpmnXml) => (
+        <BpmnCanvas bpmnXml={bpmnXml} height={height} decorations={decorations} markers={markers} />
+      )}
     </WithDefinitionXml>
   )
 }
@@ -85,61 +101,29 @@ export function WithDefinitionXml({
   )
 }
 
-// Stable default: an inline `[]` would force a bpmn-js re-import on every render via `reimportKey`.
-const NO_HIGHLIGHTS: ReadonlyArray<BpmnHighlight> = []
-
+/**
+ * The cockpit's diagram: pulse-ui's `BpmnDiagram` on the canvas that follows the theme, as the
+ * editors' canvas (D10, point 7), capped inline by the host's budget (320 px in a chat card) and
+ * refitted whenever its frame resizes (inline to fullscreen). Its counts are a drawing beside the
+ * canvas image: each view says them in words (its values per activity, its tables).
+ */
 export function BpmnCanvas({
   bpmnXml,
   height,
-  highlights = NO_HIGHLIGHTS,
-}: {
-  bpmnXml: string
-  height?: number
-  highlights?: ReadonlyArray<BpmnHighlight>
-}) {
+  decorations,
+  markers,
+}: DiagramMarks & { bpmnXml: string; height?: number }) {
   const t = useT()
-  const displayMode = useHostDisplayMode()
-
-  const {
-    containerRef,
-    height: autoHeight,
-    importError,
-    zoomIn,
-    zoomOut,
-    fit,
-  } = useBpmnViewer({
-    bpmnXml,
-    // A changed highlight set redecorates via a full re-import: bpmn-js
-    // markers/overlays are only ever added, never removed.
-    reimportKey: highlights,
-    fitOnResize: true,
-    // The canvas alone is the image: the zoom controls, bpmn.io's link and the badges lie beside it.
-    ariaLabel: t("bpmnDiagram.ariaLabel"),
-    onImported: (imported) => {
-      injectBpmnOverlayCss()
-      applyHighlights(imported.get("canvas"), imported.get("overlays"), highlights)
-    },
-  })
-
-  // Host layout switches (inline ↔ fullscreen) resize the container: refit.
-  useEffect(() => {
-    fit()
-  }, [displayMode, fit])
-
-  // The paper, its zoom bar and its error stay light in a dark host (CI §10).
+  const maxHeight = useDiagramMaxHeight()
   return (
-    <div data-theme-mode="light" className="relative">
-      <div
-        ref={containerRef}
-        className="border-border rounded-md border"
-        style={{ height: `${height ?? autoHeight}px`, width: "100%" }}
-      />
-      {importError !== null && (
-        <div className="p-gutter absolute inset-0 grid place-items-center">
-          <ErrorState variant="inline" title={t("bpmnDiagram.renderError")} details={importError} />
-        </div>
-      )}
-      <BpmnZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onFit={fit} />
-    </div>
+    <Diagram
+      xml={bpmnXml}
+      ariaLabel={t("bpmnDiagram.ariaLabel")}
+      decorations={decorations}
+      markers={markers}
+      height={height}
+      maxHeight={maxHeight}
+      drawFailed={t("bpmnDiagram.renderError")}
+    />
   )
 }

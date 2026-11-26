@@ -18,6 +18,7 @@ Pulse's own packages in the bundles, under the MIT licence in LICENSE:
   @miragon/pulse-docs
   @miragon/pulse-engine-core
   @miragon/pulse-http
+  @miragon/pulse-migration-plan
   @miragon/pulse-profile
 
 Dependencies npm installs beside the npm package, each with its own licence:

@@ -11,9 +11,9 @@ import {
   Unplug,
   type LucideIcon,
 } from "lucide-react"
-import { PageBar, PageLayout } from "./bar.js"
+import { PageLayout } from "./frame/layout.js"
 import { useT } from "./messages/index.js"
-import { signInUrl } from "./routes.js"
+import { signInUrl } from "./router/routes.js"
 
 /** What the signed-out page shows per reason: its icon and the words of its one action. */
 const REASONS: Readonly<
@@ -38,7 +38,7 @@ export function signedOutFrame(reason: SignedOutReason): PageFrame {
   return function SignedOutFrame() {
     const t = useT()
     return (
-      <PageLayout banner={<PageBar />} fallbackTitle={t("frame.product")}>
+      <PageLayout fallbackTitle={t("frame.product")}>
         <main className="p-gutter flex-1">
           <EmptyState
             icon={<Glyph />}

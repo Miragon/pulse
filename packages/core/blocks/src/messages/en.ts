@@ -1,15 +1,6 @@
-/** A text with `{name}` placeholders, or a function of the values (plurals, conditions). */
-export type Message = string | ((params: Readonly<Record<string, unknown>>) => string)
+import { countOf, isOne, type Message } from "./message.js"
 
-/** A count reaches an entry formatted ("1,234"), so one is decided on its text: exactly "1". */
-export function isOne(count: unknown): boolean {
-  return String(count) === "1"
-}
-
-/** The count and its noun in the right number: "1 engine", "2 engines". */
-export function countOf(count: unknown, one: string, other: string): string {
-  return `${String(count)} ${isOne(count) ? one : other}`
-}
+export { countOf, isOne, type Message }
 
 /**
  * The English words of the board's tiles. A problem's words equal `BoardProblems.describe` of
@@ -48,6 +39,7 @@ export const en = {
   "open.process": "Open the process on {engine}, latest version first",
   "open.toSide": "{title} (Ctrl/Cmd+click: to the side)",
   "row.instance": "Instance {id}",
+  "row.instanceAt": "Instance {id} at {element}",
   "summary.noIncident": "No instance has an open incident.",
   "summary.noIncidentAnswered": "No instance has an open incident on the engines that answered.",
   "instances.label": "Instances",

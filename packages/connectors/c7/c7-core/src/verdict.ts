@@ -1,20 +1,25 @@
 /**
- * The family's one live verdict on an engine: the status triage (`engine_status`, `pulse status`)
- * and the MCP cockpit's overview both decide `ok`, `warning` or `critical` here, by the same
- * thresholds, over incidents grouped by the same cause and in the same words.
+ * The family's one live verdict on an engine: the status triage (`engine_status`, `pulse status`),
+ * the MCP cockpit's overview and the web app's verdict feed all decide `ok`, `warning` or
+ * `critical` here, by the same thresholds, over the open ROOT incidents (owner decision of
+ * 2026-11-20: a failure counts once, where it was raised, however many call activities above it
+ * hold a copy), grouped by the same cause and in the same words.
  */
 
 import type { EngineStatus, Severity } from "./findings.js"
 import { messageSignature } from "./message-signature.js"
+import { isRootIncident } from "./root-incident.js"
 
 /**
- * When open incidents make an engine critical; a small installation may turn critical at 10
- * where a large one tolerates hundreds (the MCP server reads them from `ENGINE_HEALTH_*`).
+ * When open root incidents make an engine critical; a small installation may turn critical at 10
+ * where a large one tolerates hundreds (the MCP server reads them from `ENGINE_HEALTH_*`, the CLI
+ * takes the defaults). A call activity's copy of a called instance's incident counts toward
+ * neither: a chain of calls that one failure stops counts that failure once.
  */
 export interface VerdictThresholds {
-  /** Open incidents from which the engine is critical. */
+  /** Open root incidents from which the engine is critical. */
   readonly criticalIncidents: number
-  /** Incidents of one cause (`causeKeyOf`) from which it is critical. */
+  /** Open root incidents of one cause (`causeKeyOf`) from which it is critical. */
   readonly criticalClusterSize: number
 }
 
@@ -85,31 +90,78 @@ export function largestCause(
 }
 
 export interface VerdictInput {
-  /** Every open incident in scope, from a count (never a capped page). */
-  readonly openIncidents: number
   /**
-   * The incidents of the largest cause (`largestCause`); a lower bound when they were read from a
-   * capped scan, so it never raises a false `critical`.
+   * Every open root incident in scope (`rootIncidentCounts`): the processes' from an exact read
+   * (never a capped page), those outside any process from the incidents read.
+   */
+  readonly openRootIncidents: number
+  /**
+   * The root incidents of the largest cause (`largestCause` over root incidents alone); a lower
+   * bound when they were read from a capped scan, so it never raises a false `critical`.
    */
   readonly largestCluster: number
   /** The severities of the caller's other findings (overdue jobs, workers, batches), if it has any. */
   readonly findings?: readonly { readonly severity: Severity }[]
 }
 
-/** Whether the open incidents alone make the engine critical. */
+/** What the verdict reads of an open incident: its cause, whether it is a root incident, its process. */
+export interface VerdictIncident extends CauseFields {
+  readonly id?: unknown
+  readonly rootCauseIncidentId?: unknown
+  readonly processDefinitionId?: unknown
+}
+
+/** The verdict's incident inputs (`rootIncidentCounts`) and the largest cause they name. */
+export interface RootIncidentCounts {
+  readonly openRootIncidents: number
+  readonly largestCluster: number
+  /** The cause of `largestCluster`; absent without a root incident among those read. */
+  readonly largestCause?: IncidentCauseKey
+}
+
+/** An incident no process holds: a batch's or the history cleanup's failed job. */
+function outsideAnyProcess({ processDefinitionId }: VerdictIncident): boolean {
+  return typeof processDefinitionId !== "string" || processDefinitionId === ""
+}
+
+/**
+ * The verdict's incident inputs over ROOT incidents, for every caller of `engineVerdict` alike.
+ * `ofProcesses` are the open root incidents of the processes in scope, from an exact read (the
+ * definition statistics with `rootIncidents=true`, summed over every version, which count no copy
+ * a call activity holds); `incidents` the open incidents read newest first, copies included, whole
+ * or capped. Of those read, the root incidents (`isRootIncident`) outside any process join the
+ * total, since no statistics row counts them, and the root incidents alone form the largest cause,
+ * so a copy never raises it. Over a capped read both are lower bounds, so neither raises a false
+ * `critical`.
+ */
+export function rootIncidentCounts(
+  ofProcesses: number,
+  incidents: readonly VerdictIncident[],
+): RootIncidentCounts {
+  const roots = incidents.filter(isRootIncident)
+  const largest = largestCause(roots)
+  return {
+    openRootIncidents: ofProcesses + roots.filter(outsideAnyProcess).length,
+    largestCluster: largest?.count ?? 0,
+    ...(largest === undefined ? {} : { largestCause: largest.cause }),
+  }
+}
+
+/** Whether the open root incidents alone make the engine critical. */
 export function incidentsAtThreshold(
-  input: Pick<VerdictInput, "openIncidents" | "largestCluster">,
+  input: Pick<VerdictInput, "openRootIncidents" | "largestCluster">,
   thresholds: VerdictThresholds = DEFAULT_VERDICT_THRESHOLDS,
 ): boolean {
   return (
-    input.openIncidents >= thresholds.criticalIncidents ||
+    input.openRootIncidents >= thresholds.criticalIncidents ||
     input.largestCluster >= thresholds.criticalClusterSize
   )
 }
 
 /**
- * `critical` from `criticalIncidents` open incidents, from `criticalClusterSize` of one cause or
- * with a critical finding; `warning` with any open incident or any other finding; else `ok`.
+ * `critical` from `criticalIncidents` open root incidents, from `criticalClusterSize` root
+ * incidents of one cause or with a critical finding; `warning` with any open root incident or any
+ * other finding; else `ok`.
  */
 export function engineVerdict(
   input: VerdictInput,
@@ -122,12 +174,12 @@ export function engineVerdict(
   ) {
     return "critical"
   }
-  return input.openIncidents > 0 || findings.length > 0 ? "warning" : "ok"
+  return input.openRootIncidents > 0 || findings.length > 0 ? "warning" : "ok"
 }
 
-/** When incidents make the engine critical, in words with the thresholds in force. */
+/** When root incidents make the engine critical, in words with the thresholds in force. */
 export function criticalIncidentsRule(
   thresholds: VerdictThresholds = DEFAULT_VERDICT_THRESHOLDS,
 ): string {
-  return `>=${thresholds.criticalIncidents} open incidents or >=${thresholds.criticalClusterSize} of one cause`
+  return `>=${thresholds.criticalIncidents} open root incidents or >=${thresholds.criticalClusterSize} of one cause`
 }

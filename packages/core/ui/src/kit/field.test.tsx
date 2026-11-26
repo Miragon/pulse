@@ -167,7 +167,7 @@ describe("Field", () => {
       expect.arrayContaining(["group/field", "w-full"]),
     )
     expect(classes(screen.getByText("Engine"))).toContain(
-      "group-has-[:disabled]/field:text-muted-foreground",
+      "group-has-[:disabled:not(option)]/field:text-muted-foreground",
     )
   })
 })

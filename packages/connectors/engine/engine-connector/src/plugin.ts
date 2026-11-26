@@ -96,8 +96,16 @@ export function createPlugin(
   // Resolved once so every gate below reads the same toolset and an unknown name warns once.
   const toolset = resolveEngineToolset(config.toolset)
   // The deployment's ENGINE_HEALTH_* over c7-core's defaults, one set for the cockpit's
-  // overview and engine_status, so both judge alike.
-  const healthThresholds = { ...DEFAULT_VERDICT_THRESHOLDS, ...config.healthThresholds }
+  // overview, engine_status and the web app's verdict, so all judge alike. Per key: the
+  // configuration names both keys when one variable is set, the other undefined, which a spread
+  // would take over the default and so switch that threshold off.
+  const healthThresholds = {
+    criticalIncidents:
+      config.healthThresholds?.criticalIncidents ?? DEFAULT_VERDICT_THRESHOLDS.criticalIncidents,
+    criticalClusterSize:
+      config.healthThresholds?.criticalClusterSize ??
+      DEFAULT_VERDICT_THRESHOLDS.criticalClusterSize,
+  }
 
   const incidentIssueConfig = {
     repository: config.incidentIssueRepository,
@@ -119,7 +127,10 @@ export function createPlugin(
       const register = withServedEngines(withToolsetFilter(recorded, toolset), registry)
       registerEngineTools(register, healthThresholds, config.boards)
       // Deployments are opt-in on top of `admin` (code execution in the JVM).
-      registerTools(register, { allowDeployments: config.allowDeployments })
+      registerTools(register, {
+        allowDeployments: config.allowDeployments,
+        ...(config.boards ? { boards: config.boards } : {}),
+      })
       registerIncidentIssueTools(register, incidentIssueConfig)
       // The prompt drafts through engine_format_incident_issue: where that tool is, it is.
       if (registered.has(ENGINE_FORMAT_INCIDENT_ISSUE)) {

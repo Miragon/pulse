@@ -32,7 +32,6 @@ describe("engine draws function icons with Lucide, never glyphs or emoji", () =>
 const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
   "cockpit-app/breadcrumb.tsx": "the chevron between the trail's 13 px entries",
   "cockpit-app/fleet-landscape.tsx": "the info icon leading a 13 px note",
-  "cockpit-app/fleet-view.tsx": "the arrow after an engine card's 13 px way in",
   "cockpit-app/landing.tsx": "the arrow closing an engine's row of 13 px text",
 }
 

@@ -19,8 +19,9 @@ bulk operation and its failures and a migration's plan and check (`C7Runtime` of
 over its port), a move's activity tree, a migration's running instances and a Stop's batch for
 the commands (`findActivityTree`, `readHistoricInstances`, `readBatchStatistics`,
 `findHistoricBatch`), which incident types the engine raises itself
-(`BUILT_IN_INCIDENT_TYPES`), which job or external task an incident names, for its retry and in
-the incident list (`incidentRecovery`), which request holds an incident's cause
+(`BUILT_IN_INCIDENT_TYPES`), which incident a retry retries, the root incident a copy stands for
+(`rootIdOfCopy`), which job or external task an incident names, for its retry and in the
+incident list (`incidentRecovery`), which request holds an incident's cause
 (`CAUSE_OPERATIONS`), how a written variable is typed (`autoTypedValue`, `toEngineVariable`), and
 what "with incident" is (an open incident the runtime holds now, `instancesWithIncident`,
 `countWithIncident`, `withIncidentAmong`), on every history level. It sends every request through
@@ -34,7 +35,11 @@ engine (`test/c7-conformance.engine.test.ts`, `test:engines`, in Testcontainers;
 world too, compared by `BoardFigures` of `@miragon/pulse-board/testing`, the one rule every
 surface's board suites compare by. A board's numbers are the MCP server's: over c7-core's recorded answers
 (`C7_BOARD_ENGINE`, served by the transport's `startRecordedEngine`) it builds exactly the board the
-engine connector builds over its own wire (`test/c7-board-numbers.test.ts`). Its error-path goldens
+engine connector builds over its own wire (`test/c7-board-numbers.test.ts`), and over c7-core's
+recorded screen answers (`C7_SCREEN_ENGINE`) exactly the engine screen, the two instance screens,
+the three process screens and the instance list of `@miragon/pulse-screens` the recording expects, whose figures are those of the kit's own
+world (`test/c7-screen-numbers.test.ts`, compared by `ScreenFigures` of
+`@miragon/pulse-screens/testing`; the engine suite reads them live too). Its error-path goldens
 (`test/__golden__/error-paths/`, the same cases the CLI and the MCP server pin) change only through
 `pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter golden:update`. Its wire passes the
 transport's conformance cases it can express (`test/engine-rest/transport-cases.test.ts`). Its

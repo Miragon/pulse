@@ -141,7 +141,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
           ...(filter.withIncident === undefined ? {} : { withIncident: filter.withIncident }),
         }),
     }),
-    [CASE.instancesCounted, CASE.instancesByIds],
+    [CASE.instancesCounted, CASE.instancesByIds, CASE.instancesByExactBusinessKey],
   ],
   [
     "the search ignores the instance ids",
@@ -167,6 +167,25 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
           : runtime.countInstances(filter),
     }),
     [CASE.instancesCounted],
+  ],
+  [
+    "a count of ended instances without an incident subtracts the running ones with one",
+    (runtime) => ({
+      countInstances: async (filter) => {
+        if (filter.lifecycle !== "ended" || filter.withIncident !== false) {
+          return runtime.countInstances(filter)
+        }
+        const scope = { ...filter }
+        delete scope.withIncident
+        delete scope.lifecycle
+        const [ended, withIncident] = await Promise.all([
+          runtime.countInstances({ ...scope, lifecycle: "ended" }),
+          runtime.countInstances({ ...scope, withIncident: true }),
+        ])
+        return { count: ended.count - withIncident.count }
+      },
+    }),
+    [CASE.instancesNeverBelowZero],
   ],
   [
     "full incident details come back truncated",
@@ -218,7 +237,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
         return [...summaries, ...perVersion]
       },
     }),
-    [CASE.definitionsLatestVersion, CASE.definitionsCounts],
+    [CASE.definitionsLatestVersion, CASE.definitionsCounts, CASE.definitionsIncidents],
   ],
   [
     "variables come without their kind",

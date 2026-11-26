@@ -8,6 +8,8 @@ export const HEALTHY_ENGINE = "stub"
 export const BROKEN_ENGINE = "down"
 /** Real-sized data: long names and keys, 160 instances, 73 jobs (`realistic-engine.ts`). */
 export const REALISTIC_ENGINE = "realistic"
+/** The stub's chain engine (`chain-engine.ts`), test:web's `chain` deployment's one engine. */
+export const CHAIN_ENGINE = "shop"
 /**
  * Env var carrying the stub engine's origin to the workers (set by
  * global-setup.ts). Its `/__control/*` routes let a scenario hold an answer.

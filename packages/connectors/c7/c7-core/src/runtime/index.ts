@@ -5,7 +5,8 @@
  * one reader per question (the engine, its processes, the counts on a diagram, the processes a
  * version calls, its instances and their count, a version's variable names, an instance's detail,
  * the open incidents and an incident's details, a bulk operation and its failures, a migration's
- * plan and its check). Beside it the reads a surface's commands check before they write (the
+ * plan and its check), and beyond the contract the counts on a diagram with each element's jobs
+ * without retries for the MCP server's process flow. Beside it the reads a surface's commands check before they write (the
  * activity instance tree a move cancels a token of, the history's instances a migration still
  * finds running, a batch's statistics and history for a Stop), `JsonView`, the checked reads of an
  * engine answer, which fail an unusable one as `RuntimeError("unexpectedResponse")`, and the one
@@ -25,11 +26,12 @@ export {
   readBatchStatistics,
 } from "./batches.js"
 export { C7Runtime, type C7RuntimeOptions } from "./c7-runtime.js"
+export type { ElementStatisticsWithFailedJobs } from "./element-statistics-reader.js"
 export { isEngineId } from "./engine-ids.js"
 export {
   type HistoricInstanceQuery,
   type HistoricInstanceRow,
   readHistoricInstances,
 } from "./historic-instances.js"
-export { JsonView } from "./json-view.js"
+export { JsonView } from "../json-view.js"
 export type { OffsetWindow } from "./offset-paging.js"

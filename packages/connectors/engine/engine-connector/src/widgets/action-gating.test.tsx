@@ -134,7 +134,9 @@ describe("every in-widget write hides its control on a host that writes nothing"
 
 const JOBS: JobPanelData = {
   totalCount: 1,
+  allCount: 1,
   failedCount: 1,
+  fetchedAt: "2026-10-26T08:00:00.000Z",
   jobs: [
     {
       id: "job-1",

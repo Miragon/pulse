@@ -5,7 +5,9 @@ import type { DefinitionStat, JobBacklogData } from "../../view-models.js"
  * RATE across engines"). Engines host different processes, so a rate or a duration summed over
  * engines would measure their process mix: every figure here is an absolute count, and a figure
  * over several engines is the plain sum of theirs. The backlog carries no process, so it alone is
- * compared engine by engine. The fold is pure; the widget reads the engines.
+ * compared engine by engine. Its incidents are each engine's open root incidents (its overview's
+ * definitions), so a failure that runs through a chain of called instances counts once. The fold is
+ * pure; the widget reads the engines.
  */
 
 /** What one engine answered; null until read, or when the read failed. */
@@ -22,6 +24,7 @@ export interface LandscapeEngine {
   /** False while the engine's definitions are not read: no column of the matrix, no total. */
   read: boolean
   runningInstances: number | null
+  /** Its open root incidents. */
   openIncidents: number | null
   failedJobs: number | null
   executableJobs: number | null
@@ -43,6 +46,7 @@ interface LandscapeProcess {
   /** Running instances on each engine that deploys the key. */
   runningByEngine: Record<string, number>
   runningTotal: number
+  /** Its open root incidents over the engines that deploy it. */
   openIncidentsTotal: number
 }
 

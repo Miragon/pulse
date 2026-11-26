@@ -48,6 +48,9 @@ export const DEFAULT_PROJECT_FILES = [
   "packages/core/blocks/vitest.config.ts",
   "packages/core/board/vitest.config.ts",
   "packages/core/board/vitest.stryker.config.ts",
+  "packages/core/migration-plan/vitest.config.ts",
+  "packages/core/screens/vitest.config.ts",
+  "packages/core/screens/vitest.stryker.config.ts",
   "packages/core/http/vitest.config.ts",
   "packages/core/http/vitest.stryker.config.ts",
   "packages/core/profile/vitest.config.ts",
@@ -157,7 +160,7 @@ const CONNECTOR_SOURCE = "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
 // Invariant 1: the SDK's method and ext-apps' `registerAppTool`.
 const registrarGate = registrationGate(
   "/^(registerTool|registerAppTool)$/",
-  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (see .claude/skills/add-bpm-feature); a raw server.registerTool() or ext-apps' registerAppTool() (also via an import, a computed key, .call/.bind/.apply, destructuring or a string that names it) is reserved for the widget-tools files.",
+  "Operations tools are registered through createToolRegistrar (@miragon/pulse-widget-shell/server) in src/tools/ (CLAUDE.md, invariant 1); a raw server.registerTool() or ext-apps' registerAppTool() (also via an import, a computed key, .call/.bind/.apply, destructuring or a string that names it) is reserved for the widget-tools files.",
 )
 
 // Invariant 3: a customer's module may bring a finished HTML view of its own; the engine
@@ -352,6 +355,23 @@ const ENGINE_CORE_PROBE = "packages/connectors/engine/engine-core/test/runtime.b
 const BOARD_SRC = "packages/core/board/src/**/*.{ts,mts,cts,tsx}"
 const BOARD_TESTS = "packages/core/board/test/**/*.ts"
 const BOARD_CONFIGS = "packages/core/board/*.ts"
+// The migration plan format (packages/core/migration-plan), which the CLI writes a plan file with
+// and the runtime view's core reads one with, keeps the board format's rules as the screens do:
+// each block that names the board package names its paths beside it (MIGRATION_PLAN_SRC,
+// MIGRATION_PLAN_TESTS, MIGRATION_PLAN_CONFIGS). No family's package, so no connector resource
+// gate in its union, and its engine words say where they belong in its own terms
+// (MIGRATION_PLAN_WORDS_MESSAGE).
+const MIGRATION_PLAN_SRC = "packages/core/migration-plan/src/**/*.{ts,mts,cts,tsx}"
+const MIGRATION_PLAN_TESTS = "packages/core/migration-plan/test/**/*.ts"
+const MIGRATION_PLAN_CONFIGS = "packages/core/migration-plan/*.ts"
+// The screens' format and builder (packages/core/screens), the numbers the web app and the editors
+// share, keep the board package's rules as it keeps engine-core's: each block that names the board
+// package names the screens' paths beside it (SCREENS_SRC, SCREENS_TESTS, SCREENS_CONFIGS). No
+// family's package either, so no connector resource gate in its union, and its engine words say
+// where they belong in its own terms (SCREENS_WORDS_MESSAGE).
+const SCREENS_SRC = "packages/core/screens/src/**/*.{ts,mts,cts,tsx}"
+const SCREENS_TESTS = "packages/core/screens/test/**/*.ts"
+const SCREENS_CONFIGS = "packages/core/screens/*.ts"
 // The core of the Camunda 8 dialect family (packages/connectors/c8/c8-core), whose reads left the
 // C8 adapter for a package of their own, keeps every one of these rules as engine-core does: each
 // block that holds engine-core names the package's paths beside it (C8_CORE_SRC, C8_CORE_TESTS,
@@ -392,6 +412,10 @@ const ENGINE_CORE_WORDS_MESSAGE =
   "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the engine family's neutral core, the contract every dialect implements. Use the contract's neutral words (elementId, definitionId, bpmnProcessId, instanceId)."
 const BOARD_WORDS_MESSAGE =
   "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the board format and its builder, which every surface reads the same. Use the board's own words and the contract's neutral ones (process, activeElement, elementId, bpmnProcessId, instanceId)."
+const MIGRATION_PLAN_WORDS_MESSAGE =
+  "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the migration plan format, which the CLI and the editors read the same. Use the plan's own words and the contract's neutral ones (bpmnProcessId, version, sourceElementId, targetElementId)."
+const SCREENS_WORDS_MESSAGE =
+  "Engine vocabulary belongs in a dialect's implementation (its engine adapter, its core), never in the screens' format and builder, which every surface reads the same. Use the contract's neutral words (elementId, bpmnProcessId, definitionId, instanceId)."
 const VSCODE_HOST_COLOUR_MESSAGE =
   "The webview takes no colour from VS Code. Use a Miragon token (--cd-*) from packages/core/runtime-view/src/webview/theme instead of a --vscode-* variable."
 const VSCODE_CLASS_MESSAGE =
@@ -429,6 +453,14 @@ const boardNeutralCode = [
   ...vscodeForbiddenWords(VSCODE_ENGINE_WORDS, BOARD_WORDS_MESSAGE),
   ...vscodeForbiddenWords(VSCODE_ENGINE_SPELLINGS, BOARD_WORDS_MESSAGE),
 ]
+const migrationPlanNeutralCode = [
+  ...vscodeForbiddenWords(VSCODE_ENGINE_WORDS, MIGRATION_PLAN_WORDS_MESSAGE),
+  ...vscodeForbiddenWords(VSCODE_ENGINE_SPELLINGS, MIGRATION_PLAN_WORDS_MESSAGE),
+]
+const screensNeutralCode = [
+  ...vscodeForbiddenWords(VSCODE_ENGINE_WORDS, SCREENS_WORDS_MESSAGE),
+  ...vscodeForbiddenWords(VSCODE_ENGINE_SPELLINGS, SCREENS_WORDS_MESSAGE),
+]
 const vscodeHostColours = vscodeForbiddenWords("--vscode-", VSCODE_HOST_COLOUR_MESSAGE)
 const vscodeHostEngineWords = [
   ...vscodeForbiddenWords(`${VSCODE_ENGINE_WORDS}|\\bengine-cli\\b`, VSCODE_ENGINE_WORDS_MESSAGE),
@@ -451,9 +483,6 @@ export default tseslint.config(
       // and its tsconfig projects, verified by scripts/test-template.sh
       // (build + typecheck + tests) instead of the repo's typed linting.
       "templates/**",
-      // The Miragon docs kit, vendored byte for byte from
-      // Miragon/corporate-identity and linted there; check.mjs pins the copy.
-      "docs/.vitepress/miragon/**",
       // Orca's plugin typings, as `orca plugin types` writes them for the Orca release the
       // plugin is checked against (apps/orca/CLAUDE.md); never edited by hand.
       "apps/orca/types/**",
@@ -780,6 +809,12 @@ export default tseslint.config(
       BOARD_SRC,
       BOARD_TESTS,
       BOARD_CONFIGS,
+      MIGRATION_PLAN_SRC,
+      MIGRATION_PLAN_TESTS,
+      MIGRATION_PLAN_CONFIGS,
+      SCREENS_SRC,
+      SCREENS_TESTS,
+      SCREENS_CONFIGS,
       C8_CORE_SRC,
       C8_CORE_TESTS,
       C8_CORE_CONFIGS,
@@ -805,6 +840,12 @@ export default tseslint.config(
       BOARD_SRC,
       BOARD_TESTS,
       BOARD_CONFIGS,
+      MIGRATION_PLAN_SRC,
+      MIGRATION_PLAN_TESTS,
+      MIGRATION_PLAN_CONFIGS,
+      SCREENS_SRC,
+      SCREENS_TESTS,
+      SCREENS_CONFIGS,
       C8_CORE_SRC,
       C8_CORE_TESTS,
       C8_CORE_CONFIGS,
@@ -833,6 +874,8 @@ export default tseslint.config(
       "apps/vscode/test/smoke/*.cjs",
       ENGINE_CORE_SRC,
       BOARD_SRC,
+      MIGRATION_PLAN_SRC,
+      SCREENS_SRC,
       C8_CORE_SRC,
     ],
     rules: {
@@ -848,6 +891,8 @@ export default tseslint.config(
       `${EDITOR_TREES}/test/**/*.test.tsx`,
       ENGINE_CORE_TESTS,
       BOARD_TESTS,
+      MIGRATION_PLAN_TESTS,
+      SCREENS_TESTS,
       C8_CORE_TESTS,
     ],
     rules: { "@typescript-eslint/no-non-null-assertion": "off" },
@@ -871,6 +916,26 @@ export default tseslint.config(
   },
   {
     files: ["packages/core/board/test/**/*.test.ts"],
+    rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
+  },
+  // The migration plan format's tests and config files keep the board format's budgets: 300
+  // effective lines for a config file and a test support module, 400 for a test file.
+  {
+    files: [MIGRATION_PLAN_TESTS, MIGRATION_PLAN_CONFIGS],
+    rules: { "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }] },
+  },
+  {
+    files: ["packages/core/migration-plan/test/**/*.test.ts"],
+    rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
+  },
+  // The screens' tests and config files keep the board format's budgets: 300 effective lines for a
+  // config file and a test support module, 400 for a test file.
+  {
+    files: [SCREENS_TESTS, SCREENS_CONFIGS],
+    rules: { "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }] },
+  },
+  {
+    files: ["packages/core/screens/test/**/*.test.ts"],
     rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
   },
   // c8-core's tests and config files keep the same budgets as engine-core's: 300 effective lines
@@ -934,6 +999,36 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         ...boardNeutralCode,
+        ...vscodeModuleFunctionGate,
+        ...widgetDateGate,
+        ...widgetNumberGate,
+      ],
+    },
+  },
+  // The migration plan format's src: its engine words and module functions, and the date and
+  // number gates of the board format, whose rules it keeps: it writes its counts in plain digits,
+  // never in a locale. No family's package, so no connector resource gate in its union.
+  {
+    files: [MIGRATION_PLAN_SRC],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...migrationPlanNeutralCode,
+        ...vscodeModuleFunctionGate,
+        ...widgetDateGate,
+        ...widgetNumberGate,
+      ],
+    },
+  },
+  // The screens' src: its engine words and module functions, and the date and number gates of the
+  // board format, whose rules it keeps: a screen holds counts and times as data, never in a locale.
+  // No family's package, so no connector resource gate in its union.
+  {
+    files: [SCREENS_SRC],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...screensNeutralCode,
         ...vscodeModuleFunctionGate,
         ...widgetDateGate,
         ...widgetNumberGate,
@@ -1023,7 +1118,14 @@ export default tseslint.config(
     },
   },
   {
-    files: [`${EDITOR_TREES}/src/**/*.{ts,tsx}`, ENGINE_CORE_SRC, BOARD_SRC, C8_CORE_SRC],
+    files: [
+      `${EDITOR_TREES}/src/**/*.{ts,tsx}`,
+      ENGINE_CORE_SRC,
+      BOARD_SRC,
+      MIGRATION_PLAN_SRC,
+      SCREENS_SRC,
+      C8_CORE_SRC,
+    ],
     rules: {
       "max-classes-per-file": ["error", 1],
       "@typescript-eslint/member-ordering": [

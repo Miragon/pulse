@@ -3,9 +3,11 @@ import {
   Button,
   cn,
   PagedListFooter,
-  formatTimestamp,
+  formatClock,
+  formatInstant,
   LogText,
   NamedId,
+  shortId,
   StateLabel,
   Td,
 } from "@miragon/pulse-ui"
@@ -21,7 +23,11 @@ import {
   ViewDataState,
 } from "@miragon/pulse-widget-shell/widgets"
 
-import type { ActivityIncidentsData, IncidentInstance } from "../../view-models.js"
+import type {
+  ActivityIncidentsData,
+  IncidentInstance,
+  IncidentRootCause,
+} from "../../view-models.js"
 import { ENGINE_ACTIVITY_INCIDENTS_DATA } from "../../tool-names.js"
 import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { useT, type T } from "../../messages/use-t.js"
@@ -33,20 +39,49 @@ import { DoneMark } from "../lib/done-mark.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { WriteError } from "../lib/write-error.js"
 import { instanceName } from "../lib/write-feedback.js"
+import { useNav } from "../navigation.js"
 
 /** Mirrors the feed's server default. */
 const INCIDENT_PAGE_SIZE = 10
 
-/** Its message is engine text, quoted. */
+/** What a row opens: its incident (a copy's root, `targetOf`) and the element the crumb names. */
+export interface IncidentTarget {
+  incidentId: string
+  /** The element of the incident the row opens, by its name (else its id); null where unknown. */
+  label: string | null
+}
+
+/**
+ * The incident a row leads to: a copy of a called instance's incident (a call activity's) leads on
+ * to the root incident it stands for (`rootIncidentId`, c7-core's `rootIdOfCopy` on the server,
+ * whether or not its root was read), never to itself, so the copy is no incident of its own on
+ * screen; any other incident is its own. Its label is that incident's element.
+ */
+function targetOf(incident: IncidentInstance): IncidentTarget {
+  const rootId = incident.rootIncidentId ?? null
+  if (rootId === null) return { incidentId: incident.id, label: incident.activityName }
+  const cause = incident.rootCause ?? null
+  return { incidentId: rootId, label: cause ? (cause.activityName ?? cause.activityId) : null }
+}
+
+/**
+ * Its message is engine text, quoted. It names the incident the row opens: a copy's root, in the
+ * called instance where that was read.
+ */
 function draftIncidentTicketHandOff(
   incident: IncidentInstance,
   engine: string | undefined,
 ): HandOff {
   return {
     intent: "askAi.incident.draftTicket",
-    ids: { engine, incidentId: incident.id },
-    facts: { incidentType: incident.incidentType, processInstanceId: incident.processInstanceId },
-    untrusted: [{ label: "incidentMessage", text: incident.incidentMessage }],
+    ids: { engine, incidentId: targetOf(incident).incidentId },
+    facts: {
+      incidentType: incident.incidentType,
+      processInstanceId: incident.rootCause?.processInstanceId ?? incident.processInstanceId,
+    },
+    untrusted: [
+      { label: "incidentMessage", text: incident.incidentMessage ?? incident.rootCause?.message },
+    ],
   }
 }
 
@@ -90,47 +125,92 @@ function IncidentElement({ incident }: { incident: IncidentInstance }) {
 }
 
 /**
+ * Where a copy's failure is: its root incident's element and its called instance's short id, a
+ * quiet link that opens that instance (a control of its own, so the row does not open too).
+ */
+function CalledInstanceLink({ cause }: { cause: IncidentRootCause }) {
+  const t = useT()
+  const go = useNav()
+  const id = shortId(cause.processInstanceId)
+  return (
+    <Button
+      type="button"
+      variant="link"
+      size="xs"
+      title={t("procIncTable.openCalledInstance", { id: cause.processInstanceId })}
+      onClick={() =>
+        go({ type: "instance-detail", processInstanceId: cause.processInstanceId, label: id })
+      }
+      className="text-muted-foreground hover:text-foreground shrink-0 px-0 font-normal underline decoration-1 underline-offset-3"
+    >
+      {t("procIncTable.inCalledInstance", { activity: cause.activityName ?? cause.activityId, id })}
+    </Button>
+  )
+}
+
+/**
  * The incident's type as its state label and its message on one line, never a pill stacked above
  * it or a message wrapped into a tall row: the message is pulse-ui's `LogText` line, cut with an
  * ellipsis, its whole text in its title, on a disclosure where it is cut and on the incident's
  * page, and keeps 10rem, so a narrow table scrolls inside its region instead of squeezing it.
- * Under 28rem the type shows its icon alone, its word read out and in its title.
+ * Under 28rem the type shows its icon alone, its word read out and in its title. A copy of a
+ * called instance's incident has no message of its own: its root's shows, followed by where that
+ * one is; an unread root leaves the "—".
  */
 function IncidentMessage({ incident }: { incident: IncidentInstance }) {
   const t = useT()
-  const message = incident.incidentMessage
+  const cause = incident.incidentMessage ? null : (incident.rootCause ?? null)
+  const message = incident.incidentMessage ?? cause?.message ?? null
   return (
     <div className="flex min-w-0 items-center gap-3 @max-md:gap-1.5">
       <StateLabel state="incident" iconOnlyBelow="md" className="shrink-0">
         {incidentTypeWords(incident.incidentType, t)}
       </StateLabel>
-      <div data-incident-message="" className="min-w-0">
-        <LogText text={message} line />
+      <div data-incident-message="" className="flex min-w-0 items-center gap-2">
+        <LogText kind="message" text={message} line className="min-w-0" />
+        {cause && <CalledInstanceLink cause={cause} />}
       </div>
     </div>
   )
 }
 
+/** A row's time: the clock without seconds (its day on another day), the whole instant in its title. */
+function IncidentTime({ timestamp }: { timestamp: string }) {
+  return <span title={formatInstant(timestamp)}>{formatClock(timestamp, { seconds: false })}</span>
+}
+
 /**
  * What a row opens, its accessible name: the incident, by its instance or by its element and its
- * time, since an instance can hold several incidents at one element.
+ * time, since an instance can hold several incidents at one element; a copy's row opens its root,
+ * so it names that one, by its element and its called instance where its root was read.
  */
 function rowLabel(t: T, incident: IncidentInstance, byInstance: boolean) {
+  const time = formatClock(incident.incidentTimestamp, { seconds: false })
+  if (incident.rootIncidentId) {
+    const cause = incident.rootCause ?? null
+    return cause
+      ? t("procIncTable.rowLabelCopy", {
+          element: cause.activityName ?? cause.activityId,
+          id: shortId(cause.processInstanceId),
+          time,
+        })
+      : t("procIncTable.rowLabelCopyUnread", { time })
+  }
   return byInstance
     ? t("procIncTable.rowLabelInstance", {
         name: instanceName(incident.processInstanceId, incident.businessKey),
       })
     : t("procIncTable.rowLabelElement", {
         element: incident.activityName ?? incident.activityId ?? incident.id,
-        time: formatTimestamp(incident.incidentTimestamp),
+        time,
       })
 }
 
 /**
  * The incidents of an activity (by instance) or of an instance (by element), one line each: a row
- * opens its incident on a click or Enter and copies its id on Ctrl or Cmd with C (one row
- * convention, as the webview's lists), its write and its menu at the row's end open nothing, and a
- * row whose incident is done opens nothing either.
+ * opens its incident (a copy its root, `targetOf`) on a click or Enter and copies that incident's id
+ * on Ctrl or Cmd with C (one row convention, as the webview's lists), its write and its menu at the
+ * row's end open nothing, and a row whose incident is done opens nothing either.
  */
 export function IncidentTable({
   incidents,
@@ -142,7 +222,7 @@ export function IncidentTable({
 }: {
   incidents: IncidentInstance[]
   recovery: IncidentRecoveryState
-  onAnalyze: (incidentId: string) => void
+  onAnalyze: (target: IncidentTarget) => void
   /** The first column: each row's instance (an activity's incidents) or its element (an instance's). */
   subject?: "instance" | "element"
   engine?: string
@@ -210,8 +290,8 @@ export function IncidentTable({
           <Fragment key={incident.id}>
             <ListRow
               label={rowLabel(t, incident, byInstance)}
-              onOpen={done ? undefined : () => onAnalyze(incident.id)}
-              copy={incident.id}
+              onOpen={done ? undefined : () => onAnalyze(targetOf(incident))}
+              copy={targetOf(incident).incidentId}
             >
               <Td>
                 {byInstance ? (
@@ -227,8 +307,8 @@ export function IncidentTable({
               <Td>
                 <IncidentMessage incident={incident} />
               </Td>
-              <Td align="right" className="text-muted-foreground text-small">
-                {formatTimestamp(incident.incidentTimestamp)}
+              <Td align="right" className="text-muted-foreground text-small tabular-nums">
+                <IncidentTime timestamp={incident.incidentTimestamp} />
               </Td>
               {actions && (
                 <Td align="right">
@@ -298,7 +378,7 @@ export function PagedIncidentTable({
   /** The route's engine: a page never reads the default engine. */
   engine: string
   vendor?: string
-  onAnalyze: (incidentId: string) => void
+  onAnalyze: (target: IncidentTarget) => void
 }) {
   const t = useT()
   const paged = usePagedViewData<IncidentInstance, ActivityIncidentsData>({

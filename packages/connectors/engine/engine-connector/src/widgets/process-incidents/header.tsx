@@ -1,9 +1,9 @@
 import {
+  FreshnessStamp,
   Button,
-  formatNumber,
-  formatTimestamp,
+  formatInstant,
+  formatRelativeTime,
   Icon,
-  StateLabel,
   WidgetHeader,
 } from "@miragon/pulse-ui"
 import {
@@ -33,7 +33,7 @@ export function triageProcessHandOff(
     facts: {
       countScope: "allVersions",
       diagramVersion: data.diagramVersion,
-      openIncidents: data.incidentCount,
+      openRootIncidents: data.incidentCount,
       failedJobs: data.failedJobs,
       runningInstances: data.runningInstances,
       problemActivities: data.activities.map((a) => a.activityId),
@@ -46,20 +46,10 @@ export function triageProcessHandOff(
 }
 
 /**
- * Healthy definitions render too; the state shows only when something is on fire. A count in the
- * header is a state label, never a tinted badge (invariant 6): the incident's icon carries the
- * tone, the number stays in the foreground.
+ * The bar's facts say what no tile under it says (one home per number): the key, the version
+ * scope of every count on the view, named once here, and when the last incident came in, as a
+ * time ago with its instant in the title. The counts and their alarm are the KPI tiles'.
  */
-function HeaderBadge({ data }: { data: ProcessIncidentsData }) {
-  const t = useT()
-  if (data.incidentCount === 0) return null
-  return (
-    <StateLabel state="incident">
-      {t("procIncHeader.openIncidents", { count: formatNumber(data.incidentCount) })}
-    </StateLabel>
-  )
-}
-
 function HeaderSub({ data }: { data: ProcessIncidentsData }) {
   const t = useT()
   return (
@@ -67,18 +57,12 @@ function HeaderSub({ data }: { data: ProcessIncidentsData }) {
       <span className="font-mono">{data.processDefinitionKey}</span>
       <span className="text-muted-foreground">·</span>
       <span>{t("procIncHeader.allVersions")}</span>
-      <span className="text-muted-foreground">·</span>
-      <span>
-        {t("procIncHeader.runningInstances", { count: formatNumber(data.runningInstances) })}
-      </span>
       {data.latestIncident && (
         <>
           <span className="text-muted-foreground">·</span>
-          <span>
-            {t("procIncHeader.lastEvent", {
-              time: formatTimestamp(data.latestIncident),
-            })}
-          </span>
+          <time dateTime={data.latestIncident} title={formatInstant(data.latestIncident)}>
+            {t("procIncHeader.lastEvent", { time: formatRelativeTime(data.latestIncident) })}
+          </time>
         </>
       )}
     </>
@@ -120,9 +104,9 @@ export function ProcessDetailHeader({
     <WidgetShell
       header={
         <WidgetHeader
-          badge={<HeaderBadge data={data} />}
           title={title}
           sub={<HeaderSub data={data} />}
+          freshness={<FreshnessStamp at={data.fetchedAt} />}
           actions={
             <>
               <Button

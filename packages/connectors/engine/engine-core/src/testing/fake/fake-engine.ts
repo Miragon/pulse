@@ -178,6 +178,7 @@ export class FakeEngine implements ProcessRuntime, ProcessCommands {
       definition: definition.ref,
       running: running.length,
       withIncident: running.filter((instance) => instance.hasIncident).length,
+      incidents: this.queries().incidents({ definitionId: definition.ref.id }).length,
     }
   }
 
@@ -203,6 +204,7 @@ export class FakeEngine implements ProcessRuntime, ProcessCommands {
           latest: latest.definition,
           running: versions.reduce((sum, version) => sum + version.running, 0),
           withIncident: versions.reduce((sum, version) => sum + version.withIncident, 0),
+          incidents: versions.reduce((sum, version) => sum + version.incidents, 0),
         },
       ]
     })

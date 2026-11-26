@@ -52,6 +52,7 @@ export function summary(
     },
     running,
     withIncident,
+    incidents: withIncident,
   }
 }
 

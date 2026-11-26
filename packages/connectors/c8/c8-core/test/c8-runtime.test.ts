@@ -161,6 +161,7 @@ describe("the questions of the C8 runtime", () => {
           ],
         },
       },
+      { route: "POST /incidents/search", answer: page([], { totalItems: 1 }) },
     ])
 
     expect(await runtime.listDefinitions()).toEqual([
@@ -168,6 +169,7 @@ describe("the questions of the C8 runtime", () => {
         latest: { id: "100", bpmnProcessId: "order", version: 1, name: "order name" },
         running: 4,
         withIncident: 1,
+        incidents: 1,
       },
     ])
   })
@@ -187,6 +189,7 @@ describe("the questions of the C8 runtime", () => {
         definition: { id: "100", bpmnProcessId: "order", version: 1, name: "order name" },
         running: 0,
         withIncident: 0,
+        incidents: 0,
       },
     ])
   })

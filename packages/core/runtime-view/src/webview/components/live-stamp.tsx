@@ -16,6 +16,7 @@ import { useHost } from "../host/host-context.js"
 
 export type Freshness =
   | { readonly kind: "loading" }
+  | { readonly kind: "none" }
   | { readonly kind: "asOf"; readonly at: string; readonly live?: LiveUpdates | undefined }
   | { readonly kind: "refreshing"; readonly at: string; readonly live?: LiveUpdates | undefined }
   | {
@@ -149,6 +150,9 @@ function ReadStamp({ at, live }: { readonly at: string; readonly live?: LiveUpda
 }
 
 export function FreshnessStamp({ freshness }: { readonly freshness: Freshness }) {
+  if (freshness.kind === "none") {
+    return null
+  }
   if (freshness.kind === "loading") {
     return (
       <span className={STAMP} data-part="freshness" data-state="loading">

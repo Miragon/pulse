@@ -160,6 +160,22 @@ describe("useToolQueries", () => {
     expect(result.current[0]?.data).toEqual({ value: "shared" })
     expect(callTool).toHaveBeenCalledTimes(1)
   })
+
+  it("holds its options for every read: a stale time a read that mounts again reads anew by", async () => {
+    callTool.mockResolvedValue(answer("fresh"))
+    const kept = { staleTime: 60_000 }
+    const first = renderHook(() => useToolQueries<Answer>(reads, kept), { wrapper })
+    await waitFor(() => expect(first.result.current[1]?.data).toEqual({ value: "fresh" }))
+    first.unmount()
+    const again = renderHook(() => useToolQueries<Answer>(reads, kept), { wrapper })
+    expect(again.result.current.map((read) => read.isFetching)).toEqual([false, false])
+    again.unmount()
+    expect(callTool).toHaveBeenCalledTimes(2)
+
+    const stale = renderHook(() => useToolQueries<Answer>(reads, { staleTime: 0 }), { wrapper })
+    await waitFor(() => expect(callTool).toHaveBeenCalledTimes(4))
+    stale.unmount()
+  })
 })
 
 describe("useToolMutation", () => {

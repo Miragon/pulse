@@ -65,8 +65,6 @@ export function remediationHandOff(
     facts: {
       ...clusterCountFacts(cluster),
       scannedProcessDefinitionKeys: keys.scannedProcessDefinitionKeys,
-      // An unknown 24h count is left out, never a 0 (#335).
-      last24h: cluster.last24hCount ? cluster.last24hCount : undefined,
     },
     untrusted: [{ label: "sampleMessage", text: cluster.representativeMessage }],
   }

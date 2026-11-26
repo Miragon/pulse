@@ -3,14 +3,14 @@
  * asked of the provider before the request proves it is this browser's sign-in: its login cookie
  * opens, the state matches in constant time, and an `iss` names the provider (RFC 9207, the mix-up
  * defense; required once the provider's metadata says it sends one). Then the code is exchanged as
- * a confidential client (for the gate's resource unless the web client names none, with its scopes
- * where it names them at every grant), and the access token must pass the gate in front of `/mcp`
- * before it is kept, so a session never holds a token `/mcp` would refuse: one bound to another
- * resource, or to none, fails the sign-in as `audience`. Each sign-in starts a new session, its id
- * and CSRF secret new over whatever the browser carried, so a planted session never survives it;
- * the login cookie is cleared and the browser returns to the page it started from (303). A token
- * answer without a refresh token signs in all the same, and the log says that such a session ends
- * with its access token, unchecked at the provider. A session larger than its cookies hold fails,
+ * a confidential client (for the gate's resource, or the one the web client names in its place,
+ * unless it names none, with its scopes where it names them at every grant), and the access token
+ * must pass the gate in front of `/mcp` before it is kept, so a session never holds a token `/mcp`
+ * would refuse: one bound to another resource, or to none, fails the sign-in as `audience`. Each
+ * sign-in starts a new session, its id and CSRF secret new over whatever the browser carried, so a
+ * planted session never survives it; the login cookie is cleared and the browser returns to the
+ * page it started from (303). A token answer without a refresh token signs in all the same, and
+ * the log says that such a session ends with its access token, unchecked at the provider. A session larger than its cookies hold fails,
  * and the log names the access token's size and whether it carries a `groups` or `wids` claim
  * (Entra ID's ids of groups and directory roles), never their values. A failure sends the browser
  * to the signed-out page with its reason, and the log says why, never with a code, a state or a
@@ -124,7 +124,7 @@ async function tokensOf(
         code,
         redirectUri: callbackUri(ctx.settings),
         verifier: login.verifier,
-        ...(resource === false ? {} : { resources: [ctx.resource] }),
+        ...(resource === false ? {} : { resources: [resource ?? ctx.resource] }),
         ...(grantScopes === true ? { scopes } : {}),
       },
       ctx.platform,

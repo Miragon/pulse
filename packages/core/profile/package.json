@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-profile",
-  "version": "0.28.0",
+  "version": "0.34.0",
   "description": "One profile format for the Pulse CLI, Pulse for VS Code and the Pulse MCP server: a parser that takes the text of a profile file and returns a verdict per profile as data, the JSON Schema for editors and the shared fixtures. No runtime dependency.",
   "license": "MIT",
   "keywords": [
@@ -62,7 +62,7 @@
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "22.20.5",
     "ajv": "8.20.0",
-    "fast-check": "4.10.2",
+    "fast-check": "4.10.3",
     "typescript": "6.0.3",
     "vitest": "5.1.1"
   }

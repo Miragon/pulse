@@ -23,7 +23,11 @@ export const SCOPES = [
   "orca",
   "cibseven-example",
   "brand",
+  "plugins",
 ]
+
+/** The apps that ship a Claude Code plugin (apps/<app>/skills/<plugin>/.claude-plugin/plugin.json). */
+export const PLUGIN_APPS = ["cli", "mcp-server", "vscode"]
 
 const PROSE = /\.(?:md|png|jpe?g|gif|webp)$/
 
@@ -42,14 +46,17 @@ export const PATH_RULES = [
   { pattern: /^\.github\//, scopes: ["typescript"] },
   // Read by the CLI's tests and bundled into the CLI as its guide topics.
   { pattern: /^docs\/cli\//, scopes: ["typescript", "brand", "cli"] },
-  // Read by the token drift test (pulse-ui).
-  { pattern: /^docs\/\.vitepress\/miragon\//, scopes: ["typescript", "brand"] },
   // Read by the token drift scan (pulse-ui).
   { pattern: /^docs\/.*\.css$/, scopes: ["brand", "typescript"] },
   // Linted by lint:configs.
   { pattern: /^docs\/\.vitepress\/(?:config|theme\/index)\.ts$/, scopes: ["brand", "typescript"] },
   // Read by scripts/local-env.test.mjs: the second worktree's command.
   { pattern: /^docs\/mcp\/developer\.md$/, scopes: ["brand", "typescript"] },
+  // Generated from @miragon/pulse-ui/glossary, whose page test (pulse-ui) holds it to the data.
+  { pattern: /^docs\/glossary\.md$/, scopes: ["brand", "typescript"] },
+  // A generic extra-file of release-please: lint:github holds the version it marks (the release
+  // tag a copy of the template is cloned from) to the release's.
+  { pattern: /^docs\/mcp\/claude-artifacts\.md$/, scopes: ["brand", "typescript"] },
   { pattern: /^docs\//, scopes: ["brand"] },
   // Read by scripts/server-env-names.test.mjs.
   { pattern: /^\.env\.example$/, scopes: ["typescript"] },
@@ -62,7 +69,9 @@ export const PATH_RULES = [
   { pattern: /^\.miragon\/shots\//, scopes: ["brand", "typescript"] },
   { pattern: /^\.miragon\//, scopes: ["brand"] },
   { pattern: /^\.claude\//, scopes: [] },
-  { pattern: /^\.claude-plugin\//, scopes: ["cli"] },
+  // The marketplace: the plugins job validates it and every plugin it lists, and the MCP server's
+  // plugin test (the TypeScript job) reads that it lists the server's plugin.
+  { pattern: /^\.claude-plugin\//, scopes: ["plugins", "typescript"] },
   // The shared editor settings: only the always-on format check reads them.
   { pattern: /^\.vscode\//, scopes: [] },
   { pattern: /^playground\/cibseven-example\//, scopes: ["cibseven-example"] },
@@ -79,6 +88,10 @@ export const PATH_RULES = [
     pattern: /^templates\/fixtures\/prebuilt-module\/src\/board\.html$/,
     scopes: ["mcp", "template", "typescript"],
   },
+  // The Claude artifact's agent file and README: the MCP server's plugin test reads the tools the
+  // agent file names, and lint:github holds the release tag the README marks (a generic
+  // extra-file of release-please); docs-refs reads both in its always-on job.
+  { pattern: /^templates\/claude-artifact\/(?:CLAUDE|README)\.md$/, scopes: ["typescript"] },
   { pattern: /^templates\/.*\.(?:md|png|jpe?g|gif|webp)$/, scopes: [] },
   // The token drift scan (pulse-ui) reads them; the template's own job tests them.
   { pattern: /^templates\//, scopes: ["template", "typescript"] },
@@ -87,8 +100,25 @@ export const PATH_RULES = [
 /** Package files that checks outside the package read too. */
 export const ALSO_READ_BY = [
   { pattern: /^apps\/cli\/README\.md$/, scopes: ["brand"] },
+  // pulse-ui's README: its browser chat suite (src/browser-chat.test.ts) renders the example of
+  // "Use in a page without a build" over the bundle, so the example it shows is one that runs.
+  { pattern: /^packages\/core\/ui\/README\.md$/, scopes: ["typescript"] },
+  // widget-shell's README: its browser page suite renders the example of "Use in a page without a
+  // build" over its browser bundle in Chromium, so the example it shows is one that runs.
+  { pattern: /^packages\/core\/widget-shell\/README\.md$/, scopes: ["typescript"] },
+  // The Claude Code plugins the apps ship (apps/<app>/skills/<plugin>, each listed in
+  // .claude-plugin/marketplace.json): the plugins job validates each and holds its version to its
+  // app's manifest (PLUGIN_APPS). The MCP server's own tests read its plugin, prose included (the
+  // plugin test): the TypeScript job runs them, while the package rules leave its prose to none.
+  // The CLI's prose is code by the package rules.
+  { pattern: /^apps\/mcp-server\/skills\//, scopes: ["plugins", "typescript"] },
+  {
+    pattern: new RegExp(`^apps/(?:${PLUGIN_APPS.join("|")})/(?:skills/|package\\.json$)`),
+    scopes: ["plugins"],
+  },
   // The docs package's manifest: the CLI bundles pages of it, so its licence test reads its
-  // name and licence.
+  // name and licence; it pins the docs kit (@miragon/docs-starter), whose tokens the token
+  // drift test (pulse-ui) reads.
   { pattern: /^docs\/package\.json$/, scopes: ["cli", "typescript"] },
   // The one Camunda 7 REST spec, its patches and its route table, read as files: c7-client's
   // generate (the SDK, which the MCP server and the template build on) and the CLI's catalog

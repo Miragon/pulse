@@ -170,6 +170,20 @@ describe("instanceView incidents and children", () => {
     expect(view.propagatedIncidents).toBe(2)
   })
 
+  it("lists an incident without a root incident as a root, by the family's root rule", () => {
+    const view = instanceView(
+      data({
+        runtime: {},
+        incidents: [
+          { id: "a", incidentType: "failedJob", configuration: "job-1" },
+          { id: "b", rootCauseIncidentId: null, incidentType: "failedJob" },
+        ],
+      }),
+    )
+    expect(view.incidents.map((incident) => incident.id)).toEqual(["a", "b"])
+    expect(view.propagatedIncidents).toBeUndefined()
+  })
+
   it("sorts children by depth, key and id with key and version from the definitions", () => {
     const view = instanceView(
       data({

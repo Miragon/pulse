@@ -32,8 +32,10 @@ import {
 const SRC = fileURLToPath(new URL(".", import.meta.url))
 /** Every source directory but the gates themselves (testing) and the vendored tokens. */
 const SCANNED = [
+  "bpmn",
   "components",
   "format",
+  "glossary",
   "hooks",
   "kit",
   "lib",
@@ -49,6 +51,10 @@ const SCANNED = [
  * draws no 12 px icon fails as an unused allowance.
  */
 const DENSE_ICONS_ALLOWED: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  bpmn: {
+    "canvas-badge.tsx":
+      "the incident's icon inside a count's 22 px badge on the diagram, beside its 13 px figure",
+  },
   components: {
     "CountBadge.tsx": "an alarming count's tone icon inside its 20 px pill beside 13 px figures",
     "DrillButton.tsx":
@@ -113,7 +119,10 @@ describe("kit copy follows the voice rules", () => {
     "copyableId",
     "conditionChip",
     "stateLabel",
-    "pills",
+    "freshness",
+    "sectionState",
+    "pageError",
+    "bpmn",
   ] as const
   it.each(
     (["de", "en"] as const).flatMap((language) =>

@@ -127,10 +127,14 @@ const BOARD_RULE =
   "id shows one to the user, read from the engines the board names; its facts are that board's " +
   "numbers."
 
-/** Only on a server with a Camunda 7 and a Camunda 8 engine: what reads the latter, what not. */
+/**
+ * Only on a server with a Camunda 7 and a Camunda 8 engine: what reads the latter, what not. The
+ * screen tool reads one too, as the web app's screen feeds do (owner decision 2026-11-24, #666).
+ */
 const BOARDS_ONLY_RULE =
   "- Camunda 8 engines (dialect c8 in engine_list_engines) show on boards only (engine_open_cockpit " +
-  "with view board); other tools offer none and refuse a c8 default: ENGINE_DIALECT_NOT_SERVED."
+  "with view board); engine_get_screen reads them too, other tools offer none and refuse a c8 " +
+  "default: ENGINE_DIALECT_NOT_SERVED."
 
 /** A server of Camunda 8 engines alone: the tools it registers show them, nothing else. */
 const CAMUNDA_8_SERVER_RULE =
@@ -138,7 +142,7 @@ const CAMUNDA_8_SERVER_RULE =
   "view board shows one, landing the engines and boards to pick from; in its facts null is " +
   "unknown, never 0."
 
-/** The rules of a server without a Camunda 7 engine: only what its four tools and feeds do. */
+/** The rules of a server without a Camunda 7 engine: only what its tools and feeds do. */
 function camunda8Instructions(input: EngineInstructionsInput): string {
   return [
     "engine (Camunda 8, which this server reads on boards):",

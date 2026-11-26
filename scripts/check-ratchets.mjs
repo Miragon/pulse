@@ -124,14 +124,15 @@
  *                                   model-visible surface budgets per toolset
  *                                   (tools/list plus the server instructions)
  *                                   shrink-only, never removed
- *   apps/<app>/test/__golden__/bundle-budget.json
+ *   <pkg>/test/__golden__/bundle-budget.json
  *                                   bundle size ceilings shrink-only, never
  *                                   removed: the MCP server's widget bundle,
- *                                   the web app's page and the VS Code
- *                                   webview (gzip), the CLI's dist (raw
- *                                   bytes; scripts/published-imports.test.mjs
- *                                   reads it); each file's $comment says what
- *                                   it measures
+ *                                   the web app's page, the VS Code webview
+ *                                   and pulse-ui's and widget-shell's browser
+ *                                   bundles (gzip), the CLI's dist (raw bytes;
+ *                                   scripts/published-imports.test.mjs reads
+ *                                   it); each file's $comment says what it
+ *                                   measures
  *   package.json (root)             no gate drops out of `lint`/`test`, and the
  *                                   chains only gain plain `pnpm <script>`
  *                                   gates; every chained gate script and the
@@ -139,8 +140,8 @@
  *                                   `--exclude` list may shrink); no `knip` key
  *   <pkg>/package.json              lint / typecheck / test pinned
  *   every workspace package.json    no `prettier` key (root, apps, packages,
- *                                   docs, the starter's manifests under
- *                                   templates/composed-server; also in a
+ *                                   docs, every template's manifests under
+ *                                   templates/; also in a
  *                                   package.json the diff introduces):
  *                                   prettier reads it before any .prettierrc
  *                                   in the same directory
@@ -242,12 +243,15 @@ const ROOT_PRETTIER = ".prettierrc.json"
  */
 export const TEMPLATE_PRETTIER = "templates/composed-server/.prettierrc.json"
 /**
- * The starter's manifests (its root, server/, modules/<name>/): a `prettier`
- * key in one would beat TEMPLATE_PRETTIER for every file below it.
+ * Every template's manifests (the starter's root, server/, modules/<name>/,
+ * the Claude artifact's, the fixtures'): a `prettier` key in one would beat
+ * TEMPLATE_PRETTIER, or the root .prettierrc.json, for every file below it.
  */
 const TEMPLATE_MANIFEST = new RegExp(
-  String.raw`^templates/composed-server/(?!(?:.*/)?node_modules/)(?:.+/)?package\.json$`,
+  String.raw`^templates/(?!(?:.*/)?node_modules/)(?:.+/)?package\.json$`,
 )
+/** The starter's manifests: its style is TEMPLATE_PRETTIER's, a copy of the root's settings. */
+const STARTER_MANIFEST = /^templates\/composed-server\//
 
 // Config files a tool loads BEFORE (or instead of) the ratcheted one:
 // ESLint resolves the nearest eslint.config.{js,mjs,cjs,ts,mts,cts} upward
@@ -307,7 +311,8 @@ export function ratchetKind(relPath) {
   if (relPath === TEMPLATE_PRETTIER) return "template-prettier"
   if (SHADOW_CONFIGS.some(({ pattern }) => pattern.test(relPath))) return "shadow-config"
   if (/^apps\/[^/]+\/test\/__golden__\/char-budgets\.json$/.test(relPath)) return "char-budgets"
-  if (/^apps\/[^/]+\/test\/__golden__\/bundle-budget\.json$/.test(relPath)) return "bundle-budget"
+  if (new RegExp(`^${PKG}/test/__golden__/bundle-budget\\.json$`).test(relPath))
+    return "bundle-budget"
   if (relPath === "package.json") return "root-scripts"
   if (new RegExp(`^${PKG}/package\\.json$`).test(relPath)) return "package-scripts"
   // The docs workspace and the starter's manifests pin no gate script; only
@@ -2084,7 +2089,7 @@ const BUDGET_GROWTH = {
   "char-budgets": (relPath, name, from, to) =>
     `${relPath} -> "${name}": ${from} -> ${to} model-visible characters. The surface a model reads (tools/list plus the server instructions) is shrink-only: trim descriptions, schemas or instructions, or justify the growth with a Ratchet-Exception trailer.`,
   "bundle-budget": (relPath, name, from, to) =>
-    `${relPath} -> "${name}": ${from} -> ${to} bytes (what the file's $comment says it measures). A shipped bundle's ceiling is shrink-only: every view resource inlines the widget bundle, every first load of the web app downloads its page, the extension ships its webview, every npm install of the CLI downloads its dist. Shrink the bundle, or justify the growth with a Ratchet-Exception trailer.`,
+    `${relPath} -> "${name}": ${from} -> ${to} bytes (what the file's $comment says it measures). A shipped bundle's ceiling is shrink-only: every view resource inlines the widget bundle, every first load of the web app downloads its page, the extension ships its webview, every page without a build loads pulse-ui's and widget-shell's browser bundles, every npm install of the CLI downloads its dist. Shrink the bundle, or justify the growth with a Ratchet-Exception trailer.`,
 }
 
 function compareBudgets(kind, relPath, oldJson, newJson) {
@@ -2278,9 +2283,9 @@ function templatePrettierViolations(newText, rootText) {
  */
 function manifestKeyViolations(relPath, json) {
   if (!json || typeof json !== "object" || !Object.hasOwn(json, "prettier")) return []
-  const fix = TEMPLATE_MANIFEST.test(relPath)
+  const fix = STARTER_MANIFEST.test(relPath)
     ? `The starter's style is the root's: change the root .prettierrc.json and copy its settings, without \`overrides\`, into ${TEMPLATE_PRETTIER}`
-    : `Per-app style goes into the root .prettierrc.json \`overrides\` (\`"files": ["apps/<app>/**"]\`)`
+    : `Per-directory style goes into the root .prettierrc.json \`overrides\` (\`"files": ["apps/<app>/**"]\`)`
   return [
     `${relPath} -> a \`prettier\` key (package.json#prettier). prettier reads it before any .prettierrc in the same directory, so every file below it would be formatted, and pass format:check, in a style the root .prettierrc.json does not set. ${fix}; delete the key.`,
   ]

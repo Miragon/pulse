@@ -7,7 +7,7 @@ import type { ActivityStatisticsActivity, ActivityStatisticsData } from "../../v
 import { BpmnDiagram } from "../bpmn-diagram.js"
 import { useHandOff } from "../lib/hand-off.js"
 import { ActivityValues } from "./activity-values.js"
-import { describeRunningFlow, runningHighlights } from "./running.js"
+import { describeRunningFlow, runningDecorations } from "./running.js"
 
 /** Under the cockpit's Refresh (`engine:`), scoped to the route's engine and process. */
 function useRunningData(processDefinitionKey: string, engine: string) {
@@ -37,7 +37,7 @@ export function RunningFlow({
   const { context } = useHandOff()
   const running = useRunningData(processDefinitionKey, engine)
   const data = running.data
-  const highlights = useMemo(() => runningHighlights(data?.activities ?? []), [data?.activities])
+  const decorations = useMemo(() => runningDecorations(data?.activities ?? []), [data?.activities])
 
   if (!data) {
     return (
@@ -68,7 +68,7 @@ export function RunningFlow({
         <BpmnDiagram
           definitionId={data.diagramDefinitionId}
           engineId={engine}
-          highlights={highlights}
+          decorations={decorations}
         />
       )}
       {data.activities.length === 0 ? (
@@ -79,6 +79,16 @@ export function RunningFlow({
           columns={[
             { label: t("procIncFlow.valuesColRunning"), value: (a) => a.running },
             { label: t("procIncFlow.valuesColIncidents"), value: (a) => a.incidents },
+            // The quiet badge's words, at every width: the canvas draws it as a hidden drawing,
+            // so where an element has one this column is its text alternative.
+            ...(data.activities.some((a) => a.incidentsInCalledInstances > 0)
+              ? [
+                  {
+                    label: t("procIncFlow.valuesColCalledIncidents"),
+                    value: (a: ActivityStatisticsActivity) => a.incidentsInCalledInstances,
+                  },
+                ]
+              : []),
             {
               label: t("procIncFlow.valuesColFailedJobs"),
               value: (a) => a.failedJobs,

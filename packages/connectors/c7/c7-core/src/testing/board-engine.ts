@@ -12,17 +12,23 @@
 import recording from "./board-engine.json" with { type: "json" }
 
 /**
- * One answer of the engine as recorded: the request (its method, its path below the origin,
- * decoded, its query and its JSON body) and the JSON the engine answered with, status 200. It is
- * a structural copy of `RecordedAnswer` of @miragon/pulse-http/testing/loopback.
+ * The request of a recorded answer: its method, its path below the origin, decoded, its query and
+ * its JSON body.
  */
-export interface C7RecordedAnswer {
+interface C7RecordedRequest {
   readonly method: string
   readonly path: string
   readonly query?: Readonly<Record<string, string>>
   readonly body?: unknown
-  readonly answer: unknown
 }
+
+/**
+ * One answer of the engine as recorded: the request and the JSON the engine answered with, or for
+ * an answer that is no JSON (a job's stack trace) the text with its content type, status 200. It is
+ * a structural copy of `RecordedAnswer` of @miragon/pulse-http/testing/loopback.
+ */
+export type C7RecordedAnswer = C7RecordedRequest &
+  ({ readonly answer: unknown } | { readonly text: string; readonly contentType: string })
 
 /** The recorded board engine: the board's file, its engine's answers and the board they give. */
 export interface C7BoardEngine {

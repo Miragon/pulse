@@ -140,7 +140,9 @@ describe("the core guide (pulse guide)", () => {
       "--dry-run",
       "instead of `sleep`",
       "exit code 9, which still prints the view",
-      ...["inspect", "wait", "advance", "retry", "deploy", "status"].map((name) => `pulse ${name}`),
+      ...["inspect", "wait", "advance", "retry", "deploy", "status", "plan-migration"].map(
+        (name) => `pulse ${name}`,
+      ),
     ])
     expect(GUIDE).toContain(
       [

@@ -22,6 +22,8 @@ export interface DefinitionRef {
 interface RuntimeCounts {
   readonly running: number
   readonly withIncident: number
+  readonly incidents: number
+  readonly incidentsAtLeast?: true
 }
 
 export interface DefinitionSummary extends RuntimeCounts {

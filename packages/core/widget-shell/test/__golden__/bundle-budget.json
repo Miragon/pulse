@@ -1,0 +1,4 @@
+{
+  "$comment": "Gzip ceiling (bytes, zlib default level) of the browser bundle the npm package ships in dist/browser/ for a page without a build: claude-artifact.js (the page reads and the Claude artifact's entry with TanStack Query and the view runtime they mount, on pulse-ui.js's React and kit, which a page loads beside it). Checked by test/browser-bundle.test.ts against a production build, which also fails a file that shrank more than 10 % below its ceiling. Set to the measured size plus 2 %. Shrink-only (scripts/check-ratchets.mjs): growth needs a Ratchet-Exception trailer that says what it buys.",
+  "claude-artifact.js": 26300
+}

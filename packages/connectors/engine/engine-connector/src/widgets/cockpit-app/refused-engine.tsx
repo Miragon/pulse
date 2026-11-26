@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useSyncExternalStore, type ReactNode } from "react"
+import type { StateHeadingLevel } from "@miragon/pulse-ui"
 import {
   describeError,
   useQueryClient,
@@ -72,24 +73,28 @@ export function useProfileRefusal(
  * An engine whose profile the server refused (`useProfileRefusal`) is the view's ONE state: every
  * section of every route would fail alike, so none mounts, and the state reads nothing. It offers
  * neither Try again nor the chat, since only the operator can fix the profile. Its title is the
- * route's heading (h1), as a route's view bar's is. The cockpit's Refresh reads the engine list
- * again, and an engine it no longer names refused gets its view back, though a read met the
- * refusal before.
+ * route's heading (h1), as a route's view bar's is, or the heading under a bar that holds the h1
+ * (`titleAs`, a page with chrome of its own). The cockpit's Refresh reads the engine list again,
+ * and an engine it no longer names refused gets its view back, though a read met the refusal
+ * before.
  */
 export function RefusedEngineGate({
   refusal,
+  titleAs = "h1",
   children,
 }: {
   refusal: Error | null
+  /** The state's title: the route's h1, or the heading under a bar that holds it. */
+  titleAs?: StateHeadingLevel
   children: ReactNode
 }) {
-  return refusal === null ? children : <RefusedEngineState refusal={refusal} />
+  return refusal === null ? children : <RefusedEngineState refusal={refusal} titleAs={titleAs} />
 }
 
 /** A refusal needs no retry: no Try again shows (`isPermanentError`). */
 const NO_RETRY = () => undefined
 
-function RefusedEngineState({ refusal }: { refusal: Error }) {
+function RefusedEngineState({ refusal, titleAs }: { refusal: Error; titleAs: StateHeadingLevel }) {
   const t = useT()
   // A shell of its own, the view's one state in the gutter, as a route's content sits.
   return (
@@ -97,7 +102,7 @@ function RefusedEngineState({ refusal }: { refusal: Error }) {
       <ViewDataState
         loading={false}
         error={refusal}
-        errorTitleAs="h1"
+        errorTitleAs={titleAs}
         onRetry={NO_RETRY}
         emptyText={t("engineHealth.noData")}
       />

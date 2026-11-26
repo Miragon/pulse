@@ -5,7 +5,7 @@ import { SegmentedControl } from "../kit/segmented-control.js"
 import { CountBadge } from "./CountBadge.js"
 import { CountFigure } from "./CountFigure.js"
 import { KpiGrid } from "./KpiGrid.js"
-import { CountPill, LivePill } from "./Pills.js"
+import { CountPill } from "./Pills.js"
 import { StateLabel } from "./StateLabel.js"
 
 /**
@@ -46,20 +46,14 @@ describe("figures never take a tone colour", () => {
     expect(html).toMatch(/<span class="text-muted-foreground">±0<\/span>/)
   })
 
-  it.each(TONES)(
-    "CountPill and LivePill (%s): number and label in the foreground, tone on the rim",
-    (tone) => {
-      const count = renderToStaticMarkup(<CountPill tone={tone}>42</CountPill>)
-      const live = renderToStaticMarkup(<LivePill tone={tone}>Live</LivePill>)
-      for (const html of [count, live]) {
-        expect(html).not.toMatch(TONE_AS_TEXT)
-        if (tone !== "neutral") {
-          expect(html).toContain("text-foreground")
-          expect(html).toContain(`border-${tone}`)
-        }
-      }
-    },
-  )
+  it.each(TONES)("CountPill (%s): the number in the foreground, the tone on the rim", (tone) => {
+    const html = renderToStaticMarkup(<CountPill tone={tone}>42</CountPill>)
+    expect(html).not.toMatch(TONE_AS_TEXT)
+    if (tone !== "neutral") {
+      expect(html).toContain("text-foreground")
+      expect(html).toContain(`border-${tone}`)
+    }
+  })
 })
 
 describe("a tone's icon follows forced colours", () => {

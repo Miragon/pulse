@@ -8,7 +8,7 @@ import { UI_MESSAGES } from "../locale/ui-messages.js"
 import { Button } from "../primitives/button.js"
 import { classesUnder, compiled, narrowRules } from "./bar-css.test-support.js"
 import { StatusBadge } from "./Pills.js"
-import { ViewBar } from "./ViewBar.js"
+import { ViewBar, ViewBarSlots } from "./ViewBar.js"
 
 /**
  * ViewBar, the webview's context bar in the kit: the subject, its facts, the actions and the
@@ -105,9 +105,12 @@ describe("ViewBar", () => {
     expect(
       slot(container, "view-bar-meta")?.querySelector('[aria-hidden="true"].w-px'),
     ).toBeTruthy()
-    expect(classes(slot(container, "view-bar-freshness"))).toEqual(
-      expect.arrayContaining(["min-w-[24ch]", "tabular-nums", "text-right"]),
+    const stamp = classes(slot(container, "view-bar-freshness"))
+    expect(stamp).toEqual(
+      expect.arrayContaining(["tabular-nums", "text-right", "whitespace-nowrap"]),
     )
+    // The slot reserves no width: a plain stamp stays on the actions' line.
+    expect(stamp.some((c) => c.startsWith("min-w-"))).toBe(false)
     rerender(<ViewBar title="x" access={{ writable: false }} />)
     expect(slot(container, "view-bar-access")?.textContent).toBe(UI_MESSAGES.en.viewBar.readOnly)
     // Without the host's live control or stamp, no divider.
@@ -214,5 +217,124 @@ describe("ViewBar", () => {
     expect(narrowRules(css, "30rem") + narrowRules(css, "36rem")).not.toMatch(/display: none/)
     const toolbar = screen.getByRole("button", { name: "Find" })
     expect(toolbar.querySelector('[data-slot="button-label"]')?.textContent).toBe("Find")
+  })
+
+  it("shows its actions' labels again under 30rem, on their own line, and only there", async () => {
+    const { container } = render(
+      <ViewBar
+        title="x"
+        actions={
+          <Button variant="toolbar">
+            <Icon icon={Search} />
+            Find
+          </Button>
+        }
+      />,
+    )
+    const css = await compiled(classesUnder(container.firstElementChild!))
+    const label = ":is(a, button):has( > svg) > [data-slot=button-label]"
+    const under30 = narrowRules(css, "30rem")
+    // The label back in the flow on one line, the button's padding around it again.
+    expect(under30).toContain(`${label} { position: static;`)
+    expect(under30).toContain(`${label} { white-space: nowrap;`)
+    expect(under30).toMatch(
+      /:is\(a, button\):has\( > svg\) \{ padding-inline: calc\(var\(--spacing\) \* 2\); \}/,
+    )
+    // It outranks the button's own 36rem rule by a type selector (`:is(a, button)`) on the group:
+    // the button hides its label by `.class:has(>svg) > [data-slot=button-label]`.
+    expect(narrowRules(css, "36rem")).toMatch(
+      /:has\( > svg\) > \[data-slot=button-label\] \{ position: absolute;/,
+    )
+    // The group alone: the bar's other parts keep the 36rem rule.
+    const owners = [...container.querySelectorAll("[class*='30rem]/bar:[&_:is']")]
+    expect(owners).toEqual([slot(container, "view-bar-actions")])
+  })
+})
+
+describe("ViewBarSlots: what a host adds to every bar below it", () => {
+  const Menu = () => (
+    <Button variant="ghost" size="icon-sm" aria-label="Menu" className="lg:hidden">
+      <Icon icon={Search} />
+    </Button>
+  )
+  const Refresh = () => (
+    <Button variant="toolbar" size="sm">
+      Refresh
+    </Button>
+  )
+
+  it("puts the host's lead first, before the subject and its back button", () => {
+    const { container } = render(
+      <ViewBarSlots lead={<Menu />}>
+        <ViewBar title="Jobs" onBack={vi.fn()} />
+      </ViewBarSlots>,
+    )
+    const bar = slot(container, "view-bar") as HTMLElement
+    const [menu, back] = within(bar).getAllByRole("button")
+    expect(menu.getAttribute("aria-label")).toBe("Menu")
+    expect(back.getAttribute("aria-label")).toBe(UI_MESSAGES.en.viewBar.back)
+    // The lead and the subject share the row's first item, one line that never breaks: the
+    // title gives way beside the lead, which a page hides (lg:hidden) without room or gap.
+    const row = bar.firstElementChild!
+    const start = slot(container, "view-bar-start") as HTMLElement
+    expect(row.firstElementChild).toBe(start)
+    expect([...start.children]).toEqual([menu, slot(container, "view-bar-subject")])
+    expect(start.className).toContain("flex-[1_1_20rem]")
+    expect(start.className).not.toContain("flex-wrap")
+    const subject = slot(container, "view-bar-subject") as HTMLElement
+    expect(subject.className).toContain("flex-auto")
+    expect(subject.className).not.toContain("flex-[1_1_20rem]")
+  })
+
+  it("puts the host's actions first in the bar's one group, and shows the group for them alone", () => {
+    const { container, rerender } = render(
+      <ViewBarSlots actions={<Refresh />}>
+        <ViewBar
+          title="Jobs"
+          actions={
+            <Button variant="toolbar" size="sm">
+              Open
+            </Button>
+          }
+        />
+      </ViewBarSlots>,
+    )
+    const names = () =>
+      within(slot(container, "view-bar-actions") as HTMLElement)
+        .getAllByRole("button")
+        .map((button) => button.textContent)
+    expect(names()).toEqual(["Refresh", "Open"])
+    rerender(
+      <ViewBarSlots actions={<Refresh />}>
+        <ViewBar title="Jobs" actions={false} />
+      </ViewBarSlots>,
+    )
+    expect(names()).toEqual(["Refresh"])
+  })
+
+  it("keeps what an outer provider set that an inner one does not, and a bar's own lead beats both", () => {
+    const { container } = render(
+      <ViewBarSlots lead={<Menu />}>
+        <ViewBarSlots actions={<Refresh />}>
+          <ViewBar title="Jobs" />
+          <ViewBar title="Own" lead={<span data-testid="own">own</span>} />
+        </ViewBarSlots>
+      </ViewBarSlots>,
+    )
+    const [jobs, own] = [...container.querySelectorAll('[data-slot="view-bar"]')] as HTMLElement[]
+    expect(within(jobs).getByRole("button", { name: "Menu" })).toBeTruthy()
+    expect(within(jobs).getByRole("button", { name: "Refresh" })).toBeTruthy()
+    expect(within(own).queryByRole("button", { name: "Menu" })).toBeNull()
+    expect(within(own).getByTestId("own")).toBeTruthy()
+  })
+
+  it("adds nothing without a provider: the bar shows its own parts alone", () => {
+    const { container } = render(<ViewBar title="Jobs" />)
+    const row = (slot(container, "view-bar") as HTMLElement).firstElementChild!
+    const subject = slot(container, "view-bar-subject") as HTMLElement
+    expect(row.firstElementChild).toBe(subject)
+    expect(subject.className).toContain("flex-[1_1_20rem]")
+    expect(slot(container, "view-bar-start")).toBeNull()
+    expect(slot(container, "view-bar-actions")).toBeNull()
   })
 })

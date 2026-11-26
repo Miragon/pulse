@@ -14,14 +14,14 @@ import type { ShellHandle } from "@miragon/modeler-shell"
 import { BPMN_LABEL_STYLE } from "@miragon/pulse-ui"
 import { CanvasRoles, RENDERER_COLORS } from "./canvas-roles.js"
 import { CanvasShell } from "./canvas-shell.js"
-import {
-  DecorationLayer,
-  type CanvasMarkersLike,
-  type Decorations,
-  type OverlaysLike,
-  type SelectionLike,
-} from "./decoration-layer.js"
-import type { BadgeFilter } from "./badge-cluster.js"
+import { DecorationLayer } from "./decoration-layer.js"
+import type {
+  BadgeFilter,
+  CanvasMarkersLike,
+  Decorations,
+  OverlaysLike,
+  SelectionLike,
+} from "./decorations.js"
 import {
   DiagramElements,
   type DiagramElement,
@@ -40,10 +40,20 @@ export interface RuntimeCanvasOptions {
   readonly onImportFailed: (reason: string) => void
   readonly remembersView?: boolean
   readonly keysOnCanvas?: boolean
+  readonly onHover?: (elementId: string | undefined) => void
+  readonly onViewChange?: () => void
+}
+
+export interface Viewbox {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
 }
 
 interface RootedCanvasLike {
   getRootElement(): DiagramElement
+  viewbox(box?: Viewbox): Viewbox
 }
 
 interface EventBusLike {
@@ -69,6 +79,7 @@ export class RuntimeCanvas {
   private queue: Promise<void> = Promise.resolve()
   private destroyed = false
   private firstImport = true
+  private hovered: string | undefined
 
   constructor(private readonly options: RuntimeCanvasOptions) {
     const mounted = CanvasShell.mount(options.host, options.keysOnCanvas === true)
@@ -94,13 +105,32 @@ export class RuntimeCanvas {
             onChange: (listener) => viewport.onChange(listener),
             getState: () => (this.onTopPlane() ? viewport.getState() : undefined),
           })
-    this.viewer.get<EventBusLike>("eventBus").on("element.click", ({ element }) => {
+    const events = this.viewer.get<EventBusLike>("eventBus")
+    events.on("element.click", ({ element }) => {
       const target = DiagramElements.selectableTarget(element)
       if (target !== undefined) {
         options.onSelectElement(target.id)
       }
     })
+    events.on("element.hover", ({ element }) => {
+      this.hover(DiagramElements.selectableTarget(element)?.id)
+    })
+    events.on("element.out", () => {
+      this.hover(undefined)
+    })
+    events.on("canvas.viewbox.changed", () => {
+      options.onViewChange?.()
+    })
     this.markFocusByPointer()
+  }
+
+  viewbox(): Viewbox {
+    const { x, y, width, height } = this.viewer.get<RootedCanvasLike>("canvas").viewbox()
+    return { x, y, width, height }
+  }
+
+  showViewbox(box: Viewbox): void {
+    this.viewer.get<RootedCanvasLike>("canvas").viewbox(box)
   }
 
   update(xml: string, decorations: Decorations): Promise<void> {
@@ -117,6 +147,15 @@ export class RuntimeCanvas {
     this.viewer.destroy()
     this.shell.destroy()
     this.disconnectShell()
+  }
+
+  private hover(elementId: string | undefined): void {
+    if (elementId === this.hovered) {
+      return
+    }
+    this.hovered = elementId
+    this.layer?.hover(elementId)
+    this.options.onHover?.(elementId)
   }
 
   private markFocusByPointer(): void {
@@ -157,6 +196,7 @@ export class RuntimeCanvas {
       return
     }
     this.options.overlays.render(layer.apply(decorations), () => {
+      layer.hover(this.hovered)
       layer.restoreFocus()
     })
   }

@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-http",
-  "version": "0.28.0",
+  "version": "0.34.0",
   "description": "One HTTP transport for the Pulse MCP server, the Pulse CLI and the C7 adapter of Pulse for VS Code and Pulse for Orca: a deadline to the last byte, no redirect, a size cap, one credential seam with one retry after 401, failure reasons as data, lossless JSON and masked secrets, over the fetch you hand it, and the OAuth client protocol they share (./oauth). No runtime dependency.",
   "license": "MIT",
   "keywords": [
@@ -67,7 +67,7 @@
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "22.20.5",
-    "fast-check": "4.10.2",
+    "fast-check": "4.10.3",
     "typescript": "6.0.3",
     "vitest": "5.1.1"
   }

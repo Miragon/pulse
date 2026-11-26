@@ -349,8 +349,9 @@ describe("workflow command help", () => {
       cause, overdue executable jobs (is the job executor running?), external task
       topics with waiting, locked and expired tasks (is a worker subscribed?), open
       tasks and failed batches. Every finding names the next command. The status is
-      critical from 50 open incidents, 25 of one cause or an overdue job, warning with
-      any other finding; --fail-on makes CI fail on it.
+      critical from 50 open root incidents (a call activity's copy of a called
+      instance's incident never counts), 25 of one cause or an overdue job, warning
+      with any other finding; --fail-on makes CI fail on it.
 
       Requests: in parallel GET /version, GET /process-definition/statistics, GET
       /incident and /incident/count, GET /external-task and /external-task/count, GET
@@ -380,7 +381,7 @@ describe("workflow command help", () => {
 })
 
 describe("workflow command describe", () => {
-  it.each(["inspect", "wait", "advance", "retry", "deploy", "status"])(
+  it.each(["inspect", "wait", "advance", "retry", "deploy", "status", "plan-migration"])(
     "describes the options of %s",
     async (name) => {
       const view = JSON.parse(await output(["describe", name])) as {
@@ -398,7 +399,7 @@ describe("workflow command describe", () => {
 })
 
 describe("workflow command describe text", () => {
-  it.each(["inspect", "wait", "advance", "retry", "deploy", "status"])(
+  it.each(["inspect", "wait", "advance", "retry", "deploy", "status", "plan-migration"])(
     "renders the description of %s",
     async (name) => {
       expect(await output(["describe", name, "-o", "table"])).toMatchSnapshot()

@@ -134,6 +134,38 @@ describe("CalledProcessReader", () => {
     ])
   })
 
+  it("hides no call behind a value that holds the other quote", async () => {
+    const { calls } = callsOf(
+      xmlOf(
+        `<bpmn:callActivity id="Call_Inch" name='5" pipe' calledElement="invoice" />`,
+        '<bpmn:callActivity id="Call_Review" calledElement="ReviewInvoice" />',
+      ),
+    )
+    expect(await calls).toStrictEqual([
+      { elementId: "Call_Inch", bpmnProcessId: "invoice", definition: ref(INVOICE_3) },
+      { elementId: "Call_Review", bpmnProcessId: "ReviewInvoice", definition: ref(REVIEW_2) },
+    ])
+  })
+
+  it("reads the XML through the runtime's read where one is given", async () => {
+    const port = fakePort({
+      getProcessDefinitionStatistics: () =>
+        DEFINITIONS.map((definition) => ({ definition, instances: 0 })),
+    })
+    const asked: string[] = []
+    const reader = new CalledProcessReader(port, (id) => {
+      asked.push(id)
+      return Promise.resolve(
+        xmlOf('<bpmn:callActivity id="Call_Review" calledElement="ReviewInvoice" />'),
+      )
+    })
+    expect(await reader.read(DefinitionId(CALLER.id))).toStrictEqual([
+      { elementId: "Call_Review", bpmnProcessId: "ReviewInvoice", definition: ref(REVIEW_2) },
+    ])
+    expect(asked).toEqual([CALLER.id])
+    expect(port.calls.map((call) => call.operationId)).toEqual(["getProcessDefinitionStatistics"])
+  })
+
   it("reads the version's XML and the deployed versions, in parallel", async () => {
     const { port, calls } = callsOf(xmlOf())
     expect(await calls).toEqual([])
@@ -142,7 +174,10 @@ describe("CalledProcessReader", () => {
         operationId: "getProcessDefinitionBpmn20Xml",
         input: { pathArgs: [CALLER.id], query: {} },
       },
-      { operationId: "getProcessDefinitionStatistics", input: { pathArgs: [], query: {} } },
+      {
+        operationId: "getProcessDefinitionStatistics",
+        input: { pathArgs: [], query: { rootIncidents: "true" } },
+      },
     ])
   })
 

@@ -1,5 +1,7 @@
 import type { BoardView } from "./board-views.js"
+import type { MigrationPlanView } from "./migration-plan-views.js"
 import type { MigrationView } from "./migration-views.js"
 import type { DefinitionView, EngineView, InstanceView } from "./view-models.js"
 
-export type PanelView = DefinitionView | InstanceView | EngineView | MigrationView | BoardView
+export type PanelView =
+  DefinitionView | InstanceView | EngineView | MigrationView | BoardView | MigrationPlanView

@@ -4,18 +4,19 @@
 
 The **Engines** view lists the profiles of `.pulse.json` and your CLI config with their deployed
 processes, running counts and incident markers. A click on an engine opens its overview: every process
-with its latest version, running and with-incident counts, the ones in trouble first.
+with its latest version, running, with-incident and open root incident counts, those with incident first.
 
 ![The Engines view with processes, counts and incident markers](../assets/vscode/01-engines-at-a-glance.png)
 
-![The engine overview, processes in trouble first](../assets/vscode/02-engine-overview.png)
+![The engine overview, processes with incident first](../assets/vscode/02-engine-overview.png)
 
 ## A process definition
 
 The **Definition** panel draws the deployed diagram of one version with badges per element, a
 version picker with counts per version, and the instances (running, with incident, ended),
 filtered by element or business key. _With incident_ counts the instances with an open incident
-now, read from the engine's runtime on every history level, as the MCP cockpit does.
+now, read from the engine's runtime on every history level, as the MCP cockpit does. At history
+level `none` the engine keeps no history, so the list finds no instance, not even a running one.
 
 The funnel button in the filter bar finds instances by their process variables: a name (the
 dialog suggests the names the newest instances of the version hold, any other name works
@@ -70,9 +71,10 @@ For one that holds null, write such a number as text to keep it as written.
 
 ## Batches
 
-Tick instances in the definition panel to cancel or migrate them as one batch, follow its
-progress and stop it. A migration shows both versions with the mapping the engine proposes and
-flags elements where instances would get stuck, before anything runs.
+Tick instances in the definition panel to cancel or migrate them as one batch, follow its progress
+and stop it. A migration shows both versions, the engine's mapping and where instances would get
+stuck before anything runs; drag a mapping from one version to the other or pick it in the list. A
+[plan file](./migration-plans.md) from the CLI opens in the same diagrams and is edited there.
 
 ![A migration plan between two versions](../assets/vscode/10-migration-plan.png)
 

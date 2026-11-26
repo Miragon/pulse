@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { countTone, isToneVariant, severityTone, SITUATION_TONES } from "./index.js"
+import {
+  countTone,
+  isToneVariant,
+  READ_FAILURE_TONES,
+  severityTone,
+  SITUATION_TONES,
+  VERDICT_TONES,
+} from "./index.js"
 
 /**
  * One table for every Pulse UI: the MCP widgets and the VS Code webview show the same situation
@@ -60,5 +67,28 @@ describe("severityTone", () => {
     expect(severityTone(0, 0, 0)).toBe(SITUATION_TONES.idle)
     expect(severityTone(0, 0, 3)).toBe(SITUATION_TONES.healthy)
     expect(severityTone(0, 0, 3)).toBe("neutral")
+  })
+})
+
+describe("VERDICT_TONES and READ_FAILURE_TONES", () => {
+  it("tone an engine's verdict by the situation table: ok neutral, critical an incident's danger", () => {
+    expect(VERDICT_TONES).toEqual({
+      ok: SITUATION_TONES.healthy,
+      warning: "warning",
+      critical: SITUATION_TONES.openIncident,
+    })
+    expect(VERDICT_TONES.ok).toBe("neutral")
+  })
+
+  it("tone a failed read: an engine that does not answer danger, a refusal warning", () => {
+    expect(READ_FAILURE_TONES).toEqual({
+      unreachable: "danger",
+      refused: "warning",
+      unauthorized: "warning",
+      forbidden: "warning",
+    })
+    for (const tone of [...Object.values(VERDICT_TONES), ...Object.values(READ_FAILURE_TONES)]) {
+      expect(isToneVariant(tone)).toBe(true)
+    }
   })
 })

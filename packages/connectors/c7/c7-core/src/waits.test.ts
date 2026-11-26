@@ -127,6 +127,17 @@ describe("waitStates", () => {
       }),
     )
     expect(propagated[0]).toMatchObject({ incidentId: "inc-z" })
+    const unnamed = waitStates(
+      data({
+        externalTasks: [{ id: "et1", activityId: "charge" }],
+        incidents: [
+          { id: "inc-b", rootCauseIncidentId: "x", configuration: "et1" },
+          { id: "inc-y", configuration: "et1" },
+        ],
+      }),
+    )
+    // an incident that names no root incident is a root, by the family's root rule
+    expect(unnamed[0]).toMatchObject({ incidentId: "inc-y" })
   })
 
   it("finds the activity of a job from its definition, its failed activity or its activity instance", () => {

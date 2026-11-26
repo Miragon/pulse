@@ -4,6 +4,7 @@ import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import type { Client } from "@miragon/pulse-c7-client"
 import { z } from "zod"
 import { createConfiguredEngineRegistry, createPlugin, type EnginePluginConfig } from "./plugin.js"
+import { engineConfigSchema, engineModule } from "./module.js"
 import { EngineNotSelectedError, resolveEngine } from "./lib/engine/resolve-engine.js"
 import { camunda7Provider } from "./providers/index.js"
 import { ENGINE_ADMIN_ONLY_TOOLS } from "./lib/mcp/toolsets.js"
@@ -322,11 +323,11 @@ describe("createPlugin: one live verdict for engine_status and the cockpit", () 
     return { status: await json("engine_status"), cockpit: await json(ENGINE_OPEN_COCKPIT) }
   }
 
-  it("judges the world's open incident alike, by the defaults", async () => {
+  it("judges the world's open root incident alike, by the defaults", async () => {
     const { status, cockpit } = await verdicts()
     expect([status.status, cockpit.status]).toEqual(["warning", "warning"])
     for (const rule of [status.statusRule, cockpit.statusRule]) {
-      expect(rule).toContain(">=50 open incidents or >=25 of one cause")
+      expect(rule).toContain(">=50 open root incidents or >=25 of one cause")
     }
   })
 
@@ -334,7 +335,26 @@ describe("createPlugin: one live verdict for engine_status and the cockpit", () 
     const { status, cockpit } = await verdicts({ criticalIncidents: 1 })
     expect([status.status, cockpit.status]).toEqual(["critical", "critical"])
     for (const rule of [status.statusRule, cockpit.statusRule]) {
-      expect(rule).toContain(">=1 open incidents or >=25 of one cause")
+      expect(rule).toContain(">=1 open root incidents or >=25 of one cause")
+    }
+  })
+
+  it("keeps the default of the threshold the deployment leaves unset", async () => {
+    // As the boot hands it over: ENGINE_HEALTH_CRITICAL_CLUSTER_SIZE alone, through the module's
+    // configuration and its schema, which keep the unset key as undefined.
+    const config = engineConfigSchema.parse(
+      engineModule.configFromEnv({
+        ENGINE_URL: "http://a.example/engine-rest",
+        ENGINE_HEALTH_CRITICAL_CLUSTER_SIZE: "1",
+      }),
+    )
+    expect(config.healthThresholds).toHaveProperty("criticalIncidents", undefined)
+    const { status, cockpit } = await verdicts(config.healthThresholds)
+    // The world's one root incident is a cluster of 1: critical by the cluster size set, while
+    // the total keeps its default of 50 instead of turning off.
+    expect([status.status, cockpit.status]).toEqual(["critical", "critical"])
+    for (const rule of [status.statusRule, cockpit.statusRule]) {
+      expect(rule).toContain(">=50 open root incidents or >=1 of one cause")
     }
   })
 })

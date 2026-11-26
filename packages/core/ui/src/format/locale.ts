@@ -35,6 +35,15 @@ export function getFormatLocale(): FormatLocale | undefined {
   return current
 }
 
+/**
+ * The IANA time zone the formatters render dates in: the published one, else the runtime's own.
+ * A read that counts days for what the formatters show (a server tool's `timeZone` argument)
+ * counts them in this zone, so a day on screen and a day in the numbers are the same day.
+ */
+export function getFormatTimeZone(): string {
+  return current?.timeZone ?? new Intl.DateTimeFormat().resolvedOptions().timeZone
+}
+
 export function subscribeFormatLocale(listener: () => void): () => void {
   listeners.add(listener)
   return () => {

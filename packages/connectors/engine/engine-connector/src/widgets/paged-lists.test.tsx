@@ -43,6 +43,7 @@ function instances(ids: string[], total: number): ProcessInstancesData {
     processDefinitionName: "Invoice",
     totalCount: total,
     returnedCount: ids.length,
+    fetchedAt: "2026-10-26T08:00:00.000Z",
     allCount: total,
     withIncidentCount: 0,
     suspendedCount: 0,
@@ -54,6 +55,7 @@ function instances(ids: string[], total: number): ProcessInstancesData {
       version: 1,
       suspended: false,
       hasIncident: false,
+      startTime: null,
     })),
     filters: {},
     engineId: "prod-a",
@@ -68,7 +70,6 @@ const CLUSTER: ClusterDetailData = {
   incidentCount: 2,
   scannedIncidentCount: 2,
   lastHourCount: 1,
-  last24hCount: 2,
   firstSeen: "2026-06-11T08:00:00.000Z",
   latestIncident: "2026-06-11T14:00:00.000Z",
   processDefinitionKeys: ["shipping"],
@@ -152,7 +153,7 @@ describe("a search keeps the list and its search box mounted while page 0 is in 
     )
     host(Widget, { [ENGINE_CLUSTER_DETAIL_DATA]: feed.handler })
 
-    const search = screen.getByRole("searchbox", { name: "Filter by business key" })
+    const search = screen.getByRole("searchbox", { name: "Filter by business key or ID" })
     fireEvent.change(search, { target: { value: "4711" } })
     await waitFor(() => expect(feed.calls).toHaveLength(1), { timeout: 2_000 })
     expect(feed.calls[0].args).toMatchObject({ businessKeyLike: "4711" })

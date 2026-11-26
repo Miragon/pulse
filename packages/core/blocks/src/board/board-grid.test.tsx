@@ -158,6 +158,8 @@ describe("the board's tiles in English", () => {
       "",
     ])
     expect(within(second!).getAllByRole("cell")[1]?.textContent).toBe("B-7")
+    // A row named as it shows its instance: by its business key where it has one.
+    expect(second).toBe(within(list).getByRole("row", { name: "Instance B-7" }))
     expect(within(second!).getAllByRole("cell")[4]?.textContent).toBe("Cancelled")
     expect(texts(list, "group-note")).toEqual([
       "local: showing 2 of ≥\u00a010,000",
@@ -187,9 +189,10 @@ describe("the board's tiles in English", () => {
       within(table)
         .getAllByRole("columnheader")
         .map((head) => head.textContent),
-    ).toEqual(["Engine", "Process", "Element", "Message", "Since"])
+    ).toEqual(["Engine", "Element", "Message", "Since"])
     expect(texts(list, "group-note")).toEqual(["local: first 1, more open", "test: 0 open"])
-    fireEvent.click(within(table).getByRole("row", { name: "Instance 4c1f0a2e…" }))
+    // Named after the instance it opens, at the element its incident is at.
+    fireEvent.click(within(table).getByRole("row", { name: "Instance 4c1f0a2e… at Task_Ship" }))
     expect(asked.opened[0]?.target).toEqual({
       kind: "instance",
       engine: "local",

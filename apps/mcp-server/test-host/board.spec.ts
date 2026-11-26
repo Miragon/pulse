@@ -222,17 +222,22 @@ test.describe("a board, the cockpit's app-level route", () => {
       timeout: 15_000,
     })
     await expect(app.getByText("INV-2026-0042").first()).toBeVisible({ timeout: 15_000 })
+    // The trail is the way the reader came (N10): the board, then the instance, no overview the
+    // reader never saw between them.
     const trail = app.getByRole("navigation", { name: "Breadcrumb" })
+    await expect(trail.locator('[aria-current="page"]')).toHaveText("INV-2026-0042")
+    await expect(trail.getByRole("button")).toHaveCount(1)
     await trail.getByRole("button", { name: TITLE }).click()
     await expect(heading(app)).toBeVisible()
 
+    // The chip opens its engine's overview under the board: inline its trail, the board then the
+    // overview, takes the sections' place.
     const engines = app.getByRole("group", { name: "Engines of this board" })
     await engines.getByRole("button", { name: new RegExp(HEALTHY_ENGINE) }).click()
-    await expect(
-      app.getByRole("navigation", { name: "Cockpit sections" }).getByRole("button", {
-        name: "Overview",
-      }),
-    ).toHaveAttribute("aria-current", "page", { timeout: 15_000 })
+    await expect(heading(app, `${HEALTHY_ENGINE} · Overview`)).toBeVisible({ timeout: 15_000 })
+    await expect(trail.locator('[aria-current="page"]')).toHaveText("Overview")
+    await expect(trail.getByRole("button", { name: TITLE })).toBeVisible()
+    await expect(app.getByRole("navigation", { name: "Cockpit sections" })).toHaveCount(0)
   })
 
   test("a board file that gives no board is a tool error that names its problem", async ({
@@ -343,17 +348,31 @@ test.describe("a board, the cockpit's app-level route", () => {
     await expect(icon).toBeVisible()
   })
 
-  test("dark: the tiles on the dark card, the diagram's paper stays light", async ({ page }) => {
+  test("dark: the tiles on the dark card, the diagram's canvas in the theme (D10, point 7)", async ({
+    page,
+  }) => {
     const app = await openBoard(page, { theme: "dark" })
     await drawn(app)
     const card = tile(app, "Invoice Receipt")
     const dark = await app.locator("html").evaluate((html) => html.classList.contains("dark"))
     expect(dark).toBe(true)
     expect(await backgroundLuminance(card)).toBeLessThan(0.3)
-    // The paper the canvas is drawn on, its nearest light island, is light on the dark card.
+    // The paper the canvas is drawn on is the dark ground, as the editors' canvas, its flows and
+    // labels light on it.
     const canvas = card.getByRole("img", { name: "BPMN process diagram" })
-    const paper = canvas.locator("xpath=ancestor::*[@data-theme-mode='light'][1]")
-    expect(await backgroundLuminance(paper)).toBeGreaterThan(0.95)
+    const paper = canvas.locator("xpath=ancestor::*[@data-slot='bpmn-canvas'][1]")
+    expect(await backgroundLuminance(paper)).toBeLessThan(0.15)
+    const ink = await canvas
+      .locator(".djs-connection .djs-visual > path")
+      .first()
+      .evaluate((el) => {
+        const pen = document.createElement("canvas").getContext("2d")!
+        pen.fillStyle = getComputedStyle(el).stroke
+        pen.fillRect(0, 0, 1, 1)
+        const [r, g, b] = pen.getImageData(0, 0, 1, 1).data
+        return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+      })
+    expect(ink).toBeGreaterThan(0.95)
   })
 
   test("a stripping host: one re-run of the view's own tool, with the invocation's arguments", async ({

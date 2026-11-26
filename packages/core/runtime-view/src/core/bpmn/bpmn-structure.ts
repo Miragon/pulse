@@ -11,7 +11,6 @@ interface SequenceFlow {
 
 export class BpmnStructure {
   private readonly flows: SequenceFlow[] = []
-  private callActivities = false
 
   static of(xml: string): BpmnStructure {
     const structure = new BpmnStructure()
@@ -23,10 +22,6 @@ export class BpmnStructure {
     return structure
   }
 
-  static hasCallActivities(xml: string): boolean {
-    return BpmnStructure.of(xml).callActivities
-  }
-
   flowsBetween(sources: ReadonlySet<string>, targets: ReadonlySet<string>): string[] {
     return this.flows
       .filter((flow) => sources.has(flow.source) && targets.has(flow.target))
@@ -34,7 +29,6 @@ export class BpmnStructure {
   }
 
   private note(kind: string, attributes: string): void {
-    this.callActivities ||= kind === "callActivity"
     if (kind === "sequenceFlow") {
       this.flows.push({
         id: ID.exec(attributes)?.[1] ?? "",

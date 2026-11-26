@@ -1,4 +1,6 @@
+import { WorkflowError } from "@miragon/pulse-c7-core"
 import { describe, expect, it } from "vitest"
+import { renderedAsync } from "./error-text.js"
 import { itemCommand } from "./next-text.js"
 import { shellWord } from "./shell.js"
 
@@ -27,5 +29,23 @@ describe("itemCommand", () => {
       itemCommand({ activityId: "t", kind: "timer", jobId: "j", dueDate: "d", retries: 1 }),
     ).toBe("pulse job execute j")
     expect(itemCommand({ ...at, kind: "conditional" })).toBeUndefined()
+  })
+})
+
+describe("renderedAsync", () => {
+  it("words an engine answer c7-core cannot read as a configuration error, never as a bug of pulse", async () => {
+    const failure = new WorkflowError({
+      kind: "unexpected-answer",
+      operationId: "validateMigrationPlan",
+      problem: "instructionReports is not a list",
+    })
+
+    await expect(renderedAsync(Promise.reject(failure))).rejects.toMatchObject({
+      code: "CONFIG",
+      exitCode: 3,
+      message:
+        "Unexpected answer of the engine to validateMigrationPlan: instructionReports is not a list",
+      details: { hint: expect.stringContaining("`pulse ping`") as unknown },
+    })
   })
 })

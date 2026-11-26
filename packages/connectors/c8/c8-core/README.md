@@ -61,7 +61,14 @@ reads and gives one failure the same kind.
 - **The readers (`src/reading`) and mappings (`src/mapping`).** One reader per question of the
   contract (definitions and versions, diagrams, element statistics, called processes, instances and
   their counts, an instance's detail and wait states, incidents, variable names) and the version
-  floor (8.9), each a class over the REST client, and the mappings from the checked views onto
+  floor (8.9), each a class over the REST client (the definitions and versions count their open
+  incidents, which the cluster never copies, with one incident search per process and per version
+  that has an instance with incident, its total without a row, a lower bound,
+  `incidentsAtLeast`, where the search stops counting; none for one without, which holds no
+  incident; at most eight such searches at once, `FewAtOnce`, as an instance's detail reads its
+  members; one that fails fails the read of the definitions or versions, so every surface that lists
+  a cluster's processes, a board's engine and a process screen's versions included, fails with it),
+  and the mappings from the checked views onto
   engine-core's read models: keys that are Java longs, page cursors, the BPMN text a reader needs
   (read in one pass over the tags and their attributes, in time that grows with the text, no tag
   of a text over 4 Mi characters; the tag reader is a copy of the board builder's, held equal by
@@ -97,7 +104,7 @@ pnpm --fail-if-no-match --filter @miragon/pulse-c8-core exec stryker run  # the 
 ## Testing helpers
 
 `@miragon/pulse-c8-core/testing` exports the conformance world of `@miragon/pulse-engine-core/testing`
-as a Camunda 8 cluster holds it, and a board recorded from it.
+as a Camunda 8 cluster holds it, and a board and the shared screens recorded from it.
 
 `C8WorldSeed.seed(engine, plan)` seeds that world into a cluster over a port the caller hands in
 (`C8SeedEngine`: the REST root, a `fetch`-shaped `send` that signs its requests in, the `wait`
@@ -149,3 +156,23 @@ query and JSON body) with the JSON the cluster answers, or its text and content 
 that is no JSON, check that both builds give the same board and that a build over the kept answers
 on `startRecordedEngine` gives it too with no request unanswered, and write the board file, the
 answers and that board into `packages/connectors/c8/c8-core/src/testing/board-engine.json`.
+
+`C8_SCREEN_ENGINE` is the same for the screens Pulse's surfaces share (`@miragon/pulse-screens`):
+one cluster's answers to the screens' reads under `/v2`, the time a surface builds them at (`asOf`)
+and the screens they give in their JSON form: the engine screen (`expected.engine`,
+`EngineScreenData`); the instance screens (`InstanceScreenData`) of DSP-3001, which waits at its
+call activity for the incident of the instance it called (`expected.instance`), and of that called
+instance (`expected.calledInstance`); the process screens (`ProcessScreenData`) of pulse-order at
+its latest version (`expected.process`) and at its version 1 (`expected.olderVersion`) and of
+pulse-dispatch (`expected.callingProcess`); and the first page of every instance of pulse-order's
+version 1 with the counts of each scope (`expected.instanceList`, `InstanceListData`); the editors'
+C8 adapter and the MCP server's Camunda 8 wire build each exactly, with the figures of the recorded
+Camunda 7 screens. Its answers come from one run of their own, recorded by hand on 2026-11-20 as
+the board's, made anew with the process screens and the instance list, and with the board on
+2026-11-21, when the definitions and versions counted their open incidents: the world seeded with `C8WorldSeed` on
+`camunda/camunda:8.10.9` with H2 and no security, every screen built twice through a proxy in front
+of the cluster that keeps each request with what the cluster answers (the same answer both times),
+and once more over the kept answers on `startRecordedEngine`, with no request unanswered. So every
+key they name is that cluster's, and a screen built over them later reads the same instances and
+versions; one that reads more is recorded again with the others in one run, never joined from
+another recording.

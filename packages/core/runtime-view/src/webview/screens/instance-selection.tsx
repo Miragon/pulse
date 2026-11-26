@@ -1,9 +1,9 @@
+import type { InstanceSelectSlot } from "@miragon/pulse-blocks"
 import { Checkbox } from "@miragon/pulse-ui"
 import type { ReactNode } from "react"
-import type { InstanceRow } from "../../core/protocol/index.js"
-import type { Column } from "../components/data-table.js"
 import { usePendingValue } from "../components/pending-value.js"
 import { useHost } from "../host/host-context.js"
+import type { ListedInstance } from "./listed-instance.js"
 
 const SELECTION_WIDTH = 32
 
@@ -27,7 +27,7 @@ function SelectionHeader({
   rows,
   selected,
 }: {
-  readonly rows: readonly InstanceRow[]
+  readonly rows: readonly ListedInstance[]
   readonly selected: number
 }) {
   const host = useHost()
@@ -54,7 +54,7 @@ function SelectionHeader({
   )
 }
 
-function SelectionCell({ row }: { readonly row: InstanceRow }) {
+function SelectionCell({ row }: { readonly row: ListedInstance }) {
   const host = useHost()
   const [checked, hold] = usePendingValue(row.selected === true)
   if (row.selectable !== true) {
@@ -75,18 +75,26 @@ function SelectionCell({ row }: { readonly row: InstanceRow }) {
   )
 }
 
-export function useSelectionColumn(
-  rows: readonly InstanceRow[],
+export function useInstanceSelection(
+  rows: readonly ListedInstance[],
   selected: number,
-): Column<InstanceRow> | undefined {
+): InstanceSelectSlot<ListedInstance> | undefined {
+  const host = useHost()
   if (!rows.some((row) => row.selectable === true)) {
     return undefined
   }
   return {
-    key: "select",
-    label: "Select",
-    width: SELECTION_WIDTH,
-    header: <SelectionHeader rows={rows} selected={selected} />,
-    render: (row) => <SelectionCell row={row} />,
+    column: {
+      key: "select",
+      label: "Select",
+      width: SELECTION_WIDTH,
+      header: <SelectionHeader rows={rows} selected={selected} />,
+      cell: (row) => <SelectionCell row={row} />,
+    },
+    onToggle: (row) => {
+      if (row.selectable === true) {
+        host.post({ type: "toggleInstances", ids: [row.id], selected: row.selected !== true })
+      }
+    },
   }
 }

@@ -29,6 +29,9 @@ export function useShellContent(): ShellContent {
 /** A shell's content: the gutter at its sides, 12 px above and below, its sections the section gap apart. */
 const CONTENT = "px-gutter gap-section flex min-w-0 flex-col py-3"
 
+/** What fills a page's flex column: the room left, and no more, so its region scrolls in itself. */
+const FILL = "min-h-0 flex-1"
+
 export interface WidgetShellProps {
   /**
    * The view's bars, from edge to edge of the card: its `WidgetHeader` (the kit's `ViewBar`), then
@@ -44,6 +47,12 @@ export interface WidgetShellProps {
    * routes): they sit flush, from edge to edge, and pad themselves.
    */
   flush?: boolean
+  /**
+   * Fills the height a page's flex column leaves it (a page's screen at the window's height): its
+   * content takes the room under the header, and what scrolls there scrolls in its own region. A
+   * chat's view never fills: it takes its content's height.
+   */
+  fill?: boolean
   className?: string
 }
 
@@ -57,7 +66,13 @@ export interface WidgetShellProps {
  * in the gutter); inside another shell's padded content it is part of that content and adds no
  * gutter, only its bars and its sections the section gap apart.
  */
-export function WidgetShell({ header, children, flush = false, className }: WidgetShellProps) {
+export function WidgetShell({
+  header,
+  children,
+  flush = false,
+  fill = false,
+  className,
+}: WidgetShellProps) {
   const around = useContext(ShellContentContext)
   const displayMode = useContext(DisplayModeContext)
   const inner: ShellContent = flush ? "flush" : "padded"
@@ -78,7 +93,10 @@ export function WidgetShell({ header, children, flush = false, className }: Widg
     <ShellContentContext.Provider value={inner}>
       {header}
       {children !== undefined && children !== null && children !== false && (
-        <div data-slot="widget-content" className={flush ? "flex min-w-0 flex-col" : CONTENT}>
+        <div
+          data-slot="widget-content"
+          className={cn(flush ? "flex min-w-0 flex-col" : CONTENT, fill && FILL)}
+        >
           {children}
         </div>
       )}
@@ -94,10 +112,20 @@ export function WidgetShell({ header, children, flush = false, className }: Widg
   }
   const isFullscreen = displayMode === "fullscreen"
   return (
-    <div className={cn("bg-card text-card-foreground min-h-full min-w-0", className)}>
+    <div
+      className={cn(
+        "bg-card text-card-foreground min-h-full min-w-0",
+        fill && `flex flex-col ${FILL}`,
+        className,
+      )}
+    >
       <div
         data-slot="widget-shell"
-        className={cn("mx-auto flex min-w-0 flex-col", isFullscreen ? "max-w-full" : "max-w-7xl")}
+        className={cn(
+          "mx-auto flex min-w-0 flex-col",
+          isFullscreen ? "max-w-full" : "max-w-7xl",
+          fill && `w-full ${FILL}`,
+        )}
       >
         {body}
       </div>

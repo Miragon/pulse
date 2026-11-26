@@ -32,6 +32,7 @@ function fakeFs(files: Record<string, string>): FileSystem & { reads: string[] }
     remove: () => Promise.resolve(false),
     readdir: () => Promise.resolve([]),
     kind: () => Promise.resolve("missing" as const),
+    linked: () => Promise.resolve(false),
   }
 }
 

@@ -105,6 +105,10 @@ export class FlowNodes {
     return [id, ...this.scopesAround(id)].some((scope) => this.multiInstance.has(scope))
   }
 
+  hasOwnLoop(id: string): boolean {
+    return this.multiInstance.has(id)
+  }
+
   hasTimer(id: string): boolean {
     return this.timers.has(id)
   }

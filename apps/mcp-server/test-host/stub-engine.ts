@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import http from "node:http"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
+import { CHAIN_PREFIX, chainRoute } from "./chain-engine.js"
 import { REALISTIC_PREFIX, realisticRoute } from "./realistic-engine.js"
 
 export interface StubEngine {
@@ -15,6 +16,11 @@ export interface StubEngine {
   accessDeniedBaseUrl: string
   /** `baseUrl` of the realistic engine (`realistic-engine.ts`): long names, 160 instances, 73 jobs. */
   realisticBaseUrl: string
+  /**
+   * `baseUrl` of the chain engine (`chain-engine.ts`): an instance that waits for the root incident
+   * of the instance it called, as an engine recorded it, and an ended one.
+   */
+  chainBaseUrl: string
   /** Origin of the scenario control routes (see {@link startStubEngine}). */
   controlUrl: string
   close(): Promise<void>
@@ -264,6 +270,47 @@ const RUNNING_INVOICES = [
   historicInvoice("pi-invoice-43", "INV-2026-0043", "2026-10-10T07:45:00.000+0000"),
 ]
 
+/** An ended invoice of order ORD-7003, which the search finds beside the cluster's running order. */
+const ENDED_INVOICE = {
+  ...historicInvoice("pi-invoice-7003", "ORD-7003", "2026-10-09T07:30:00.000+0000"),
+  endTime: "2026-10-09T08:10:00.000+0000",
+  state: "COMPLETED",
+}
+
+/** Every instance the history holds, which the search finds by its id or its business key. */
+const HISTORY = [...RUNNING_INVOICES, ENDED_INVOICE]
+
+/**
+ * The search's reads (the web app's `engine_screen_find_data`): the history's instances with a
+ * given id or business key (POST, the filter in the body), and the history's count over every
+ * instance (3), which the search holds against the running instances the statistics count (3), so
+ * the stub's history misses none. Null for every other request.
+ */
+function searchRoute(
+  method: string,
+  url: URL,
+  body: unknown,
+): { status: number; body: unknown } | null {
+  if (method !== "POST" || !url.pathname.startsWith("/engine-rest/history/process-instance")) {
+    return null
+  }
+  const filter: Record<string, unknown> = Object.fromEntries(
+    Object.entries((body ?? {}) as Record<string, unknown>).filter(([key]) => key !== "sorting"),
+  )
+  const keys = Object.keys(filter)
+  if (url.pathname === "/engine-rest/history/process-instance/count" && keys.length === 0) {
+    return { status: 200, body: { count: HISTORY.length } }
+  }
+  if (url.pathname !== "/engine-rest/history/process-instance" || keys.length !== 1) return null
+  const { processInstanceBusinessKey: key, processInstanceIds: ids } = filter
+  if (typeof key === "string") {
+    return { status: 200, body: HISTORY.filter(({ businessKey }) => businessKey === key) }
+  }
+  return Array.isArray(ids)
+    ? { status: 200, body: HISTORY.filter(({ id }) => ids.includes(id)) }
+    : null
+}
+
 /**
  * A board's reads beyond the overview's (fixtures/boards): the history's running invoices (POST,
  * the filter in the body) and their count, both waiting at `approveInvoice` as the process
@@ -380,7 +427,9 @@ function failedJob(id: string, processInstanceId: string, exceptionMessage: stri
  * The others are never written: the row menu scenario opens the menu of
  * `job-2`'s row with another row under it. Sixteen, so a 600 px budget shows
  * some of them ("k of 16") under the compact cockpit's 28 px rows, its row actions
- * included, and 800 px all.
+ * included, and 800 px all. `job-5`'s message is longer than the error column's
+ * 10rem floor, so a narrow card cuts it (and opens it as a disclosure); the
+ * others fit it whole.
  */
 function stubJobs(): Map<string, StubJob> {
   return new Map(
@@ -389,7 +438,7 @@ function stubJobs(): Map<string, StubJob> {
       failedJob("job-2", "pi-2", "Card expired"),
       failedJob("job-3", "pi-3", "Billing address unknown"),
       failedJob("job-4", "pi-4", "Insufficient funds"),
-      failedJob("job-5", "pi-5", "Issuer unavailable"),
+      failedJob("job-5", "pi-5", "Issuer unavailable, try again later"),
       failedJob("job-6", "pi-6", "Limit exceeded"),
       failedJob("job-7", "pi-7", "Card blocked"),
       failedJob("job-8", "pi-8", "Currency not supported"),
@@ -522,9 +571,15 @@ export async function startStubEngine(): Promise<StubEngine> {
   const server = http.createServer((req, res) => {
     void readJson(req).then((requestBody) => {
       const url = new URL(req.url ?? "/", "http://stub")
-      const send = (status: number, body: unknown) => {
-        res.writeHead(status, { "content-type": "application/json" })
-        res.end(body === undefined ? undefined : JSON.stringify(body))
+      const send = (status: number, body: unknown, contentType = "application/json") => {
+        res.writeHead(status, { "content-type": contentType })
+        if (body === undefined) res.end()
+        else
+          res.end(
+            typeof body === "string" && contentType !== "application/json"
+              ? body
+              : JSON.stringify(body),
+          )
       }
       const term = searchTerm(url, requestBody)
       if (req.method === "POST" && url.pathname === "/__control/hold") {
@@ -536,12 +591,14 @@ export async function startStubEngine(): Promise<StubEngine> {
         send(200, { waiting: holds.waiting(term) })
       } else {
         const method = req.method ?? "GET"
-        const { status, body } =
+        const reply: { status: number; body: unknown; contentType?: string } =
+          chainRoute(method, url, requestBody) ??
           realisticRoute(method, url, requestBody) ??
           jobRoute(method, url, requestBody, jobs) ??
+          searchRoute(method, url, requestBody) ??
           boardRoute(method, url, requestBody) ??
           route(url)
-        holds.answer(term, () => send(status, body))
+        holds.answer(term, () => send(reply.status, reply.body, reply.contentType))
       }
     })
   })
@@ -554,6 +611,7 @@ export async function startStubEngine(): Promise<StubEngine> {
     loginRefusedBaseUrl: `${origin}/login-refused/engine-rest`,
     accessDeniedBaseUrl: `${origin}/access-denied/engine-rest`,
     realisticBaseUrl: `${origin}${REALISTIC_PREFIX}/engine-rest`,
+    chainBaseUrl: `${origin}${CHAIN_PREFIX}/engine-rest`,
     controlUrl: origin,
     close: () =>
       new Promise<void>((resolve, reject) => {

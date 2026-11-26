@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from "react"
 import {
-  ChevronRight,
+  ArrowRight,
   CircleX,
   Minus,
   TrendingDown,
@@ -82,10 +82,10 @@ export interface KpiCell {
  * Columns per cell count. 4+ cells fall back to 2 columns in narrow frames
  * (inline chat views are often under 500 px, where five cells side by side
  * leave ~40 px each); 6 steps through 3. Three cells keep their row from 25rem,
- * where a caption's longest word fits its third ("verbleibenden", 93 px at 13 px
- * and 600), and fall back to 2 columns below it, never cutting such a word. A
+ * where a caption's longest word fits its third ("verbleibenden", under 93 px at
+ * 13 px and 400), and fall back to 2 columns below it, never cutting such a word. A
  * caption word of 14 characters or more that does not fit ("Prozessdefinitionen"
- * in a half at 320 px) is hyphenated by the document's language (`hyphens: auto`
+ * in a third at 25rem) is hyphenated by the document's language (`hyphens: auto`
  * under the `lang` LocaleGate sets), never cut where no hyphen shows; a shorter
  * one keeps a line of its own whole, as the columns leave it room.
  */
@@ -154,20 +154,24 @@ function TrendLine({ cell }: { cell: KpiCell }) {
 }
 
 /**
- * Label, figure, fraction and trend. The figure is neutral: an alarming count shows its alarm as
- * the value's `CountFigure` (its tone's icon of its own shape and its words), never as a tint, a
- * dot or a coloured number.
+ * Label, figure, fraction and trend. The label is a caption above its value as a `Facts` term is,
+ * quiet at 400: the 21 px figure carries the tile. The figure is neutral: an alarming count shows
+ * its alarm as the value's `CountFigure` (its tone's icon of its own shape and its words), never
+ * as a tint, a dot or a coloured number. A tile that opens a view ends its label with the drill's
+ * arrow, a `DrillButton`'s.
  */
 function KpiCellBody({ cell }: { cell: KpiCell }) {
   return (
     <>
       <div
-        className={cn("text-muted-foreground flex items-center justify-between gap-2", MICRO_LABEL)}
+        data-slot="kpi-label"
+        className="text-small text-muted-foreground flex items-center justify-between gap-2"
       >
         <span className="min-w-0 break-words hyphens-auto [hyphenate-limit-chars:14]">
           {cell.label}
         </span>
-        {cell.onClick && <ChevronRight aria-hidden="true" className="size-4 shrink-0" />}
+        {/* The drill's arrow, as a `DrillButton`'s: a chevron means expand. */}
+        {cell.onClick && <ArrowRight aria-hidden="true" className="size-4 shrink-0" />}
       </div>
       <div className="text-section text-foreground mt-1 leading-none break-words tabular-nums">
         {cell.value}

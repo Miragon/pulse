@@ -1,5 +1,38 @@
 [
   {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Per activity of a process, the cockpit's diagram counts: running tokens, open user tasks (and the oldest), open root incidents, incidents of called instances, jobs without retries, each kind's latest incident; plus the diagram's decorations. definitionId names the diagram counted on (XML: engine_get_process_definition_xml).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "description": "One version on its own diagram; default: every version on the latest",
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "processDefinitionKey"
+      ],
+      "type": "object"
+    },
+    "name": "engine_activity_counts"
+  },
+  {
     "_meta": {
       "openai/widgetAccessible": true,
       "ui": {
@@ -223,7 +256,7 @@
           "type": "string"
         },
         "businessKeyLike": {
-          "description": "Narrow the affected-instance list by business key (substring; % wildcards allowed).",
+          "description": "Narrow the incident list by business key or id (substring; % wildcards allowed).",
           "type": "string"
         },
         "engine": {
@@ -769,6 +802,29 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
+    "description": "A board as JSON data, no UI, in the form @miragon/pulse-blocks renders, read from the engines it names as engine_open_cockpit shows it. Check formatVersion.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "board": {
+          "description": "Its id, as engine_list_engines lists the boards.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "board"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_board"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
     "description": "Get a deployment by ID: its timestamp and source, for pre/post deployment correlation (commit hash → deployment ID → timestamp).",
     "inputSchema": {
       "additionalProperties": false,
@@ -876,6 +932,54 @@
       "type": "object"
     },
     "name": "engine_get_process_instance_variables"
+  },
+  {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "A web app screen as JSON data, no UI, in the form @miragon/pulse-blocks renders: engine (its processes with their counts), process (each version's counts, one version's badges per element) or instance (its incidents, waits, path, variables). Check formatVersion.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default",
+            "c8"
+          ],
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "description": "process (required).",
+          "minLength": 1,
+          "type": "string"
+        },
+        "processInstanceId": {
+          "description": "instance (required).",
+          "minLength": 1,
+          "type": "string"
+        },
+        "screen": {
+          "enum": [
+            "engine",
+            "process",
+            "instance"
+          ],
+          "type": "string"
+        },
+        "version": {
+          "description": "process: the version's number; the latest without it.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "screen"
+      ],
+      "type": "object"
+    },
+    "name": "engine_get_screen"
   },
   {
     "annotations": {
@@ -2380,6 +2484,54 @@
     "title": "Process instances data (internal)"
   },
   {
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "A process's numbers, every version of its key: now (running, open root incidents, instances with an incident, jobs without retries, open tasks, started and ended in 24 h), and per day or hour bucket started, ended and ended per end event, with median and P90 duration in ms overall and per end event. A count is { atLeast } where history may be removed (history.keptFrom), null unknown (history.recorded false: no history written).",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "bucket": {
+          "enum": [
+            "day",
+            "hour"
+          ],
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        },
+        "from": {
+          "description": "Default: 14 days or 24 hours of whole buckets up to to",
+          "type": "string"
+        },
+        "processDefinitionKey": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "timeZone": {
+          "description": "IANA zone of the buckets' days and hours and of a bare date; default UTC",
+          "type": "string"
+        },
+        "to": {
+          "description": "Default and at most: now",
+          "type": "string"
+        }
+      },
+      "required": [
+        "processDefinitionKey",
+        "bucket"
+      ],
+      "type": "object"
+    },
+    "name": "engine_process_stats"
+  },
+  {
     "_meta": {
       "openai/widgetAccessible": true,
       "ui": {
@@ -2949,6 +3101,380 @@
       "type": "object"
     },
     "name": "engine_resolve_incident"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's search: the process instance with this id and up to 20 with this exact business key, running and ended, on one engine.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default",
+            "c8"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "description": "An instance's id or its exact business key.",
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_find_data",
+    "title": "Find data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's instance screen: a root incident's stack trace or error message, with the line its root cause stands on.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default",
+            "c8"
+          ],
+          "type": "string"
+        },
+        "incident": {
+          "description": "The root incident's id.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "incident"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_incident_text_data",
+    "title": "Incident text data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's instance screen: one process instance, running or ended, with its root incidents and those of the instances it called, where it waits, its path, its variables and its diagram's markers.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default",
+            "c8"
+          ],
+          "type": "string"
+        },
+        "instance": {
+          "description": "The process instance's id.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "instance"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_instance_data",
+    "title": "Instance screen data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's process screen: a page of 50 instances of one version by its filter, and on the first page the counts of its scopes.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "description": "The cursor of the page before, from its next.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "businessKey": {
+          "description": "The exact business key.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "definitionId": {
+          "description": "The version's id.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "element": {
+          "description": "An element the instances are active at.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default",
+            "c8"
+          ],
+          "type": "string"
+        },
+        "scope": {
+          "description": "Which instances: running, running with an open incident, ended, or all.",
+          "enum": [
+            "running",
+            "withIncident",
+            "ended",
+            "all"
+          ],
+          "type": "string"
+        },
+        "variables": {
+          "description": "Variable conditions, all of which hold.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "as": {
+                "description": "The type the value compares as; by the value and the operator without it.",
+                "enum": [
+                  "text",
+                  "number",
+                  "boolean",
+                  "date",
+                  "null"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "description": "The variable's name, case sensitive.",
+                "minLength": 1,
+                "type": "string"
+              },
+              "operator": {
+                "description": "How the variable compares with the value; like takes * as a wildcard.",
+                "enum": [
+                  "equals",
+                  "notEquals",
+                  "like",
+                  "greaterThan",
+                  "lessThan"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "description": "The value, as text; a date an instant with its offset.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "operator",
+              "value"
+            ],
+            "type": "object"
+          },
+          "maxItems": 5,
+          "type": "array"
+        }
+      },
+      "required": [
+        "definitionId",
+        "scope"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_instances_data",
+    "title": "Instance list data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's process screen: a process in one version with every version's counts, the counts on the version's diagram, its call targets and the notice that older versions still run.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default",
+            "c8"
+          ],
+          "type": "string"
+        },
+        "process": {
+          "description": "The process's BPMN process ID.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "version": {
+          "description": "The number of the version to show; the latest without it.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "process"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_process_data",
+    "title": "Process screen data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's engine screen: the engine's product and each process's latest version, running instances and instances with incident over every version.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default",
+            "c8"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_screen_processes_data",
+    "title": "Engine screen data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's process screen: the names of a version's variables and the kinds of condition the engine refuses.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "definitionId": {
+          "description": "The version's id.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "default",
+            "c8"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "definitionId"
+      ],
+      "type": "object"
+    },
+    "name": "engine_screen_variable_names_data",
+    "title": "Variable names data (internal)"
+  },
+  {
+    "_meta": {
+      "openai/widgetAccessible": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Internal JSON feed (no UI) for the web app's engine screen and start page: a Camunda 7 engine's live verdict, ok, warning or critical, over its open root incidents.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "enum": [
+            "default"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "engine_screen_verdict_data",
+    "title": "Engine verdict data (internal)"
   },
   {
     "annotations": {

@@ -103,7 +103,7 @@ describe("instance list scopes", () => {
     })
   })
 
-  it("keeps Load more disabled while the list refreshes", async () => {
+  it("keeps Load more waiting while the list refreshes, the focus on it", async () => {
     harness = mountApp()
     harness.publish(FIXTURES.refreshing)
 
@@ -111,9 +111,11 @@ describe("instance list scopes", () => {
       await findPart(harness.root, "table-footer"),
       "button",
     )
+    loadMore.focus()
     loadMore.click()
 
-    expect(loadMore.disabled).toBe(true)
+    expect(loadMore.getAttribute("aria-disabled")).toBe("true")
+    expect(document.activeElement).toBe(loadMore)
     expect(harness.posted.filter((intent) => intent.type === "loadMoreInstances")).toEqual([])
   })
 

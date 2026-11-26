@@ -20,13 +20,127 @@
  */
 @import "@miragon/pulse-ui/theme.css";
 /*
- * One ground for every page: the card's surface, which the views are laid out on in a chat too.
- * The bar, the notices, the views and the signed-out page sit on it alike, and it reaches the
- * viewport's edge on a short page and under an overscroll.
+ * One ground for every page: the app's ground (the guide's grund), which reaches the viewport's
+ * edge on a short page and under an overscroll. The bar and the page's sheet sit on it in the
+ * card's surface, the surface the views are laid out on in a chat too (bar.tsx).
  */
 @layer base {
   html,
   body {
-    @apply bg-card;
+    @apply bg-background;
+  }
+}
+/*
+ * The instance screen's diagram (src/screens/instance/instance-diagram.tsx): the markers the kit's
+ * canvas does not draw, in the canvas's variables and the kit's roles, so they follow the theme
+ * (owner decision D10, point 7). An incident in an instance it called: the incident's outline,
+ * dashed, nothing filled. An element already done: the success tone's outline on its status
+ * surface. The element in focus (an incident's): a glow in the interaction's colour around
+ * whatever marks it. Under forced colours the system's palette draws them beside the kit's markers
+ * (a wait Highlight at 2 px, an incident Highlight at 3 px): the incident in a called instance
+ * Highlight dashed, an element already done GrayText on Canvas, so it never reads as a wait.
+ * Then the legend's sample of each marker, as the diagram draws it: in high contrast a wait and an
+ * incident at 3 px as on the canvas, under forced colours in the same system colours and widths
+ * (doubled classes: they win over high contrast's, as the canvas's forced widths do).
+ */
+.djs-shape.pulse-incident-called > .djs-visual > :first-child:not(text) {
+  stroke: var(--bpmn-incident-stroke) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 6 4 !important;
+}
+.djs-shape.pulse-completed > .djs-visual > :first-child:not(text) {
+  stroke: var(--success) !important;
+  fill: var(--success-surface) !important;
+}
+.djs-shape.pulse-selected > .djs-visual {
+  filter: drop-shadow(0 0 3px var(--interaction));
+}
+@media (forced-colors: active) {
+  .djs-shape.pulse-incident-called > .djs-visual > :first-child:not(text) {
+    stroke: Highlight !important;
+  }
+  .djs-shape.pulse-completed > .djs-visual > :first-child:not(text) {
+    stroke: GrayText !important;
+    fill: Canvas !important;
+  }
+}
+.pulse-swatch {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 18px;
+  height: 14px;
+  border-radius: 3px;
+}
+.pulse-swatch--waiting {
+  border: 2px solid var(--info);
+  background: var(--info-surface);
+}
+.pulse-swatch--incident {
+  border: 2px solid var(--danger);
+  background: var(--danger-surface);
+}
+.pulse-swatch--incidentInCalledInstance {
+  border: 2px dashed var(--danger);
+}
+.pulse-swatch--completed {
+  border: 2px solid var(--success);
+  background: var(--success-surface);
+}
+[data-cd-kontrast="hoch"] :is(.pulse-swatch--waiting, .pulse-swatch--incident) {
+  border-width: 3px;
+}
+@media (forced-colors: active) {
+  .pulse-swatch.pulse-swatch {
+    forced-color-adjust: none;
+    background: Canvas;
+    border-color: Highlight;
+    border-width: 2px;
+  }
+  .pulse-swatch.pulse-swatch--incident {
+    border-width: 3px;
+  }
+  .pulse-swatch.pulse-swatch--completed {
+    border-color: GrayText;
+  }
+}
+/*
+ * The process screen's diagram (src/screens/process/process-diagram.tsx): its counts are pulse-ui's
+ * (`BpmnDiagram`, whose stylesheet the kit injects: the counts of an element apart over its top
+ * right corner, the blocks' `BadgeCluster` around the kit's `CanvasBadge`). A call activity's
+ * button (the blocks' `CallButton`, bpmn-js's `bjs-drilldown`, whose stylesheet the page does not
+ * load) sits inside its bottom right corner in the primary's colours, a process the engine lacks
+ * quiet. Under forced colours the system's palette draws it, as the canvas's own badges.
+ */
+.bjs-drilldown.call-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: var(--primary);
+  fill: var(--primary-foreground);
+  cursor: pointer;
+}
+.bjs-drilldown.call-button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.bjs-drilldown.call-button--missing {
+  border: 1px solid var(--border);
+  background: var(--card);
+  fill: var(--muted-foreground);
+}
+.bjs-drilldown.call-button[aria-disabled="true"] {
+  cursor: default;
+}
+@media (forced-colors: active) {
+  .bjs-drilldown.call-button {
+    forced-color-adjust: none;
+    border: 1px solid CanvasText;
+    background: Canvas;
+    fill: CanvasText;
   }
 }

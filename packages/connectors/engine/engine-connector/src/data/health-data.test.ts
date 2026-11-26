@@ -8,22 +8,15 @@ vi.mock("@miragon/pulse-c7-client/sdk", () => ({
   getProcessInstances: vi.fn(),
 }))
 
-import {
-  getHistoricProcessInstancesCount,
-  getIncidents,
-  getIncidentsCount,
-  getProcessDefinitionStatistics,
-  getProcessInstances,
-} from "@miragon/pulse-c7-client/sdk"
+import { getIncidents, getProcessInstances } from "@miragon/pulse-c7-client/sdk"
 import type { Client } from "@miragon/pulse-c7-client"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
-import {
-  causeKeyOf,
-  engineVerdict,
-  largestCause,
-  type VerdictThresholds,
-} from "@miragon/pulse-c7-core"
-import { buildEngineHealthData, healthVerdictRule } from "./health-data.js"
+import { CLUSTER_SCAN_LIMIT } from "./cluster-scan.js"
+
+/**
+ * The cluster detail's paging and its search by id; the overview's verdict and the causes it reads
+ * from root incidents are health-data.verdict.test.ts's.
+ */
 
 const mockedGetIncidents = vi.mocked(getIncidents)
 const mockedGetProcessInstances = vi.mocked(getProcessInstances)
@@ -159,86 +152,108 @@ describe("buildClusterDetailData paging", () => {
   })
 })
 
-// #340: the verdict states its source and the deployment's thresholds.
-describe("healthVerdictRule", () => {
-  it("names the source and the deployment's own thresholds", () => {
-    expect(healthVerdictRule({ criticalIncidents: 10, criticalClusterSize: 4 })).toBe(
-      "From the engine's open incidents, read live: critical at >=10 open incidents or >=4 of one cause, warning with any, else ok.",
-    )
+/** A called instance has no business key: the search finds a row by its ids too. */
+describe("buildClusterDetailData search by id", () => {
+  const args = { activityId: "A1", incidentType: "failedJob" }
+
+  it("finds a row by a part of its instance's id, a pasted id whole, and its incident's id", async () => {
+    mockedGetIncidents.mockResolvedValue(incidents(20))
+
+    const byPart = await buildClusterDetailData(client, "eng1", { ...args, businessKeyLike: "P1" })
+    // p1 and p10 to p19 hold "p1"; case is ignored, as the business key's search.
+    expect(byPart.incidents.map((row) => row.processInstanceId)).toEqual([
+      "p1",
+      ...Array.from({ length: 10 }, (_, n) => `p1${n}`),
+    ])
+    expect(byPart.totalMatching).toBe(11)
+    // The KPIs keep describing the whole cluster.
+    expect(byPart.incidentCount).toBe(20)
+
+    const whole = await buildClusterDetailData(client, "eng1", { ...args, businessKeyLike: " p7 " })
+    expect(whole.incidents.map((row) => row.processInstanceId)).toEqual(["p7"])
+
+    const incident = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: "i19",
+    })
+    expect(incident.incidents.map((row) => row.incidentId)).toEqual(["i19"])
   })
-})
 
-// Rule text and verdict logic live apart, so each boundary row pins both: a
-// flipped comparison would otherwise ship a rule that describes another verdict.
-describe("buildEngineHealthData verdict", () => {
-  const T: VerdictThresholds = { criticalIncidents: 10, criticalClusterSize: 4 }
+  it("reads a % as the business key's LIKE does, any run of characters", async () => {
+    mockedGetIncidents.mockResolvedValue(incidents(20))
 
-  /** `sizes[i]` open incidents on activity `A<i>`: one cluster per activity. */
-  function scan(sizes: number[]): IncidentRowFixture[] {
-    return sizes.flatMap((size, cluster) =>
-      Array.from({ length: size }, (_, i) => ({
-        id: `i${cluster}-${i}`,
-        processDefinitionId: "K1:1:abc",
-        processInstanceId: `p${cluster}-${i}`,
-        incidentType: "failedJob",
-        activityId: `A${cluster}`,
-        incidentMessage: "boom",
-        incidentTimestamp: "2026-04-01T00:00:00.000Z",
-      })),
-    )
+    const data = await buildClusterDetailData(client, "eng1", { ...args, businessKeyLike: "p%5" })
+    expect(data.incidents.map((row) => row.processInstanceId)).toEqual(["p5", "p15"])
+
+    const nothing = await buildClusterDetailData(client, "eng1", { ...args, businessKeyLike: "%" })
+    expect(nothing.incidents).toEqual([])
+  })
+
+  it("finds the parts between % in order, the first at the id's start, the last at its end", async () => {
+    mockedGetIncidents.mockResolvedValue(incidents(20))
+
+    // A run of % is one: p1, then anything.
+    const run = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: "p%%1%%%",
+    })
+    expect(run.incidents.map((row) => row.processInstanceId)).toEqual([
+      "p1",
+      ...Array.from({ length: 10 }, (_, n) => `p1${n}`),
+    ])
+    // The last part never overlaps the first: p1 is no "p1%1", p11 is.
+    const ends = await buildClusterDetailData(client, "eng1", { ...args, businessKeyLike: "P1%1" })
+    expect(ends.incidents.map((row) => row.processInstanceId)).toEqual(["p11"])
+    // A middle part lies between them: "%1%1%" holds two 1s.
+    const twice = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: "%1%1%",
+    })
+    expect(twice.incidents.map((row) => row.processInstanceId)).toEqual(["p11"])
+  })
+
+  /** Ids as the engine's: UUIDs, none of which holds a "z". */
+  function uuidRows(count: number): IncidentRowFixture[] {
+    const uuid = (n: number, tail: string) =>
+      `${n.toString(16).padStart(8, "0")}-9b7d-11ef-8c2a-${tail}`
+    return incidents(count).map((row, n) => ({
+      ...row,
+      id: uuid(n, "0242ac120002"),
+      processInstanceId: uuid(n, "0242ac130002"),
+    }))
   }
 
-  async function verdict(sizes: number[], count = sizes.reduce((a, b) => a + b, 0)) {
-    mockedGetIncidents.mockResolvedValue(scan(sizes))
-    vi.mocked(getIncidentsCount).mockResolvedValue({ count })
-    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue([] as never)
-    vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
-    return buildEngineHealthData(client, "eng1", T)
-  }
+  // The term is the viewer's: a run of % before a letter no id holds made a backtracking pattern
+  // take seconds per id from eight % on, synchronously on the server's one event loop.
+  it("reads a term of many % in one pass over each id, a long one as fast as a short one", async () => {
+    mockedGetIncidents.mockResolvedValue(uuidRows(4))
+    let started = performance.now()
+    const eight = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: `${"%".repeat(8)}z`,
+    })
+    expect(eight.incidents).toEqual([])
+    expect(performance.now() - started).toBeLessThan(250)
 
-  it.each([
-    ["no open incident", [], "ok"],
-    ["one open incident", [1], "warning"],
-    ["total one under the threshold, clusters under theirs", [3, 3, 3], "warning"],
-    ["total AT the threshold, clusters under theirs", [3, 3, 3, 1], "critical"],
-    ["one cluster one under its threshold", [3], "warning"],
-    ["one cluster AT its threshold, total far under", [4], "critical"],
-  ] as const)("%s → %s", async (_label, sizes, status) => {
-    const data = await verdict([...sizes])
-    expect(data.status).toBe(status)
-    expect(data.statusRule).toBe(healthVerdictRule(T))
-  })
-
-  it("is c7-core's verdict, the one engine_status gives", async () => {
-    for (const sizes of [[], [1], [3, 3, 3], [3, 3, 3, 1], [3], [4], [2, 2]]) {
-      const data = await verdict(sizes)
-      const openIncidents = sizes.reduce((a, b) => a + b, 0)
-      expect(data.status).toBe(
-        engineVerdict({ openIncidents, largestCluster: Math.max(0, ...sizes) }, T),
-      )
-    }
-  })
-
-  it("counts one cause across definitions, c7-core's largestCause, as engine_status does", async () => {
-    // 2 + 2 incidents of one activity, type and message in two definitions: one cause of 4
-    const rows = [
-      ...scan([2]),
-      ...scan([2]).map((row) => ({ ...row, processDefinitionId: "K2:1:x" })),
-    ]
+    const rows = uuidRows(CLUSTER_SCAN_LIMIT - 1)
     mockedGetIncidents.mockResolvedValue(rows)
-    vi.mocked(getIncidentsCount).mockResolvedValue({ count: 4 })
-    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue([] as never)
-    vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
-    const data = await buildEngineHealthData(client, "eng1", T)
-    expect(largestCause(rows)?.count).toBe(4)
-    expect(data.status).toBe("critical")
-    expect(data.clusters.map((cluster) => cluster.id)).toEqual([causeKeyOf(rows[0] ?? {}).key])
-    expect(data.clusters[0]?.id).toBe("A0::failedJob::boom")
-  })
-
-  it("judges the engine-wide /count, not the capped scan", async () => {
-    const data = await verdict([1, 1], 10)
-    expect(data.summary.totalIncidents).toBe(10)
-    expect(data.status).toBe("critical")
+    const percents = "%".repeat(10_000)
+    started = performance.now()
+    const none = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: `${percents}z`,
+    })
+    const allPercent = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: percents,
+    })
+    const tail = await buildClusterDetailData(client, "eng1", {
+      ...args,
+      businessKeyLike: `${percents}0002${percents}`,
+    })
+    expect(performance.now() - started).toBeLessThan(1_000)
+    expect(none.totalMatching).toBe(0)
+    expect(allPercent.totalMatching).toBe(0)
+    expect(tail.totalMatching).toBe(rows.length)
   })
 })

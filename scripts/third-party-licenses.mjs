@@ -11,7 +11,8 @@
  * Node built-ins only (the closed worlds of the editor hosts hold it to that), so each artifact's
  * generator and drift test reads it, whatever builds the artifact: the CLI
  * (apps/cli/scripts/licenses/, tsdown), @miragon/pulse-c7-client (its generated SDK), the server
- * image (Vite), Pulse for VS Code and Pulse for Orca (esbuild). The readers of the module graphs
+ * image (Vite), Pulse for VS Code, Pulse for Orca and the browser bundles of @miragon/pulse-ui
+ * and @miragon/pulse-widget-shell (esbuild). The readers of the module graphs
  * are here too: `renderedModules` (rolldown, rollup, Vite), `esbuildModules` (an esbuild
  * metafile), `cssDependencies` (what Vite inlines into a stylesheet) and `inlinedStylesheets`
  * (what an esbuild plugin inlines into one, a Tailwind entry).

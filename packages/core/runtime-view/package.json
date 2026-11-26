@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-runtime-view",
   "private": true,
-  "version": "0.28.0",
+  "version": "0.34.0",
   "description": "The engine-neutral runtime view of Pulse's editor hosts (VS Code, Orca) over the engine contract of @miragon/pulse-engine-core: the ports a host and an engine family plug in, the core, the protocol, the webview, the local model reader and the host rules every editor host shares.",
   "license": "MIT",
   "repository": {
@@ -51,7 +51,9 @@
     "@miragon/pulse-blocks": "workspace:*",
     "@miragon/pulse-board": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
+    "@miragon/pulse-migration-plan": "workspace:*",
     "@miragon/pulse-profile": "workspace:*",
+    "@miragon/pulse-screens": "workspace:*",
     "@miragon/pulse-ui": "workspace:*",
     "bpmn-js": "18.31.1",
     "bpmn-moddle": "10.3.1",

@@ -15,7 +15,7 @@ flowchart LR
 
   Server --> EngineModule
 
-  EngineModule -->|REST| Engine[(Camunda 7 / CIB seven<br/>Camunda 8 on boards)]
+  EngineModule -->|REST| Engine[(Camunda 7 / CIB seven<br/>Camunda 8, read-only)]
 
   Server -. serves .-> Widgets[Widget bundle<br/>React + Tailwind]
 ```
@@ -92,11 +92,11 @@ A widget never talks to its host. It reads host-agnostic contexts from widget-sh
 runtime (`useViewHost` for tool calls and hand-offs, the theme, locale, display mode and height
 budget), and an adapter fills them: in a chat the MCP Apps adapter over the official `App` of
 `@modelcontextprotocol/ext-apps`, by an ESLint gate the only code that imports its view runtime,
-on a page the browser adapter of `mountPage`. `TestViewHost` fills them in tests and publishes the
+on a page the browser adapter of `mountApp`. `TestViewHost` fills them in tests and publishes the
 formatters' locale as the view root does, so a widget test reads the same on every machine.
 
 The MCP Apps host is one host among several: the web app shows the same components through
-`mountPage` (a caller for the server's tools from the page; a hand-off hidden or offering its prompt
+`PageView` (a caller for the server's tools from the page; a hand-off hidden or offering its prompt
 to copy, since a page posts into no chat; no write control and no call of the write gate, since a
 page writes to no engine). The widgets read the Camunda 7 REST family's data, a board's tiles its
 JSON form, which the board builder makes over engine-core from either dialect.
@@ -112,10 +112,10 @@ building blocks: the formats (the board file first), pulse-ui's framework-free
 `@miragon/pulse-ui/tones` (`SITUATION_TONES`) and `@miragon/pulse-ui/format`, from
 `@miragon/pulse-ui/testing` the product glossary, the count words and the brand gates, the engine
 rules of c7-core, the numbers of a feature several show (boards first: one builder over one read)
-and building blocks on React with props and callbacks only (`@miragon/pulse-blocks`, a board's
-tiles). Each keeps its own screens and host wiring: six cockpit views and a board have a
-counterpart in the editors, and [Parity with the MCP cockpit](../vscode/parity.md) lists what still
-differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
+and building blocks on React with props and callbacks only (`@miragon/pulse-blocks`, a board's tiles,
+an engine's process list, an instance's and a process's blocks). Each keeps its own screens and host wiring: six cockpit views and a
+board have a counterpart in the editors, and [Parity with the MCP cockpit](../vscode/parity.md)
+lists what still differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
 
 ## External systems
 
@@ -140,11 +140,11 @@ differs. The decisions are in `apps/vscode/docs/adr/ui-foundation.md`.
 
 ## Repository layout
 
-| Path                   | Description                                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                                                                   |
-| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, board format and builder, building blocks, transport. |
-| `packages/connectors/` | One folder per family: the neutral `engine` (module, core), one per dialect (`c7`, `c8`).                           |
-| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                                                              |
+| Path                   | Description                                                                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `apps/mcp-server/`     | The MCP server entry point and the widget bundle.                                                                            |
+| `packages/core/`       | What every family builds on: widget-shell, pulse-ui, profile, board format and builder, screens, building blocks, transport. |
+| `packages/connectors/` | One folder per family: the neutral `engine` (module, core), one per dialect (`c7`, `c8`).                                    |
+| `playground/`          | Demo env: showcases, Compose stack, Fly.io deployment.                                                                       |
 
 For deeper detail, [Reference](reference.md) lists every tool and toolset.

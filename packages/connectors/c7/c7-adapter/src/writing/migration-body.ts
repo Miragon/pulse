@@ -1,3 +1,4 @@
+import { migrationInstructions } from "@miragon/pulse-c7-core"
 import type { InstanceId, MigrationPlan } from "@miragon/pulse-engine-core"
 
 export class MigrationBody {
@@ -6,11 +7,7 @@ export class MigrationBody {
       migrationPlan: {
         sourceProcessDefinitionId: plan.sourceDefinitionId,
         targetProcessDefinitionId: plan.targetDefinitionId,
-        instructions: plan.mappings.map((mapping) => ({
-          sourceActivityIds: [mapping.sourceElementId],
-          targetActivityIds: [mapping.targetElementId],
-          updateEventTrigger: false,
-        })),
+        instructions: migrationInstructions(plan.mappings),
       },
       processInstanceIds: instanceIds,
       skipCustomListeners: false,

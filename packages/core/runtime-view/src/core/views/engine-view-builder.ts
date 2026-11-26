@@ -1,5 +1,7 @@
 import type { DefinitionSummary, EngineInfo } from "@miragon/pulse-engine-core"
-import type { EngineBadge, EngineView, ProcessListFilter, ProcessRow } from "../protocol/index.js"
+import { ProcessFilter, type EngineScreenData, type ProcessRowData } from "@miragon/pulse-screens"
+import { EngineScreen, ScreenJson } from "@miragon/pulse-screens/builder"
+import type { EngineBadge, EngineView, ProcessListFilter } from "../protocol/index.js"
 import { Labels } from "./labels.js"
 import { WebUiLinks } from "./web-ui-links.js"
 
@@ -13,7 +15,14 @@ export interface EngineSnapshot {
 }
 
 export class EngineViewBuilder {
-  constructor(private readonly snapshot: EngineSnapshot) {}
+  private readonly screen: EngineScreenData
+
+  constructor(private readonly snapshot: EngineSnapshot) {
+    const { engine, asOf, definitions, info } = snapshot
+    this.screen = ScreenJson.engine(
+      EngineScreen.of({ engine: engine.name, asOf, definitions, info }),
+    )
+  }
 
   processOrder(): readonly string[] {
     return this.rows().map((row) => row.bpmnProcessId)
@@ -21,18 +30,18 @@ export class EngineViewBuilder {
 
   build(): EngineView {
     const { engine, filter } = this.snapshot
-    const found = this.rows().filter((row) => this.matchesSearch(row))
-    const withIncident = found.filter((row) => row.withIncident > 0)
+    const { processes, counts } = ProcessFilter.apply(this.rows(), filter)
     return {
       kind: "engine",
       engine: this.describedEngine(),
-      asOf: this.snapshot.asOf.toISOString(),
+      asOf: this.screen.asOf,
       summary: this.summary(),
-      processes: filter.scope === "withIncident" ? withIncident : found,
+      processes,
       filter,
-      scopeCounts: { all: found.length, withIncident: withIncident.length },
+      scopeCounts: counts,
+      totals: this.screen.totals,
       emptyText:
-        this.snapshot.definitions.length === 0
+        this.screen.totals.processes === 0
           ? `No processes deployed on ${engine.name}, or you may not have permission to see them.`
           : "No processes match this filter.",
       ...WebUiLinks.toStartPage(engine),
@@ -40,57 +49,24 @@ export class EngineViewBuilder {
   }
 
   private describedEngine(): EngineBadge {
-    const info = this.snapshot.info
-    return info === undefined
+    const info = this.screen.info
+    return info === null
       ? this.snapshot.engine
       : { ...this.snapshot.engine, product: `${info.product} ${info.version}` }
   }
 
-  private rows(): ProcessRow[] {
-    return this.snapshot.definitions
-      .map((summary) => this.rowOf(summary))
-      .sort(
-        (left, right) =>
-          this.shownBefore(left, right) ||
-          right.withIncident - left.withIncident ||
-          right.running - left.running ||
-          this.nameOf(left).localeCompare(this.nameOf(right)),
-      )
-  }
-
-  private shownBefore(left: ProcessRow, right: ProcessRow): number {
+  private rows(): readonly ProcessRowData[] {
     const order = this.snapshot.order ?? []
-    const positionOf = (row: ProcessRow) => {
+    const positionOf = (row: ProcessRowData) => {
       const position = order.indexOf(row.bpmnProcessId)
       return position === -1 ? order.length : position
     }
-    return positionOf(left) - positionOf(right)
-  }
-
-  private rowOf({ latest, running, withIncident }: DefinitionSummary): ProcessRow {
-    return {
-      bpmnProcessId: latest.bpmnProcessId,
-      ...(latest.name === undefined ? {} : { name: latest.name }),
-      latestVersion: latest.version,
-      running,
-      withIncident,
-    }
-  }
-
-  private nameOf(row: ProcessRow): string {
-    return row.name ?? row.bpmnProcessId
-  }
-
-  private matchesSearch(row: ProcessRow): boolean {
-    const wanted = this.snapshot.filter.search?.toLowerCase() ?? ""
-    return [this.nameOf(row), row.bpmnProcessId].some((text) => text.toLowerCase().includes(wanted))
+    return [...this.screen.processes].sort((left, right) => positionOf(left) - positionOf(right))
   }
 
   private summary(): string {
-    const { definitions } = this.snapshot
-    const running = definitions.reduce((sum, summary) => sum + summary.running, 0)
-    const withIncident = definitions.reduce((sum, summary) => sum + summary.withIncident, 0)
-    const processes = Labels.plural(definitions.length, "process", "processes")
-    return `${processes} · ${Labels.count(running)} running · ${Labels.count(withIncident)} with incident · all versions`
+    const { processes, running, withIncident } = this.screen.totals
+    const counted = Labels.plural(processes, "process", "processes")
+    return `${counted} · ${Labels.count(running)} running · ${Labels.count(withIncident)} with incident · all versions`
   }
 }

@@ -102,6 +102,37 @@ describe("NamedId, inline (in table cells)", () => {
     expect(container.querySelector("[title]")?.getAttribute("title")).toBe(`Order · ${UUID}`)
   })
 
+  it("shows a name alone under 28rem of the table's region, the id in the title and read out", () => {
+    const classes = (el: Element | null | undefined) => (el?.getAttribute("class") ?? "").split(" ")
+    const { container } = render(
+      <>
+        <NamedId name="Check blacklist" id="Activity_CheckBlacklist" layout="inline" />
+        <NamedId name="Order" id={UUID} layout="inline" />
+      </>,
+    )
+    const [whole, long] = [...container.querySelectorAll("[data-named-id]")]
+    // A short id whole: visually hidden, still read out.
+    const wholeId = whole.querySelector(".font-mono > span")
+    expect(wholeId?.textContent).toBe("Activity_CheckBlacklist")
+    expect(classes(wholeId)).toContain("@max-md:sr-only")
+    // A long id short: its short form leaves the line, the whole one stays for a screen reader.
+    expect(classes(long.querySelector("[aria-hidden='true']"))).toContain("@max-md:hidden")
+    expect(classes(long.querySelector(".sr-only"))).not.toContain("@max-md:hidden")
+    expect(whole.querySelector("[title]")?.getAttribute("title")).toBe(
+      "Check blacklist · Activity_CheckBlacklist",
+    )
+  })
+
+  it("keeps an id without a name at every width: it is the identity", () => {
+    const { container } = render(
+      <>
+        <NamedId name={null} id="Task_A" layout="inline" />
+        <NamedId name={null} id={UUID} layout="inline" />
+      </>,
+    )
+    expect(container.innerHTML).not.toContain("@max-md:")
+  })
+
   it("lets the id lead in the foreground without a name, the details after it", () => {
     const { container } = render(
       <NamedId name={null} id="Task_A" detail={["User task", null, ""]} layout="inline" />,

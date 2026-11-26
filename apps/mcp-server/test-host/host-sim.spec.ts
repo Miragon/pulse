@@ -236,7 +236,7 @@ const STUB_JOBS = [
   "Card expired",
   "Billing address unknown",
   "Insufficient funds",
-  "Issuer unavailable",
+  "Issuer unavailable, try again later",
   "Limit exceeded",
   "Card blocked",
   "Currency not supported",
@@ -253,15 +253,15 @@ const STUB_JOBS = [
 /**
  * The cockpit's jobs route rendered the stub engine's sixteen failed jobs, the first job first:
  * inline exactly the `shown` rows the host's budget leaves room for under the cockpit's head
- * and the KPI card (#396), and the count line says how many of the sixteen. Under the compact
- * look (28 px rows with their 24 px row actions, ids in one line, the cockpit's 40 px head and the
- * view's 40 px bar from edge to edge, the content in the 12 px gutter, the KPI card's 12 px
- * tiles) a 600 px budget (and the unstated one, fitted as 600 px) leaves room for eleven at 960 px
- * and at 760 px (575 px with the Load more button; a twelfth row would need 3 px more);
- * 800 px fits all sixteen (706 px). A head section shows no trail inline, so the head is the
- * only row above the view.
+ * and the scope's segments (#396), and the count line says how many of the sixteen. Under the
+ * compact look (28 px rows with their 24 px row actions, ids in one line, the cockpit's 40 px
+ * head, the view's 40 px bar and the 36 px toolbar of its scope from edge to edge, the 28 px
+ * table head, the content in the 12 px gutter) a 600 px budget (and the unstated one, fitted as
+ * 600 px) leaves room for thirteen at 960 px and at 760 px (584 px with the Load more button; a
+ * fourteenth row would need 12 px more); 800 px fits all sixteen (660 px). A head section shows
+ * no trail inline, so the head is the only row above the view.
  */
-async function expectJobs(app: FrameLocator, shown: 11 | 16) {
+async function expectJobs(app: FrameLocator, shown: 13 | 16) {
   const region = app.getByRole("region", { name: "Jobs", exact: true })
   await expect(region).toBeVisible({ timeout: 15_000 })
   await expect(region.getByRole("row")).toHaveCount(shown + 1)
@@ -295,6 +295,145 @@ async function documentTheme(app: FrameLocator) {
     dataTheme: html.getAttribute("data-theme"),
     colorScheme: getComputedStyle(html).colorScheme,
   }))
+}
+
+type Srgb = [number, number, number]
+
+/** WCAG relative luminance of sRGB bytes. */
+function relativeLuminance([r, g, b]: Srgb): number {
+  const linear = (c: number) => {
+    const x = c / 255
+    return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+}
+
+/** WCAG contrast of two opaque colours. */
+function contrast(a: Srgb, b: Srgb): number {
+  const [hi, lo] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+/**
+ * What the BPMN canvas paints, as the browser computes it (sRGB bytes): its paper, bpmn-js's
+ * flows, their arrowheads (a marker in the SVG's defs), the start event and the labels, bpmn.io's
+ * link and the zoom bar beside it, with pulse-ui's ground and text where the canvas sits.
+ */
+async function canvasColours(canvas: Locator) {
+  return await canvas.evaluate((svg) => {
+    const pen = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!
+    const bytes = (value: string): [number, number, number] => {
+      pen.clearRect(0, 0, 1, 1)
+      pen.fillStyle = value
+      pen.fillRect(0, 0, 1, 1)
+      const [r, g, b] = pen.getImageData(0, 0, 1, 1).data
+      return [r, g, b]
+    }
+    const paper = svg.closest("[data-slot='bpmn-canvas']")!
+    const frame = paper.parentElement!
+    const role = (name: string) => {
+      const probe = document.createElement("i")
+      probe.style.color = `var(${name})`
+      frame.append(probe)
+      const value = getComputedStyle(probe).color
+      probe.remove()
+      return bytes(value)
+    }
+    const style = (el: Element | null) => getComputedStyle(el!)
+    const flow = svg.querySelector(".djs-connection .djs-visual > path")!
+    const arrowId = /url\("?#([^")]+)"?\)/.exec(style(flow).markerEnd)?.[1] ?? ""
+    const start = svg.querySelector('[data-element-id="StartEvent_received"] .djs-visual > circle')
+    const zoom = frame.querySelector('[data-slot="bpmn-zoom-controls"]')!
+    return {
+      paper: bytes(style(paper).backgroundColor),
+      ground: role("--background"),
+      text: role("--foreground"),
+      flow: bytes(style(flow).stroke),
+      arrowhead: bytes(style(svg.querySelector(`[id="${arrowId}"] path`)).fill),
+      startStroke: bytes(style(start).stroke),
+      startFill: bytes(style(start).fill),
+      label: bytes(style(svg.querySelector("text.djs-label")).fill),
+      credit: bytes(style(frame.querySelector(".bjs-powered-by")).color),
+      zoomBar: bytes(style(zoom).backgroundColor),
+      zoomIcon: bytes(style(zoom.querySelector("svg")).color),
+    }
+  })
+}
+
+/** A role of pulse-ui as the browser computes it beside `locator`, in its mode scope. */
+async function roleColour(locator: Locator, name: string): Promise<Srgb> {
+  return await locator.evaluate((el, variable) => {
+    const probe = document.createElement("i")
+    probe.style.color = `var(${variable})`
+    el.parentElement!.append(probe)
+    const value = getComputedStyle(probe).color
+    probe.remove()
+    const pen = document.createElement("canvas").getContext("2d")!
+    pen.fillStyle = value
+    pen.fillRect(0, 0, 1, 1)
+    const [r, g, b] = pen.getImageData(0, 0, 1, 1).data
+    return [r, g, b] as [number, number, number]
+  }, name)
+}
+
+/** sRGB bytes of a computed colour property of `locator`. */
+async function colourOf(
+  locator: Locator,
+  property: "fill" | "stroke" | "color" | "backgroundColor" | "outlineColor",
+): Promise<Srgb> {
+  return await locator.evaluate((el, prop) => {
+    const pen = document.createElement("canvas").getContext("2d")!
+    pen.fillStyle = getComputedStyle(el)[prop]
+    pen.fillRect(0, 0, 1, 1)
+    const [r, g, b] = pen.getImageData(0, 0, 1, 1).data
+    return [r, g, b] as [number, number, number]
+  }, property)
+}
+
+/** The system colours as the browser computes them beside `locator`, a probe left unforced. */
+async function systemColours(
+  locator: Locator,
+): Promise<Record<"Canvas" | "CanvasText" | "Highlight" | "LinkText", string>> {
+  return await locator.evaluate((el) => {
+    const of = (keyword: string) => {
+      const probe = document.createElement("i")
+      probe.style.forcedColorAdjust = "none"
+      probe.style.color = keyword
+      el.append(probe)
+      const value = getComputedStyle(probe).color
+      probe.remove()
+      return value
+    }
+    return {
+      Canvas: of("Canvas"),
+      CanvasText: of("CanvasText"),
+      Highlight: of("Highlight"),
+      LinkText: of("LinkText"),
+    }
+  })
+}
+
+type ComputedProperty =
+  | "backgroundColor"
+  | "borderTopColor"
+  | "borderTopWidth"
+  | "boxShadow"
+  | "color"
+  | "fill"
+  | "stroke"
+  | "strokeWidth"
+
+/** Computed properties of several elements, as the browser resolves them, by name. */
+async function computedOf<K extends string>(
+  reads: Record<K, [Locator, ComputedProperty]>,
+): Promise<Record<K, string>> {
+  const entries = await Promise.all(
+    Object.entries<[Locator, ComputedProperty]>(reads).map(
+      async ([name, [locator, property]]) =>
+        [name, await locator.evaluate((el, prop) => getComputedStyle(el)[prop], property)] as const,
+    ),
+  )
+  return Object.fromEntries(entries) as Record<K, string>
 }
 
 /** The last height the view reported to the host (the ext-apps `App`'s auto-resize). */
@@ -882,7 +1021,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS, maxHeight: 600 })
 
-    await expectJobs(app, 11)
+    await expectJobs(app, 13)
     const container = await app.locator("#root").evaluate((root) => {
       const el = root.firstElementChild as HTMLElement
       return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }
@@ -895,7 +1034,7 @@ test.describe("real engine view (engine_open_cockpit, the overview)", () => {
   }) => {
     const app = await openView(page, { args: JOBS_ARGS })
 
-    await expectJobs(app, 11)
+    await expectJobs(app, 13)
     // The old html/body/#root floor reported 600 for every view. `settledHeight`
     // waits for the report that equals the content's max-content height.
     const reported = await settledHeight(page, app)
@@ -1042,7 +1181,7 @@ test.describe("served fonts (Geist from the server's font route)", () => {
 })
 
 test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
-  test("dark host: a light canvas keeps flows and labels readable, the logo clear of the zoom controls (#339, N122/N129)", async ({
+  test("dark host: the canvas follows the theme as the editors' does, its ink, link and zoom bar legible, the logo clear of the zoom controls (D10 point 7, N122/N129)", async ({
     page,
   }, testInfo) => {
     const app = await openView(page, {
@@ -1061,17 +1200,21 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
 
     // The canvas alone is the image (its SVG), the zoom controls and bpmn.io's link beside it.
     expect(await canvas.evaluate((el) => el.tagName.toLowerCase())).toBe("svg")
-    // The paper under it is light in a dark theme; bpmn-js's near-black strokes and
-    // labels sit on it, not on the dark card.
-    const paper = canvas.locator("xpath=ancestor::*[@data-theme-mode='light'][1]")
-    expect(await luminance(paper, "backgroundColor")).toBeGreaterThan(0.95)
-    expect(await luminance(canvas.locator(".djs-connection path").first(), "stroke")).toBeLessThan(
-      0.25,
-    )
-    expect(
-      await luminance(canvas.locator("text.djs-label").first(), "fill"),
-      "external labels (events, gateway, flow names) must stay dark on the light canvas",
-    ).toBeLessThan(0.25)
+    // The paper is the view's dark ground; bpmn-js draws its flows, their arrowheads, its shapes
+    // and its labels in the view's text, the shapes filled with the paper.
+    const dark = await canvasColours(canvas)
+    expect(dark.paper).toEqual(dark.ground)
+    expect(relativeLuminance(dark.paper)).toBeLessThan(0.05)
+    for (const ink of [dark.flow, dark.arrowhead, dark.startStroke, dark.label]) {
+      expect(ink).toEqual(dark.text)
+    }
+    expect(dark.startFill).toEqual(dark.paper)
+    expect(contrast(dark.label, dark.paper)).toBeGreaterThanOrEqual(4.5)
+    // bpmn.io's link (a bpmn-js licence term) stays legible on the dark paper.
+    expect(contrast(dark.credit, dark.paper)).toBeGreaterThanOrEqual(4.5)
+    // The zoom bar is in the theme too: a dark card, its icons light on it.
+    expect(relativeLuminance(dark.zoomBar)).toBeLessThan(0.05)
+    expect(contrast(dark.zoomIcon, dark.zoomBar)).toBeGreaterThanOrEqual(4.5)
 
     // The bpmn.io logo stays (a bpmn-js licence term) but no longer covers a
     // zoom button: a click on each button's centre reaches the button.
@@ -1086,6 +1229,238 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
       })
       expect(hit, `${name} is covered`).toBe(true)
     }
+
+    // The nearest mode scope decides, as pulse-ui's: a light island in the dark host draws a light
+    // canvas, its ink dark.
+    const frame = canvas.locator("xpath=ancestor::*[@data-slot='bpmn-canvas'][1]/..")
+    await frame.evaluate((el) => el.setAttribute("data-theme-mode", "light"))
+    const island = await canvasColours(canvas)
+    expect(relativeLuminance(island.paper)).toBeGreaterThan(0.95)
+    expect(relativeLuminance(island.label)).toBeLessThan(0.05)
+    await frame.evaluate((el) => el.removeAttribute("data-theme-mode"))
+
+    // The host turns light: the canvas follows on the drawing it has, never drawing anew.
+    await canvas.evaluate((el) => el.setAttribute("data-drawn", "dark"))
+    await page.evaluate(() =>
+      (
+        window as unknown as { __hostSim: { setContext: (p: unknown) => void } }
+      ).__hostSim.setContext({ theme: "light" }),
+    )
+    await expect
+      .poll(async () => relativeLuminance((await canvasColours(canvas)).paper))
+      .toBeGreaterThan(0.95)
+    const light = await canvasColours(canvas)
+    expect(relativeLuminance(light.label)).toBeLessThan(0.05)
+    expect(light.arrowhead).toEqual(light.label)
+    expect(await canvas.getAttribute("data-drawn")).toBe("dark")
+  })
+
+  // The editors' dark canvas: a marker in its tone's light value on the neutral status surface, the
+  // count badges solid on a ring of paper; each held to WCAG on the paper it lies on.
+  test("dark host: an instance's incident paints in its tone on the neutral surface, its name in the ink", async ({
+    page,
+  }, testInfo) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "instance-detail", processInstanceId: "pi-invoice-42" },
+      theme: "dark",
+    })
+    const canvas = app.getByRole("img", { name: "BPMN process diagram" })
+    await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    await testInfo.attach("bpmn-dark-incident", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    })
+    const task = canvas.locator('[data-element-id="approveInvoice"]')
+    const outline = task.locator(".djs-visual > rect").first()
+    const name = task.locator(".djs-visual > text").first()
+    const paper = canvas.locator("xpath=ancestor::*[@data-slot='bpmn-canvas'][1]")
+    const [stroke, fill, ink, ground, danger, surface, text] = await Promise.all([
+      colourOf(outline, "stroke"),
+      colourOf(outline, "fill"),
+      colourOf(name, "fill"),
+      colourOf(paper, "backgroundColor"),
+      roleColour(paper, "--danger"),
+      roleColour(paper, "--danger-surface"),
+      roleColour(paper, "--foreground"),
+    ])
+    expect(stroke).toEqual(danger)
+    expect(fill).toEqual(surface)
+    expect(ink).toEqual(text)
+    expect(contrast(stroke, ground)).toBeGreaterThanOrEqual(3)
+    expect(contrast(stroke, fill)).toBeGreaterThanOrEqual(3)
+    expect(contrast(ink, fill)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  test("dark host: a running count is a solid badge on a ring of the dark paper, its number legible", async ({
+    page,
+  }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
+      theme: "dark",
+    })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    await modes.getByRole("radio", { name: "Running" }).click()
+    const badge = app.locator(".bpmn-overlay-badge--instance-count")
+    await expect(badge).toHaveText(["2"], { timeout: 15_000 })
+    const paper = app.locator("[data-slot='bpmn-canvas']").first()
+    const [fill, number, ground, ring] = await Promise.all([
+      colourOf(badge, "backgroundColor"),
+      colourOf(badge, "color"),
+      colourOf(paper, "backgroundColor"),
+      badge.evaluate((el) => getComputedStyle(el).boxShadow),
+    ])
+    expect(relativeLuminance(ground)).toBeLessThan(0.05)
+    expect(contrast(number, fill)).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(fill, ground)).toBeGreaterThanOrEqual(3)
+    expect(ring).toBe(`rgb(${ground.join(", ")}) 0px 0px 0px 2px`)
+  })
+
+  // High contrast as the editors' canvas: a state's outline at 3 px, a badge edged in the ink.
+  test("high contrast (data-cd-kontrast): an incident's outline at 3 px", async ({ page }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "instance-detail", processInstanceId: "pi-invoice-42" },
+      theme: "dark",
+    })
+    const canvas = app.getByRole("img", { name: "BPMN process diagram" })
+    await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    const outline = canvas
+      .locator('[data-element-id="approveInvoice"].highlight-incident .djs-visual > rect')
+      .first()
+    const width = () => outline.evaluate((el) => getComputedStyle(el).strokeWidth)
+    expect(await width()).toBe("2px")
+    await app.locator("html").evaluate((html) => html.setAttribute("data-cd-kontrast", "hoch"))
+    expect(await width()).toBe("3px")
+  })
+
+  // The one badge scheme (owner decision 2026-11-24): what runs at an element is its count alone,
+  // no outline; in high contrast the badge is edged in the ink instead of its ring.
+  test("high contrast (data-cd-kontrast): a running count outlines nothing, its badge edged in the ink instead of its ring", async ({
+    page,
+  }) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
+      theme: "dark",
+    })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    await modes.getByRole("radio", { name: "Running" }).click()
+    const badge = app.locator(".bpmn-overlay-badge--instance-count")
+    await expect(badge).toHaveText(["2"], { timeout: 15_000 })
+    await expect(app.locator(".djs-shape.highlight-running")).toHaveCount(0)
+    await app.locator("html").evaluate((html) => html.setAttribute("data-cd-kontrast", "hoch"))
+    const paper = app.locator("[data-slot='bpmn-canvas']").first()
+    const [edge, ink, ground] = await Promise.all([
+      badge.evaluate((el) => {
+        const style = getComputedStyle(el)
+        return { shadow: style.boxShadow, outline: `${style.outlineWidth} ${style.outlineStyle}` }
+      }),
+      colourOf(badge, "outlineColor"),
+      colourOf(paper, "backgroundColor"),
+    ])
+    expect(edge).toEqual({ shadow: "none", outline: "1px solid" })
+    expect(ink).toEqual(await roleColour(paper, "--foreground"))
+    // The edge parts the badge from the paper whatever the badge's own fill.
+    expect(contrast(ink, ground)).toBeGreaterThanOrEqual(3)
+  })
+
+  // Forced colours (a Windows contrast theme): the browser forces no SVG paint, so the canvas
+  // takes the system's palette itself, its markers Highlight and its badges Canvas with
+  // CanvasText as the editors'; an incident's outline wider than a running one's.
+  test("forced colours: the drawing in the system's palette, an incident's outline Highlight at 3 px", async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ forcedColors: "active", colorScheme: "dark" })
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "instance-detail", processInstanceId: "pi-invoice-42" },
+      theme: "light",
+    })
+    const canvas = app.getByRole("img", { name: "BPMN process diagram" })
+    await expect(canvas.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    await testInfo.attach("bpmn-forced-colours-incident", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    })
+    const paper = canvas.locator("xpath=ancestor::*[@data-slot='bpmn-canvas'][1]")
+    const system = await systemColours(paper)
+    const outline = canvas.locator('[data-element-id="approveInvoice"] .djs-visual > rect').first()
+    const drawn = await computedOf({
+      paper: [paper, "backgroundColor"],
+      flow: [canvas.locator(".djs-connection .djs-visual > path").first(), "stroke"],
+      label: [canvas.locator("text.djs-label").first(), "fill"],
+      name: [
+        canvas.locator('[data-element-id="approveInvoice"] .djs-visual > text').first(),
+        "fill",
+      ],
+      shapeFill: [
+        canvas.locator('[data-element-id="StartEvent_received"] .djs-visual > circle'),
+        "fill",
+      ],
+      incidentStroke: [outline, "stroke"],
+      incidentFill: [outline, "fill"],
+      incidentWidth: [outline, "strokeWidth"],
+      credit: [paper.locator(".bjs-powered-by"), "color"],
+      edge: [paper, "borderTopColor"],
+    })
+    // The host's light theme does not leave the drawing light on the system's dark ground.
+    expect(drawn).toEqual({
+      paper: system.Canvas,
+      flow: system.CanvasText,
+      label: system.CanvasText,
+      name: system.CanvasText,
+      shapeFill: system.Canvas,
+      incidentStroke: system.Highlight,
+      incidentFill: system.Canvas,
+      incidentWidth: "3px",
+      credit: system.LinkText,
+      edge: system.CanvasText,
+    })
+  })
+
+  test("forced colours: a running count's badge Canvas with CanvasText, edged in CanvasText, also in high contrast", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ forcedColors: "active", colorScheme: "light" })
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
+      theme: "dark",
+    })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    await modes.getByRole("radio", { name: "Running" }).click()
+    const badge = app.locator(".bpmn-overlay-badge--instance-count")
+    await expect(badge).toHaveText(["2"], { timeout: 15_000 })
+    const paper = app.locator("[data-slot='bpmn-canvas']").first()
+    const system = await systemColours(paper)
+    const read = () =>
+      computedOf({
+        paper: [paper, "backgroundColor"],
+        badgeFill: [badge, "backgroundColor"],
+        badgeText: [badge, "color"],
+        badgeEdge: [badge, "borderTopColor"],
+        badgeEdgeWidth: [badge, "borderTopWidth"],
+        badgeShadow: [badge, "boxShadow"],
+      })
+    const expected = {
+      paper: system.Canvas,
+      badgeFill: system.Canvas,
+      badgeText: system.CanvasText,
+      badgeEdge: system.CanvasText,
+      badgeEdgeWidth: "1px",
+      badgeShadow: "none",
+    }
+    expect(await read()).toEqual(expected)
+    // High contrast edges a badge in the ink, but under forced colours the system's palette wins.
+    await app.locator("html").evaluate((html) => html.setAttribute("data-cd-kontrast", "hoch"))
+    expect(await read()).toEqual(expected)
+
+    // The heat blends by the palette's lightness, not the host's dark mode: multiplied into a
+    // light Canvas, the legend alike.
+    await modes.getByRole("radio", { name: "Throughput · 30 days" }).click()
+    const layer = app.locator("canvas[aria-hidden='true']")
+    await expect.poll(() => heatPainted(layer)).toBe(true)
+    expect(await layer.evaluate((el) => getComputedStyle(el).mixBlendMode)).toBe("multiply")
+    expect(await heatLegendBlend(app)).toBe("multiply")
   })
 
   // An instance's activity tree names the process at its root, so the view marks the process too:
@@ -1174,7 +1549,7 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     await expect(badge).toHaveAttribute("aria-hidden", "true")
     // What the diagram's frame says to assistive technology: the image, bpmn.io's link and the
     // zoom controls, never a bare "2" or bpmn-js's drilldown trail (a list of the process's name).
-    const frame = canvas.locator("xpath=ancestor::*[@data-theme-mode='light'][2]")
+    const frame = canvas.locator("xpath=ancestor::*[@data-slot='bpmn-canvas'][1]/..")
     const exposed = (await frame.ariaSnapshot())
       .split("\n")
       .map((line) => /^- ([\w-]+)(?: "([^"]*)")?/.exec(line))
@@ -1269,16 +1644,12 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     await expect(
       app.getByText(/Read from the engine's history \(history level activity or higher\)/),
     ).toBeVisible()
-    // The layer took its ramp from the theme's --cd-* variables: something is painted.
+    // The layer took its ramp from the canvas's variables: something is painted, multiplied into
+    // the light paper as its legend shows it.
     const painted = app.locator("canvas[aria-hidden='true']")
-    await expect
-      .poll(() =>
-        painted.evaluate((canvas: HTMLCanvasElement) => {
-          const pixels = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height)
-          return pixels ? pixels.data.some((value, i) => i % 4 === 3 && value > 0) : false
-        }),
-      )
-      .toBe(true)
+    await expect.poll(() => heatPainted(painted)).toBe(true)
+    expect(await painted.evaluate((el) => getComputedStyle(el).mixBlendMode)).toBe("multiply")
+    expect(await heatLegendBlend(app)).toBe("multiply")
 
     await app.getByText("Values per activity").click()
     const values = app.getByRole("region", { name: "Values per activity" })
@@ -1288,6 +1659,61 @@ test.describe("real BPMN view (engine_open_cockpit, a process)", () => {
     await expect(values.getByRole("row").nth(2)).toContainText("Approve Invoice")
     await expect(values.getByRole("row").nth(2).getByRole("cell").nth(1)).toHaveText("10")
     await expect(values.getByRole("row").nth(2).getByRole("cell").nth(2)).toHaveText("2")
+  })
+})
+
+/** Whether the heat layer painted a pixel. */
+async function heatPainted(layer: Locator): Promise<boolean> {
+  return await layer.evaluate((canvas: HTMLCanvasElement) => {
+    const pixels = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height)
+    return pixels ? pixels.data.some((value, i) => i % 4 === 3 && value > 0) : false
+  })
+}
+
+/** How the heat legend's ramp meets its swatch, the canvas's paper. */
+async function heatLegendBlend(app: FrameLocator): Promise<string> {
+  return await app
+    .locator("[data-part='heat-ramp']")
+    .evaluate((el) => getComputedStyle(el).mixBlendMode)
+}
+
+test.describe("the heat on the dark canvas", () => {
+  // The dark canvas screens the heat into its paper, so its white labels stay white, and the legend
+  // shows the ramp the same way; a host that turns light repaints both multiplied.
+  test("dark host: the throughput screens into the dark paper, its legend alike, light again with the host", async ({
+    page,
+  }, testInfo) => {
+    const app = await openView(page, {
+      args: { engine: HEALTHY_ENGINE, view: "process-detail", processDefinitionKey: "invoice" },
+      theme: "dark",
+    })
+    const modes = app.getByRole("radiogroup", { name: "Process flow display" })
+    await expect(modes).toBeVisible({ timeout: 15_000 })
+    await modes.getByRole("radio", { name: "Throughput · 30 days" }).click()
+    const heat = app.getByRole("img", { name: "BPMN process diagram with the throughput as heat" })
+    await expect(heat.locator(".djs-connection")).toHaveCount(4, { timeout: 15_000 })
+    const layer = app.locator("canvas[aria-hidden='true']")
+    await expect.poll(() => heatPainted(layer)).toBe(true)
+    await testInfo.attach("bpmn-dark-heat", {
+      body: await page.screenshot(),
+      contentType: "image/png",
+    })
+    expect(await layer.evaluate((el) => getComputedStyle(el).mixBlendMode)).toBe("screen")
+    expect(await heatLegendBlend(app)).toBe("screen")
+    const swatch = app.locator("[data-part='heat-ramp']").locator("..")
+    expect(await luminance(swatch, "backgroundColor")).toBeLessThan(0.15)
+    expect(await luminance(heat.locator("text").first(), "fill")).toBeGreaterThan(0.95)
+
+    await page.evaluate(() =>
+      (
+        window as unknown as { __hostSim: { setContext: (p: unknown) => void } }
+      ).__hostSim.setContext({ theme: "light" }),
+    )
+    await expect
+      .poll(() => layer.evaluate((el) => getComputedStyle(el).mixBlendMode))
+      .toBe("multiply")
+    expect(await heatLegendBlend(app)).toBe("multiply")
+    expect(await luminance(swatch, "backgroundColor")).toBeGreaterThan(0.95)
   })
 })
 
@@ -1387,40 +1813,27 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
     // No glyph icon anywhere in the view.
     expect(await app.locator("body").innerText()).not.toMatch(/[✦⊡▦↗›⚠⚙⏱⤧▶✓✕▤⊞↻]/)
 
-    // The KPI tile of the jobs without retries: an alarming figure in an untinted tile.
-    const alarm = app
-      .locator('[data-slot="kpi-grid"] [data-slot="count-figure"][data-tone="danger"]')
-      .first()
-    await expect(alarm).toBeVisible()
-    const tile = await alarm.evaluate((el) => {
-      const cell = el.closest<HTMLElement>('[data-slot="kpi-strip"] > div > *')!
-      const strip = el.closest<HTMLElement>('[data-slot="kpi-strip"]')!
-      // pulse-ui's KpiGrid: the figure on the type scale's section step (the compact tile).
-      const digits = getComputedStyle(el.closest(".text-section")!)
+    // The count of the jobs without retries, in its scope's segment (the tiles are gone): the
+    // danger tone's icon of its own shape before a neutral number, never a coloured one.
+    const segment = app.getByRole("radio", { name: /^Without retries/ })
+    await expect(segment).toBeVisible()
+    const count = await segment.evaluate((el) => {
       const icon = el.querySelector("svg")!
-      const page = getComputedStyle(document.body)
-      const transparent = "rgba(0, 0, 0, 0)"
-      const fill = getComputedStyle(cell).backgroundColor
+      const digits = icon.nextElementSibling as HTMLElement
       return {
-        tinted: fill !== transparent && fill !== getComputedStyle(strip).backgroundColor,
-        digits: digits.color,
-        digitSize: digits.fontSize,
-        foreground: page.color,
         icon: icon.getAttribute("class"),
         iconColour: getComputedStyle(icon).color,
-        words: el.querySelector(".sr-only")?.textContent,
+        digits: getComputedStyle(digits).color,
+        label: getComputedStyle(el).color,
       }
     })
-    expect(tile.tinted, "no KPI tile is tinted").toBe(false)
-    expect(tile.digits, "a KPI number stays neutral").toBe(tile.foreground)
-    expect(tile.digitSize, "a KPI figure is the CI section size (21 px), the compact tile").toBe(
-      "21px",
-    )
-    expect(tile.icon, "the alarm is the danger tone's icon of its own shape").toContain(
+    expect(count.icon, "the alarm is the danger tone's icon of its own shape").toContain(
       "lucide-circle-x",
     )
-    expect(tile.iconColour).not.toBe(tile.foreground)
-    expect(tile.words).toBe("Has jobs without retries")
+    expect(count.iconColour, "the icon carries the tone, the number does not").not.toBe(
+      count.digits,
+    )
+    expect(count.digits, "the number stays neutral").not.toBe(count.iconColour)
   })
 
   test("forced colours: the current section keeps a Highlight ring, a status dot turns CanvasText, an outline marks focus only", async ({
@@ -1487,7 +1900,7 @@ test.describe("kit foundation (engine_open_cockpit, the jobs)", () => {
 
   test("high contrast (data-cd-kontrast): no shadows, a 3 px focus ring", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 11)
+    await expectJobs(app, 13)
     const current = app
       .getByRole("navigation", { name: "Cockpit sections" })
       .getByRole("button", { name: "Jobs" })
@@ -1747,8 +2160,8 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   test("a row's menu lies over the next rows' pinned cells: its entries take the clicks (U20)", async ({
     page,
   }) => {
-    // The cockpit's head and the KPI card leave room for eleven rows at the default 600 px fit
-    // (#396): an 800 px budget fits all sixteen jobs, so a middle row has a row under it.
+    // The cockpit's head and the scope's segments leave room for thirteen rows at the default
+    // 600 px fit (#396): an 800 px budget fits all sixteen jobs, so a middle row has a row under it.
     const app = await openView(page, { args: JOBS_ARGS, width: INLINE_WIDTH, maxHeight: 800 })
     await expectJobs(app, 16)
     // The stub's job-2 (never written), with job-3's row under it.
@@ -1853,16 +2266,28 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
   })
 
   test("keyboard focus on a table region shows inside its box (WCAG 2.4.7)", async ({ page }) => {
-    // A region whose rows open nothing takes the keyboard's stop itself: the jobs region spans
-    // its card at the inline width and overflows a narrow card, where it scrolls.
+    // A region whose rows open nothing takes the keyboard's stop itself: an instance's variables
+    // span the card at the inline width and in a narrow card.
+    const INSTANCE = {
+      engine: HEALTHY_ENGINE,
+      view: "instance-detail",
+      processInstanceId: "pi-invoice-42",
+    }
     const views = [
-      { scenario: { args: JOBS_ARGS, width: INLINE_WIDTH }, name: "Jobs" },
-      { scenario: { args: JOBS_ARGS, width: NARROW_WIDTH }, name: "Jobs" },
+      { scenario: { args: INSTANCE, width: INLINE_WIDTH }, name: "Process instance variables" },
+      { scenario: { args: INSTANCE, width: NARROW_WIDTH }, name: "Process instance variables" },
     ]
     for (const { scenario, name } of views) {
       const app = await openView(page, scenario)
+      // The tab by the keyboard, as a keyboard reader reaches the region (a click would leave the
+      // next focus without its visible ring).
+      const tab = app.getByRole("tab", { name: /^Variables/ }).first()
+      await tab.focus({ timeout: 15_000 })
+      await page.keyboard.press("Enter")
+      await expect(tab).toHaveAttribute("aria-selected", "true")
       const region = app.getByRole("region", { name, exact: true })
       await expect(region).toBeVisible({ timeout: 15_000 })
+      expect(await region.getAttribute("tabindex")).toBe("0")
       await region.scrollIntoViewIfNeeded()
       const before = await edgeStrips(page, region)
       await region.focus()
@@ -1880,6 +2305,34 @@ test.describe("layout at the inline width (760 px, U2/U20, WCAG 1.4.10)", () => 
           `${name}: the ring shows along the whole ${side} edge`,
         ).toBeGreaterThanOrEqual(0.9)
       }
+    }
+    // The jobs' rows open their job's instance (A2): the first row takes the stop and the region
+    // none, also in a narrow card, where the table overflows its region and scrolls; the focused
+    // row draws its outline inside itself.
+    for (const width of [INLINE_WIDTH, NARROW_WIDTH]) {
+      const app = await openView(page, { args: JOBS_ARGS, width })
+      const region = app.getByRole("region", { name: "Jobs", exact: true })
+      await expect(region).toBeVisible({ timeout: 15_000 })
+      const rows = region.locator("tbody > tr[data-row-target]")
+      await expect(rows.first()).toBeVisible()
+      expect(await region.getAttribute("tabindex")).toBeNull()
+      expect(await rows.first().getAttribute("tabindex")).toBe("0")
+      const overflows = await region.evaluate((el) => el.scrollWidth > el.clientWidth)
+      expect(overflows, `at ${width} px: only the narrow card's table overflows`).toBe(
+        width === NARROW_WIDTH,
+      )
+      await rows.first().focus()
+      const ring = await rows.first().evaluate((el) => {
+        const style = getComputedStyle(el)
+        return {
+          visible: el.matches(":focus-visible"),
+          style: style.outlineStyle,
+          width: parseFloat(style.outlineWidth),
+          inside: parseFloat(style.outlineOffset) <= -parseFloat(style.outlineWidth),
+        }
+      })
+      expect(ring, `at ${width} px`).toMatchObject({ visible: true, style: "solid", inside: true })
+      expect(ring.width).toBeGreaterThanOrEqual(2)
     }
   })
 
@@ -1924,7 +2377,7 @@ test.describe("cockpit (engine_open_cockpit)", () => {
 
   test("opens on its start view: the head section current, no picker", async ({ page }) => {
     const app = await openView(page, { args: JOBS_ARGS })
-    await expectJobs(app, 11)
+    await expectJobs(app, 13)
     const sections = app.getByRole("navigation", { name: "Cockpit sections" })
     await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
       "aria-current",
@@ -1969,11 +2422,12 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     // The diagram's name leads with the id after it on one line; an element the diagram lacks
     // shows its id.
     await expect(elements).toHaveText(["Approve Invoice approveInvoice", "chargeCard"])
-    // The view with both 28 px rows is 619 px. A cut to one row would add the 44 px "1 of 2
-    // shown" footer and make it taller still (635 px): a cut pays for its footer, so nothing is
-    // cut and the view scrolls inside its budget.
+    // The bar carries the state and the open incidents, no facts block under it (V11): the view
+    // with both 28 px rows is 564 px, inside the budget, so nothing is cut, no footer counts the
+    // rows and the view does not scroll.
     await expect(table.locator("tfoot")).toHaveCount(0)
-    await expect(app.locator("[data-inline-fit]")).toHaveAttribute("data-inline-fit", "overflow")
+    await expect(app.locator("[data-inline-fit]")).toHaveAttribute("data-inline-fit", "fits")
+    expect(await settledHeight(page, app)).toBeLessThanOrEqual(600)
 
     await app.getByRole("button", { name: "View process" }).click()
     await expect(app.getByRole("heading", { name: "Invoice Receipt" })).toBeVisible({

@@ -82,6 +82,12 @@ export type ScopeCounts = Readonly<Record<InstanceScope, number>> & {
 
 export type RefusedVariableCondition = "ordering" | "date"
 
+export interface OlderVersionsView {
+  readonly running: number
+  readonly withIncident: number
+  readonly show: { readonly definitionId: string; readonly version: number }
+}
+
 export interface DefinitionView {
   readonly kind: "definition"
   readonly engine: EngineBadge
@@ -103,6 +109,7 @@ export interface DefinitionView {
   readonly scopeCounts: ScopeCounts
   readonly historyNote?: string
   readonly notices: readonly Notice[]
+  readonly olderVersions?: OlderVersionsView
   readonly webUi?: WebUiLink
   readonly model?: LocalModelLink
   readonly selection?: SelectionView
@@ -174,6 +181,7 @@ export interface PathRow {
   readonly startedAt: string
   readonly endedAt?: string
   readonly duration?: string
+  readonly durationMs?: number
   readonly state: PathState
 }
 
@@ -182,6 +190,12 @@ export interface WaitRow {
   readonly elementName?: string
   readonly kindLabel: string
   readonly detail?: string
+  readonly assignee?: string
+  readonly taskType?: string
+  readonly retriesLeft?: number
+  readonly messageName?: string
+  readonly signalName?: string
+  readonly description?: string
   readonly since?: string
   readonly dueAt?: string
   readonly calledInstance?: CalledInstanceLink
@@ -234,6 +248,11 @@ export interface InstanceHeader {
   readonly parent?: ParentLink
 }
 
+export type InstanceHead =
+  | { readonly code: "incidents"; readonly count: number; readonly suspended: boolean }
+  | { readonly code: "suspended" }
+  | { readonly code: "ended"; readonly state: "completed" | "terminated" }
+
 export interface InstanceView {
   readonly kind: "instance"
   readonly engine: EngineBadge
@@ -242,6 +261,7 @@ export interface InstanceView {
   readonly diagramXml: string
   readonly markers: readonly ElementMarker[]
   readonly calls: readonly CallLink[]
+  readonly head?: InstanceHead
   readonly headline?: Notice
   readonly incidents: readonly IncidentRow[]
   readonly waitStates: readonly WaitRow[]
@@ -271,6 +291,14 @@ export interface ProcessRow {
   readonly latestVersion: number
   readonly running: number
   readonly withIncident: number
+  readonly incidents: number
+  readonly incidentsAtLeast?: true
+}
+
+export interface EngineTotals {
+  readonly processes: number
+  readonly running: number
+  readonly withIncident: number
 }
 
 export interface EngineView {
@@ -281,6 +309,7 @@ export interface EngineView {
   readonly processes: readonly ProcessRow[]
   readonly filter: ProcessListFilter
   readonly scopeCounts: ProcessScopeCounts
+  readonly totals: EngineTotals
   readonly emptyText: string
   readonly webUi?: WebUiLink
 }
@@ -291,4 +320,5 @@ export interface Problem {
   readonly canEditConnection: boolean
   readonly needsCredentials?: true
   readonly loginRefused?: "unauthorized" | "forbidden"
+  readonly file?: string
 }

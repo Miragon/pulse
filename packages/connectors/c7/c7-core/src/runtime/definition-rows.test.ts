@@ -1,7 +1,7 @@
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import { fakeFailure, fakePort } from "../testing/fake-port.js"
-import { readDefinitionStatistics, readDiagramXml } from "./definition-rows.js"
+import { diagramReadOf, readDefinitionStatistics, readDiagramXml } from "./definition-rows.js"
 
 const FULL = {
   id: "invoice:2:x",
@@ -23,17 +23,38 @@ async function expectUnexpected(read: Promise<unknown>, message: string): Promis
 }
 
 describe("readDefinitionStatistics", () => {
-  it("reads every version with its running instances, in one request without values", async () => {
+  it("reads every version with its running instances and root incidents, in one request", async () => {
     const port = statisticsPort([
       { definition: FULL, instances: 3, failedJobs: 0, incidents: [] },
       { definition: { ...BARE, name: null, deploymentId: null }, instances: 0 },
     ])
     expect(await readDefinitionStatistics(port)).toStrictEqual([
-      { definition: FULL, instances: 3 },
-      { definition: BARE, instances: 0 },
+      { definition: FULL, instances: 3, rootIncidents: 0 },
+      { definition: BARE, instances: 0, rootIncidents: 0 },
     ])
     expect(port.calls).toEqual([
-      { operationId: "getProcessDefinitionStatistics", input: { pathArgs: [], query: {} } },
+      {
+        operationId: "getProcessDefinitionStatistics",
+        input: { pathArgs: [], query: { rootIncidents: "true" } },
+      },
+    ])
+  })
+
+  it("sums the root incidents of every incident type of a version", async () => {
+    const port = statisticsPort([
+      {
+        definition: FULL,
+        instances: 5,
+        incidents: [
+          { incidentType: "failedJob", incidentCount: 2 },
+          { incidentType: "failedExternalTask", incidentCount: 1 },
+        ],
+      },
+      { definition: BARE, instances: 1, incidents: null },
+    ])
+    expect(await readDefinitionStatistics(port)).toStrictEqual([
+      { definition: FULL, instances: 5, rootIncidents: 3 },
+      { definition: BARE, instances: 1, rootIncidents: 0 },
     ])
   })
 
@@ -63,6 +84,16 @@ describe("readDefinitionStatistics", () => {
       "a version tag that is no text",
       [{ definition: { ...BARE, versionTag: 1 }, instances: 1 }],
       "versionTag is not a string",
+    ],
+    [
+      "incidents that are no list",
+      [{ definition: BARE, instances: 1, incidents: 2 }],
+      "incidents is not a list",
+    ],
+    [
+      "an incident type without its count",
+      [{ definition: BARE, instances: 1, incidents: [{ incidentType: "failedJob" }] }],
+      "incidentCount is missing",
     ],
   ])("fails %s as unexpected", async (_kind, answer, message) => {
     await expectUnexpected(readDefinitionStatistics(statisticsPort(answer)), message)
@@ -121,4 +152,42 @@ describe("readDiagramXml", () => {
     const port = fakePort({ getProcessDefinitionBpmn20Xml: () => answer })
     await expectUnexpected(readDiagramXml(port, "order:1:y"), message)
   })
+})
+
+describe("diagramReadOf", () => {
+  it("reads over the port without a surface's read", async () => {
+    const port = fakePort({
+      getProcessDefinitionBpmn20Xml: () => ({ id: "order:1:y", bpmn20Xml: "<definitions/>" }),
+    })
+    expect(await diagramReadOf(port)("order:1:y")).toBe("<definitions/>")
+    expect(port.calls.map((call) => call.operationId)).toEqual(["getProcessDefinitionBpmn20Xml"])
+  })
+
+  it("reads through the surface's read where it gives one, its none as none", async () => {
+    const port = fakePort({})
+    const asked: string[] = []
+    const read = diagramReadOf(port, (id) => {
+      asked.push(id)
+      return Promise.resolve(id === "order:1:y" ? "<kept/>" : undefined)
+    })
+    expect(await read("order:1:y")).toBe("<kept/>")
+    expect(await read("nope:1:x")).toBeUndefined()
+    expect(asked).toEqual(["order:1:y", "nope:1:x"])
+    expect(port.calls).toEqual([])
+  })
+
+  it.each(["../x", "a b", ""])(
+    "reads %j, an id no engine assigns, as none, asking neither",
+    async (id) => {
+      const port = fakePort({})
+      const asked: string[] = []
+      const read = diagramReadOf(port, (definitionId) => {
+        asked.push(definitionId)
+        return Promise.resolve("<never/>")
+      })
+      expect(await read(id)).toBeUndefined()
+      expect(asked).toEqual([])
+      expect(port.calls).toEqual([])
+    },
+  )
 })

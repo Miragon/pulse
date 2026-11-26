@@ -1,6 +1,5 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import { latestEngineDate, toEngineDate } from "@miragon/pulse-c7-core"
-import { getIncidentsCount } from "@miragon/pulse-c7-client/sdk"
+import { isRootIncident, latestEngineDate } from "@miragon/pulse-c7-core"
 import type {
   IncidentsDashboardActivity,
   IncidentsDashboardData,
@@ -11,19 +10,15 @@ import type { IncidentsDashboardFilters } from "../feed-contracts.js"
 import { buildProcessCockpitUrl } from "../lib/engine/cockpit-url.js"
 import {
   definitionKeyResolver,
+  elementNameIn,
+  fetchNamesByDefinition,
   fetchStatsByKey,
   nameUnnamedDefinitions,
   unknownKeyError,
   type KeyStats,
+  type NamesByDefinition,
 } from "./definition-info.js"
-import { countOf, DAY_MS } from "./engine-reads.js"
-import {
-  groupBy,
-  scanFacts,
-  scanIncidents,
-  type IncidentRow,
-  type IncidentScan,
-} from "./incident-scan.js"
+import { groupBy, scanFacts, scanIncidents, type IncidentRow } from "./incident-scan.js"
 
 export interface IncidentsDashboardOptions extends IncidentsDashboardFilters {
   baseUrl: string
@@ -32,28 +27,26 @@ export interface IncidentsDashboardOptions extends IncidentsDashboardFilters {
 }
 
 /**
- * Counts are exact and KEY-wide from `/incident/count` and the definition
- * statistics; the scan only adds the per-activity breakdown and timestamps, so a
- * process whose incidents lie beyond the scan keeps its exact count (#335 N61).
- * Rows join cards through the statistics' version ids (bare ids carry no key).
+ * The open ROOT incidents by process (owner decision D2, amended on 2026-11-19): a call activity's
+ * copy of a called instance's incident counts where it was raised, in the called process, never at
+ * the caller, and is never a row. Counts are exact and KEY-wide from the definition statistics
+ * (`rootIncidents=true`), the total their sum; the scan's root incidents (`isRootIncident`, c7-core's
+ * one rule) only add the per-activity breakdown and timestamps, so a process whose incidents lie
+ * beyond the scan keeps its exact count (#335 N61). Rows join cards through the statistics'
+ * version ids (bare ids carry no key).
  */
 export async function buildIncidentsDashboardData(
   client: Client,
   options: IncidentsDashboardOptions,
 ): Promise<IncidentsDashboardData> {
-  const cutoffMs = Date.now() - DAY_MS
+  const fetchedAt = new Date().toISOString()
   const filter = {
     processDefinitionKeyIn: options.processDefinitionKey,
     incidentType: options.incidentType,
   }
-  const [scan, totalCount, last24hCount, statsByKey] = await Promise.all([
+  const [scan, statsByKey] = await Promise.all([
     scanIncidents(client, filter),
-    getIncidentsCount({ client, query: filter }).then(countOf),
-    getIncidentsCount({
-      client,
-      query: { ...filter, incidentTimestampAfter: toEngineDate(new Date(cutoffMs)) },
-    }).then(countOf),
-    fetchStatsByKey(client, { incidentsForType: options.incidentType }),
+    fetchStatsByKey(client, { incidentType: options.incidentType }),
   ])
 
   if (options.processDefinitionKey !== undefined && !statsByKey.has(options.processDefinitionKey)) {
@@ -61,35 +54,59 @@ export async function buildIncidentsDashboardData(
   }
 
   const keyOf = definitionKeyResolver(statsByKey)
+  const roots = scan.rows.filter(isRootIncident)
   // A row whose key resolves to nothing ("") joins no card.
-  const scannedByKey = groupBy(scan.rows, (r) => keyOf(r.processDefinitionId) ?? "")
+  const scannedByKey = groupBy(roots, (r) => keyOf(r.processDefinitionId) ?? "")
   const shown = [...statsByKey.entries()]
     .filter(([key, stats]) => stats.incidentCount > 0 && matchesKey(key, options))
     .sort((a, b) => b[1].incidentCount - a[1].incidentCount)
-  // A Modeler pool around an unnamed process names its card, as every view names it.
-  await nameUnnamedDefinitions(
-    client,
-    shown.map(([, stats]) => stats.latest),
+  const groupsByKey = new Map(
+    shown.map(([key]) => [key, activityGroups(scannedByKey.get(key) ?? [])] as const),
   )
+  const newestRows = [...groupsByKey.values()].flat().map((rows) => rows[0])
+  const [, names] = await Promise.all([
+    // A Modeler pool around an unnamed process names its card, as every view names it.
+    nameUnnamedDefinitions(
+      client,
+      shown.map(([, stats]) => stats.latest),
+    ),
+    // ENRICHMENT: an activity is named in the diagram of its newest incident's version, the
+    // busiest cards first; a diagram past the cap or unread leaves its activities' ids.
+    fetchNamesByDefinition(
+      client,
+      newestRows.map((row) => row.processDefinitionId),
+    ),
+  ])
+  const ctx = { options, names }
   const processes = shown.map(([key, stats]) =>
-    toProcess(key, stats, scannedByKey.get(key) ?? [], { scan, cutoffMs, options }),
+    toProcess(key, stats, scannedByKey.get(key) ?? [], groupsByKey.get(key) ?? [], ctx),
   )
 
   return {
-    totalCount,
+    totalCount: processes.reduce((sum, p) => sum + p.incidentCount, 0),
     processCount: processes.length,
     affectedActivityCount: processes.every((p) => p.affectedActivityCount !== null)
       ? processes.reduce((sum, p) => sum + (p.affectedActivityCount ?? 0), 0)
       : null,
-    last24hCount,
-    latestIncident: latestEngineDate(scan.rows.map((r) => r.incidentTimestamp)),
+    latestIncident: latestEngineDate(roots.map((r) => r.incidentTimestamp)),
     processes,
     filters: {
       processDefinitionKey: options.processDefinitionKey,
       incidentType: options.incidentType,
     },
+    fetchedAt,
     engineVendor: options.provider.branding.displayName,
   }
+}
+
+/**
+ * A card's root incidents by activity and incident type, the scope of the cluster a row opens, the
+ * most incidents first; each group's rows newest first, as the scan reads them.
+ */
+function activityGroups(scanned: IncidentRow[]): IncidentRow[][] {
+  return [...groupBy(scanned, (r) => `${r.activityId} ${r.incidentType}`).values()].sort(
+    (a, b) => b.length - a.length,
+  )
 }
 
 function matchesKey(key: string, options: IncidentsDashboardOptions): boolean {
@@ -100,23 +117,23 @@ function toProcess(
   key: string,
   stats: KeyStats,
   scanned: IncidentRow[],
-  ctx: { scan: IncidentScan; cutoffMs: number; options: IncidentsDashboardOptions },
+  groups: IncidentRow[][],
+  ctx: { options: IncidentsDashboardOptions; names: NamesByDefinition },
 ): IncidentsDashboardProcess {
-  // Complete only when the scan holds every incident of the key (vs. the exact
-  // count), so a card never reports confident zeros next to its N incidents.
+  // Complete only when the scan holds every root incident of the key (vs. the exact count), so a
+  // card never reports confident zeros next to its N incidents.
   const fullyScanned = scanned.length >= stats.incidentCount
-  const facts = scanFacts(scanned, { fullyScanned, scan: ctx.scan, cutoffMs: ctx.cutoffMs })
-  const activities: IncidentsDashboardActivity[] = [
-    ...groupBy(scanned, (r) => r.activityId).entries(),
-  ]
-    .sort((a, b) => b[1].length - a[1].length)
-    .map(([activityId, rows]) => ({
-      activityId,
-      // No BPMN on the overview: the definition view resolves display names.
-      activityName: null,
+  const facts = scanFacts(scanned, { fullyScanned })
+  const activities: IncidentsDashboardActivity[] = groups.map((rows) => {
+    const [newest] = rows
+    return {
+      activityId: newest.activityId,
+      incidentType: newest.incidentType,
+      activityName: elementNameIn(ctx.names, newest.processDefinitionId, newest.activityId),
       scannedIncidentCount: rows.length,
-      ...scanFacts(rows, { fullyScanned, scan: ctx.scan, cutoffMs: ctx.cutoffMs }),
-    }))
+      ...scanFacts(rows, { fullyScanned }),
+    }
+  })
 
   return {
     processDefinitionKey: key,
@@ -125,8 +142,8 @@ function toProcess(
     runningInstances: stats.instances,
     incidentCount: stats.incidentCount,
     scannedIncidentCount: scanned.length,
-    affectedActivityCount: fullyScanned ? activities.length : null,
-    last24hCount: facts.last24hCount,
+    // Activities, not their incident types: an activity failing two ways is one.
+    affectedActivityCount: fullyScanned ? new Set(activities.map((a) => a.activityId)).size : null,
     latestIncident: facts.latestIncident,
     cockpitUrl: buildProcessCockpitUrl(
       ctx.options,

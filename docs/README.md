@@ -1,11 +1,13 @@
 # Pulse docs
 
 Pulse reaches your Camunda 7, CIB seven and Operaton engines from your AI chat, your browser, your
-terminal, VS Code and Orca; it also reads Camunda 8 in VS Code and Orca, and on boards elsewhere.
+terminal, VS Code and Orca; it also reads Camunda 8 in VS Code, Orca and the web app, and on boards
+in the chat.
 
 | Page                       | What it covers                                                   |
 | -------------------------- | ---------------------------------------------------------------- |
 | [Overview](overview.md)    | The five clients and what they share                             |
+| [Glossary](glossary.md)    | The words every Pulse UI uses, in English and German             |
 | [MCP server](mcp/index.md) | Getting started, usage, reference, operations, architecture      |
 | [Web app](web/index.md)    | The server's views as pages in a browser: sign-in, architecture  |
 | [CLI](cli/index.md)        | Install, commands, configuration, authentication, AI agents      |

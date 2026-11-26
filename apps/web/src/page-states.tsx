@@ -1,9 +1,9 @@
 import { Button, EmptyState, ErrorState, Icon } from "@miragon/pulse-ui"
 import type { PageFrame } from "@miragon/pulse-widget-shell/widgets"
 import { LogIn, LogOut } from "lucide-react"
-import { PageBar, PageLayout } from "./bar.js"
+import { PageLayout } from "./frame/layout.js"
 import { useT } from "./messages/index.js"
-import { signInUrl } from "./routes.js"
+import { signInUrl } from "./router/routes.js"
 
 /**
  * A page that found no session when it asked for one (it ended between the page and its first
@@ -14,7 +14,7 @@ export function endedFrame(returnTo: string): PageFrame {
   return function EndedFrame() {
     const t = useT()
     return (
-      <PageLayout banner={<PageBar />} fallbackTitle={t("frame.product")}>
+      <PageLayout fallbackTitle={t("frame.product")}>
         <main className="p-gutter flex-1">
           <EmptyState
             icon={<LogOut />}
@@ -45,7 +45,7 @@ export function unreachableFrame(reload: () => void): PageFrame {
   return function UnreachableFrame() {
     const t = useT()
     return (
-      <PageLayout banner={<PageBar />} fallbackTitle={t("frame.product")}>
+      <PageLayout fallbackTitle={t("frame.product")}>
         <main className="p-gutter flex-1">
           <ErrorState
             title={t("page.unreachable.title")}

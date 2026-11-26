@@ -1,7 +1,6 @@
 # Pulse usage
 
-You use Pulse by pointing an MCP-aware AI assistant
-at it and asking questions in natural language.
+You use Pulse by pointing an MCP-aware AI assistant at it and asking questions in natural language.
 
 ## Connect your assistant
 
@@ -38,9 +37,8 @@ Config, add the bridge, and restart the app:
 }
 ```
 
-For a server on your own machine, use `http://127.0.0.1:8400/mcp` there:
-`127.0.0.1` rather than `localhost`, which Node may resolve to IPv6 while the
-server listens on IPv4.
+For a server on your own machine, use `http://127.0.0.1:8400/mcp` there: `127.0.0.1` rather than
+`localhost`, which Node may resolve to IPv6 while the server listens on IPv4.
 
 Once connected, you'll see the Camunda tools available in the
 assistant. Try asking _"show me the open incidents"_. Claude calls
@@ -85,8 +83,8 @@ what it changed: completing a task shows the next one. The cockpit's
 
 The widgets speak German when your chat app's language is German, and
 English otherwise. Light or dark follows the chat app's theme, and your
-system's without one. The tool results the assistant reads are English; it
-still answers you in your language.
+system's without one, the process diagrams included. The tool results the
+assistant reads are English; it still answers you in your language.
 
 ## Tips
 
@@ -99,31 +97,52 @@ still answers you in your language.
   resolved** only for custom incidents. Batch actions (batch retries,
   migrations) only queue work: ask for the batch status afterwards. Completing a task that was delegated in
   Tasklist hands it back to its owner, and the task stays open.
-- An engine has one live verdict: the engine overview and `engine_status` rate
-  it ok, warning or critical (by default critical at 50 open incidents or 25 of
-  one cause) and count one cause alike (activity, type, masked message);
-  `engine_status` also judges overdue jobs, workers and batches. "Has this activity failed
-  before?" is answered from incident history, resolved incidents included.
-- A process view counts every deployed version of its key: old versions keep
-  running after a redeploy; only the diagram is one version, and it says
-  which. Its flow shows the open incidents per element or, under **Running**,
-  how many instances are at each element right now, read from the engine as
-  its own cockpit draws them. **Throughput · 30 days** colours each element by
-  how often the instances started in the last 30 days passed it (the ones still
-  there count as running), read from the engine's history (history level
-  `activity` or higher): instances started earlier count nowhere, and a shorter
-  history time to live shortens the window, which the view then says. The first open per hour reads the engine's database,
-  so it can take seconds; the server keeps the read for an hour. With two engines or more, the cross-engine overview
-  shows each engine's health and job backlog and which processes run where,
-  counted on every engine, never ranked. A number the engine could not confirm shows as "—" (or "≥N" when
-  only part of it was read), never as 0, and an engine that does not answer
-  is an error, not an empty view.
-- An instance's view names the element of each open incident (its name in the
-  diagram, else its id) and leads to its process with **View process**. The
-  instance list's scopes (**All**, **With incident**, **Suspended**) count what
-  each one shows within the search, whichever scope is picked. **With incident**
-  is an instance with an open incident now, read from the engine's runtime on
-  every history level, as Pulse for VS Code and Pulse for Orca read it.
+- An engine has one live verdict: the engine overview and `engine_status` rate it ok, warning or
+  critical (by default critical at 50 open root incidents, never a call activity's copy, or 25 of
+  one cause) and count one cause alike (activity, type, masked message); `engine_status` also judges
+  overdue jobs, workers and batches. Incident history, resolved ones included, answers "has this
+  activity failed before?".
+- Camunda 7 copies an incident of a called instance to each call activity above it, without a
+  message. "Incidents" are open root incidents on every view, as in the web app and Pulse for VS
+  Code: a copy counts in the called process, never twice, and is no row of a process, an activity
+  or a cause; a diagram shows the incidents of an element's called instances apart, a quiet badge.
+  An instance's copy row stands for its root: its message, `in <element> · <id>` (the called
+  instance), and the row opens the root; **Open cause** leads on from a copy, **Open instance** to
+  an incident's instance, a called instance's caller id to its caller. New incidents count for the
+  last hour alone (Camunda 7 counts none in a window): the overview's where its newest incidents
+  read hold the hour, a cluster's "—" where it cannot tell.
+- A process view counts every deployed version of its key: old versions keep running after a redeploy;
+  only the diagram is one version, and it says which. Its flow shows the open root incidents per
+  element or, under **Running**, how many instances are at each element now, its root incidents and
+  apart the incidents of the instances it called, counted as the web app's process screen counts a
+  version (the server keeps them 30 seconds per user). **Throughput · 30 days** colours each element
+  by how often the instances started in the last 30 days passed it (the ones still there count as
+  running), read from the engine's history (history level `activity` or higher): instances started
+  earlier count nowhere, and a shorter history time to live shortens the window, which the view then
+  says. The first open per hour reads the engine's database, so it can take seconds; the server keeps
+  the read for an hour. With two engines or more, the cross-engine overview shows each engine's health
+  and job backlog and which processes run where, counted on every engine, never ranked. A number the
+  engine could not confirm shows as "—" (or "≥N" when only part of it was read), never as 0, and an
+  engine that does not answer is an error, not an empty view.
+- An instance's view names the element of each open incident (its name in the diagram, else its
+  id), shows its open incidents beside its state in its bar, and leads to its process with **View
+  process**. The instance list's scopes (**All**, **With incident**, **Suspended**) count what each
+  one shows within the search, whichever scope is picked. **With incident** is an instance with an
+  open incident now, read from the engine's runtime on every history level, as Pulse for VS Code
+  and Pulse for Orca read it. **Started** is when each began, "—" where the engine keeps no history.
+- Each number has one home: a view's bar names only what its tiles do not (a process's key and,
+  once, the version scope of its counts) and ends with when the numbers were read (**As of**).
+  "First seen", "latest" and "last event" read as a time ago, the whole instant in their tooltip.
+  The overview's top failures are rows that open their cause; an instance's history is one table
+  on its route and in its tabs (state, start to the second, duration; an open step since when).
+- The jobs view shows **All** jobs or those **Without retries** (a drill to the jobs without
+  retries picks that scope), both counted; a job's row opens its instance, where its incident
+  shows. In the **Incidents** tab an expanded process lists the activities of its root incidents by
+  name; each row opens its failure cluster. Nothing reloads by itself: **Refresh** reads again.
+- A chevron expands, an arrow opens. An incident's stacktrace scrolls with the keyboard and its
+  button copies it whole, on the web app's page too, since copying changes nothing. A diagram fits
+  the whole process; each zoom is a quarter, the first centres the marked element, and the arrow
+  keys move the focused diagram.
 - A deployment with board files (`ENGINE_BOARDS_DIR`) answers _"show me the leasing board"_ with
   the board's tiles, the ones Pulse for VS Code shows, and the cockpit's landing lists its boards
   ([Boards](boards.md)).

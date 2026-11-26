@@ -8,6 +8,8 @@ import { WORLD_ELEMENT, WORLD_PROCESS, type InstanceAlias } from "../world/world
 const PAGE_LIMIT = 50
 export const MAX_PAGES = 10
 const ORDER = BpmnProcessId(WORLD_PROCESS.order)
+const LIFECYCLES = [undefined, "running", "ended"] as const
+const INCIDENT_FILTERS = [undefined, true, false] as const
 
 export class InstanceReads {
   static async search(
@@ -40,6 +42,23 @@ export class InstanceReads {
 
   static idsOf(harness: ConformanceHarness, aliases: readonly InstanceAlias[]): InstanceId[] {
     return aliases.map((alias) => harness.world.instanceIds[alias])
+  }
+
+  static scopedFilters(harness: ConformanceHarness): readonly InstanceFilter[] {
+    const scopes: readonly InstanceFilter[] = [
+      {},
+      { bpmnProcessId: ORDER },
+      { definitionId: harness.world.definitionIds["order@1"] },
+    ]
+    return scopes.flatMap((scope) =>
+      LIFECYCLES.flatMap((lifecycle) =>
+        INCIDENT_FILTERS.map((withIncident) => ({
+          ...scope,
+          ...(lifecycle === undefined ? {} : { lifecycle }),
+          ...(withIncident === undefined ? {} : { withIncident }),
+        })),
+      ),
+    )
   }
 
   static countedFilters(harness: ConformanceHarness): readonly InstanceFilter[] {

@@ -9,6 +9,7 @@ import {
   partial,
   summaryLabel,
   tileTitle,
+  titleNamesProcess,
   totalCount,
   warning,
 } from "./tile-words.js"
@@ -65,6 +66,19 @@ describe("a tile's title", () => {
     )
     expect(untitled({ kind: "refused", problems: [] })).toBe("Widget")
     expect(untitled({ kind: "refused", widget: "chart", title: "Mine", problems: [] })).toBe("Mine")
+  })
+
+  it("names an incident list's process only where the file leaves the list of one process untitled", () => {
+    expect(tileTitle(t, INCIDENTS)).toBe("Open incidents of order")
+    expect(titleNamesProcess(INCIDENTS)).toBe(true)
+    const titled = { ...INCIDENTS, widget: { ...INCIDENTS.widget, title: "Carrier failures" } }
+    expect(tileTitle(t, titled)).toBe("Carrier failures")
+    expect(titleNamesProcess(titled)).toBe(false)
+    const spanning = {
+      ...INCIDENTS,
+      widget: { widget: "incidentList", engines: ["local"] },
+    } as const
+    expect(titleNamesProcess(spanning)).toBe(false)
   })
 })
 

@@ -15,8 +15,8 @@ const STATUS_ROUTES: FakeRoutes = {
       {
         id: "order:1:x",
         instances: 41,
-        failedJobs: 3,
-        incidents: [{ incidentType: "failedJob", incidentCount: 3 }],
+        failedJobs: 12,
+        incidents: [{ incidentType: "failedJob", incidentCount: 12 }],
         definition: { id: "order:1:x", key: "order", version: 1, name: "Order" },
       },
     ],
@@ -53,7 +53,12 @@ describe("engineStatusForModel", () => {
     expect(triage.engine).toMatchObject({ id: "fake", version: "2.1.0" })
     expect(triage.engine).not.toHaveProperty("url")
     expect(triage.statusRule).toBe(statusRule(DEFAULT_VERDICT_THRESHOLDS))
-    expect(triage).toMatchObject({ status: "warning", incidentsTotal: 12, tasks: { open: 7 } })
+    expect(triage).toMatchObject({
+      status: "warning",
+      rootIncidentsTotal: 12,
+      incidentsTotal: 12,
+      tasks: { open: 7 },
+    })
     expect(triage.truncated).toEqual(["incident groups: 10 of 12 shown"])
     expect(JSON.stringify(triage)).not.toContain('"next"')
     expect(triage.incidents[0]).toMatchObject({
@@ -186,18 +191,19 @@ describe("engineStatusForModel", () => {
       )
     }
     expect(all.statusRule).toBe(
-      "critical: >=50 open incidents or >=25 of one cause, executable jobs overdue (is the job " +
-        "executor running?); warning: any open incident (incident groups), topics without a " +
-        "worker, topics with expired locks, failed batch jobs, keys not deployed; else ok. " +
-        "incidentsTotal counts every open incident, propagated the copies on calling instances; " +
-        "the incident groups and definitions count root causes.",
+      "critical: >=50 open root incidents or >=25 of one cause, executable jobs overdue (is the " +
+        "job executor running?); warning: any open root incident (incident groups), topics " +
+        "without a worker, topics with expired locks, failed batch jobs, keys not deployed; else " +
+        "ok. rootIncidentsTotal counts the open root incidents the status judges, incidentsTotal " +
+        "every open incident, propagated the copies on calling instances among those loaded; the " +
+        "incident groups and definitions count root incidents.",
     )
   })
 
   it("judges by the thresholds it is given, the cockpit's, and says them", async () => {
     const quiet = STATUS_ROUTES
     const text = () => ({ body: "", contentType: "text/plain" })
-    // 12 open incidents of 12 causes: below the defaults
+    // 12 open root incidents of 12 causes: below the defaults
     expect((await status(await engineWith(quiet, text), {})).status).toBe("warning")
     const byTotal = await status(
       await engineWith(quiet, text),
@@ -208,13 +214,13 @@ describe("engineStatusForModel", () => {
       },
     )
     expect(byTotal.status).toBe("critical")
-    expect(byTotal.statusRule).toMatch(/^critical: >=12 open incidents or >=25 of one cause, /)
+    expect(byTotal.statusRule).toMatch(/^critical: >=12 open root incidents or >=25 of one cause, /)
     // the findings say why: the threshold finding comes first
     expect(byTotal.findings[0]).toEqual({
       severity: "critical",
       code: "INCIDENTS_CRITICAL",
       message:
-        "12 open incidents, 1 of them failedJob at a0: critical at >=12 open incidents or >=25 of one cause",
+        "12 open root incidents, 1 of them failedJob at a0: critical at >=12 open root incidents or >=25 of one cause",
     })
     const sameCause: FakeRoutes = {
       ...quiet,

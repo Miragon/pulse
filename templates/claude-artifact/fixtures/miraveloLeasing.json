@@ -1,0 +1,394 @@
+{
+  "asOf": "2026-11-24T18:58:04.917Z",
+  "timeZone": "Europe/Berlin",
+  "process": "miraveloLeasing",
+  "engine": "prod-a",
+  "calls": [
+    {
+      "tool": "engine_activity_counts",
+      "arguments": {
+        "processDefinitionKey": "miraveloLeasing"
+      },
+      "result": {
+        "structuredContent": {
+          "engine": "prod-a",
+          "processDefinitionKey": "miraveloLeasing",
+          "processDefinitionName": "Miravelo - Bike Leasing (v2)",
+          "asOf": "2026-11-24T18:58:04.949Z",
+          "definitionId": "miraveloLeasing:2:eeb8339c-e7fc-11f1-a423-16844f91db70",
+          "version": 2,
+          "versionsCounted": 2,
+          "decorations": [
+            {
+              "elementId": "Activity_AssessCreditworthiness",
+              "counts": [
+                {
+                  "kind": "incidentsInCalledInstances",
+                  "count": 64,
+                  "scope": "withIncident"
+                },
+                {
+                  "kind": "running",
+                  "count": 64,
+                  "scope": "running"
+                }
+              ],
+              "incident": false,
+              "call": null
+            },
+            {
+              "elementId": "Activity_DecideOnApplication",
+              "counts": [
+                {
+                  "kind": "running",
+                  "count": 26,
+                  "scope": "running"
+                }
+              ],
+              "incident": false,
+              "call": null
+            },
+            {
+              "elementId": "Activity_AccelerateDecision",
+              "counts": [
+                {
+                  "kind": "running",
+                  "count": 24,
+                  "scope": "running"
+                }
+              ],
+              "incident": false,
+              "call": null
+            },
+            {
+              "elementId": "Activity_SendPolicy",
+              "counts": [
+                {
+                  "kind": "incidents",
+                  "count": 8,
+                  "scope": "withIncident"
+                }
+              ],
+              "incident": true,
+              "call": null
+            }
+          ],
+          "activities": [
+            {
+              "activityId": "Activity_AssessCreditworthiness",
+              "name": "Assess customer creditability",
+              "inDiagram": true,
+              "running": 64,
+              "openTasks": 0,
+              "oldestOpenTask": null,
+              "incidents": 0,
+              "incidentsInCalledInstances": 64,
+              "failedJobs": 0,
+              "latestIncident": null,
+              "latestIncidentInCalledInstances": {
+                "message": "Blacklist provider unreachable (simulated)",
+                "at": "2026-11-24T18:38:35.562+0000"
+              }
+            },
+            {
+              "activityId": "Activity_DecideOnApplication",
+              "name": "Decide on application",
+              "inDiagram": true,
+              "running": 26,
+              "openTasks": 26,
+              "oldestOpenTask": "2026-10-28T06:20:19.052+0000",
+              "incidents": 0,
+              "incidentsInCalledInstances": 0,
+              "failedJobs": 0,
+              "latestIncident": null,
+              "latestIncidentInCalledInstances": null
+            },
+            {
+              "activityId": "Activity_AccelerateDecision",
+              "name": "Accelerate decision making",
+              "inDiagram": true,
+              "running": 24,
+              "openTasks": 24,
+              "oldestOpenTask": "2026-11-24T11:48:27.620+0000",
+              "incidents": 0,
+              "incidentsInCalledInstances": 0,
+              "failedJobs": 0,
+              "latestIncident": null,
+              "latestIncidentInCalledInstances": null
+            },
+            {
+              "activityId": "Activity_SendPolicy",
+              "name": "Send policy to customer",
+              "inDiagram": true,
+              "running": 0,
+              "openTasks": 0,
+              "oldestOpenTask": null,
+              "incidents": 8,
+              "incidentsInCalledInstances": 0,
+              "failedJobs": 8,
+              "latestIncident": {
+                "message": "Policy template mis-rendered (simulated rollback regression)",
+                "at": "2026-11-24T11:48:27.624+0000"
+              },
+              "latestIncidentInCalledInstances": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "tool": "engine_get_process_definition_xml",
+      "arguments": {
+        "processDefinitionId": "miraveloLeasing:2:eeb8339c-e7fc-11f1-a423-16844f91db70"
+      },
+      "result": {
+        "structuredContent": {
+          "id": "miraveloLeasing:2:eeb8339c-e7fc-11f1-a423-16844f91db70",
+          "bpmn20Xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:bpmndi=\"http://www.omg.org/spec/BPMN/20100524/DI\" xmlns:dc=\"http://www.omg.org/spec/DD/20100524/DC\" xmlns:di=\"http://www.omg.org/spec/DD/20100524/DI\" xmlns:camunda=\"http://camunda.org/schema/1.0/bpmn\" xmlns:modeler=\"http://camunda.org/schema/modeler/1.0\" id=\"Definitions_v2\" targetNamespace=\"http://bpmn.io/schema/bpmn\" exporter=\"Camunda Modeler\" exporterVersion=\"5.41.0\" modeler:executionPlatform=\"Camunda Platform\" modeler:executionPlatformVersion=\"7.24.0\">\n  <bpmn:collaboration id=\"Collaboration_v2\">\n    <bpmn:participant id=\"Participant_v2\" name=\"Miravelo - Bike Leasing (v2)\" processRef=\"miraveloLeasing\" />\n  </bpmn:collaboration>\n  <bpmn:process id=\"miraveloLeasing\" isExecutable=\"true\" camunda:historyTimeToLive=\"P30D\">\n    <bpmn:exclusiveGateway id=\"Gateway_Creditworthy\" name=\"Customer creditworthy?\" default=\"Flow_18i81hz\">\n      <bpmn:incoming>Flow_0vvp9qn</bpmn:incoming>\n      <bpmn:outgoing>Flow_1oiz1dg</bpmn:outgoing>\n      <bpmn:outgoing>Flow_18i81hz</bpmn:outgoing>\n    </bpmn:exclusiveGateway>\n    <bpmn:userTask id=\"Activity_AccelerateDecision\" name=\"Accelerate decision making\">\n      <bpmn:extensionElements>\n        <camunda:formData>\n          <camunda:formField id=\"customerId\" label=\"Customer ID\" type=\"string\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"creditScore\" label=\"Credit Score\" type=\"long\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"creditworthy\" label=\"Creditworthy\" type=\"boolean\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"leaseAmount\" label=\"Lease Amount\" type=\"long\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"leaseTermMonths\" label=\"Lease Term (months)\" type=\"long\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"bikeModel\" label=\"Bike Model\" type=\"string\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"customerSegment\" label=\"Customer Segment\" type=\"string\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"channel\" label=\"Channel\" type=\"string\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"region\" label=\"Region\" type=\"string\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n        </camunda:formData>\n      </bpmn:extensionElements>\n      <bpmn:incoming>Flow_1py2c7t</bpmn:incoming>\n      <bpmn:outgoing>Flow_0r2ryqa</bpmn:outgoing>\n    </bpmn:userTask>\n    <bpmn:endEvent id=\"Event_DecisionAccelerated\" name=\"Decision accelerated\">\n      <bpmn:incoming>Flow_0r2ryqa</bpmn:incoming>\n    </bpmn:endEvent>\n    <bpmn:callActivity id=\"Activity_AssessCreditworthiness\" name=\"Assess customer creditability\" calledElement=\"assessCreditworthiness\">\n      <bpmn:extensionElements>\n        <camunda:in variables=\"all\" />\n        <!-- ${600} forces JUEL to evaluate as a numeric literal so the\n             delegate's `as? Number` cast succeeds. A bare \"600\" would be\n             passed through as a String and the delegate would fall back to\n             the v1 default (550). -->\n        <camunda:in target=\"creditScoreThreshold\" sourceExpression=\"${600}\" />\n        <camunda:out variables=\"all\" />\n      </bpmn:extensionElements>\n      <bpmn:incoming>Flow_v2_va_to_assess</bpmn:incoming>\n      <bpmn:outgoing>Flow_0vvp9qn</bpmn:outgoing>\n    </bpmn:callActivity>\n    <bpmn:exclusiveGateway id=\"Gateway_Decision\" name=\"Decision?\" default=\"Flow_1yvzx67\">\n      <bpmn:incoming>Flow_0ax166r</bpmn:incoming>\n      <bpmn:outgoing>Flow_0vnxels</bpmn:outgoing>\n      <bpmn:outgoing>Flow_1yvzx67</bpmn:outgoing>\n    </bpmn:exclusiveGateway>\n    <bpmn:endEvent id=\"Event_PolicyIssued\" name=\"Leasing Policy issued\">\n      <bpmn:incoming>Flow_1cy38un</bpmn:incoming>\n    </bpmn:endEvent>\n    <bpmn:sendTask id=\"Activity_SendPolicy\" name=\"Send policy to customer\" camunda:delegateExpression=\"${sendPolicyDelegate}\" camunda:asyncBefore=\"true\">\n      <bpmn:incoming>Flow_0v4qedl</bpmn:incoming>\n      <bpmn:outgoing>Flow_1cy38un</bpmn:outgoing>\n    </bpmn:sendTask>\n    <bpmn:serviceTask id=\"Activity_DeliverPolicy\" name=\"Delivery bike leasing policy\" camunda:delegateExpression=\"${deliverLeasingPolicyDelegate}\" camunda:asyncBefore=\"true\">\n      <bpmn:incoming>Flow_1oiz1dg</bpmn:incoming>\n      <bpmn:incoming>Flow_0vnxels</bpmn:incoming>\n      <bpmn:outgoing>Flow_0v4qedl</bpmn:outgoing>\n    </bpmn:serviceTask>\n    <bpmn:serviceTask id=\"Activity_RejectPolicy\" name=\"Reject bike leasing policy\" camunda:delegateExpression=\"${rejectLeasingPolicyDelegate}\" camunda:asyncBefore=\"true\">\n      <bpmn:incoming>Flow_1yvzx67</bpmn:incoming>\n      <bpmn:outgoing>Flow_1cc5ecu</bpmn:outgoing>\n    </bpmn:serviceTask>\n    <bpmn:endEvent id=\"Event_PolicyRejected\" name=\"Leasing Policy Rejected\">\n      <bpmn:incoming>Flow_0m7ynmt</bpmn:incoming>\n    </bpmn:endEvent>\n    <bpmn:sendTask id=\"Activity_SendRejection\" name=\"Send rejection to customer\" camunda:delegateExpression=\"${sendRejectionDelegate}\" camunda:asyncBefore=\"true\">\n      <bpmn:incoming>Flow_1cc5ecu</bpmn:incoming>\n      <bpmn:outgoing>Flow_0m7ynmt</bpmn:outgoing>\n    </bpmn:sendTask>\n    <bpmn:userTask id=\"Activity_DecideOnApplication\" name=\"Decide on application\">\n      <bpmn:extensionElements>\n        <camunda:formData>\n          <camunda:formField id=\"customerId\" label=\"Customer ID\" type=\"string\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"creditScore\" label=\"Credit Score\" type=\"long\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"creditworthy\" label=\"Creditworthy\" type=\"boolean\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"leaseAmount\" label=\"Lease Amount\" type=\"long\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"leaseTermMonths\" label=\"Lease Term (months)\" type=\"long\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"bikeModel\" label=\"Bike Model\" type=\"string\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"customerSegment\" label=\"Customer Segment\" type=\"string\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"channel\" label=\"Channel\" type=\"string\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"region\" label=\"Region\" type=\"string\">\n            <camunda:properties><camunda:property id=\"readonly\" value=\"true\" /></camunda:properties>\n          </camunda:formField>\n          <camunda:formField id=\"decision\" label=\"Decision\" type=\"string\">\n            <camunda:values>\n              <camunda:value id=\"positive\" name=\"positive\" />\n              <camunda:value id=\"negative\" name=\"negative\" />\n            </camunda:values>\n          </camunda:formField>\n        </camunda:formData>\n      </bpmn:extensionElements>\n      <bpmn:incoming>Flow_18i81hz</bpmn:incoming>\n      <bpmn:outgoing>Flow_0ax166r</bpmn:outgoing>\n    </bpmn:userTask>\n    <bpmn:serviceTask id=\"Activity_ResolveCustomer\" name=\"Create or resolve customer from CRM\" camunda:delegateExpression=\"${createOrResolveCustomerDelegate}\" camunda:asyncBefore=\"true\">\n      <bpmn:incoming>Flow_1fnfazk</bpmn:incoming>\n      <bpmn:outgoing>Flow_v2_resolve_to_va</bpmn:outgoing>\n    </bpmn:serviceTask>\n    <bpmn:serviceTask id=\"Activity_VerifyAddress\" name=\"Verify customer address\" camunda:delegateExpression=\"${verifyAddressDelegate}\" camunda:asyncBefore=\"true\">\n      <bpmn:incoming>Flow_v2_resolve_to_va</bpmn:incoming>\n      <bpmn:outgoing>Flow_v2_va_to_assess</bpmn:outgoing>\n    </bpmn:serviceTask>\n    <bpmn:startEvent id=\"StartEvent_LeasingInquiry\" name=\"Leasing Inquiry received\">\n      <bpmn:outgoing>Flow_1fnfazk</bpmn:outgoing>\n    </bpmn:startEvent>\n    <bpmn:boundaryEvent id=\"Event_DecisionTimeout\" name=\"after 2 hours\" cancelActivity=\"false\" attachedToRef=\"Activity_DecideOnApplication\">\n      <bpmn:outgoing>Flow_1py2c7t</bpmn:outgoing>\n      <bpmn:timerEventDefinition id=\"TimerEventDefinition_v2\">\n        <bpmn:timeDuration xsi:type=\"bpmn:tFormalExpression\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">PT2H</bpmn:timeDuration>\n      </bpmn:timerEventDefinition>\n    </bpmn:boundaryEvent>\n    <bpmn:sequenceFlow id=\"Flow_0vvp9qn\" sourceRef=\"Activity_AssessCreditworthiness\" targetRef=\"Gateway_Creditworthy\" />\n    <bpmn:sequenceFlow id=\"Flow_1oiz1dg\" name=\"yes\" sourceRef=\"Gateway_Creditworthy\" targetRef=\"Activity_DeliverPolicy\">\n      <bpmn:conditionExpression xsi:type=\"bpmn:tFormalExpression\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">${creditworthy == true}</bpmn:conditionExpression>\n    </bpmn:sequenceFlow>\n    <bpmn:sequenceFlow id=\"Flow_18i81hz\" name=\"risk identified\" sourceRef=\"Gateway_Creditworthy\" targetRef=\"Activity_DecideOnApplication\" />\n    <bpmn:sequenceFlow id=\"Flow_1py2c7t\" sourceRef=\"Event_DecisionTimeout\" targetRef=\"Activity_AccelerateDecision\" />\n    <bpmn:sequenceFlow id=\"Flow_0r2ryqa\" sourceRef=\"Activity_AccelerateDecision\" targetRef=\"Event_DecisionAccelerated\" />\n    <bpmn:sequenceFlow id=\"Flow_v2_resolve_to_va\" sourceRef=\"Activity_ResolveCustomer\" targetRef=\"Activity_VerifyAddress\" />\n    <bpmn:sequenceFlow id=\"Flow_v2_va_to_assess\" sourceRef=\"Activity_VerifyAddress\" targetRef=\"Activity_AssessCreditworthiness\" />\n    <bpmn:sequenceFlow id=\"Flow_0ax166r\" sourceRef=\"Activity_DecideOnApplication\" targetRef=\"Gateway_Decision\" />\n    <bpmn:sequenceFlow id=\"Flow_0vnxels\" name=\"positive\" sourceRef=\"Gateway_Decision\" targetRef=\"Activity_DeliverPolicy\">\n      <bpmn:conditionExpression xsi:type=\"bpmn:tFormalExpression\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">${decision == \"positive\"}</bpmn:conditionExpression>\n    </bpmn:sequenceFlow>\n    <bpmn:sequenceFlow id=\"Flow_1yvzx67\" name=\"negative\" sourceRef=\"Gateway_Decision\" targetRef=\"Activity_RejectPolicy\" />\n    <bpmn:sequenceFlow id=\"Flow_1cy38un\" sourceRef=\"Activity_SendPolicy\" targetRef=\"Event_PolicyIssued\" />\n    <bpmn:sequenceFlow id=\"Flow_0v4qedl\" sourceRef=\"Activity_DeliverPolicy\" targetRef=\"Activity_SendPolicy\" />\n    <bpmn:sequenceFlow id=\"Flow_1cc5ecu\" sourceRef=\"Activity_RejectPolicy\" targetRef=\"Activity_SendRejection\" />\n    <bpmn:sequenceFlow id=\"Flow_0m7ynmt\" sourceRef=\"Activity_SendRejection\" targetRef=\"Event_PolicyRejected\" />\n    <bpmn:sequenceFlow id=\"Flow_1fnfazk\" sourceRef=\"StartEvent_LeasingInquiry\" targetRef=\"Activity_ResolveCustomer\" />\n  </bpmn:process>\n  <bpmndi:BPMNDiagram id=\"BPMNDiagram_v2\">\n    <bpmndi:BPMNPlane id=\"BPMNPlane_v2\" bpmnElement=\"Collaboration_v2\">\n      <bpmndi:BPMNShape id=\"Participant_v2_di\" bpmnElement=\"Participant_v2\" isHorizontal=\"true\">\n        <dc:Bounds x=\"160\" y=\"55\" width=\"1620\" height=\"465\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"StartEvent_LeasingInquiry_di\" bpmnElement=\"StartEvent_LeasingInquiry\">\n        <dc:Bounds x=\"232\" y=\"162\" width=\"36\" height=\"36\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_ResolveCustomer_di\" bpmnElement=\"Activity_ResolveCustomer\">\n        <dc:Bounds x=\"320\" y=\"140\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_VerifyAddress_di\" bpmnElement=\"Activity_VerifyAddress\">\n        <dc:Bounds x=\"450\" y=\"140\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_AssessCreditworthiness_di\" bpmnElement=\"Activity_AssessCreditworthiness\">\n        <dc:Bounds x=\"580\" y=\"140\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Gateway_Creditworthy_di\" bpmnElement=\"Gateway_Creditworthy\" isMarkerVisible=\"true\">\n        <dc:Bounds x=\"710\" y=\"155\" width=\"50\" height=\"50\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_DecideOnApplication_di\" bpmnElement=\"Activity_DecideOnApplication\">\n        <dc:Bounds x=\"830\" y=\"380\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Event_DecisionTimeout_di\" bpmnElement=\"Event_DecisionTimeout\">\n        <dc:Bounds x=\"882\" y=\"362\" width=\"36\" height=\"36\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_AccelerateDecision_di\" bpmnElement=\"Activity_AccelerateDecision\">\n        <dc:Bounds x=\"940\" y=\"260\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Event_DecisionAccelerated_di\" bpmnElement=\"Event_DecisionAccelerated\">\n        <dc:Bounds x=\"1082\" y=\"282\" width=\"36\" height=\"36\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Gateway_Decision_di\" bpmnElement=\"Gateway_Decision\" isMarkerVisible=\"true\">\n        <dc:Bounds x=\"1165\" y=\"395\" width=\"50\" height=\"50\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_DeliverPolicy_di\" bpmnElement=\"Activity_DeliverPolicy\">\n        <dc:Bounds x=\"1290\" y=\"140\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_SendPolicy_di\" bpmnElement=\"Activity_SendPolicy\">\n        <dc:Bounds x=\"1450\" y=\"140\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Event_PolicyIssued_di\" bpmnElement=\"Event_PolicyIssued\">\n        <dc:Bounds x=\"1592\" y=\"162\" width=\"36\" height=\"36\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_RejectPolicy_di\" bpmnElement=\"Activity_RejectPolicy\">\n        <dc:Bounds x=\"1290\" y=\"380\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_SendRejection_di\" bpmnElement=\"Activity_SendRejection\">\n        <dc:Bounds x=\"1450\" y=\"380\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Event_PolicyRejected_di\" bpmnElement=\"Event_PolicyRejected\">\n        <dc:Bounds x=\"1592\" y=\"402\" width=\"36\" height=\"36\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"Flow_1fnfazk_di\" bpmnElement=\"Flow_1fnfazk\">\n        <di:waypoint x=\"268\" y=\"180\" />\n        <di:waypoint x=\"320\" y=\"180\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_v2_resolve_to_va_di\" bpmnElement=\"Flow_v2_resolve_to_va\">\n        <di:waypoint x=\"420\" y=\"180\" />\n        <di:waypoint x=\"450\" y=\"180\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_v2_va_to_assess_di\" bpmnElement=\"Flow_v2_va_to_assess\">\n        <di:waypoint x=\"550\" y=\"180\" />\n        <di:waypoint x=\"580\" y=\"180\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_0vvp9qn_di\" bpmnElement=\"Flow_0vvp9qn\">\n        <di:waypoint x=\"680\" y=\"180\" />\n        <di:waypoint x=\"710\" y=\"180\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_1oiz1dg_di\" bpmnElement=\"Flow_1oiz1dg\">\n        <di:waypoint x=\"760\" y=\"180\" />\n        <di:waypoint x=\"1290\" y=\"180\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_18i81hz_di\" bpmnElement=\"Flow_18i81hz\">\n        <di:waypoint x=\"735\" y=\"205\" />\n        <di:waypoint x=\"735\" y=\"420\" />\n        <di:waypoint x=\"830\" y=\"420\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_1py2c7t_di\" bpmnElement=\"Flow_1py2c7t\">\n        <di:waypoint x=\"900\" y=\"362\" />\n        <di:waypoint x=\"900\" y=\"300\" />\n        <di:waypoint x=\"940\" y=\"300\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_0r2ryqa_di\" bpmnElement=\"Flow_0r2ryqa\">\n        <di:waypoint x=\"1040\" y=\"300\" />\n        <di:waypoint x=\"1082\" y=\"300\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_0ax166r_di\" bpmnElement=\"Flow_0ax166r\">\n        <di:waypoint x=\"930\" y=\"420\" />\n        <di:waypoint x=\"1165\" y=\"420\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_0vnxels_di\" bpmnElement=\"Flow_0vnxels\">\n        <di:waypoint x=\"1190\" y=\"395\" />\n        <di:waypoint x=\"1190\" y=\"180\" />\n        <di:waypoint x=\"1290\" y=\"180\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_1yvzx67_di\" bpmnElement=\"Flow_1yvzx67\">\n        <di:waypoint x=\"1215\" y=\"420\" />\n        <di:waypoint x=\"1290\" y=\"420\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_1cy38un_di\" bpmnElement=\"Flow_1cy38un\">\n        <di:waypoint x=\"1550\" y=\"180\" />\n        <di:waypoint x=\"1592\" y=\"180\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_0v4qedl_di\" bpmnElement=\"Flow_0v4qedl\">\n        <di:waypoint x=\"1390\" y=\"180\" />\n        <di:waypoint x=\"1450\" y=\"180\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_1cc5ecu_di\" bpmnElement=\"Flow_1cc5ecu\">\n        <di:waypoint x=\"1390\" y=\"420\" />\n        <di:waypoint x=\"1450\" y=\"420\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_0m7ynmt_di\" bpmnElement=\"Flow_0m7ynmt\">\n        <di:waypoint x=\"1550\" y=\"420\" />\n        <di:waypoint x=\"1592\" y=\"420\" />\n      </bpmndi:BPMNEdge>\n    </bpmndi:BPMNPlane>\n  </bpmndi:BPMNDiagram>\n</bpmn:definitions>\n"
+        }
+      }
+    },
+    {
+      "tool": "engine_process_stats",
+      "arguments": {
+        "processDefinitionKey": "miraveloLeasing",
+        "bucket": "day",
+        "timeZone": "Europe/Berlin"
+      },
+      "result": {
+        "structuredContent": {
+          "engine": "prod-a",
+          "processDefinitionKey": "miraveloLeasing",
+          "processDefinitionName": "Miravelo - Bike Leasing (v2)",
+          "asOf": "2026-11-24T18:58:04.929Z",
+          "versions": {
+            "count": 2,
+            "latestVersion": 2,
+            "latestDefinitionId": "miraveloLeasing:2:eeb8339c-e7fc-11f1-a423-16844f91db70"
+          },
+          "now": {
+            "running": 98,
+            "incidents": 8,
+            "withIncident": 72,
+            "failedJobs": 8,
+            "openTasks": 50,
+            "startedLast24h": 183,
+            "endedLast24h": 167
+          },
+          "range": {
+            "from": "2026-11-10T23:00:00.000Z",
+            "to": "2026-11-24T18:58:04.929Z",
+            "bucket": "day",
+            "timeZone": "Europe/Berlin"
+          },
+          "history": {
+            "timeToLiveDays": 30,
+            "keptFrom": "2026-10-25T18:58:04.929Z",
+            "recorded": true
+          },
+          "totals": {
+            "started": 450,
+            "ended": 402
+          },
+          "buckets": [
+            {
+              "start": "2026-11-10T23:00:00.000Z",
+              "end": "2026-11-11T23:00:00.000Z",
+              "started": 33,
+              "ended": 31,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 31,
+                "Event_PolicyRejected": 0
+              }
+            },
+            {
+              "start": "2026-11-11T23:00:00.000Z",
+              "end": "2026-11-12T23:00:00.000Z",
+              "started": 18,
+              "ended": 16,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 14,
+                "Event_PolicyRejected": 2
+              }
+            },
+            {
+              "start": "2026-11-12T23:00:00.000Z",
+              "end": "2026-11-13T23:00:00.000Z",
+              "started": 15,
+              "ended": 15,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 14,
+                "Event_PolicyRejected": 1
+              }
+            },
+            {
+              "start": "2026-11-13T23:00:00.000Z",
+              "end": "2026-11-14T23:00:00.000Z",
+              "started": 21,
+              "ended": 21,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 21,
+                "Event_PolicyRejected": 0
+              }
+            },
+            {
+              "start": "2026-11-14T23:00:00.000Z",
+              "end": "2026-11-15T23:00:00.000Z",
+              "started": 24,
+              "ended": 16,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 16,
+                "Event_PolicyRejected": 0
+              }
+            },
+            {
+              "start": "2026-11-15T23:00:00.000Z",
+              "end": "2026-11-16T23:00:00.000Z",
+              "started": 22,
+              "ended": 20,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 20,
+                "Event_PolicyRejected": 0
+              }
+            },
+            {
+              "start": "2026-11-16T23:00:00.000Z",
+              "end": "2026-11-17T23:00:00.000Z",
+              "started": 17,
+              "ended": 14,
+              "endedAt": {
+                "Event_DecisionAccelerated": 1,
+                "Event_PolicyIssued": 13,
+                "Event_PolicyRejected": 1
+              }
+            },
+            {
+              "start": "2026-11-17T23:00:00.000Z",
+              "end": "2026-11-18T23:00:00.000Z",
+              "started": 21,
+              "ended": 18,
+              "endedAt": {
+                "Event_DecisionAccelerated": 1,
+                "Event_PolicyIssued": 17,
+                "Event_PolicyRejected": 1
+              }
+            },
+            {
+              "start": "2026-11-18T23:00:00.000Z",
+              "end": "2026-11-19T23:00:00.000Z",
+              "started": 18,
+              "ended": 12,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 12,
+                "Event_PolicyRejected": 0
+              }
+            },
+            {
+              "start": "2026-11-19T23:00:00.000Z",
+              "end": "2026-11-20T23:00:00.000Z",
+              "started": 17,
+              "ended": 18,
+              "endedAt": {
+                "Event_DecisionAccelerated": 1,
+                "Event_PolicyIssued": 18,
+                "Event_PolicyRejected": 0
+              }
+            },
+            {
+              "start": "2026-11-20T23:00:00.000Z",
+              "end": "2026-11-21T23:00:00.000Z",
+              "started": 16,
+              "ended": 13,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 12,
+                "Event_PolicyRejected": 1
+              }
+            },
+            {
+              "start": "2026-11-21T23:00:00.000Z",
+              "end": "2026-11-22T23:00:00.000Z",
+              "started": 25,
+              "ended": 24,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 24,
+                "Event_PolicyRejected": 0
+              }
+            },
+            {
+              "start": "2026-11-22T23:00:00.000Z",
+              "end": "2026-11-23T23:00:00.000Z",
+              "started": 22,
+              "ended": 19,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 19,
+                "Event_PolicyRejected": 0
+              }
+            },
+            {
+              "start": "2026-11-23T23:00:00.000Z",
+              "end": "2026-11-24T18:58:04.929Z",
+              "started": 181,
+              "ended": 165,
+              "endedAt": {
+                "Event_DecisionAccelerated": 0,
+                "Event_PolicyIssued": 140,
+                "Event_PolicyRejected": 25
+              }
+            }
+          ],
+          "endEvents": [
+            {
+              "activityId": "Event_DecisionAccelerated",
+              "name": "Decision accelerated",
+              "ended": 3,
+              "durations": {
+                "from": "2026-11-10T23:00:00.000Z",
+                "ended": 3,
+                "medianMs": 10824910,
+                "p90Ms": 10829563
+              }
+            },
+            {
+              "activityId": "Event_PolicyIssued",
+              "name": "Leasing Policy issued",
+              "ended": 371,
+              "durations": {
+                "from": "2026-11-10T23:00:00.000Z",
+                "ended": 371,
+                "medianMs": 25634,
+                "p90Ms": 300034
+              }
+            },
+            {
+              "activityId": "Event_PolicyRejected",
+              "name": "Leasing Policy Rejected",
+              "ended": 31,
+              "durations": {
+                "from": "2026-11-10T23:00:00.000Z",
+                "ended": 31,
+                "medianMs": 300028,
+                "p90Ms": 3246225
+              }
+            }
+          ],
+          "durations": {
+            "from": "2026-11-10T23:00:00.000Z",
+            "ended": 402,
+            "medianMs": 29263,
+            "p90Ms": 300045
+          }
+        }
+      }
+    }
+  ]
+}

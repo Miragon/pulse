@@ -1,18 +1,21 @@
+import { HeadlineStrip, InstanceFacts, MarkerLegend } from "@miragon/pulse-blocks"
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import type { InstanceView } from "../../core/protocol/index.js"
 import { ContextBar, type Freshness } from "../components/context-bar.js"
 import { RuntimeDiagram } from "../components/runtime-diagram.js"
 import { WebUiButton } from "../components/web-ui-button.js"
 import { Tabs, type TabItem } from "../components/tabs.js"
-import type { Decorations } from "../diagram/decoration-layer.js"
+import type { Decorations } from "../diagram/decorations.js"
 import { ElementCodes } from "../diagram/element-codes.js"
-import { DiagramLegend } from "../diagram/diagram-legend.js"
+import { MarkerSwatch } from "../diagram/marker-swatch.js"
 import { useHost } from "../host/host-context.js"
 import { UiStateStore, type InstanceTab } from "../host/ui-state-store.js"
 import { WriteContext } from "../host/write-context.js"
 import { HistoryTab } from "./history-tab.js"
 import { IncidentsTab } from "./incidents-tab.js"
-import { InstanceHeaderActions, InstanceHeaderDetails, InstanceId } from "./instance-header.js"
+import { InstanceForms } from "./instance-forms.js"
+import { InstanceHeaderActions, InstanceId } from "./instance-header.js"
+import { useInstanceSlots } from "./instance-slots.js"
 import { MovePanel } from "./move-panel.js"
 import { NoticeStrip } from "./notices.js"
 import { SplitLayout } from "./split-layout.js"
@@ -96,11 +99,14 @@ function TabContent({
   readonly onShowElement: (elementId: string) => void
 }) {
   if (tab === "incidents") {
-    return <IncidentsTab incidents={view.incidents} elementName={nameOf} />
+    return (
+      <IncidentsTab engine={view.engine.name} incidents={view.incidents} elementName={nameOf} />
+    )
   }
   if (tab === "waiting") {
     return (
       <WaitingTab
+        engine={view.engine.name}
         waitStates={view.waitStates}
         elementName={nameOf}
         onShowElement={view.moves === undefined ? undefined : onShowElement}
@@ -116,16 +122,24 @@ function TabContent({
 function InstanceStrips({
   view,
   problem,
+  nameOf,
 }: {
   readonly view: InstanceView
   readonly problem: ReactNode
+  readonly nameOf: (id: string) => string
 }) {
+  const incidents = useMemo(
+    () => view.incidents.map((incident) => InstanceForms.incident(incident)),
+    [view.incidents],
+  )
   return (
     <div className="flex min-w-0 flex-col" data-part="strips">
       {problem}
       {view.outcome !== undefined && <NoticeStrip notice={view.outcome} />}
       {view.notice !== undefined && <NoticeStrip notice={view.notice} />}
-      {view.headline !== undefined && <NoticeStrip notice={view.headline} />}
+      {view.head !== undefined && (
+        <HeadlineStrip headline={view.head} incidents={incidents} nameOf={nameOf} />
+      )}
     </div>
   )
 }
@@ -138,6 +152,7 @@ function InstanceBar({
   readonly freshness: Freshness
 }) {
   const { instance } = view
+  const slots = useInstanceSlots()
   return (
     <ContextBar
       subject="instance"
@@ -152,7 +167,13 @@ function InstanceBar({
         </>
       }
     >
-      <InstanceHeaderDetails instance={instance} />
+      <InstanceFacts
+        engine={view.engine.name}
+        instance={InstanceForms.facts(instance)}
+        caller={InstanceForms.caller(instance)}
+        {...(instance.parent === undefined ? {} : { callerLabel: instance.parent.label })}
+        slots={slots}
+      />
     </ContextBar>
   )
 }
@@ -224,7 +245,7 @@ function InstanceDetails({
         items={tabs}
         selected={tab}
         onSelect={select}
-        aside={<DiagramLegend kind="markers" />}
+        aside={<MarkerLegend takenFlows Swatch={MarkerSwatch} />}
       >
         <TabContent tab={tab} view={view} nameOf={nameOf} onShowElement={onShowElement} />
         {view.truncated && (
@@ -243,17 +264,18 @@ export function InstanceScreen({ view, freshness, stale, problem }: InstanceScre
   const { selected, selectElement, showElement } = useSelectedElement()
   const move = useTokenMove(view, selected)
   const decorations = useDecorations(view, stale, selected, move)
+  const atLeast = view.truncated
   const tabs: readonly TabItem<InstanceTab>[] = [
-    { id: "history", label: "History", count: view.path.length },
-    { id: "incidents", label: "Incidents", count: view.incidents.length },
-    { id: "waiting", label: "Waiting", count: view.waitStates.length },
-    { id: "variables", label: "Variables", count: view.variables.length },
+    { id: "history", label: "History", count: view.path.length, atLeast },
+    { id: "incidents", label: "Incidents", count: view.incidents.length, atLeast },
+    { id: "waiting", label: "Waiting", count: view.waitStates.length, atLeast },
+    { id: "variables", label: "Variables", count: view.variables.length, atLeast },
   ]
   return (
     <WriteContext.Provider value={view.write}>
       <div className="grid h-full min-w-0 grid-rows-[auto_auto_minmax(0,1fr)]">
         <InstanceBar view={view} freshness={freshness} />
-        <InstanceStrips view={view} problem={problem} />
+        <InstanceStrips view={view} problem={problem} nameOf={nameOf} />
         <SplitLayout
           top={
             <RuntimeDiagram

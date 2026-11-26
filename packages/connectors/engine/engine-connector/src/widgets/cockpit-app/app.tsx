@@ -1,8 +1,10 @@
-import { useCallback, useMemo, type Dispatch } from "react"
-import { EmptyState, NavigationFocus, StatusStrip, useLocale } from "@miragon/pulse-ui"
+import { useCallback, useMemo, type ReactNode } from "react"
+import { EmptyState, NavigationFocus, useLocale, ViewBarSlots } from "@miragon/pulse-ui"
 import {
   HostModelContext,
+  useHostChrome,
   useHostDisplayMode,
+  useStartPage,
   useToolQuery,
   ViewDataState,
   ViewErrorBoundary,
@@ -11,9 +13,8 @@ import {
 import type { CockpitAppData, CockpitView } from "../../view-models.js"
 import type { LandingStartData } from "../../view-models.board.js"
 import { groupEnginesByEnvironment } from "../../lib/shared/environments.js"
-import { environmentIn } from "../lib/engine-context.js"
 import { NavProvider, type OnNavigate } from "../navigation.js"
-import { type BoardView, crumbLabel, viewKey } from "../nav-core.js"
+import { type CockpitScope, viewKey } from "../nav-core.js"
 import { useHandOff, type ViewContext } from "../lib/hand-off.js"
 import {
   boardsOnlyEngineContext,
@@ -24,18 +25,20 @@ import {
 } from "./model-context.js"
 import { translator } from "../../messages/use-t.js"
 import { ENGINE_LIST_ENGINES } from "../../tool-names.js"
-import { BoardCrumbs, FleetCrumbs, NavBreadcrumb, navigationOf } from "./breadcrumb.js"
+import { BoardCrumbs, FleetCrumbs, navigationKeyOf } from "./breadcrumb.js"
+import { startSeed, useCockpitState } from "./cockpit-state.js"
+import { EngineBars, EngineGoneNotice } from "./engine-bars.js"
+import { useProcessCheck } from "./engine-switch.js"
+import { CockpitTrailBar } from "./head.js"
+import { useAddressStart, usePlaceOnAddress } from "./place.js"
 import {
-  activeSectionOf,
-  type CockpitAction,
-  type CockpitState,
-  startSeed,
-  useCockpitState,
-} from "./cockpit-state.js"
-import { CockpitHead, CockpitTrailBar, EngineSwitch } from "./head.js"
+  CockpitRefreshButton,
+  CockpitRefreshProvider,
+  CockpitRefreshRegion,
+} from "./refresh-button.js"
 import { CockpitRoute } from "./routes.js"
 import { FleetView } from "./fleet-view.js"
-import { LandingChooser, LandingHeader, type ServerBoards } from "./landing.js"
+import { LandingBar, LandingChooser, LandingHeader, type ServerBoards } from "./landing.js"
 import { RefusedEngineGate, useProfileRefusal } from "./refused-engine.js"
 import { BoardsOnlyEngineGate } from "./boards-only-engine.js"
 import {
@@ -122,7 +125,7 @@ function engineContextOf(
  * state names it, never the view its stack holds.
  */
 function sectionlessEngineIn(
-  scope: CockpitState["scope"],
+  scope: CockpitScope,
   engines: readonly ListedEngine[],
   refused: boolean,
 ): string | undefined {
@@ -131,20 +134,16 @@ function sectionlessEngineIn(
   return refused || boardsOnlyOf(engine) !== null ? scope.engineId : undefined
 }
 
-/** Docked under the head: the engine the view showed went away, and the view fell back. */
-function EngineGoneNotice({ engineId }: { engineId: string | null }) {
-  const locale = useLocale()
-  if (!engineId) return null
-  return (
-    <StatusStrip tone="warning" title={translator(locale, "cockpit.engineGone", { engineId })} />
-  )
-}
-
-/** #322 U15: an empty engine list is the app-level "no engines" surface. */
+/**
+ * #322 U15: an empty engine list is the app-level "no engines" surface. On a page with chrome of
+ * its own its title is the view bar's (`LandingBar`).
+ */
 function EnginesEmptyState({
   enginesQuery,
+  chrome,
 }: {
   enginesQuery: { isError: boolean; error: Error | null; data: unknown; refetch: () => unknown }
+  chrome: boolean
 }) {
   const locale = useLocale()
   const loading = !enginesQuery.isError && enginesQuery.data === undefined
@@ -163,9 +162,9 @@ function EnginesEmptyState({
     )
   }
   return (
-    <WidgetShell>
-      <div className="gap-section mx-auto flex w-full max-w-3xl flex-col">
-        <LandingHeader />
+    <WidgetShell header={chrome && <LandingBar />}>
+      <div className="gap-section flex flex-col">
+        {!chrome && <LandingHeader />}
         <EmptyState
           titleAs="h2"
           title={translator(locale, "cockpit.empty.enginesTitle")}
@@ -178,93 +177,44 @@ function EnginesEmptyState({
 }
 
 /**
- * The trail's first crumb: the board an engine's view was opened from leads back to it; else
- * "All engines" leads back to the chooser (#322 U15) where it shows: with more than one engine,
- * or with one when the server has boards.
+ * An app-level view (the cross-engine overview, a board): no engine's head, its trail on a row of
+ * its own where it has one. On a page the bar's product is the way back to the chooser, so no
+ * trail repeats it there.
  */
-function rootCrumb(
-  fromBoard: BoardView | null,
-  chooser: boolean,
-  locale: string,
-): string | undefined {
-  if (fromBoard) return crumbLabel(fromBoard, locale)
-  return chooser ? translator(locale, "cockpit.crumb.allEngines") : undefined
+function AppScope({
+  flush = false,
+  page,
+  trail,
+  children,
+}: {
+  flush?: boolean
+  /** A page whose bar leads to its start page (`useStartPage`). */
+  page: boolean
+  trail: ReactNode
+  children: ReactNode
+}) {
+  const header = trail && !page ? <CockpitTrailBar>{trail}</CockpitTrailBar> : null
+  return (
+    <WidgetShell flush={flush} header={header}>
+      {children}
+    </WidgetShell>
+  )
 }
 
 /**
- * An engine's bars, from edge to edge above its route: the head (the sections its dialect is
- * served by, inline a drilled view's trail in their place), the trail on a row of its own where
- * fullscreen has room for both and it has two crumbs, and the notice of an engine that went away.
- * An engine shown on boards only, or whose profile the server refused, has no section: its trail,
- * the way back and its name, takes their place in the head, never a crumb of a route it has not.
+ * The cockpit. On a page with chrome of its own (`useHostChrome`: the page's navigation holds the
+ * sections, the engine switch and the view across engines) it leaves its head to the page: every
+ * view bar shows the page's menu first, an engine's bar the cockpit's Refresh first among its
+ * actions, an engine without sections a bar of its own (its name, the Refresh) over its one state,
+ * and an app-level title is the bar's title. In a chat it keeps its head.
  */
-function EngineBars({
-  engineId,
-  engines,
-  engineGroups,
-  chooser,
-  refused,
-  state,
-  inline,
-  onOpenFleet,
-  dispatch,
-}: {
-  engineId: string
-  engines: readonly ListedEngine[]
-  engineGroups: Array<{ id: string; engines: Array<{ id: string }> }>
-  /** The chooser shows: the trail's first crumb leads back to it. */
-  chooser: boolean
-  /** Its profile refused (`useProfileRefusal`). */
-  refused: boolean
-  state: CockpitState
-  inline: boolean
-  onOpenFleet?: () => void
-  dispatch: Dispatch<CockpitAction>
-}) {
-  const locale = useLocale()
-  const { stack, goneEngineId, fromBoard } = state
-  const engine = engines.find(({ id }) => id === engineId)
-  const sectionless = refused || boardsOnlyOf(engine) !== null
-  const rootLabel = rootCrumb(fromBoard, chooser, locale)
-  const leave = fromBoard ? ({ type: "to-board" } as const) : ({ type: "to-landing" } as const)
-  const trail = (
-    <NavBreadcrumb
-      stack={stack}
-      locale={locale}
-      rootLabel={rootLabel}
-      current={sectionless ? engineId : undefined}
-      onPop={(to) => dispatch(to < 0 ? leave : { type: "pop", to })}
-    />
-  )
-  // Inline is a card (#396): a drilled view's trail takes the sections' row, a head section shows
-  // none; an engine without sections has its trail in the head in both.
-  const crumbs = (sectionless ? 1 : stack.length) + (rootLabel === undefined ? 0 : 1)
-  const inHead = sectionless ? crumbs > 1 : inline && stack.length > 1
-  return (
-    <>
-      <CockpitHead
-        activeSection={activeSectionOf(stack)}
-        dialect={engine?.dialect}
-        refused={refused}
-        onSection={(intent) => dispatch(intent)}
-        onOpenFleet={onOpenFleet}
-        trail={inHead ? trail : undefined}
-        engineSwitch={
-          <EngineSwitch
-            engineId={engineId}
-            environment={environmentIn(engines, engineId)}
-            engineGroups={engineGroups}
-            onSwitch={(id) => dispatch({ type: "switch-engine", id })}
-          />
-        }
-      />
-      {!inline && !sectionless && crumbs > 1 && <CockpitTrailBar>{trail}</CockpitTrailBar>}
-      <EngineGoneNotice engineId={goneEngineId} />
-    </>
-  )
+export function CockpitApp({ data }: { data: CockpitAppData | null }) {
+  const chrome = useHostChrome()
+  const app = <CockpitScopes data={data} chrome={chrome !== undefined} />
+  return chrome ? <ViewBarSlots lead={chrome.menu}>{app}</ViewBarSlots> : app
 }
 
-export function CockpitApp({ data }: { data: CockpitAppData | null }) {
+function CockpitScopes({ data, chrome }: { data: CockpitAppData | null; chrome: boolean }) {
   // Decoupled from the open_cockpit bootstrap so picker and switcher work however the app launched.
   const enginesQuery = useToolQuery<EnginesResult>(["engine:engines"], ENGINE_LIST_ENGINES, {})
   const listed = enginesQuery.data
@@ -278,11 +228,15 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const locale = useLocale()
   const { context } = useHandOff()
   const inline = useHostDisplayMode() === "inline"
+  // A page whose bar leads to its start page: the chooser's crumb is the bar's product there.
+  const page = useStartPage() !== undefined
+  // Where the page's address put the cockpit beyond its start view (an engine named alone).
+  const addressStart = useAddressStart()
 
   const boards = serverBoards(listed ?? landingSeed(data))
   // Two engines need it to pick one; a single engine only when the server has boards to show.
   const chooser = engines.length > 1 || boards !== null
-  const [state, dispatch] = useCockpitState(data, engines, boards !== null)
+  const [state, dispatch] = useCockpitState(data, engines, boards !== null, addressStart)
   const { scope, stack, goneEngineId } = state
   // A read that met it since the list last answered (also before it answers, or where it fails),
   // else what the start data or the engine list names.
@@ -299,6 +253,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const openFleet = offerFleet ? () => dispatch({ type: "to-fleet" }) : undefined
 
   const enterEngine = (id: string) => dispatch({ type: "enter-engine", id })
+  const toLanding = () => dispatch({ type: "to-landing" })
   // A board's drill opens a view of the cockpit only where its route reads the engine's dialect.
   const dialectOf = useCallback(
     (id: string) => engines.find((engine) => engine.id === id)?.dialect,
@@ -308,23 +263,27 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
     dispatch({ type: "open-board", view: { section: "board", board, label: title } })
 
   const navigate: OnNavigate = dispatch
+  // An engine shown without a section: its one state reads nothing, and names no route's place.
+  const withoutSection = sectionlessEngineIn(scope, engines, refusal !== null) !== undefined
+  // After an engine switch, whether the new engine deploys the process the view kept (N7).
+  useProcessCheck(state, withoutSection, dispatch)
+  // A page's address follows where the cockpit is (N1); a chat has none.
+  const claimed = usePlaceOnAddress(state, withoutSection, refusal !== null, dispatch)
+
+  // A place the page shows itself (its engine screen): the page takes over as it reads the report.
+  if (claimed) return null
 
   // Bootstrap engines let us proceed when the engines query failed.
   if (engines.length === 0) {
-    return <EnginesEmptyState enginesQuery={enginesQuery} />
+    return <EnginesEmptyState enginesQuery={enginesQuery} chrome={chrome} />
   }
 
-  // #344 N107: one frame, so navigation moves focus to the new view.
-  const nav = navigationOf(
-    scope,
-    stack,
-    locale,
-    sectionlessEngineIn(scope, engines, refusal !== null),
-  )
+  // #344 N107: one frame, so navigation moves focus to the new view's heading.
+  const navKey = navigationKeyOf(scope, stack)
 
   if (scope.kind === "landing") {
     return (
-      <NavigationFocus viewKey={nav.key} label={nav.label}>
+      <NavigationFocus viewKey={navKey}>
         {/* The model hears the picker as the picker: no engine is in scope. */}
         <HostModelContext
           content={context(
@@ -339,7 +298,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
         </HostModelContext>
         <LandingChooser
           engines={engines}
-          defaultEngineId={enginesQuery.data?.defaultEngineId ?? null}
+          defaultEngineId={listed?.defaultEngineId}
           onEnterEngine={enterEngine}
           onOpenFleet={openFleet}
           boards={boards}
@@ -352,13 +311,11 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
 
   if (scope.kind === "fleet") {
     return (
-      <NavigationFocus viewKey={nav.key} label={nav.label}>
-        <WidgetShell
-          header={
-            <CockpitTrailBar>
-              <FleetCrumbs locale={locale} onLanding={() => dispatch({ type: "to-landing" })} />
-            </CockpitTrailBar>
-          }
+      <NavigationFocus viewKey={navKey}>
+        <AppScope
+          flush={chrome}
+          page={page}
+          trail={<FleetCrumbs locale={locale} onLanding={toLanding} />}
         >
           <HostModelContext
             content={context(fleetContext(groupEnginesByEnvironment(fleetEngines)))}
@@ -366,31 +323,22 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
             {null}
           </HostModelContext>
           <FleetView engines={engines} onEnterEngine={enterEngine} />
-        </WidgetShell>
+        </AppScope>
       </NavigationFocus>
     )
   }
 
   if (scope.kind === "board") {
     return (
-      <NavigationFocus viewKey={nav.key} label={nav.label}>
+      <NavigationFocus viewKey={navKey}>
         {/* A board reads the engines it names: no engine's head, the chooser one crumb away
-            where it shows. Its view says what the model sees of it. */}
-        <WidgetShell
+            where it shows (on a page, the bar's product). Its view says what the model sees of
+            it. The view frame's main holds the cockpit: the route's region renders none. */}
+        <AppScope
           flush
-          header={
-            chooser && (
-              <CockpitTrailBar>
-                <BoardCrumbs
-                  view={scope.view}
-                  locale={locale}
-                  onLanding={() => dispatch({ type: "to-landing" })}
-                />
-              </CockpitTrailBar>
-            )
-          }
+          page={page}
+          trail={chooser && <BoardCrumbs view={scope.view} locale={locale} onLanding={toLanding} />}
         >
-          {/* The view frame's main holds the cockpit: the route's region renders none of its own. */}
           <div className="min-w-0">
             <NavProvider value={navigate}>
               <ViewErrorBoundary resetKey={viewKey(scope.view)}>
@@ -403,7 +351,7 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
               </ViewErrorBoundary>
             </NavProvider>
           </div>
-        </WidgetShell>
+        </AppScope>
       </NavigationFocus>
     )
   }
@@ -411,56 +359,71 @@ export function CockpitApp({ data }: { data: CockpitAppData | null }) {
   const engineId = scope.engineId
   const current = stack[stack.length - 1]
   const boardsOnly = boardsOnlyOf(engines.find((engine) => engine.id === engineId))
+  // On a page with chrome an engine without sections has a bar of its own, whose title is the h1.
+  const stateTitle = chrome ? "h2" : "h1"
 
   return (
-    <NavigationFocus viewKey={nav.key} label={nav.label}>
-      {/* Flush: each route is a view of its own, its bar from edge to edge, its content in the
-          gutter (WidgetShell). */}
-      <WidgetShell
-        flush
-        header={
-          <EngineBars
-            engineId={engineId}
-            engines={engines}
-            engineGroups={engineGroups}
-            chooser={chooser}
-            refused={refusal !== null}
-            state={state}
-            inline={inline}
-            onOpenFleet={openFleet}
-            dispatch={dispatch}
-          />
-        }
-      >
-        <HostModelContext
-          content={context(engineContextOf(engineId, current, refusal !== null, boardsOnly))}
+    <NavigationFocus viewKey={navKey}>
+      <CockpitRefreshProvider>
+        {/* Flush: each route is a view of its own, its bar from edge to edge, its content in
+            the gutter (WidgetShell). */}
+        <WidgetShell
+          flush
+          header={
+            <EngineBars
+              engineId={engineId}
+              engines={engines}
+              engineGroups={engineGroups}
+              chooser={chooser}
+              refused={refusal !== null}
+              state={state}
+              inline={inline}
+              page={page}
+              chrome={chrome}
+              onOpenFleet={openFleet}
+              dispatch={dispatch}
+            />
+          }
         >
-          {null}
-        </HostModelContext>
-        <div className="min-w-0">
-          {/* Every view is a route of self-fetching widgets. The NavProvider is
+          <HostModelContext
+            content={context(engineContextOf(engineId, current, refusal !== null, boardsOnly))}
+          >
+            {null}
+          </HostModelContext>
+          <CockpitRefreshRegion>
+            {/* On a page with chrome the head's Refresh is the first action of the route's bar. */}
+            <ViewBarSlots actions={chrome ? <CockpitRefreshButton bar /> : undefined}>
+              {/* Every view is a route of self-fetching widgets. The NavProvider is
             the client-side navigation seam: widgets call `useNav()`, which
             resolves to this in-app router instead of a chat follow-up. The head
             names the engine, so the views leave it out of their own meta line.
             A crashing view never takes the cockpit down, a refused engine shows once, and so
             does one the server shows on boards only. The view frame's main holds the cockpit,
-            so the route renders no main of its own. */}
-          <NavProvider value={navigate}>
-            <ViewErrorBoundary resetKey={viewKey(current)}>
-              <RefusedEngineGate refusal={refusal}>
-                <BoardsOnlyEngineGate
-                  engineId={engineId}
-                  boardsOnly={boardsOnly}
-                  boards={boards}
-                  onOpenBoard={openBoard}
-                >
-                  <CockpitRoute view={current} engine={engineId} seed={startSeed(data, state)} />
-                </BoardsOnlyEngineGate>
-              </RefusedEngineGate>
-            </ViewErrorBoundary>
-          </NavProvider>
-        </div>
-      </WidgetShell>
+            so the route renders no main of its own. The region is busy while the head's
+            Refresh reads its feeds again. */}
+              <NavProvider value={navigate}>
+                <ViewErrorBoundary resetKey={viewKey(current)}>
+                  <RefusedEngineGate refusal={refusal} titleAs={stateTitle}>
+                    <BoardsOnlyEngineGate
+                      engineId={engineId}
+                      boardsOnly={boardsOnly}
+                      boards={boards}
+                      onOpenBoard={openBoard}
+                      titleAs={stateTitle}
+                    >
+                      <CockpitRoute
+                        view={current}
+                        engine={engineId}
+                        seed={startSeed(data, state)}
+                      />
+                    </BoardsOnlyEngineGate>
+                  </RefusedEngineGate>
+                </ViewErrorBoundary>
+              </NavProvider>
+            </ViewBarSlots>
+          </CockpitRefreshRegion>
+        </WidgetShell>
+      </CockpitRefreshProvider>
     </NavigationFocus>
   )
 }

@@ -33,6 +33,8 @@ export interface FileSystem {
   readdir(path: string): Promise<DirectoryEntry[]>
   /** What `path` is; never throws for a missing path. */
   kind(path: string): Promise<PathKind>
+  /** True when the entry `path` itself is a symbolic link (lstat), false for a missing one. */
+  linked(path: string): Promise<boolean>
   /**
    * True when the current user owns the entry `path` itself (a symbolic link is not followed),
    * false for a missing one. Absent where the platform has no owners to compare (Windows).

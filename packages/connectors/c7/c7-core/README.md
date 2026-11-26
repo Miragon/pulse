@@ -75,7 +75,11 @@ missing.
 - **Status:** `readStatus({ port, now }, options)` triages one engine: findings with severity, the
   overall status, definitions, incident groups with their root cause, topics, jobs and batches,
   every cut named in `truncated`. `engineVerdict` judges an engine `ok`, `warning` or `critical` by
-  thresholds you pass; `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group
+  thresholds you pass, over its open root incidents: `rootIncidentCounts` takes the processes' from
+  the statistics with `rootIncidents=true` and, of the open incidents read, those outside any
+  process and the largest cause over root incidents alone, so a chain of calls one failure stops
+  counts it once (`readStatus` names the basis `rootIncidentsTotal` beside `incidentsTotal`, every
+  open incident); `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group
   incidents alike everywhere.
 - **With incident:** one reading of "an instance with an incident" for every caller: an open
   incident the runtime holds now, which every history level answers alike (`WITH_INCIDENT`, the
@@ -90,6 +94,21 @@ missing.
   "none" before a history query by incident answers.
 - **Plans:** the pure parts of retry (`planRetry`, `retriesWrite`), advance (`chooseWait`,
   `advanceSteps`) and wait (`parseCondition`, `decide`, `poll`).
+- **Migration planning:** `definitionsAtVersion`, `proposeMigrationPlan`, `checkMigrationPlan`,
+  `migrationInstructions`, the one home of a migration plan's requests and bodies.
+  `definitionsAtVersion(port, key, version)` reads the definitions of a process at a version
+  number, or at its latest version (`"latest"`), every tenant's, at most 10, `more` when there are
+  more; `definitionsAtVersionRequest` is the request it sends, for a preview.
+  `proposeMigrationPlan(port, source, target)` lets the engine generate its plan between two
+  definitions and keeps the instructions of one source and one target activity, counting the
+  others in `leftOut`; `checkMigrationPlan(port, plan)` has the engine validate a plan, each
+  problem with its mapping where it names one. Both are `POST`s that only read and change no event
+  trigger, and `migrationInstructions(mappings)` is the instructions they and a migration send (one
+  activity a side, `updateEventTrigger: false`). An answer these rules cannot read fails as the
+  `WorkflowError` reason `unexpected-answer` (the operation id and what is wrong in the answer,
+  `instructions is not a list`), so a caller words it as it words every reason and never as its
+  own bug; the contract's `MigrationReader` reads through the same rules and fails such an answer
+  as `RuntimeError("unexpectedResponse")`, as every read of `./runtime` does.
 - **Routes:** the route of each operation of the REST API: method, path template, effect (`read`,
   `write`, `delete`, `bulk`), whether a named engine (`/engine/{name}`) serves it and the media
   types of its answers. `CORE_ROUTES` holds what this package sends, reads only (a plan's writes
@@ -107,29 +126,44 @@ missing.
   engine-core's `ProcessRuntime` over your port, for a surface that implements that contract:
   `C7Runtime.over(port, { failureOf })` answers every one of them (it refuses no variable
   condition); a failure c7-core words itself is a `RuntimeError` and passes as it is, every other
-  error, your wire's, becomes the `RuntimeError` your `failureOf` words. It asks one reader per
+  error, your wire's, becomes the `RuntimeError` your `failureOf` words. Where your surface keeps
+  the diagrams it read, hand that read in as `diagramXml` (a version's XML, undefined for a version
+  the engine does not know): every read of a diagram goes through it (`getDiagramXml`, the calls of a
+  version, the call activities of its element statistics; the MCP server's one XML cache), else over
+  your port. It asks one reader per
   question: `EngineReader` (the product and version telemetry names, else the REST API's version),
   `DefinitionReader` (every process by its latest version, its versions newest first, each with its
-  running instances and those "with incident", a version's BPMN XML), `ElementStatisticsReader` (per
+  running instances, those "with incident" and its open root incidents, from one statistics read
+  with `rootIncidents=true`, a version's BPMN XML), `ElementStatisticsReader` (per
   element of a version the waiting tokens, the incidents raised there and those of called
-  instances), `CalledProcessReader` (each call activity of a version with the version its binding
+  instances: the statistics with every incident at an element, root incidents wherever no copy can
+  lie, and the incidents at the version's call activities that hold one read whole, sorted by id,
+  to tell the root incidents from the copies Camunda 7 keeps there; the call activities from the
+  version's diagram, kept per reader; every incident of the version where they cannot be told or
+  one read takes fewer requests and less than a page of rows beyond theirs), `CalledProcessReader` (each call activity of a version with the version its binding
   starts), `InstanceSearch` (the history's instances newest first, paged by offset behind the
   contract's cursor, each flagged with "with incident", and their count; a variable condition's
-  value as the engine reads it, every integer beyond 2^53 in it digit for digit),
+  value as the engine reads it, every integer beyond 2^53 in it digit for digit; without an
+  incident it counts the history's instances minus those of them the runtime holds an open incident
+  for, the history's count of the runtime's ids, so the count is what the search lists and never
+  below 0; at history level NONE, whose history holds no instance, it finds none and counts 0, the
+  runtime's count with an incident where the runtime knows the filter whole),
   `VariableNameReader` (the variable names of a version's newest 50 instances),
   `InstanceDetailReader` (an instance's detail: `loadInstance`'s rounds without history and its path
   from the history, in parallel with its typed variables of every scope, which the inspection's
   variable map stands in for when they cannot be read, then the version of each called instance one
   of its root incidents was raised in; each value as `JSON.stringify` writes it, so an integer the
   wire kept as raw JSON keeps its digits), `IncidentSearch` (the root incidents newest first, then by
-  id, with the version each was raised in and the job or external task `incidentRecovery` names),
+  id, across pages too, since incidents raised at one instant are read whole, with the version each
+  was raised in and the job or external task `incidentRecovery` names),
   `IncidentDetailsReader` (the stack trace or error details `CAUSE_OPERATIONS` names, else the
   incident's message, with the root cause by engine-core's `RootCauses`), `BulkOperationReader` (a
   batch that cancels or migrates instances from its statistics while the runtime holds it, else from
   the history, counted in items; the failures of a running one from its jobs without retries, at
   most 100, each reason on one line and cut to 300 characters, with the instance it names) and
-  `MigrationReader` (the plan the engine generates between two versions and its check of one,
-  reading `POST`s that change no event trigger; a mapping is one source and one target activity). A
+  `MigrationReader` (the plan the engine generates between two versions and its check of one, over
+  the migration planning rules: `POST`s that change no event trigger; a mapping is one source and
+  one target activity). A
   by-id read of something the engine does not know answers undefined (an engine 404 that names it,
   or a 500 `NullValueException`, as `inspect` reads an instance that ended); a list is read page by
   page until a shorter page, and an answer that is no list fails. A page of the instances without an
@@ -170,7 +204,11 @@ missing.
   (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, which refuses a value that
   is or holds a number that is not finite, since JSON would carry it as null; `autoTypedValue`),
   incident recovery (`incidentRecovery`, over `BUILT_IN_INCIDENT_TYPES`, the two types the engine
-  raises itself), the raw variable read flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a
+  raises itself), the root incident (`isRootIncident`, and `rootIdOfCopy`, the root incident a
+  copy stands for: Camunda 7 copies an incident of a called instance up its call chain, each copy
+  naming its root in `rootCauseIncidentId`; one without that field is a root, the one reading of
+  the status triage, the inspection, the retry plan, the runtime, the engine module and the C7
+  adapter), the raw variable read flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a
   port's query), the history timeline (`timelineOf`), the request that holds an incident's cause
   (`CAUSE_OPERATIONS`, an operation id per built-in type) and the cause of a failure
   (`causeOf(text, fallback)`: the root cause of a stack trace or error details by engine-core's
@@ -243,8 +281,11 @@ files of the repository, not of the package:
 
 `C7_BOARD_ENGINE` is a board and a model: the text of a board file over one engine with every
 widget and a refused one, that engine's answers to the board's reads (`C7RecordedAnswer`: method,
-decoded path, query and JSON body, and the JSON answered), recorded once from the seeded world on
-Operaton 2.1.5, and the board they give in the JSON form of
+decoded path, query and JSON body, and the JSON answered), recorded from the seeded world on
+Operaton 2.1.5 (made anew on 2026-11-21, when the element statistics read the incidents at call
+activities alone, and again that day, when the definitions read their root incidents; on
+2026-11-25 its incidents' request asks 52 rows rather than 51, which the three it answers do not
+change), and the board they give in the JSON form of
 [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board) (`BoardData`). It
 ships here because this package makes the requests: the MCP server's engine connector and the
 editors' C7 adapter each serve the answers to their own wire on the transport's recorded engine
@@ -256,6 +297,30 @@ recorded by hand, as they were the first time: seed the world with `seedC7World`
 front of the engine that keeps each request (method, decoded path, query and JSON body) with the
 JSON the engine answers, check that both build the same board, and write the board file, the answers
 and that board into `packages/connectors/c7/c7-core/src/testing/board-engine.json`.
+
+`C7_SCREEN_ENGINE` is the same for the screens Pulse's surfaces share
+([`@miragon/pulse-screens`](https://www.npmjs.com/package/@miragon/pulse-screens)): one engine's
+answers to the screens' reads, the time a surface builds them at (`asOf`) and the screens they give
+in their JSON form: the engine screen (`expected.engine`, `EngineScreenData`); the instance
+screens (`InstanceScreenData`) of DSP-3001, which waits at its call activity for the root incident
+of the instance it called (`expected.instance`), and of that called instance, which holds it
+(`expected.calledInstance`); the process screens (`ProcessScreenData`) of pulse-order at its
+latest version (`expected.process`) and at its version 1 (`expected.olderVersion`) and of
+pulse-dispatch (`expected.callingProcess`); and the first page of every instance of pulse-order's
+version 1 with the counts of each scope (`expected.instanceList`, `InstanceListData`). The editors'
+C7 adapter and the MCP server's SDK wire build each exactly. Its answers come from one run of their
+own, recorded by hand on 2026-11-20 as the board's, made anew with the process screens and the
+instance list, and again on 2026-11-21, when the element statistics read the incidents at call
+activities alone, and once more that day, when the definitions read their root incidents: the world seeded
+with `seedC7World` into `operaton/operaton:2.1.5` at history level FULL, every screen built twice
+through a proxy in front of the engine that keeps each request with what the engine answers (the
+same answer both times but for the telemetry, which counts the engine's commands and keeps its
+first), and once more over the kept answers on `startRecordedEngine`, with no request unanswered.
+So every id they name is that engine's, and every screen built over them reads the same instances
+and versions; one that reads more is recorded again with the others
+in one run, never joined from another recording, whose ids are another engine's (`C7_BOARD_ENGINE`
+is a run of its own). An answer that is no JSON (a job's stack trace) keeps its text and content type
+(`C7RecordedAnswer`).
 
 ## Help and feedback
 

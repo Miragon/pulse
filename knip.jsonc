@@ -3,8 +3,8 @@
   // Dead-code fitness function (`pnpm lint:deadcode`, part of `pnpm lint`):
   // every check but unused exports and types, in every workspace. Exports and
   // types are `pnpm lint:deadcode:exports` (`--include exports,types`), in every
-  // workspace but docs (below). Together they report every issue type in every
-  // workspace (docs: all but exports and types), so no workspace runs on its own.
+  // workspace. Together they report every issue type in every workspace, so no
+  // workspace runs on its own.
   // knip never reports what an ENTRY file exports (includeEntryExports is off):
   // a test of its package holds each published entry's sorted runtime names
   // instead (an index, entries or testing test, next to the entry or in test/),
@@ -123,6 +123,12 @@
       },
     },
 
+    "packages/core/screens": {
+      "vitest": {
+        "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
+      },
+    },
+
     "packages/core/http": {
       "vitest": {
         "config": ["vitest.config.ts", "vitest.stryker.config.ts"],
@@ -142,13 +148,6 @@
     },
 
     "docs": {
-      // `lint:deadcode:exports` skips this workspace: its code is the vendored kit,
-      // whose exports (miragonLegal, MiragonGitHub, …) are the kit's API for every
-      // Miragon docs site and are never edited here.
-      // The Miragon docs kit (.vitepress/miragon/, vendored unchanged from
-      // Miragon/corporate-identity, pinned by its check.mjs): slug.d.mts types
-      // slug.mjs for TypeScript, so no import names the declaration itself.
-      "ignore": [".vitepress/miragon/slug.d.mts"],
       "ignoreDependencies": [
         // mermaid's diagram runtimes, which vitepress-plugin-mermaid lists in
         // Vite's optimizeDeps.include: under pnpm's strict layout the dev

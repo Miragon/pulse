@@ -11,7 +11,7 @@ import { queryInput } from "../requests.js"
 import { compact } from "../util.js"
 import { engineIdOf } from "./engine-ids.js"
 import { findUnlessGone } from "./find-unless-gone.js"
-import { JsonView } from "./json-view.js"
+import { JsonView } from "../json-view.js"
 
 /** What the runtime and the history say of every batch. */
 export interface BatchRow {

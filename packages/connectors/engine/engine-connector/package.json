@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-engine-connector",
-  "version": "0.28.0",
+  "version": "0.34.0",
   "description": "Camunda 7 / CIB seven MCP module: operations tools, widget tools, and cockpit widgets.",
   "license": "MIT",
   "keywords": [
@@ -61,7 +61,8 @@
     "@miragon/pulse-c8-core": "workspace:*",
     "@miragon/pulse-engine-core": "workspace:*",
     "@miragon/pulse-http": "workspace:*",
-    "@miragon/pulse-profile": "workspace:*"
+    "@miragon/pulse-profile": "workspace:*",
+    "@miragon/pulse-screens": "workspace:*"
   },
   "peerDependencies": {
     "@miragon/pulse-blocks": "workspace:^",
@@ -102,7 +103,7 @@
     "lucide-react": "1.73.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "testcontainers": "12.2.1",
+    "testcontainers": "12.2.2",
     "typescript": "6.0.3",
     "vitest": "5.1.1",
     "zod": "4.6.7"

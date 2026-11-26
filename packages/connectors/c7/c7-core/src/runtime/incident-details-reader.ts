@@ -9,9 +9,10 @@
 import type { IncidentDetails, IncidentId } from "@miragon/pulse-engine-core"
 import { CAUSE_OPERATIONS } from "../inspect.js"
 import type { EnginePort } from "../port.js"
+import { isRootIncident } from "../root-incident.js"
 import { isEngineId } from "./engine-ids.js"
 import { findUnlessGone } from "./find-unless-gone.js"
-import { type IncidentRow, incidentRowOf, isRootIncident, recoveryIdOf } from "./incident-rows.js"
+import { type IncidentRow, incidentRowOf, recoveryIdOf } from "./incident-rows.js"
 import { incidentDetailsOf } from "./incident-texts.js"
 
 /** Reads the details of an incident over the engine's port. */

@@ -11,6 +11,10 @@ export const CASE = {
   definitionsLatestVersion: "definitions: one summary per process, carrying its latest version",
   definitionsCounts: "definitions: counts running instances and instances with an incident",
   versionsCounts: "versions: one summary per version with its own counts, newest first",
+  definitionsIncidents:
+    "definitions: count the open root incidents over every version, exactly, never a copy in a caller",
+  versionsIncidents:
+    "versions: count the open root incidents of each version, exactly, never a copy in a caller",
   diagramOfVersion: "diagram: the XML of a version contains its elements, unknown is undefined",
   statisticsPerVersion: "statistics: address one version, never the whole process",
   statisticsDisjoint:
@@ -23,6 +27,8 @@ export const CASE = {
   instancesAcrossVersions: "instances: filter by process across versions",
   instancesWithIncident: "instances: filter and flag instances with an incident",
   instancesEndedByBusinessKey: "instances: find an ended instance by business key",
+  instancesByExactBusinessKey:
+    "instances: a business key matches whole, never as a part of a longer one",
   instancesByActiveElement:
     "instances: filter by the element they wait at, also before an asynchronous task",
   instancesPaging: "instances: pages without gaps or duplicates",
@@ -31,6 +37,8 @@ export const CASE = {
   instancesNewestFirst: "instances: the newest come first, in the same order on every read",
   instancesUtcTimestamps: "instances: timestamps are ISO-8601 in UTC",
   instancesCounted: "instances: counts agree with the search",
+  instancesNeverBelowZero:
+    "instances: no count is below 0, in any scope, lifecycle or incident filter",
   instancesByIds: "instances: filter by up to 1000 instance ids",
   variablesEquals: "variables: equals finds the instances holding the value",
   variablesNotEquals: "variables: not equals skips instances without the variable",

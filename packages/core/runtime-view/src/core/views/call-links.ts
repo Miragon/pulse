@@ -1,6 +1,5 @@
-import type { CalledProcess, InstanceDetail } from "@miragon/pulse-engine-core"
+import type { CalledInstanceData, CallLinkData } from "@miragon/pulse-screens"
 import type { CallLink } from "../protocol/index.js"
-import { CallTargets, type CalledInstanceChoice, type CallTarget } from "./call-targets.js"
 import { Labels } from "./labels.js"
 
 const OPEN_FROM_DEFINITION = "Open called process"
@@ -8,16 +7,16 @@ const OPEN_FROM_INSTANCE = "Not called yet: open called process"
 
 export class CallLinks {
   constructor(
-    private readonly targets: CallTargets,
+    private readonly calls: readonly CallLinkData[],
     private readonly openDefinitionLabel: string,
   ) {}
 
-  static ofDefinition(calledProcesses: readonly CalledProcess[]): CallLinks {
-    return new CallLinks(new CallTargets(calledProcesses), OPEN_FROM_DEFINITION)
+  static ofDefinition(calls: readonly CallLinkData[]): CallLinks {
+    return new CallLinks(calls, OPEN_FROM_DEFINITION)
   }
 
-  static ofInstance(calledProcesses: readonly CalledProcess[], detail: InstanceDetail): CallLinks {
-    return new CallLinks(new CallTargets(calledProcesses, detail), OPEN_FROM_INSTANCE)
+  static ofInstance(calls: readonly CallLinkData[]): CallLinks {
+    return new CallLinks(calls, OPEN_FROM_INSTANCE)
   }
 
   static missingText(bpmnProcessId: string, engineName: string): string {
@@ -25,34 +24,32 @@ export class CallLinks {
   }
 
   links(engineName: string): CallLink[] {
-    return this.targets
-      .all()
-      .map(({ elementId, target }) => this.linkOf(elementId, target, engineName))
+    return this.calls.map((call) => this.linkOf(call, engineName))
   }
 
-  private linkOf(elementId: string, target: CallTarget, engineName: string): CallLink {
-    switch (target.kind) {
+  private linkOf(call: CallLinkData, engineName: string): CallLink {
+    const { elementId } = call
+    switch (call.kind) {
       case "instances":
-        return { elementId, label: this.instancesLabel(target.choices) }
+        return { elementId, label: this.instancesLabel(call.instances) }
       case "definition": {
-        const name = target.definition.name ?? target.definition.bpmnProcessId
+        const name = call.definition.name ?? call.definition.bpmnProcessId
         return { elementId, label: `${this.openDefinitionLabel} ${name}` }
       }
       case "missing":
         return {
           elementId,
-          label: CallLinks.missingText(target.bpmnProcessId, engineName),
+          label: CallLinks.missingText(call.bpmnProcessId, engineName),
           missing: true,
         }
     }
   }
 
-  private instancesLabel(choices: readonly CalledInstanceChoice[]): string {
-    const [first] = choices
-    if (choices.length > 1 || first === undefined) {
-      return `Choose one of ${Labels.count(choices.length)} called instances`
+  private instancesLabel(instances: readonly CalledInstanceData[]): string {
+    const [first] = instances
+    if (instances.length > 1 || first === undefined) {
+      return `Choose one of ${Labels.count(instances.length)} called instances`
     }
-    const { bpmnProcessId, id } = first.instance
-    return `Open called instance ${bpmnProcessId} ${Labels.shortId(id)}`
+    return `Open called instance ${first.bpmnProcessId} ${Labels.shortId(first.id)}`
   }
 }

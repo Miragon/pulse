@@ -61,6 +61,16 @@ so `true` never with `ended`) and `businessKey`. A board with `tenants` shows no
 has no tenant filter. Columns are `engine`, `process`, `version`, `businessKey`, `state`,
 `startedAt`, `endedAt` and `incident`.
 
+## Let Claude Code write a board
+
+The Claude Code plugin `pulse-boards`, beside the [CLI's](../cli/agents.md#claude-code-plugin),
+brings a skill that writes a board from your BPMN models and profiles and checks it as Pulse does:
+
+```text
+/plugin marketplace add Miragon/pulse
+/plugin install pulse-boards@pulse
+```
+
 ## Several engines
 
 Every row and every number keeps the engine it came from, and a click opens the instance or the

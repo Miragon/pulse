@@ -37,6 +37,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "causeOf",
       "checkAdvanceInput",
       "checkLock",
+      "checkMigrationPlan",
       "checkOptions",
       "checkRetryCount",
       "checkSelection",
@@ -51,6 +52,8 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "criticalIncidentsRule",
       "decide",
       "definitionKeyOf",
+      "definitionsAtVersion",
+      "definitionsAtVersionRequest",
       "earliestEngineDate",
       "engineDateInput",
       "engineDateMillis",
@@ -72,6 +75,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "isAdvanceable",
       "isEngineDateInput",
       "isMissing",
+      "isRootIncident",
       "isSuspendedJob",
       "isUnknownEndpoint",
       "isWorkflowError",
@@ -84,11 +88,13 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "mapLimit",
       "measure",
       "messageSignature",
+      "migrationInstructions",
       "missingRoots",
       "num",
       "parseCondition",
       "planRetry",
       "poll",
+      "proposeMigrationPlan",
       "queryInput",
       "readStatus",
       "records",
@@ -96,6 +102,8 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "retryEffect",
       "retryMode",
       "retryPlanView",
+      "rootIdOfCopy",
+      "rootIncidentCounts",
       "routeOf",
       "routedTransport",
       "selectInstance",
@@ -132,13 +140,14 @@ describe("the @miragon/pulse-c7-core entries", () => {
     ])
   })
 
-  it("export exactly the fixtures, the fake port, the world's seed, the recorded board engine and the test seams from ./testing", () => {
+  it("export exactly the fixtures, the fake port, the world's seed, the recorded board and screen engines and the test seams from ./testing", () => {
     expect(Object.keys(testing).sort()).toEqual([
       "APPROVE_INCIDENT",
       "ASYNC",
       "BOOK_ERROR",
       "C",
       "C7_BOARD_ENGINE",
+      "C7_SCREEN_ENGINE",
       "CHILD_DEF",
       "CHILD_NODE",
       "CONDITIONAL",

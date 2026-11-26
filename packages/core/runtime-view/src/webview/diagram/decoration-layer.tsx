@@ -1,60 +1,20 @@
 import type { ReactNode } from "react"
-import type {
-  CallLink,
-  ElementBadge,
-  ElementMarker,
-  MarkerKind,
-} from "../../core/protocol/index.js"
-import { BadgeCluster, type BadgeFilter } from "./badge-cluster.js"
-import { CallButton } from "./call-button.js"
-import type { ElementRegistryLike } from "./diagram-elements.js"
+import { BadgeCluster, CallButton } from "@miragon/pulse-blocks"
+import type { ElementBadge, MarkerKind } from "../../core/protocol/index.js"
+import { DiagramBadge } from "../components/count-badge.js"
 import { CodeButton, type ElementCode } from "./code-button.js"
+import type {
+  BadgeFilter,
+  DecorationServices,
+  Decorations,
+  MappingDecoration,
+  MoveDecoration,
+} from "./decorations.js"
+import { MappingHandles } from "./mapping-handles.js"
 import { MoveBadge, type MoveBadgeKind } from "./move-badge.js"
 import { MoveEntry, type MoveEntryDecoration } from "./move-entry.js"
 import { OverlayFocus, type HeldOverlayFocus } from "./overlay-focus.js"
 import type { OverlayKind, OverlaySlot } from "./overlay-slots.js"
-
-export interface MoveDecoration {
-  readonly from: string
-  readonly to?: string
-  readonly targets: readonly string[]
-  readonly refused: readonly string[]
-}
-
-export interface Decorations {
-  readonly badges: readonly ElementBadge[]
-  readonly markers: readonly ElementMarker[]
-  readonly calls: readonly CallLink[]
-  readonly stale: boolean
-  readonly focusElementId?: string | undefined
-  readonly codes?: readonly ElementCode[]
-  readonly move?: MoveDecoration | undefined
-  readonly moveEntry?: MoveEntryDecoration | undefined
-  readonly candidates?: readonly string[]
-  readonly unmapped?: readonly string[]
-}
-
-export interface OverlaysLike {
-  add(element: string, type: string, overlay: object): string
-  remove(filter: { readonly type: string }): void
-}
-
-export interface CanvasMarkersLike {
-  addMarker(element: string, marker: string): void
-  removeMarker(element: string, marker: string): void
-}
-
-export interface SelectionLike {
-  select(element: object | null): void
-}
-
-export interface DecorationServices {
-  readonly overlays: OverlaysLike
-  readonly selection: SelectionLike
-  readonly canvas: CanvasMarkersLike
-  readonly registry: ElementRegistryLike
-  readonly names: ReadonlyMap<string, string>
-}
 
 const BADGE_OVERLAY_TYPE = "pulse-badges"
 
@@ -70,6 +30,7 @@ const BADGE_POSITION = { top: -10, right: -6 } as const
 const MOVE_POSITION = { top: -12, left: -6 } as const
 const CALL_POSITION = { bottom: -7, right: -8 } as const
 const CODE_POSITION = { bottom: -14, left: -8 } as const
+const MAPPING_POSITION = { bottom: 10, right: -10 } as const
 const BADGE_SCALE = { min: 0.7, max: 1 } as const
 const CALL_SCALE = { min: 0.7 } as const
 
@@ -80,6 +41,7 @@ const PLACEMENTS: Readonly<
   call: { position: CALL_POSITION, scale: CALL_SCALE },
   actions: { position: CODE_POSITION, scale: CALL_SCALE },
   move: { position: MOVE_POSITION, scale: BADGE_SCALE },
+  mapping: { position: MAPPING_POSITION, scale: CALL_SCALE },
 }
 
 export class DecorationLayer {
@@ -110,6 +72,12 @@ export class DecorationLayer {
     this.slots = this.drawing
     this.forgetAnchorsNotIn(this.slots)
     return this.slots
+  }
+
+  hover(elementId: string | undefined): void {
+    for (const [key, anchor] of this.anchors) {
+      anchor.toggleAttribute("data-hot", key === `${elementId ?? ""}#mapping`)
+    }
   }
 
   restoreFocus(): void {
@@ -152,7 +120,18 @@ export class DecorationLayer {
       this.addBadge(badge, decorations.stale)
     }
     for (const call of decorations.calls) {
-      this.addOverlay(call.elementId, "call", <CallButton call={call} onOpen={this.onOpenCall} />)
+      this.addOverlay(
+        call.elementId,
+        "call",
+        <CallButton
+          elementId={call.elementId}
+          label={call.label}
+          missing={call.missing === true}
+          onOpen={(elementId, how) => {
+            this.onOpenCall(elementId, how.toSide)
+          }}
+        />,
+      )
     }
     this.addElementActions(decorations.codes ?? [], decorations.moveEntry)
     for (const marker of decorations.markers) {
@@ -167,6 +146,7 @@ export class DecorationLayer {
       this.addMove(decorations.move)
     }
     this.addMapping(decorations)
+    this.addMappingHandles(decorations.mapping)
     this.focus(decorations.focusElementId)
   }
 
@@ -211,12 +191,35 @@ export class DecorationLayer {
     this.addMoveBadge(move.to, again ? "again" : "to")
   }
 
-  private addMapping({ candidates = [], unmapped = [] }: Decorations): void {
-    for (const elementId of candidates) {
-      this.addMarker(elementId, "pulse-move-target")
+  private addMapping({
+    candidates = [],
+    unmapped = [],
+    counterparts = [],
+    dropTarget,
+  }: Decorations): void {
+    const marked: (readonly [readonly string[], string])[] = [
+      [candidates, "pulse-move-target"],
+      [unmapped, "pulse-unmapped"],
+      [counterparts, "pulse-counterpart"],
+      [dropTarget === undefined ? [] : [dropTarget], "pulse-move-to"],
+    ]
+    for (const [elementIds, marker] of marked) {
+      for (const elementId of elementIds) {
+        this.addMarker(elementId, marker)
+      }
     }
-    for (const elementId of unmapped) {
-      this.addMarker(elementId, "pulse-unmapped")
+  }
+
+  private addMappingHandles(mapping: MappingDecoration | undefined): void {
+    if (mapping === undefined) {
+      return
+    }
+    for (const handle of mapping.handles) {
+      this.addOverlay(
+        handle.elementId,
+        "mapping",
+        <MappingHandles handle={handle} mapping={mapping} />,
+      )
     }
   }
 
@@ -237,7 +240,10 @@ export class DecorationLayer {
         badge={badge}
         elementName={this.services.names.get(badge.elementId) ?? badge.elementId}
         stale={stale}
-        onSelect={this.onSelect}
+        onSelect={(elementId, scope) => {
+          this.onSelect(elementId, scope)
+        }}
+        Badge={DiagramBadge}
       />,
     )
   }

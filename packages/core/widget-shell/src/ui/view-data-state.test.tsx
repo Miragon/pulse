@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { LocaleProvider } from "@miragon/pulse-ui"
+import { LocaleProvider, SKELETON_DELAY_MS } from "@miragon/pulse-ui"
 import { TestViewHost } from "./test-view-host.js"
-import { SKELETON_DELAY_MS, ViewDataState } from "./view-data-state.js"
+import { StartPageLink, ViewDataState } from "./view-data-state.js"
 import { WebApiError } from "./web-caller.js"
 
 afterEach(() => {
@@ -132,6 +132,18 @@ describe("ViewDataState on a page", () => {
     )
     expect(screen.queryByRole("link")).toBeNull()
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy()
+  })
+
+  it.each([
+    ["en", "Go to the start page"],
+    ["de", "Zur Startseite"],
+  ] as const)("lends its link to a page that words a refusal itself (%s)", (locale, name) => {
+    render(
+      <TestViewHost followUp="none" startPage="/app" locale={locale}>
+        <StartPageLink href="/app" />
+      </TestViewHost>,
+    )
+    expect(screen.getByRole("link", { name }).getAttribute("href")).toBe("/app")
   })
 
   it("leaves an ended session to the page's frame: a quiet line, no box, no session words", () => {

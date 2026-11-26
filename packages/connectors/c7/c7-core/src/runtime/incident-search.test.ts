@@ -48,6 +48,12 @@ function rootIncident(id: string, incidentTimestamp = ROOT.incidentTimestamp) {
   return { ...ROOT, id, rootCauseIncidentId: id, incidentTimestamp }
 }
 
+/** The timestamp `seconds` before ROOT's, so rows of distinct seconds never tie. */
+function secondsBefore(seconds: number): string {
+  const instant = new Date(Date.parse(ROOT.incidentTimestamp) - seconds * 1000)
+  return instant.toISOString().replace("Z", "+0000")
+}
+
 function idsOf(page: { readonly items: readonly { readonly id: string }[] }): string[] {
   return page.items.map((incident) => incident.id)
 }
@@ -133,8 +139,12 @@ describe("IncidentSearch.search", () => {
     expect(await search.search({}, { limit: 50 })).toStrictEqual({ items: [] })
   })
 
-  it("asks for the filter's incidents newest first, the page and one row more", async () => {
-    const { port, search } = searchOver(() => [ROOT, ROOT, ROOT])
+  it("asks for the filter's incidents newest first, the page and two rows more", async () => {
+    const { port, search } = searchOver(() => [
+      ROOT,
+      rootIncident("inc-2", secondsBefore(1)),
+      rootIncident("inc-3", secondsBefore(2)),
+    ])
 
     const page = await search.search(
       {
@@ -155,7 +165,7 @@ describe("IncidentSearch.search", () => {
       sortBy: "incidentTimestamp",
       sortOrder: "desc",
       firstResult: "4",
-      maxResults: "3",
+      maxResults: "4",
     })
     expect(Object.keys(query ?? {})).toStrictEqual([
       "processDefinitionId",
@@ -182,7 +192,7 @@ describe("IncidentSearch.search", () => {
         sortBy: "incidentTimestamp",
         sortOrder: "desc",
         firstResult: "0",
-        maxResults: "6",
+        maxResults: "7",
       },
     })
   })
@@ -221,9 +231,14 @@ describe("IncidentSearch.search", () => {
   it("fills the page past the incidents copied up from called instances, reading the versions once", async () => {
     const { port, search } = searchOver(
       incidentsOf([
-        { ...ROOT, id: "inc-2", rootCauseIncidentId: "inc-9" },
+        {
+          ...ROOT,
+          id: "inc-2",
+          rootCauseIncidentId: "inc-9",
+          incidentTimestamp: secondsBefore(-1),
+        },
         ROOT,
-        rootIncident("inc-3"),
+        rootIncident("inc-3", secondsBefore(1)),
       ]),
     )
 
@@ -236,7 +251,8 @@ describe("IncidentSearch.search", () => {
       "getProcessDefinitionStatistics",
       "getIncidents",
     ])
-    expect(port.calls[2]?.input.query).toMatchObject({ firstResult: "2", maxResults: "4" })
+    // The full window's last incident may tie with the next: read again at the next window's start.
+    expect(port.calls[2]?.input.query).toMatchObject({ firstResult: "2", maxResults: "6" })
   })
 
   it("keeps no incident without its instance or of a version the engine does not list", async () => {
@@ -254,31 +270,65 @@ describe("IncidentSearch.search", () => {
     })
   })
 
-  it("cuts incidents raised at once in the engine's order and sorts only the page it returns", async () => {
+  it("orders incidents raised at once by id on every read, across pages too", async () => {
     const { search } = searchOver(incidentsOf([rootIncident("inc-b"), rootIncident("inc-a")]))
 
     const first = await search.search({}, { limit: 1 })
-    const second = await search.search({}, { limit: 1, after: PageCursor("1") })
+    const second = await search.search({}, { limit: 1, after: first.next ?? PageCursor("none") })
     const whole = await search.search({}, { limit: 2 })
 
     expect([idsOf(first), first.next, idsOf(second), second.next]).toStrictEqual([
-      ["inc-b"],
-      "1",
       ["inc-a"],
+      "0.1",
+      ["inc-b"],
       undefined,
     ])
     expect(idsOf(whole)).toStrictEqual(["inc-a", "inc-b"])
   })
 
-  it("stops at the tenth window, its cursor the first incident not read, keeping what it read", async () => {
-    const copy = { ...ROOT, id: "inc-copy", rootCauseIncidentId: "inc-9" }
+  it("pages without gaps or repeats where the engine orders incidents raised at once anew on each request", async () => {
+    const tied = ["inc-x", "inc-y", "inc-z"].map((id) => rootIncident(id, secondsBefore(1)))
+    let requests = 0
+    const { search } = searchOver((input) => {
+      // Each request turns the tied incidents one further, as a database may.
+      const turn = requests++ % tied.length
+      const rows = [
+        ROOT,
+        ...tied.slice(turn),
+        ...tied.slice(0, turn),
+        rootIncident("inc-0", secondsBefore(2)),
+      ]
+      const first = Number(input.query.firstResult)
+      return rows.slice(first, first + Number(input.query.maxResults))
+    })
+
+    const pages: string[][] = []
+    let after: PageCursor | undefined
+    do {
+      const page = await search.search({}, after === undefined ? { limit: 2 } : { limit: 2, after })
+      pages.push(idsOf(page))
+      after = page.next
+    } while (after !== undefined)
+
+    expect(pages).toStrictEqual([["inc-1", "inc-x"], ["inc-y", "inc-z"], ["inc-0"]])
+  })
+
+  it("stops at the tenth window, its cursor the first incident not read whole, keeping what it read", async () => {
+    // Windows of 3, 6, 12 … 384, 500 and 500 rows, each from the last row of the one before, which
+    // may tie with the next: the tenth reads offsets 1256 to 1755, ROOT and inc-2 the last two.
+    const copies = Array.from({ length: 1754 }, (_, index) => ({
+      ...ROOT,
+      id: `inc-copy-${String(index)}`,
+      rootCauseIncidentId: "inc-9",
+      incidentTimestamp: secondsBefore(index - 1754),
+    }))
     const { port, search } = searchOver(
-      incidentsOf([...Array<object>(1509).fill(copy), ROOT, rootIncident("inc-2")]),
+      incidentsOf([...copies, ROOT, rootIncident("inc-2", secondsBefore(1))]),
     )
 
     const page = await search.search({}, { limit: 1 })
 
-    expect(page).toStrictEqual({ items: [expect.objectContaining({ id: "inc-1" })], next: "1510" })
+    expect(page).toStrictEqual({ items: [expect.objectContaining({ id: "inc-1" })], next: "1755" })
     expect(port.calls.filter((call) => call.operationId === "getIncidents")).toHaveLength(10)
   })
 

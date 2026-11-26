@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { BOARD, ENDED_INSTANCE, RUNNING_INSTANCE } from "./board.test-support.js"
-import { boardHighlights } from "./board-diagram.js"
+import { boardDecorations } from "./board-diagram.js"
 import { engineTargetOf } from "./board-targets.js"
 
 describe("a tile's target on the cockpit's routes", () => {
@@ -75,6 +75,23 @@ describe("a tile's target on the cockpit's routes", () => {
   })
 })
 
+describe("a tile's target where the cockpit's incident view does not read the engine", () => {
+  it("opens an incident at the instance that holds it, and every other target as before", () => {
+    const incident = {
+      kind: "instance",
+      engine: "prod-a",
+      instanceId: RUNNING_INSTANCE,
+      incidentId: "inc-1",
+    } as const
+    expect(engineTargetOf(incident, BOARD, false)).toEqual({
+      engine: "prod-a",
+      view: { section: "instance-detail", processInstanceId: RUNNING_INSTANCE, label: "INV-0042" },
+    })
+    const ended = { kind: "instance", engine: "prod-a", instanceId: ENDED_INSTANCE } as const
+    expect(engineTargetOf(ended, BOARD, false)).toEqual(engineTargetOf(ended, BOARD))
+  })
+})
+
 describe("a process's name for its crumb, from any tile that names it on that engine", () => {
   const toInvoice = (engine: string) =>
     ({ kind: "instances", engine, bpmnProcessId: "invoice", filter: { scope: "running" } }) as const
@@ -95,23 +112,31 @@ describe("a process's name for its crumb, from any tile that names it on that en
 })
 
 describe("the counts a board's diagram draws", () => {
-  it("what runs in blue, the open incidents, those of called instances included, in red", () => {
+  it("what runs in blue, the open root incidents in red, those of called instances apart and quiet", () => {
     expect(
-      boardHighlights([
+      boardDecorations([
         { elementId: "approve", active: 7, incidents: 2, incidentsInCalledInstances: 1 },
         { elementId: "call", active: 0, incidents: 0, incidentsInCalledInstances: 4 },
-        { elementId: "idle", active: 0, incidents: 0, incidentsInCalledInstances: 0 },
       ]),
     ).toEqual([
-      { kind: "active", activityIds: ["approve"] },
-      { kind: "instance-count", counts: [{ activityId: "approve", count: 7 }] },
       {
-        kind: "incident",
-        activityIds: ["approve", "call"],
+        elementId: "approve",
         counts: [
-          { activityId: "approve", count: 3 },
-          { activityId: "call", count: 4 },
+          { kind: "incidents", count: 2 },
+          { kind: "incidentsInCalledInstances", count: 1 },
+          { kind: "running", count: 7 },
         ],
+        incident: true,
+      },
+      // A call activity with incidents in its called instances alone carries no incident outline.
+      {
+        elementId: "call",
+        counts: [
+          { kind: "incidents", count: 0 },
+          { kind: "incidentsInCalledInstances", count: 4 },
+          { kind: "running", count: 0 },
+        ],
+        incident: false,
       },
     ])
   })

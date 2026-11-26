@@ -31,7 +31,7 @@ export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> 
   private closed = false
 
   constructor(
-    private readonly context: PanelContext,
+    private readonly context: Pick<PanelContext, "engine" | "now" | "publish" | "live">,
     private readonly loadingTitle: string,
     private readonly hooks: SessionHooks<View> = {},
   ) {}
@@ -42,6 +42,10 @@ export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> 
 
   close(): void {
     this.closed = true
+  }
+
+  showsProblem(): boolean {
+    return this.problem !== undefined
   }
 
   republish(): void {
@@ -65,6 +69,10 @@ export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> 
   async resume(build: () => Promise<Loaded | Unavailable>): Promise<void> {
     if (this.loaded === undefined) {
       await this.reload(build)
+      return
+    }
+    if (this.problem !== undefined) {
+      this.publishFailure(this.problem)
       return
     }
     this.publishReady(this.loaded, false)
@@ -175,8 +183,12 @@ export class ViewSession<View extends PanelView, Loaded extends Snapshot<View>> 
     }
   }
 
+  private failedOnItsFile(): boolean {
+    return this.problem?.file !== undefined
+  }
+
   private publishProgress(): void {
-    if (this.loaded === undefined) {
+    if (this.loaded === undefined || this.failedOnItsFile()) {
       this.publish({
         status: "loading",
         title: this.loadingTitle,

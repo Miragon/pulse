@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Drift gate for templates/composed-server: builds the published libraries
-# from THIS workspace, packs them into tarballs (pnpm pack rewrites
-# workspace:* to real versions), points a throwaway copy of the template at
-# the tarballs via pnpm overrides, and runs the template's full bar. Catches
-# "the template no longer compiles against the packages we are about to
-# release" before the release train publishes to npm, and a file the bar
-# writes that the template's own .gitignore misses. Then runs a prebuilt module
-# with its own HTML view through that copy (below). Run from anywhere; leaves
-# the working tree untouched.
+# Drift gate for the templates, templates/composed-server and
+# templates/claude-artifact: builds the published libraries from THIS
+# workspace, packs them into tarballs (pnpm pack rewrites workspace:* to real
+# versions), points a throwaway copy of each template at the tarballs via pnpm
+# overrides, and runs the template's full bar. Catches "the template no longer
+# compiles against the packages we are about to release" before the release
+# train publishes to npm, and a file the bar writes that the template's own
+# .gitignore misses. Runs a prebuilt module with its own HTML view through the
+# starter's copy, then the Claude artifact's bar, whose tests hold its dist/ to
+# the three files a page publishes. Run from anywhere; leaves the working tree
+# untouched.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE="$ROOT/templates/composed-server"
@@ -158,5 +160,37 @@ pnpm install --no-frozen-lockfile
 pnpm build
 pnpm typecheck
 pnpm test
+
+# The Claude artifact (templates/claude-artifact): a page, not a server, a single package with
+# its own pnpm-workspace.yaml (packages: ["."]) and no overrides of its own, so the overrides
+# append to it as to the starter's. Its bar needs no browser, no engine and no MCP server: the
+# tests read the recorded fixtures, and `pnpm shot` (Playwright) stays out of it. Its `pnpm test`
+# builds first (`vite build && vitest run`), and test/bundle.test.ts holds dist/ to exactly the
+# three files a person publishes. The root's Prettier formats it in this repository; it ships no
+# formatter of its own to check here.
+ARTIFACT="$ROOT/templates/claude-artifact"
+scratch_dir
+ARTIFACT_WORK="$REPLY/claude-artifact"
+rsync -a --exclude node_modules --exclude dist --exclude shots --exclude pnpm-lock.yaml \
+  "$ARTIFACT/" "$ARTIFACT_WORK/"
+library_overrides >> "$ARTIFACT_WORK/pnpm-workspace.yaml"
+git_artifact() { git -C "$ARTIFACT_WORK" -c core.excludesFile=/dev/null "$@"; }
+git_artifact init -q
+git_artifact add -A
+(
+  cd "$ARTIFACT_WORK"
+  pnpm install --no-frozen-lockfile
+  pnpm typecheck
+  pnpm test
+)
+
+# A copy commits no lockfile: its .gitignore ignores pnpm-lock.yaml with the rest of what
+# install, build and test write, so any untracked file git lists here is one too many.
+LEFT="$(git_artifact ls-files --others --exclude-standard)"
+if [[ -n "$LEFT" ]]; then
+  echo "test-template: install, build, typecheck and test left files that templates/claude-artifact/.gitignore does not ignore, so a fresh copy shows them as changes:" >&2
+  echo "$LEFT" >&2
+  exit 1
+fi
 
 echo "test-template: OK"

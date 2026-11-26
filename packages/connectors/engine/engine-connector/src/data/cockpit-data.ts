@@ -16,6 +16,7 @@ import {
 } from "../view-models.js"
 import {
   getJobsCount,
+  queryHistoricProcessInstances,
   queryJobs,
   queryProcessInstances,
   queryProcessInstancesCount,
@@ -198,11 +199,34 @@ async function rowNameResolver(
   return (definitionId) => byId?.get(definitionId)?.name ?? null
 }
 
+/**
+ * ENRICHMENT: when each instance of the page started, ONE history read over the page's ids. The
+ * runtime's instance carries no start; a failed read, or an engine that records no history (level
+ * NONE), leaves the starts null ("—"), never a guessed time.
+ */
+async function startTimesOf(
+  client: Client,
+  pageIds: string[],
+): Promise<ReadonlyMap<string, string>> {
+  if (pageIds.length === 0) return new Map()
+  const rows = await optional(
+    queryHistoricProcessInstances({
+      client,
+      query: { maxResults: pageIds.length },
+      body: { processInstanceIds: pageIds },
+    }).then((res) => rowsOf<{ id?: string | null; startTime?: string | null }>(res)),
+  )
+  return new Map(
+    (rows ?? []).flatMap((row) => (row.id && row.startTime ? [[row.id, row.startTime]] : [])),
+  )
+}
+
 export async function buildProcessInstancesData(
   client: Client,
   engineId: string,
   args: ProcessInstancesArgs,
 ): Promise<ProcessInstancesData> {
+  const fetchedAt = new Date().toISOString()
   const filter = toProcessInstanceFilter(args)
 
   const [raw, totals, definition] = await Promise.all([
@@ -219,14 +243,12 @@ export async function buildProcessInstancesData(
   ])
 
   const page = raw.filter((i): i is RawInstance & { id: string } => !!i.id)
-  const [flagged, keyOf, nameOf] = await Promise.all([
-    instancesWithIncident(
-      client,
-      page.map((i) => i.id),
-      filter,
-    ),
+  const pageIds = page.map((i) => i.id)
+  const [flagged, keyOf, nameOf, startOf] = await Promise.all([
+    instancesWithIncident(client, pageIds, filter),
     rowKeyResolver(client, page, args.processDefinitionKey),
     rowNameResolver(client, page, definition),
+    startTimesOf(client, pageIds),
   ])
   const instances: ProcessInstanceRow[] = page.map((i) => ({
     id: i.id,
@@ -236,6 +258,7 @@ export async function buildProcessInstancesData(
     version: definitionVersionFromId(i.definitionId),
     suspended: i.suspended ?? false,
     hasIncident: flagged.has(i.id),
+    startTime: startOf.get(i.id) ?? null,
   }))
 
   return {
@@ -255,6 +278,7 @@ export async function buildProcessInstancesData(
         ? { search: args.search?.trim() }
         : { businessKeyLike: args.businessKeyLike }),
     },
+    fetchedAt,
     engineId,
   }
 }
@@ -283,12 +307,16 @@ const JOB_PANEL_ORDER = [
   { sortBy: "jobId", sortOrder: "asc" },
 ] as const
 
-/** All three reads are primary: an unreachable engine is a tool error, never "0 jobs". */
+/**
+ * All three reads are primary: an unreachable engine is a tool error, never "0 jobs". Both counts
+ * are read in either scope, so the view's segments count All and Without retries whichever lists.
+ */
 export async function buildJobPanelData(
   client: Client,
   engineId: string,
   args: JobsFilters & PagingArgs,
 ): Promise<JobPanelData> {
+  const fetchedAt = new Date().toISOString()
   const baseQuery = { processDefinitionKey: args.processDefinitionKey }
   const [raw, failedCount, allCount] = await Promise.all([
     queryJobs({
@@ -316,6 +344,7 @@ export async function buildJobPanelData(
 
   return {
     totalCount: args.failedOnly ? failedCount : allCount,
+    allCount,
     failedCount,
     jobs: raw.map((j) => ({
       id: j.id,
@@ -337,6 +366,7 @@ export async function buildJobPanelData(
       processDefinitionKey: args.processDefinitionKey,
       failedOnly: args.failedOnly,
     },
+    fetchedAt,
     engineId,
   }
 }

@@ -24,12 +24,14 @@ import { LucideProvider } from "lucide-react"
 import type { ToolResult } from "../protocol/tool-result.js"
 import { formatLocaleOf, isFormatLocale, usePublishedFormatLocale } from "./format-locale.js"
 import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
+import { PAGE_HINTS } from "./page-hints.js"
 import type { ShellHost } from "./shell-host.js"
 import { createViewQueryClient } from "./tool-query.js"
-import type { FollowUp, ViewHost } from "./view-host.js"
+import type { FollowUp, HostChrome, ToolCallOptions, ViewHost, ViewLocation } from "./view-host.js"
 
+/** What a widget asked the host; a call's `options` only where it named some. */
 export type HostAction =
-  | { type: "callTool"; name: string; args: Record<string, unknown> }
+  | { type: "callTool"; name: string; args: Record<string, unknown>; options?: ToolCallOptions }
   | { type: "sendFollowUp"; prompt: string }
   | { type: "openExternal"; url: string }
   | { type: "requestDisplayMode"; mode: string }
@@ -42,7 +44,10 @@ export interface TestViewHostProps {
    * tool rejects with `[TestViewHost] no fake for tool "<name>"`.
    */
   tools?: Readonly<Record<string, unknown>>
-  /** Every tool call, follow-up, link and display-mode request, in order. */
+  /**
+   * Every tool call (with the options a page's read named: `refresh`, `connector`), follow-up,
+   * link and display-mode request, in order.
+   */
   onHostAction?: (action: HostAction) => void
   /** Each mounted `HostModelContext` reports its content (last writer wins). */
   onModelContext?: (text: string) => void
@@ -55,6 +60,10 @@ export interface TestViewHostProps {
   writes?: boolean
   /** The page's start page (`ViewHost.startPage`); default none, as in a chat host. */
   startPage?: string
+  /** The page's address (`ViewHost.location`); default none, as in a chat host. */
+  location?: ViewLocation
+  /** The page's chrome around the view (`ViewHost.chrome`); default none, as in a chat host. */
+  chrome?: HostChrome
   /**
    * Merged over `{ connected: true, displayMode: "inline", availableDisplayModes: [] }`. Its
    * `timeZone` is the formatters' zone, as a host's is (unknown or none: the runtime's own).
@@ -114,16 +123,30 @@ interface FakeHostOptions {
   followUp?: FollowUp
   writes?: boolean
   startPage?: string
+  location?: ViewLocation
+  chrome?: HostChrome
 }
 
 function createFakeHost(
   tools: Readonly<Record<string, unknown>> = {},
-  { record = () => undefined, followUp = "chat", writes = true, startPage }: FakeHostOptions,
+  {
+    record = () => undefined,
+    followUp = "chat",
+    writes = true,
+    startPage,
+    location,
+    chrome,
+  }: FakeHostOptions,
 ): ViewHost {
   return {
-    callTool: async (name, args = {}) => {
+    callTool: async (name, args = {}, options) => {
       const callArgs = args as Record<string, unknown>
-      record({ type: "callTool", name, args: callArgs })
+      record({
+        type: "callTool",
+        name,
+        args: callArgs,
+        ...(options === undefined ? {} : { options }),
+      })
       if (!Object.hasOwn(tools, name)) throw new Error(`[TestViewHost] no fake for tool "${name}"`)
       const fake = tools[name]
       const value: unknown =
@@ -132,8 +155,12 @@ function createFakeHost(
     },
     sendFollowUp: (prompt) => record({ type: "sendFollowUp", prompt }),
     followUp,
+    // A page's host brings its words of what to do after a failure; a chat's none.
+    ...(followUp === "chat" ? {} : { pageHints: PAGE_HINTS }),
     writes,
     startPage,
+    ...(location === undefined ? {} : { location }),
+    ...(chrome === undefined ? {} : { chrome }),
     openExternal: (url) => record({ type: "openExternal", url }),
     ModelContext: FakeModelContext,
   }
@@ -146,14 +173,24 @@ export function TestViewHost({
   followUp,
   writes,
   startPage,
+  location,
+  chrome,
   host,
   client,
   locale,
   children,
 }: TestViewHostProps) {
   const fake = useMemo(
-    () => createFakeHost(tools, { record: onHostAction, followUp, writes, startPage }),
-    [tools, onHostAction, followUp, writes, startPage],
+    () =>
+      createFakeHost(tools, {
+        record: onHostAction,
+        followUp,
+        writes,
+        startPage,
+        location,
+        chrome,
+      }),
+    [tools, onHostAction, followUp, writes, startPage, location, chrome],
   )
   const [ownClient] = useState(createTestQueryClient)
   const shell = useMemo<ShellHost>(() => ({ ...NO_HOST, ...host }), [host])

@@ -11,7 +11,7 @@ export function InstanceTab({ data, engineId }: { data: IncidentDetailData; engi
     <div className="gap-section flex flex-col">
       {data.activityTree && (
         <div>
-          <SectionHeading title={t("incidentDetail.activityTreeTitle")} />
+          <SectionHeading as="h2" title={t("incidentDetail.activityTreeTitle")} />
           <Card className="gap-0 py-0 shadow-none">
             <CardContent className="p-gutter">
               <ActivityNode node={data.activityTree} />
@@ -21,6 +21,7 @@ export function InstanceTab({ data, engineId }: { data: IncidentDetailData; engi
       )}
       <div>
         <SectionHeading
+          as="h2"
           title={t("incidentDetail.variablesTitle")}
           hint={t("incidentDetail.variablesHint", {
             count: Object.keys(data.variables).length,

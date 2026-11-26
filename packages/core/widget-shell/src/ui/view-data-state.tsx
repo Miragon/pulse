@@ -5,6 +5,7 @@ import {
   EmptyState,
   ErrorState,
   Skeleton,
+  SKELETON_DELAY_MS,
   useLocale,
   useUiMessages,
   type StateHeadingLevel,
@@ -17,15 +18,13 @@ import {
   leadsToStartPage,
 } from "./describe-error.js"
 import { kitLabels } from "./kit-labels.js"
-import { useStartPage, useWordsFollowUp } from "./view-host.js"
+import { useErrorWords, useStartPage } from "./view-host.js"
 
 /**
- * How long a load runs before its skeleton shows (the webview's rule): a quick answer replaces
- * nothing with its content, without a skeleton flashing up for a moment.
+ * True once `delayMs` passed since the first render: a load's skeleton waits the kit's
+ * `SKELETON_DELAY_MS` (the webview's rule), so a quick answer replaces nothing with its content
+ * without a skeleton flashing up for a moment.
  */
-export const SKELETON_DELAY_MS = 400
-
-/** True once `delayMs` passed since the first render. */
 function useElapsed(delayMs: number): boolean {
   const [elapsed, setElapsed] = useState(false)
   useEffect(() => {
@@ -103,8 +102,12 @@ export function RefreshRegion({
   )
 }
 
-/** The way from a page's refused start to its start page, beside the words that lead there. */
-function StartPageLink({ href }: { href: string }) {
+/**
+ * The way from a page's refused start to its start page (`href`, the page's `startPage`), in the
+ * kit's words, beside the words that lead there: a failure's state puts it there, and so does a
+ * page that words such a refusal itself (the web app's engine the server does not configure).
+ */
+export function StartPageLink({ href }: { href: string }) {
   return (
     <a href={href} className={buttonVariants({ variant: "outline", size: "sm" })}>
       <House aria-hidden="true" />
@@ -136,7 +139,7 @@ export function FailureState({
   className?: string
 }) {
   const locale = useLocale()
-  const followUp = useWordsFollowUp()
+  const words = useErrorWords()
   const startPage = useStartPage()
   const { common } = useUiMessages()
   if (isSessionEnded(error)) {
@@ -148,7 +151,7 @@ export function FailureState({
       />
     )
   }
-  const described = describeError(error, locale, { fallbackTitle: title, followUp })
+  const described = describeError(error, locale, { fallbackTitle: title, ...words })
   const home = startPage !== undefined && leadsToStartPage(described.kind)
   return (
     <ErrorState

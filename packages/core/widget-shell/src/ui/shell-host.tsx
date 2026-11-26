@@ -9,6 +9,12 @@ export interface ShellHost {
   /** The bridge is connected; until then every other field is unknown. */
   connected: boolean
   theme?: EffectiveTheme
+  /**
+   * The document states its theme itself (its `data-theme`, as claude.ai stamps an artifact's
+   * root), so `theme` is the document's and the view writes no theme onto it (`useApplyTheme`):
+   * the kit's stylesheet follows that attribute, else the OS. Only a page's host sets it.
+   */
+  documentTheme?: boolean
   locale?: string
   timeZone?: string
   /** SEP-1865 `styles.variables` (`--color-*`, `--font-*`, …). */

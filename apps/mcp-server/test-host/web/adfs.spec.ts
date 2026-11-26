@@ -5,10 +5,11 @@ import {
   endGrant,
   expectNoAxeFinding,
   idpRecord,
+  navEntry,
   originOf,
-  type IdpRecord,
   SHORT_TOKEN_SECONDS,
   signIn,
+  type IdpRecord,
   WEB_CLIENT_ID,
 } from "./web-sim.js"
 
@@ -19,7 +20,7 @@ import {
  * ADFS refuses ends the session once the token expired.
  */
 
-const JOBS_PAGE = `/app/cockpit?view=jobs&engine=${HEALTHY_ENGINE}`
+const JOBS_PAGE = `/app/engines/${HEALTHY_ENGINE}/jobs`
 
 /** This browser's renewals at the deployment's provider: the scenarios beside it renew there too. */
 const renewalsOf = (record: IdpRecord, session: string) =>
@@ -34,8 +35,7 @@ test.describe("the web app at ADFS", () => {
     await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(`Signed in as ${ALICE.upn}`)).toBeAttached()
     const resource = `${originOf("adfs")}/mcp`
-    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
-    await sections.getByRole("button", { name: "Incidents" }).click()
+    await navEntry(page, "Incidents").click()
     await expect(page.getByText("No open incidents on this engine.")).toBeVisible({
       timeout: 15_000,
     })

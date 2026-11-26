@@ -36,8 +36,8 @@ import { engineViews } from "./views.js"
 const DASHBOARD: IncidentsDashboardData = {
   totalCount: 3,
   processCount: 1,
+  fetchedAt: "2026-10-26T08:00:00.000Z",
   affectedActivityCount: 1,
-  last24hCount: 1,
   latestIncident: null,
   processes: [],
   filters: {},
@@ -54,7 +54,6 @@ const PROCESS: IncidentsDashboardProcess = {
   incidentCount: 3,
   scannedIncidentCount: 3,
   affectedActivityCount: 1,
-  last24hCount: 1,
   latestIncident: null,
   cockpitUrl: null,
   activities: [],
@@ -63,7 +62,9 @@ const PROCESS: IncidentsDashboardProcess = {
 /** A job without retries: its row's menu holds hand-offs only. */
 const JOBS: JobPanelData = {
   totalCount: 1,
+  allCount: 1,
   failedCount: 1,
+  fetchedAt: "2026-10-26T08:00:00.000Z",
   jobs: [
     {
       id: "job-1",

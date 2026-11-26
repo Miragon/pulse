@@ -1,9 +1,9 @@
+import { CallActivities } from "@miragon/pulse-board/builder"
 import type { CalledProcess, DefinitionId } from "@miragon/pulse-engine-core"
-import { BpmnStructure } from "../bpmn/bpmn-structure.js"
+import type { CalledInstanceChoice, CallTarget } from "@miragon/pulse-screens/builder"
 import { ElementNames } from "../bpmn/element-names.js"
 import type { Notice } from "../protocol/index.js"
 import { CallLinks } from "../views/call-links.js"
-import type { CalledInstanceChoice, CallTarget } from "../views/call-targets.js"
 import { Labels } from "../views/labels.js"
 import type { InstanceChoice, OpenOptions, PanelContext } from "./panel-context.js"
 
@@ -23,9 +23,9 @@ export class CallJumps {
 
   async calledProcessesOf(definitionId: DefinitionId): Promise<readonly CalledProcess[]> {
     const xml = await this.context.diagrams.get(definitionId)
-    return BpmnStructure.hasCallActivities(xml)
-      ? this.context.runtime.getCalledProcesses(definitionId)
-      : []
+    return CallActivities.found(xml) === false
+      ? []
+      : this.context.runtime.getCalledProcesses(definitionId)
   }
 
   notice(): Notice | undefined {

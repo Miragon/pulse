@@ -5,11 +5,12 @@ import {
   chooseUser,
   expectNoAxeFinding,
   idpRecord,
+  navEntry,
   originOf,
-  type IdpRecord,
   recordCalls,
   SHORT_TOKEN_SECONDS,
   signIn,
+  type IdpRecord,
   WEB_CLIENT_ID,
 } from "./web-sim.js"
 
@@ -21,7 +22,7 @@ import {
  * sign-in comes back to the page, and a reload then shows that the session ended.
  */
 
-const JOBS_PAGE = `/app/cockpit?view=jobs&engine=${HEALTHY_ENGINE}`
+const JOBS_PAGE = `/app/engines/${HEALTHY_ENGINE}/jobs`
 
 /**
  * The calls the API refused from now on because the session was gone (401), each as its tool and
@@ -40,7 +41,7 @@ function refusedCalls(page: Page): string[] {
 const SESSION_COOKIE = "__Host-pulse-session"
 
 test.describe("signing in", () => {
-  test("sends a browser without a session to the identity provider, then shows the cockpit", async ({
+  test("sends a browser without a session to the identity provider, then shows the start page", async ({
     page,
   }) => {
     const calls = recordCalls(page)
@@ -50,24 +51,32 @@ test.describe("signing in", () => {
     await chooseUser(page)
     await page.waitForURL(`${originOf()}/app`)
 
-    // /app is the cockpit's landing: the engines and the server's boards to pick from.
-    await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeVisible({
+    // /app is the page's start page: every engine side by side and the server's boards.
+    await expect(page.getByRole("heading", { level: 1, name: "All engines" })).toBeVisible({
       timeout: 15_000,
     })
-    await expect(
-      page.getByRole("button", { name: new RegExp(`^${HEALTHY_ENGINE}\\b`) }),
-    ).toBeVisible()
+    const engines = page.getByRole("table", { name: "Engines" })
+    await expect(engines.getByRole("row", { name: `Engine ${HEALTHY_ENGINE}` })).toBeVisible()
     // The engine that answers 503 says so from its first failed read, as the board's strip does,
     // well before the query client's retries (1 + 2 + 4 s) would end.
-    await expect(
-      page.getByRole("button", { name: new RegExp(`^${BROKEN_ENGINE}\\b.*\\bunreachable$`) }),
-    ).toBeVisible({ timeout: 3_000 })
+    await expect(engines.getByRole("row", { name: `Engine ${BROKEN_ENGINE}` })).toContainText(
+      "not read",
+      { timeout: 3_000 },
+    )
+    await expect(page.getByText(`Engine ${BROKEN_ENGINE} is unreachable (HTTP 503)`)).toBeVisible({
+      timeout: 3_000,
+    })
     // The bar names who signed in and offers the sign-out.
     await expect(page.getByText(`Signed in as ${ALICE.name}`)).toBeAttached()
     await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible()
-    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toEqual([
-      { name: "engine_open_cockpit", arguments: { view: "landing" } },
-    ])
+    // The start page reads each engine's engine screen and calls no view.
+    expect(calls.filter((call) => call.name === "engine_open_cockpit")).toEqual([])
+    expect(
+      calls
+        .filter((call) => call.name === "engine_screen_processes_data")
+        .map((call) => call.arguments?.engine)
+        .sort(),
+    ).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
   })
 
   test("comes back to a deep link with its query after the sign-in", async ({ page }) => {
@@ -75,11 +84,7 @@ test.describe("signing in", () => {
     await signIn(page, JOBS_PAGE)
     const jobs = page.getByRole("region", { name: "Jobs", exact: true })
     await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
-    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
-    await expect(sections.getByRole("button", { name: "Jobs" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    )
+    await expect(navEntry(page, "Jobs")).toHaveAttribute("aria-current", "page")
     expect(calls.find((call) => call.name === "engine_open_cockpit")?.arguments).toEqual({
       view: "jobs",
       engine: HEALTHY_ENGINE,
@@ -91,7 +96,7 @@ test.describe("signing in", () => {
     context,
   }) => {
     const session = await signIn(page)
-    await expect(page.getByRole("heading", { level: 1, name: "Operations Cockpit" })).toBeVisible({
+    await expect(page.getByRole("heading", { level: 1, name: "All engines" })).toBeVisible({
       timeout: 15_000,
     })
     // This browser's session alone: the scenarios beside it sign in and out at the same provider.
@@ -137,8 +142,7 @@ test.describe("a session's token", () => {
       record.grants.filter((grant) => grant.type === "refresh_token" && grant.session === session)
         .length
     const before = renewals(await idpRecord("short"))
-    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
-    await sections.getByRole("button", { name: "Incidents" }).click()
+    await navEntry(page, "Incidents").click()
     await expect(page.getByText("No open incidents on this engine.")).toBeVisible({
       timeout: 15_000,
     })
@@ -179,12 +183,11 @@ test.describe("a session's token", () => {
     await expect(page.getByRole("button", { name: "Sign in again" })).toHaveCount(1)
     // No read is retried: past the query client's first retry (1 s), each was refused once.
     await page.waitForTimeout(1_500)
-    expect(new Set(refused).size).toBe(refused.length)
+    expect([...new Set(refused)], JSON.stringify(refused)).toEqual(refused)
 
     // A section opened after it: its title stays the page's heading, its reads refused once, and
     // each of its parts says only that it is not loaded: no box, no second word of the session.
-    const sections = page.getByRole("navigation", { name: "Cockpit sections" })
-    await sections.getByRole("button", { name: "Incidents" }).click()
+    await navEntry(page, "Incidents").click()
     await expect(
       page.getByRole("heading", { level: 1, name: `${HEALTHY_ENGINE} · Incidents` }),
     ).toBeVisible()
@@ -206,15 +209,22 @@ test.describe("a session's token", () => {
     ).toBeVisible({ timeout: 15_000 })
     await expect(reloaded.getByRole("link", { name: "Sign in again" })).toBeVisible()
     await expect(reloaded.getByRole("button", { name: "Sign out" })).toHaveCount(0)
-    await expect(reloaded.getByRole("heading", { name: "Operations Cockpit" })).toHaveCount(0)
+    await expect(reloaded.getByRole("heading", { name: "All engines" })).toHaveCount(0)
     await reloaded.close()
 
-    // No silent redirect: the page stays until the user signs in again, and comes back to it.
-    expect(page.url()).toBe(`${originOf("short")}${JOBS_PAGE}`)
+    // No silent redirect: the page stays, its address the section it moved to (N1), until the
+    // user signs in again, and comes back to it.
+    const incidentsPage = `/app/engines/${HEALTHY_ENGINE}/incidents`
+    expect(page.url()).toBe(`${originOf("short")}${incidentsPage}`)
     await page.getByRole("button", { name: "Sign in again" }).click()
     await chooseUser(page)
-    await page.waitForURL(`${originOf("short")}${JOBS_PAGE}`)
-    await expect(jobs.getByText("Card declined").first()).toBeVisible({ timeout: 15_000 })
+    await page.waitForURL(`${originOf("short")}${incidentsPage}`)
+    await expect(
+      page.getByRole("heading", { level: 1, name: `${HEALTHY_ENGINE} · Incidents` }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText("No open incidents on this engine.")).toBeVisible({
+      timeout: 15_000,
+    })
     await expect(page.getByText("Your session has ended")).toHaveCount(0)
   })
 })
@@ -260,21 +270,22 @@ test.describe("a session that ends while the cockpit is open", () => {
     await page.getByRole("button", { name: "Refresh" }).click()
     await expect(page.getByText("Your session has ended")).toBeVisible({ timeout: 15_000 })
 
-    // The landing's rows read now and meet the ended session: no engine refused a login, and
-    // none is down, so no row says so; each says it read nothing, without a tone.
-    const trail = page.getByRole("navigation", { name: "Breadcrumb" })
-    await trail.getByRole("button", { name: "All engines" }).click()
+    // The start page's rows read now and meet the ended session: no engine refused a login, and
+    // none is down, so no strip says so; each row says it read nothing, without a tone.
+    await navEntry(page, "Start").click()
+    const engines = page.getByRole("table", { name: "Engines" })
     for (const engine of [HEALTHY_ENGINE, BROKEN_ENGINE]) {
-      const row = page.getByRole("button", { name: new RegExp(`^${engine}\\s*,\\s*not loaded$`) })
-      await expect(row).toHaveAttribute("data-status", "notLoaded", { timeout: 15_000 })
+      const row = engines.getByRole("row", { name: `Engine ${engine}` })
+      await expect(row).toContainText("not read", { timeout: 15_000 })
+      await expect(row.locator('[data-part="engine"]')).toHaveAttribute("data-state", "unread")
     }
-    await expect(page.getByText(/credentials rejected|unreachable/)).toHaveCount(0)
+    await expect(page.getByText(/couldn't be read|credentials rejected|unreachable/)).toHaveCount(0)
     await expect(page.getByText("Your session has ended")).toHaveCount(1)
     await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0)
     // Each read asked once: the ended session is no failure a retry changes.
     await page.waitForTimeout(1_500)
     expect(refused.length).toBeGreaterThan(0)
-    expect(new Set(refused).size).toBe(refused.length)
+    expect([...new Set(refused)], JSON.stringify(refused)).toEqual(refused)
     await expectNoAxeFinding(page)
   })
 })

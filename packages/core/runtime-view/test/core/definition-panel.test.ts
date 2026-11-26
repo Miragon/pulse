@@ -1,5 +1,5 @@
 import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
-import { BpmnProcessId, RuntimeError } from "@miragon/pulse-engine-core"
+import { BpmnProcessId, RuntimeError, type InstanceSummary } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { DefinitionPanel } from "../../src/core/panels/definition-panel.js"
 import { EnginePanel } from "../../src/core/panels/engine-panel.js"
@@ -182,19 +182,13 @@ describe("the definition panel", () => {
 
     await panel.handle({ type: "ready" })
 
-    expect(readyView(fixture.lastState()).notices).toEqual([
-      {
-        tone: "info",
-        title: "2 instances still run on older versions.",
-        actions: [
-          {
-            kind: "selectVersion",
-            label: "Show v1",
-            definitionId: fixture.world.definitionIds["order@1"],
-          },
-        ],
-      },
-    ])
+    const view = readyView(fixture.lastState())
+    expect(view.notices).toEqual([])
+    expect(view.olderVersions).toEqual({
+      running: 2,
+      withIncident: 1,
+      show: { definitionId: fixture.world.definitionIds["order@1"], version: 1 },
+    })
   })
 
   test("switches to another version with its own badges", async () => {
@@ -376,6 +370,32 @@ describe("the definition panel", () => {
     const published = fixture.states.length
     await panel.handle({ type: "loadMoreInstances" })
     expect(fixture.states).toHaveLength(published)
+  })
+
+  test("shows an instance once where a later page repeats a row the page before showed", async () => {
+    let first: InstanceSummary | undefined
+    const fixture = panelFixture(
+      (runtime) =>
+        new PatchedRuntime(runtime, {
+          searchInstances: async (filter, page) => {
+            const read = await runtime.searchInstances(filter, { ...page, limit: 1 })
+            if (page.after === undefined) {
+              first = read.items[0]
+              return read
+            }
+            return { ...read, items: [...(first === undefined ? [] : [first]), ...read.items] }
+          },
+        }),
+    )
+    const definitionId = fixture.world.definitionIds["order@1"]
+    const panel = new DefinitionPanel(fixture.context, { bpmnProcessId: ORDER, definitionId })
+    await panel.handle({ type: "ready" })
+
+    await panel.handle({ type: "loadMoreInstances" })
+
+    const shown = readyView(fixture.lastState()).instances.map((row) => row.businessKey)
+    expect(shown).toHaveLength(2)
+    expect([...shown].sort()).toEqual(["ORD-1001", "ORD-1002"])
   })
 
   test("finds instances by business key", async () => {

@@ -105,6 +105,12 @@ export const MUTATED_PACKAGES = {
     "surface reads or refuses, and its builder the numbers each widget shows over the engine " +
     "contract, so a surviving mutant is a wrong refusal or a wrong number on every board; its " +
     "format and builder are mutated, not its barrels or fixtures",
+  "packages/core/screens":
+    "owner decision 2026-11-19 (D8 as amended, apps/vscode/docs/adr/ui-foundation.md): the " +
+    "screens' builder decides the numbers of the screens the web app and the editors share, and " +
+    "its format the rules a surface applies to them (a process list's filter, the sums across " +
+    "engines), so a surviving mutant is a wrong number on two surfaces, the board package's " +
+    "criterion; its format and builder are mutated, not its barrels or ./testing",
   "packages/core/widget-shell":
     "owner decisions 2026-11-16 to 2026-11-18: the web app's server rules (src/web: the seal of " +
     "its cookies, the cookies, the return path, the CSRF check, the forward of a page's call, " +
@@ -115,8 +121,13 @@ export const MUTATED_PACKAGES = {
     "where the sign-in sends its secrets and which key set the gate trusts, the generic " +
     "OpenID Connect provider (src/oauth-oidc.ts) which settings the gate refuses, and " +
     "Microsoft Entra ID (src/oauth-entra.ts) which tenant, version and scope its tokens carry, " +
-    "so a surviving mutant there is a security hole; only those sixteen files are mutated, not " +
-    "the boot, the view runtime or the other routes",
+    "so a surviving mutant there is a security hole; owner decision 2026-11-25: a page's calls " +
+    "(src/ui/page-reads/page-reader.ts) decide when an artifact asks past every cache, what it " +
+    "keeps and that a call never retries inside its section's retries, and a Claude " +
+    "artifact's caller (src/ui/claude-artifact/claude-tool-caller.ts) which of the runtime's " +
+    "answers is data, a tool's error or a refusal, so a surviving mutant there shows old " +
+    "numbers or wrong words or multiplies the calls on every artifact; only those eighteen " +
+    "files are mutated, not the boot, the view runtime or the other routes",
   "packages/connectors/c8/c8-core":
     "owner decision 2026-11-17: c8-core's rules decide the kind of every Camunda 8 failure, the " +
     "version floor, the instance filters and how the cluster's answers map onto the contract's " +
@@ -473,8 +484,8 @@ export function checkFilters(files) {
   ])
 }
 
-/** Release history, generated and vendored files: no filter in them runs or is copied. */
-const UNFILTERED = /^(?:CHANGELOG\.md|pnpm-lock\.yaml|docs\/\.vitepress\/miragon\/)/
+/** Release history and generated files: no filter in them runs or is copied. */
+const UNFILTERED = /^(?:CHANGELOG\.md|pnpm-lock\.yaml)/
 
 /** Every text file git tracks or would add, as { file, text }. */
 export function repoTextFiles(root) {

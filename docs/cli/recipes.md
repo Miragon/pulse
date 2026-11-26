@@ -72,6 +72,12 @@ pulse process-instance activate $INSTANCE_ID
 pulse process-instance delete $INSTANCE_ID --yes
 ```
 
+Write a [plan file](../vscode/migration-plans.md) for VS Code's _Pulse: Edit Migration Plan…_:
+
+```text
+pulse plan-migration invoice 1 2 --map check=review
+```
+
 ## History
 
 ```sh

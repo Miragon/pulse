@@ -1,7 +1,7 @@
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import { fakePort } from "../testing/fake-port.js"
-import { rawJson } from "./raw-json.js"
+import { rawJson } from "../raw-json.js"
 import {
   inspectedVariablesOf,
   readVariableInstances,

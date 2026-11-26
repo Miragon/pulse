@@ -74,7 +74,7 @@ The command surface is data, not hand-written code:
 src/bin/        entry point and the Node runtime (I/O, timers, loopback server, browser, lock file, shell)
 src/cli/        commander wiring and the utility commands; the only layer that imports commander
 src/operation/  input building, variables, dates, guards, request building, execution, pagination
-src/workflow/   the workflow commands on @miragon/pulse-c7-core (bundled): its text, waiting (pure)
+src/workflow/   the workflow commands on @miragon/pulse-c7-core and the plan file format @miragon/pulse-migration-plan (bundled): its text, waiting (pure)
 src/engine-port/ what the CLI needs from an engine: EnginePort and EngineAdapter (types only)
 src/engines/    one adapter per engine (operaton, cibseven, camunda7) and the list of them (pure)
 src/api/        one folder per engine API; camunda7-rest builds catalog and port for the adapters (pure)

@@ -30,19 +30,19 @@ The layers live in packages the extension shares with [Pulse for Orca](../orca/a
 each layer with its own globals and dependency rules; `apps/vscode/src/host` is the VS Code
 wiring and the composition root:
 
-| Package                                  | Layer      | Holds                                                                                  |
-| ---------------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
-| `packages/connectors/engine/engine-core` |            | the engine contract: ports, read models, conformance laws                              |
-| `packages/core/board`                    |            | the board file format and builder, shared with the MCP server (`@miragon/pulse-board`) |
-| `packages/core/blocks`                   |            | a board's tiles, shared with the MCP cockpit (`@miragon/pulse-blocks`)                 |
-| `packages/core/runtime-view`             | `ports`    | the ports of the editor hosts: engine plug, local model                                |
-|                                          | `core`     | grouping, view models, panel behaviour                                                 |
-|                                          | `protocol` | the messages between host and webview                                                  |
-|                                          | `webview`  | what the panels draw                                                                   |
-|                                          | `model`    | the local `.bpmn` model and the code that implements it                                |
-|                                          | `host-kit` | the host-neutral rules: targets, writes, live updates, logins                          |
-| `packages/connectors/c7/c7-adapter`      | adapter    | the C7 adapter of the contract                                                         |
-| `packages/connectors/c8/c8-adapter`      | adapter    | the C8 adapter of the contract, read-only                                              |
+| Package                                  | Layer      | Holds                                                                                           |
+| ---------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------- |
+| `packages/connectors/engine/engine-core` |            | the engine contract: ports, read models, conformance laws                                       |
+| `packages/core/board`                    |            | the board file format and builder, shared with the MCP server (`@miragon/pulse-board`)          |
+| `packages/core/blocks`                   |            | the tiles, the process list, an instance's, a process's blocks (`@miragon/pulse-blocks`)        |
+| `packages/core/runtime-view`             | `ports`    | the ports of the editor hosts: engine plug, local model                                         |
+|                                          | `core`     | grouping, view models (engine, process and instance: `@miragon/pulse-screens`), panel behaviour |
+|                                          | `protocol` | the messages between host and webview                                                           |
+|                                          | `webview`  | what the panels draw                                                                            |
+|                                          | `model`    | the local `.bpmn` model and the code that implements it                                         |
+|                                          | `host-kit` | the host-neutral rules: targets, writes, live updates, logins                                   |
+| `packages/connectors/c7/c7-adapter`      | adapter    | the C7 adapter of the contract                                                                  |
+| `packages/connectors/c8/c8-adapter`      | adapter    | the C8 adapter of the contract, read-only                                                       |
 
 By the owner's decision D9 of 2026-11-12 the webview renders with React on `@miragon/pulse-ui`,
 composes its kit and shares one compact look with the MCP widgets. Its tones come

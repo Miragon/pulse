@@ -9,6 +9,7 @@ import type {
 } from "../protocol/index.js"
 import { BulkOutcomes } from "./bulk-outcomes.js"
 import { Labels } from "./labels.js"
+import { MigrationFacts } from "./migration-facts.js"
 import { MigrationRows } from "./migration-rows.js"
 
 export interface MigrationScene {
@@ -97,12 +98,7 @@ export class MigrationViewBuilder {
   }
 
   private findings(): string {
-    const { problems } = this.state
-    const unmapped = this.rows.blocked().labels.length
-    if (problems.length > 0) {
-      return Labels.plural(problems.length, "problem")
-    }
-    return unmapped === 0 ? "no problems" : `${unmapped} without a mapping`
+    return MigrationFacts.findings(this.state.problems.length, this.rows.blocked().labels.length)
   }
 
   private offer(): MigrateOffer {
@@ -134,23 +130,23 @@ export class MigrationViewBuilder {
         reason: `Fix ${count} to migrate: ${problems[0]?.message ?? ""}`,
       }
     }
-    return this.unmappedOffer() ?? { status: "ready", label }
+    return this.unmappedOffer(target.version) ?? { status: "ready", label }
   }
 
-  private unmappedOffer(): MigrateOffer | undefined {
+  private unmappedOffer(version: number): MigrateOffer | undefined {
     const blocked = this.rows.blocked()
     if (blocked.labels.length === 0) {
       return undefined
     }
-    const where = blocked.labels.join(", ")
-    const has = blocked.labels.length === 1 ? "has" : "have"
-    const target = `v${this.state.target?.version ?? ""}`
     if (!blocked.countable) {
       return {
         status: "refused",
-        reason: `Instances wait at ${where}, which ${has} no mapping in ${target}. Map them first.`,
+        reason: `${MigrationFacts.unmapped(blocked.labels, version)} Map them first.`,
       }
     }
+    const where = blocked.labels.join(", ")
+    const has = blocked.labels.length === 1 ? "has" : "have"
+    const target = `v${version}`
     const waits = blocked.count === 1 ? "waits" : "wait"
     const reason = `${Labels.count(blocked.count)} of ${Labels.count(this.rows.count)} ${waits} at ${where}, which ${has} no mapping in ${target}.`
     const which = blocked.count === 1 ? "one" : Labels.count(blocked.count)
@@ -178,12 +174,9 @@ export class MigrationViewBuilder {
     if (target === undefined || latest === undefined) {
       return []
     }
-    if (target.version < source.version) {
-      return [this.info(`v${target.version} is older than v${source.version}.`)]
-    }
-    return target.version < latest
-      ? [this.info(`v${target.version} is not the latest version (v${latest}).`)]
-      : []
+    return MigrationFacts.versionNotes(source.version, target.version, latest).map((title) =>
+      this.info(title),
+    )
   }
 
   private info(title: string): Notice {

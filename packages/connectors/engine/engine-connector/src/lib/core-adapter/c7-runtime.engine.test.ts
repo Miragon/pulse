@@ -13,7 +13,10 @@
  * feed's builder over the seeded world, shows every tile read, with the numbers the kit's fake
  * world gives and its recording holds, and the cockpit's "With incident" chip of a process (the
  * instance list's POST count) counts what the board's counter of that process (the runtime's GET
- * count) counts.
+ * count) counts. The counts with the jobs without retries ("Running"), from one statistics read with
+ * `failedJobs` and `incidents`, are the contract's counts and the jobs the engine counts without
+ * `incidents`. A process's numbers (`engine_process_stats`, `engine_activity_counts`) count what
+ * the history and the runtime hold, as the cockpit counts them (process-numbers.test-support.ts).
  *
  * `pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` (Docker); its
  * own container start, since no package shares a Node test helper with another.
@@ -49,16 +52,20 @@ import {
 } from "@miragon/pulse-engine-core/testing"
 import { buildBoardData } from "../../data/board-data.js"
 import { buildProcessInstancesData } from "../../data/cockpit-data.js"
+import { buildEngineHealthData } from "../../data/health-data.js"
+import { buildEngineVerdictData } from "../../data/screens/verdict-data.js"
 import { providerForEntry } from "../../providers/index.js"
 import { createEngineConnection } from "../engine/engine-connection.js"
-import { runtimeOf } from "../engine/engine-runtime.js"
+import { c7RuntimeOf, runtimeOf } from "../engine/engine-runtime.js"
 import {
   createEngineRegistry,
   type ResolvedEngine,
   resolveEngine,
 } from "../engine/resolve-engine.js"
+import { engineStatusForModel } from "./composites.js"
 import { fakeWorldBoard, recordedBoard } from "./compared-boards.test-support.js"
 import { engineImageOf } from "./engine-image.test-support.js"
+import { PROCESS_NUMBER_CHECKS } from "./process-numbers.test-support.js"
 
 const ENGINE_IMAGE = engineImageOf(process.env.PULSE_ENGINE_IMAGE)
 const ENGINE_PORT = 8080
@@ -212,6 +219,17 @@ function boardEngineAt(url: string): (name: string) => ResolvedEngine {
   return (name) => resolveEngine(name, registry)
 }
 
+/** The jobs without retries per element that hold one, as `rows` count them. */
+function failedJobsOf(
+  rows: readonly { readonly element: string; readonly failedJobs: number }[],
+): Record<string, number> {
+  return Object.fromEntries(
+    rows
+      .filter(({ failedJobs }) => failedJobs > 0)
+      .map(({ element, failedJobs }) => [element, failedJobs]),
+  )
+}
+
 /** The seeded engine and the kit's harness over it. */
 interface Suite {
   readonly url: string
@@ -274,6 +292,72 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
       expect(instances.withIncidentCount).toBeGreaterThan(0)
       expect(counter).toMatchObject({ total: { count: instances.withIncidentCount } })
     })
+
+    test("statistics: the counts with the jobs without retries are the contract's counts, and the engine's jobs without incidents", async () => {
+      const { url, harness } = prepared()
+      const entry = { id: "conformance", baseUrl: url, flavor: ENGINE_FLAVOR }
+      const runtime = c7RuntimeOf(createEngineConnection(entry, { type: "none" }))
+      const byElement = <T extends { readonly elementId: string }>(rows: readonly T[]) =>
+        [...rows].sort((left, right) => left.elementId.localeCompare(right.elementId))
+      let failedJobs = 0
+      for (const id of Object.values(harness.world.definitionIds)) {
+        const [withJobs, counts, alone] = await Promise.all([
+          runtime.getElementStatisticsWithFailedJobs(id),
+          runtime.getElementStatistics(id),
+          rest(`${url}/process-definition/${id}/statistics?failedJobs=true`),
+        ])
+        const contract = withJobs.map(
+          ({ elementId, active, incidents, incidentsInCalledInstances }) => ({
+            elementId,
+            active,
+            incidents,
+            incidentsInCalledInstances,
+          }),
+        )
+        expect(byElement(contract), id).toEqual(byElement(counts))
+        const engineRows = (alone as { id: string; failedJobs: number }[]).map((row) => ({
+          element: row.id,
+          failedJobs: row.failedJobs,
+        }))
+        const read = withJobs.map((row) => ({ element: row.elementId, failedJobs: row.failedJobs }))
+        expect(failedJobsOf(read), id).toEqual(failedJobsOf(engineRows))
+        failedJobs += read.reduce((sum, row) => sum + row.failedJobs, 0)
+      }
+      // The world holds jobs without retries, so the case reads some.
+      expect(failedJobs).toBeGreaterThan(0)
+    })
+
+    test("verdict: engine_status, the health feed and the verdict feed count the world's root incidents, never its copy", async () => {
+      const { url } = prepared()
+      const engine = boardEngineAt(url)(C7_BOARD_ENGINE.engine)
+      const all = ((await rest(`${url}/incident/count`)) as { count: number }).count
+      const rows = (await rest(`${url}/process-definition/statistics?rootIncidents=true`)) as {
+        incidents: { incidentCount: number }[]
+      }[]
+      const roots = rows
+        .flatMap(({ incidents }) => incidents)
+        .reduce((sum, { incidentCount }) => sum + incidentCount, 0)
+      // The world's dispatch waits for the label it called: Camunda 7 copies its incident there.
+      expect(all).toBeGreaterThan(roots)
+      // Critical by every open incident, the copy included; by the root incidents not.
+      const thresholds = { criticalIncidents: all, criticalClusterSize: 99 }
+      const [status, health, verdict] = await Promise.all([
+        engineStatusForModel(engine.client, {}, engine.engineId, thresholds),
+        buildEngineHealthData(engine.client, engine.engineId, thresholds),
+        buildEngineVerdictData(engine, thresholds),
+      ])
+      expect(status).toMatchObject({
+        status: "warning",
+        rootIncidentsTotal: roots,
+        incidentsTotal: all,
+      })
+      expect([health.status, health.summary.totalIncidents]).toEqual(["warning", roots])
+      expect(verdict).toEqual({ status: "warning" })
+    })
+
+    for (const [name, check] of PROCESS_NUMBER_CHECKS) {
+      test(name, () => check(prepared().url, boardEngineAt(prepared().url)(C7_BOARD_ENGINE.engine)))
+    }
 
     test("bulk: a batch that cancels one instance reads as such, from the runtime, then the history", async () => {
       const { url, harness } = prepared()

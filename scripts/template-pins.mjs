@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Template pin gate: every package.json of templates/composed-server (server, modules, root,
- * found on disk, so a module added later is checked without an edit here) pins what it shares
- * with the workspace exactly as the workspace does. Runs first in scripts/test-template.sh and,
- * against the real tree, in `pnpm test` (template-pins.test.mjs).
+ * Template pin gate: every package.json of each template (TEMPLATES: the starter
+ * templates/composed-server with its server, modules and root, and the Claude artifact
+ * templates/claude-artifact; found on disk, so a module added later is checked without an edit
+ * here) pins what it shares with the workspace exactly as the workspace does. Runs first in
+ * scripts/test-template.sh and, against the real tree, in `pnpm test` (template-pins.test.mjs).
  *
  * - The @miragon/pulse-* libraries (workspace-packages.mjs's isPublishedLibrary) at the workspace
  *   version: exact in every stanza, `^<version>` as a peer (what `workspace:^` packs to).
@@ -33,9 +34,10 @@
  *   held there by check-ratchets.mjs): the workspace's one exact pin, the root manifest's
  *   included. The workspace's Prettier formats the template's files, and the starter's
  *   `pnpm format:check` must accept them as they are; another Prettier or plugin release can
- *   print them differently. Dependabot moves both directories like the shared libraries.
- * - The template's pnpm-workspace.yaml fails an install on an unmet peer (strictPeerDependencies,
- *   held here: without it a split bump installs with a warning).
+ *   print them differently. Dependabot moves the directories like the shared libraries. A
+ *   template that pins no formatter (the Claude artifact: the root's formats it) is held to none.
+ * - Each template's pnpm-workspace.yaml fails an install on an unmet peer
+ *   (strictPeerDependencies, held here: without it a split bump installs with a warning).
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
@@ -156,17 +158,27 @@ export function templatePinFindings(manifests, { versions, pins }) {
   return { unknown, drifted }
 }
 
-const TEMPLATE_WORKSPACE = "templates/composed-server/pnpm-workspace.yaml"
+/**
+ * The templates, each a pnpm workspace of its own outside the repo's (`dir`), with the manifest
+ * whose absence means the template moved (`manifest`, relative to `dir`).
+ */
+export const TEMPLATES = [
+  { dir: "templates/composed-server", manifest: "server/package.json" },
+  { dir: "templates/claude-artifact", manifest: "package.json" },
+]
 
-/** The findings of the template's pnpm-workspace.yaml (`workspaceYaml`, its text): strict peers off. */
-export function peerRuleFindings(workspaceYaml) {
+/**
+ * The findings of a template's pnpm-workspace.yaml (`workspaceYaml`, its text, read from `file`,
+ * repo-relative): strict peers off.
+ */
+export function peerRuleFindings(workspaceYaml, file) {
   const settings = parse(workspaceYaml) ?? {}
   if (settings.strictPeerDependencies === true) return []
   const found = settings.strictPeerDependencies
   return [
-    `${TEMPLATE_WORKSPACE}: strictPeerDependencies is ` +
+    `${file}: strictPeerDependencies is ` +
       `${found === undefined ? "missing" : JSON.stringify(found)}, expected true: an unmet peer ` +
-      "must fail the starter's install, or a split @miragon/pulse-* or MCP SDK bump installs",
+      "must fail the template's install, or a split @miragon/pulse-* or MCP SDK bump installs",
   ]
 }
 
@@ -199,8 +211,50 @@ export function templateManifests(templateRoot, rel = "") {
     .sort((a, b) => a.file.localeCompare(b.file))
 }
 
-/** Every finding for the repo at `root`, as message lines (empty when the template holds). */
-export function checkTemplatePins(root) {
+/**
+ * The findings of one template (`{ dir, manifest }`, a TEMPLATES entry) of the repo at `root`
+ * against the library `versions` and the workspace `pins`, as message lines naming its files.
+ */
+export function templateFindings(root, { dir, manifest }, { versions, pins }) {
+  const templateRoot = path.join(root, dir)
+  const manifests = existsSync(templateRoot) ? templateManifests(templateRoot) : []
+  if (!manifests.some(({ file }) => file === manifest)) {
+    return [`No ${manifest} under ${dir}: is the template still there?`]
+  }
+  const { unknown, drifted } = templatePinFindings(
+    manifests.map(({ file, manifest: json }) => ({ file: `${dir}/${file}`, manifest: json })),
+    { versions, pins },
+  )
+  const workspaceFile = `${dir}/pnpm-workspace.yaml`
+  const workspaceYaml = path.join(root, workspaceFile)
+  const rules = existsSync(workspaceYaml)
+    ? peerRuleFindings(readFileSync(workspaceYaml, "utf8"), workspaceFile)
+    : [
+        `No ${workspaceFile}: a copy of the template installs its workspace and its peer rules from it`,
+      ]
+  const out = []
+  if (unknown.length > 0) {
+    out.push(
+      `${dir} depends on packages this workspace does not publish as libraries (pnpm ` +
+        `would install whatever npm holds under that name; known: ${Object.keys(versions).join(", ")}):`,
+      ...unknown,
+    )
+  }
+  if (drifted.length > 0) {
+    out.push(
+      `The pins of ${dir} drifted from the workspace (a missing release-please extra-files ` +
+        "entry, or a bump that skipped the template?):",
+      ...drifted,
+    )
+  }
+  if (rules.length > 0) {
+    out.push(`The pnpm-workspace.yaml of ${dir} drifted from its peer contract:`, ...rules)
+  }
+  return out
+}
+
+/** Every finding for the repo at `root`, as message lines (empty when every template holds). */
+export function checkTemplatePins(root, templates = TEMPLATES) {
   const packages = readWorkspace(root)
   const versions = Object.fromEntries(
     packages.filter(isPublishedLibrary).map(({ manifest }) => [manifest.name, manifest.version]),
@@ -213,33 +267,10 @@ export function checkTemplatePins(root) {
     ...FORMATTER,
     ...mcpPackages(manifests),
   ])
-  const template = templateManifests(path.join(root, "templates/composed-server"))
-  if (!template.some(({ file }) => file === "server/package.json")) {
-    return [`No server/package.json under templates/composed-server: is the template still there?`]
-  }
-  const { unknown, drifted } = templatePinFindings(template, { versions, pins })
-  const workspaceYaml = path.join(root, TEMPLATE_WORKSPACE)
-  const rules = existsSync(workspaceYaml)
-    ? peerRuleFindings(readFileSync(workspaceYaml, "utf8"))
-    : [`No ${TEMPLATE_WORKSPACE}: the starter installs its workspace and its peer rules from it`]
   const out = []
   if (errors.length > 0) out.push("The workspace disagrees with itself:", ...errors)
-  if (unknown.length > 0) {
-    out.push(
-      "The template depends on packages this workspace does not publish as libraries (pnpm " +
-        `would install whatever npm holds under that name; known: ${Object.keys(versions).join(", ")}):`,
-      ...unknown,
-    )
-  }
-  if (drifted.length > 0) {
-    out.push(
-      "Template pins drifted from the workspace (a missing release-please extra-files entry, or " +
-        "a bump that skipped the template?):",
-      ...drifted,
-    )
-  }
-  if (rules.length > 0) {
-    out.push("The template's pnpm-workspace.yaml drifted from its peer contract:", ...rules)
+  for (const template of templates) {
+    out.push(...templateFindings(root, template, { versions, pins }))
   }
   return out
 }
@@ -253,8 +284,8 @@ if (isMain) {
     process.exit(1)
   }
   console.log(
-    `Template pins: the @miragon/pulse-* libraries, ${SHARED_LIBRARIES.join(", ")}, ` +
-      `${FORMATTER.join(", ")} and the ${MCP_SCOPE}* packages match the workspace; the ` +
-      "starter's install is strict on peers.",
+    `Template pins (${TEMPLATES.map(({ dir }) => dir).join(", ")}): the @miragon/pulse-* ` +
+      `libraries, ${SHARED_LIBRARIES.join(", ")}, ${FORMATTER.join(", ")} and the ${MCP_SCOPE}* ` +
+      "packages match the workspace; each template's install is strict on peers.",
   )
 }

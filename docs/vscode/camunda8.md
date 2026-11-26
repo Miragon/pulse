@@ -5,9 +5,9 @@ cluster's Orchestration Cluster REST API (`/v2`): processes, instances, incident
 where an instance waits, with badges on the deployed diagram. They read and never write: on a
 Camunda 8 cluster Pulse offers no retry, variable change, token move, cancellation or migration, and
 its views say that the engine is read-only. A cluster below 8.9 shows a problem that names its
-version. The MCP server shows a cluster [on boards](../mcp/camunda8.md); the CLI reads the Camunda 7
-REST API only and refuses a `camunda8` profile on its own, up to 0.27 the whole file that holds one
-([Configuration](./configuration.md#engines)).
+version. The MCP server's chat shows a cluster [on boards](../mcp/camunda8.md), its web app whole;
+the CLI reads the Camunda 7 REST API only and refuses a `camunda8` profile on its own, up to 0.27
+the whole file that holds one ([Configuration](./configuration.md#engines)).
 
 ## A profile
 
@@ -77,11 +77,11 @@ and when Pulse asks again. A client secret or token a cluster quotes in an error
 
 ## What is tested
 
-The conformance kit of the engine contract proves the adapter on a local cluster in
-Testcontainers (`packages/connectors/c8/c8-adapter/test/c8-conformance.engine.test.ts`): its 51
-read laws, the recorded board's numbers over the kit's world, the message, timer and signal an
-instance waits for, and what each login reads. Every leg passed on 2026-11-17, one at a time (the
-time includes starting the containers):
+The conformance kit of the engine contract proves the adapter on a local cluster in Testcontainers
+(`packages/connectors/c8/c8-adapter/test/c8-conformance.engine.test.ts`): its 55 read laws, the
+recorded board's numbers over the kit's world, the message, timer and signal an instance waits for,
+and what each login reads. On 2026-11-21 the leg 8.10.9, H2, none passed all 55 (62 of 62);
+the 51 of 2026-11-17 passed on every leg, one at a time (the time includes starting the containers):
 
 | Camunda | Secondary storage | Security | Passed   | Time |
 | ------- | ----------------- | -------- | -------- | ---- |

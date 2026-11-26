@@ -1,11 +1,18 @@
 import assert from "node:assert/strict"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import { DEFAULT_PROJECT_FILES } from "../eslint.config.mjs"
 import { expandWorkspaceGlobs, workspaceGlobs } from "./check-package-scripts.mjs"
-import { PATH_RULES, SCOPES, mergeCommitFiles, scopesFor, withDependents } from "./ci-scopes.mjs"
+import {
+  PATH_RULES,
+  PLUGIN_APPS,
+  SCOPES,
+  mergeCommitFiles,
+  scopesFor,
+  withDependents,
+} from "./ci-scopes.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -75,7 +82,7 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
   })
 
   it("runs nothing beyond the always-on checks for a package README or a root Markdown file", () => {
-    assert.deepEqual(scopes("packages/core/widget-shell/README.md", "CLAUDE.md", "TODOS.md"), [])
+    assert.deepEqual(scopes("packages/core/http/README.md", "CLAUDE.md", "TODOS.md"), [])
   })
 
   it("brand-lints the root README and the docs site", () => {
@@ -91,9 +98,44 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     )
   })
 
+  it("runs pulse-ui's suites for its README, whose example its browser chat suite renders", () => {
+    assert.deepEqual(scopes("packages/core/ui/README.md"), ["typescript"])
+  })
+
+  it("runs widget-shell's suites for its README, whose example its browser page suite renders", () => {
+    assert.deepEqual(scopes("packages/core/widget-shell/README.md"), ["typescript"])
+  })
+
   it("treats the CLI's prose as code: its tests read its README and its skills", () => {
     assert.deepEqual(scopes("apps/cli/README.md"), ["brand", "cli", "typescript"])
-    assert.deepEqual(scopes("apps/cli/skills/pulse-cli/SKILL.md"), ["cli", "typescript"])
+    assert.deepEqual(scopes("apps/cli/skills/pulse-cli/SKILL.md"), ["cli", "plugins", "typescript"])
+  })
+
+  it("validates the plugins for the MCP server's plugin, prose included, and runs its tests, not the widget suites", () => {
+    const plugin = "apps/mcp-server/skills/pulse-artifact"
+    for (const file of [`${plugin}/SKILL.md`, `${plugin}/evals/process-dashboard/prompt.md`]) {
+      assert.deepEqual(scopes(file), ["plugins", "typescript"], file)
+    }
+    // The manifest is no prose: the package rules run the server's checks as for its code.
+    assert.deepEqual(scopes(`${plugin}/.claude-plugin/plugin.json`), [
+      "mcp",
+      "plugins",
+      "typescript",
+    ])
+    // Prose elsewhere in the server stays its own: the plugin rule is no blanket.
+    assert.deepEqual(scopes("apps/mcp-server/README.md"), [])
+  })
+
+  it("validates the plugins for the boards plugin of Pulse for VS Code, prose included", () => {
+    const plugin = "apps/vscode/skills/pulse-boards"
+    assert.deepEqual(scopes(`${plugin}/SKILL.md`), ["plugins", "vscode-package"])
+    // The manifest is no prose: the package rules run the extension's checks as for its code.
+    assert.deepEqual(scopes(`${plugin}/.claude-plugin/plugin.json`), [
+      "plugins",
+      "typescript",
+      "vscode",
+      "vscode-package",
+    ])
   })
 
   it("runs the CLI's tests and builds for its pages of the docs site", () => {
@@ -104,11 +146,7 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("docs/package.json"), ["brand", "cli", "typescript"])
   })
 
-  it("runs the token drift test for the vendored docs kit, not for the rest of the site's config", () => {
-    assert.deepEqual(scopes("docs/.vitepress/miragon/cd-tokens.generated.css"), [
-      "brand",
-      "typescript",
-    ])
+  it("runs no token drift test for the rest of the site's config", () => {
     assert.deepEqual(scopes("docs/.vitepress/theme/HomeLanding.vue"), ["brand"])
   })
 
@@ -126,6 +164,15 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
 
   it("runs the script guards for the developer page, whose command local-env.test.mjs reads", () => {
     assert.deepEqual(scopes("docs/mcp/developer.md"), ["brand", "typescript"])
+  })
+
+  it("runs lint:github for the artifacts page, whose marked pulse-ui version it holds to the release", () => {
+    assert.deepEqual(scopes("docs/mcp/claude-artifacts.md"), ["brand", "typescript"])
+  })
+
+  it("runs pulse-ui's tests for the glossary page, which they generate and hold to the data", () => {
+    assert.deepEqual(scopes("docs/glossary.md"), ["brand", "typescript"])
+    assert.deepEqual(scopes("docs/overview.md"), ["brand"])
   })
 
   it("runs pnpm lint for every config file lint:configs lints, the docs site's too", () => {
@@ -197,7 +244,7 @@ describe("scopesFor: a package's code reaches its dependents", () => {
   })
 
   it("runs the MCP server's checks for the web app, whose page shows the MCP views", () => {
-    assert.deepEqual(scopes("apps/web/src/frame.tsx"), ["mcp", "typescript"])
+    assert.deepEqual(scopes("apps/web/src/frame/session-frame.tsx"), ["mcp", "typescript"])
     assert.deepEqual(scopes("apps/web/README.md"), [])
   })
 
@@ -363,6 +410,36 @@ describe("scopesFor: paths outside the packages", () => {
     assert.ok(!scopes("templates/composed-server/server/src/app.ts").includes("starter-engine"))
   })
 
+  it("runs the template's job for the Claude artifact's code and fixtures, the TypeScript job for its agent file and README", () => {
+    for (const file of [
+      "templates/claude-artifact/src/app.tsx",
+      "templates/claude-artifact/src/page.html",
+      "templates/claude-artifact/fixtures/miraveloLeasing.json",
+      "templates/claude-artifact/package.json",
+    ]) {
+      assert.deepEqual(scopes(file), ["template", "typescript"], file)
+    }
+    // The MCP server's plugin test reads the agent file, lint:github the README's release tag.
+    for (const file of [
+      "templates/claude-artifact/CLAUDE.md",
+      "templates/claude-artifact/README.md",
+    ]) {
+      assert.deepEqual(scopes(file), ["typescript"], file)
+    }
+  })
+
+  it("validates the plugins for the marketplace, whose listing the MCP server's plugin test reads", () => {
+    assert.deepEqual(scopes(".claude-plugin/marketplace.json"), ["plugins", "typescript"])
+  })
+
+  it("validates the plugins for the manifest of an app that ships one: its version is the plugin's", () => {
+    assert.ok(scopes("apps/cli/package.json").includes("plugins"))
+    assert.ok(scopes("apps/mcp-server/package.json").includes("plugins"))
+    assert.ok(scopes("apps/vscode/package.json").includes("plugins"))
+    assert.ok(!scopes("apps/orca/package.json").includes("plugins"))
+    assert.ok(!scopes("apps/mcp-server/src/app.ts").includes("plugins"))
+  })
+
   it("runs the TypeScript job for a workflow no pull request runs, so lint:github checks it", () => {
     assert.deepEqual(scopes(".github/workflows/publish-cli.yml", ".github/dependabot.yml"), [
       "typescript",
@@ -510,6 +587,23 @@ describe("the real workspace", () => {
       assert.ok(existsSync(path.join(repoRoot, file)), file)
       assert.ok(scopesFor([file], packages).has("mcp-engines"), file)
     }
+  })
+
+  it("names every app that ships a Claude Code plugin in PLUGIN_APPS", () => {
+    const shipping = dirs
+      .filter((dir) => dir.startsWith("apps/"))
+      .filter((dir) => {
+        const skills = path.join(repoRoot, dir, "skills")
+        return (
+          existsSync(skills) &&
+          readdirSync(skills).some((name) =>
+            existsSync(path.join(skills, name, ".claude-plugin", "plugin.json")),
+          )
+        )
+      })
+      .map((dir) => dir.slice("apps/".length))
+      .sort()
+    assert.deepEqual(shipping, [...PLUGIN_APPS].sort())
   })
 
   it("keeps the CLI and the extension apart from the MCP server's packages", () => {

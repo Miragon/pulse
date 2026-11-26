@@ -161,7 +161,7 @@ describe("tools/list golden contract per toolset", () => {
       expect(
         repeatedParamDescriptions(sorted),
         "A parameter that means the same on several tools is explained once in the module " +
-          "instructions; describe it on a tool only where it means more there (add-bpm-feature skill).",
+          "instructions; describe it on a tool only where it means more there (CLAUDE.md, invariant 5).",
       ).toEqual([])
       assertGolden(golden, sorted)
       assertCharBudget(golden, modelVisibleChars(sorted, instructions))

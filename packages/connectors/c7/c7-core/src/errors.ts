@@ -83,6 +83,12 @@ export type WorkflowErrorReason =
       readonly workerId: string
       readonly lockExpirationTime?: string
     }
+  // migration plans
+  /**
+   * The engine answered `operationId` in a shape the REST API does not document; `problem` says
+   * what is wrong in it (`instructions is not a list`).
+   */
+  | { readonly kind: "unexpected-answer"; readonly operationId: string; readonly problem: string }
 
 /** A refusal or failure of the workflow domain; its message is the reason's kind. */
 export class WorkflowError extends Error {

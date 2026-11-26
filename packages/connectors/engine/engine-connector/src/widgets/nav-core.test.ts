@@ -134,30 +134,35 @@ describe("viewKey", () => {
 })
 
 describe("crumbLabel", () => {
-  it("names the jobs, and the history by its instance", () => {
+  // The history's own title names the instance (N6): its crumb names the view, never the id twice.
+  it("names the jobs, and the history as the view it is", () => {
     expect(crumbLabel({ section: "jobs", processDefinitionKey: "invoice" }, "en")).toBe("Jobs")
     expect(crumbLabel({ section: "jobs" }, "de")).toBe("Jobs")
-    expect(crumbLabel({ section: "history", processInstanceId: C7_ID }, "en")).toBe(
-      "History 5f0ce78e…",
-    )
-    expect(crumbLabel({ section: "history", processInstanceId: "pi-1" }, "de")).toBe("Verlauf pi-1")
+    expect(crumbLabel({ section: "history", processInstanceId: C7_ID }, "en")).toBe("History")
+    expect(crumbLabel({ section: "history", processInstanceId: "pi-1" }, "de")).toBe("Verlauf")
+  })
+
+  // N6: a cause's crumb is its element, never "Cluster: …", a word the product uses nowhere else.
+  it("names a cause by its element's name, else its id", () => {
+    const cause = {
+      section: "cluster-detail",
+      activityId: "Activity_Check",
+      incidentType: "failedJob",
+    } as const
+    expect(crumbLabel(cause, "en")).toBe("Activity_Check")
+    expect(crumbLabel({ ...cause, label: "Check blacklist" }, "de")).toBe("Check blacklist")
   })
 
   // A Camunda 8 key's head is its partition's: every key on partition 1 starts with 22517998.
-  it("names an instance, an incident and a history by the part of its id that tells it apart", () => {
+  it("names an instance and an incident by the part of its id that tells it apart", () => {
     const crumbs = (id: string) => [
       crumbLabel({ section: "instance-detail", processInstanceId: id }, "en"),
       crumbLabel({ section: "incident-detail", incidentId: id }, "en"),
-      crumbLabel({ section: "history", processInstanceId: id }, "en"),
     ]
-    expect(crumbs(C7_ID)).toEqual(["Instance 5f0ce78e…", "Incident 5f0ce78e…", "History 5f0ce78e…"])
-    expect(crumbs(C8_KEY)).toEqual([
-      "Instance …13685249",
-      "Incident …13685249",
-      "History …13685249",
-    ])
+    expect(crumbs(C7_ID)).toEqual(["Instance 5f0ce78e…", "Incident 5f0ce78e…"])
+    expect(crumbs(C8_KEY)).toEqual(["Instance …13685249", "Incident …13685249"])
     expect(crumbs("2251799813685250")).not.toEqual(crumbs(C8_KEY))
-    expect(crumbs("pi-1")).toEqual(["Instance pi-1", "Incident pi-1", "History pi-1"])
+    expect(crumbs("pi-1")).toEqual(["Instance pi-1", "Incident pi-1"])
   })
 
   it("names an instance and an incident by the drill's label first", () => {

@@ -1,82 +1,28 @@
-import { Button } from "@miragon/pulse-ui"
-import type { DefinitionView, InstanceListFilter, InstanceRow } from "../../core/protocol/index.js"
-import { DataTable, type Column } from "../components/data-table.js"
-import { EmptyHint } from "../components/empty-hint.js"
+import {
+  BadgeLegend,
+  InstanceFilterBar,
+  InstanceTable,
+  type ScreenIdProps,
+  type ScreenSlots,
+} from "@miragon/pulse-blocks"
+import { useMemo } from "react"
+import type { DefinitionView, InstanceListFilter } from "../../core/protocol/index.js"
+import { DiagramBadge } from "../components/count-badge.js"
 import { IdText } from "../components/id-text.js"
-import { IncidentFlag, StateLabel } from "../components/state-label.js"
-import { NoValue } from "../components/no-value.js"
-import { TimeLabels } from "../format/time-labels.js"
 import { useHost } from "../host/host-context.js"
-import { InstanceFilter } from "./instance-filter.js"
-import { InstanceFilterBar } from "./instance-filter-bar.js"
+import { useInstanceSelection } from "./instance-selection.js"
+import { ListedInstances } from "./listed-instance.js"
+import { useProcessSlots } from "./process-slots.js"
 import { ScreenFrame } from "./screen-frame.js"
-import { useSelectionColumn } from "./instance-selection.js"
 import { SelectionBar } from "./selection-bar.js"
 
-function StartedCell({ row }: { readonly row: InstanceRow }) {
-  if (row.startedAt === undefined) {
-    return <NoValue />
-  }
-  return (
-    <span title={TimeLabels.tooltip(row.startedAt)}>
-      {TimeLabels.clock(row.startedAt)}
-      <span className="text-muted-foreground"> · {TimeLabels.relative(row.startedAt)}</span>
-    </span>
-  )
+function InstanceId({ id, label }: ScreenIdProps) {
+  return <IdText id={id} shortId={id} label={label} />
 }
 
-const COLUMNS: readonly Column<InstanceRow>[] = [
-  {
-    key: "id",
-    label: "ID",
-    render: (row) => <IdText id={row.id} shortId={row.shortId} label="instance ID" />,
-  },
-  {
-    key: "businessKey",
-    label: "Business key",
-    render: (row) => row.businessKey ?? <NoValue />,
-  },
-  {
-    key: "state",
-    label: "State",
-    render: (row) => (
-      <span className="inline-flex items-center gap-3">
-        <StateLabel state={row.state} />
-        {row.hasIncident && <IncidentFlag />}
-      </span>
-    ),
-  },
-  { key: "started", label: "Started", render: (row) => <StartedCell row={row} /> },
-]
-
-const SCOPE_WORDS: Readonly<Record<InstanceListFilter["scope"], string>> = {
-  running: "No running instances",
-  withIncident: "No instances with an incident",
-  ended: "No ended instances",
-  all: "No instances",
-}
-
-function NoMatches({
-  filter,
-  onFilter,
-}: {
-  readonly filter: InstanceListFilter
-  readonly onFilter: (filter: InstanceListFilter) => void
-}) {
-  if (filter.variables === undefined) {
-    return <EmptyHint text="No instances match this filter." />
-  }
-  return (
-    <EmptyHint
-      text={`${SCOPE_WORDS[filter.scope]} match these variable conditions. An engine that keeps no variable history finds none.`}
-      action={{
-        label: "Clear variable conditions",
-        onClick: () => {
-          onFilter(InstanceFilter.withoutVariables(filter))
-        },
-      }}
-    />
-  )
+function useInstanceSlots(): ScreenSlots {
+  const slots = useProcessSlots()
+  return { ...slots, Id: InstanceId }
 }
 
 export interface InstanceListProps {
@@ -87,69 +33,48 @@ export interface InstanceListProps {
   readonly busy: boolean
 }
 
-function LoadMore({ busy }: { readonly busy: boolean }) {
-  const host = useHost()
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      disabled={busy}
-      title={busy ? "Wait until the refresh is done" : undefined}
-      onClick={() => {
-        host.post({ type: "loadMoreInstances" })
-      }}
-    >
-      Load more
-    </Button>
-  )
-}
-
 export function InstanceList({ view, elementName, onFilter, refreshing, busy }: InstanceListProps) {
   const host = useHost()
-  const selectionColumn = useSelectionColumn(view.instances, view.selection?.count ?? 0)
-  const columns = selectionColumn === undefined ? COLUMNS : [selectionColumn, ...COLUMNS]
+  const slots = useInstanceSlots()
+  const rows = useMemo(() => view.instances.map((row) => ListedInstances.of(row)), [view.instances])
+  const select = useInstanceSelection(rows, view.selection?.count ?? 0)
   return (
     <section className={ScreenFrame.LIST_REGION} aria-label="Instance list">
       <InstanceFilterBar
         filter={view.filter}
         counts={view.scopeCounts}
-        refreshing={refreshing}
-        version={view.selectedVersion}
+        busy={refreshing}
         historyNote={view.historyNote}
-        variableLabels={view.variableLabels}
-        variableNames={view.variableNames}
-        refusedConditions={view.refusedVariableConditions}
         elementName={elementName}
+        variables={{
+          labels: view.variableLabels,
+          names: view.variableNames,
+          refused: view.refusedVariableConditions,
+          onSuggest: () => {
+            host.post({ type: "suggestVariableNames" })
+          },
+        }}
+        legend={<BadgeLegend version={view.selectedVersion} Badge={DiagramBadge} />}
         onFilter={onFilter}
       />
       {view.selection !== undefined && <SelectionBar selection={view.selection} />}
-      <DataTable
-        label="Instances"
-        resizeId="instances"
-        columns={columns}
-        rows={view.instances}
-        rowKey={(row) => row.id}
-        actions={{
-          onActivate: (row, toSide) => {
-            host.post({ type: "openInstance", instanceId: row.id, toSide })
-          },
-          rowLabel: (row) => `Instance ${row.businessKey ?? row.shortId}`,
-          onCopy: (row) => {
-            host.post({ type: "copy", text: row.id, label: "instance ID" })
-          },
-          onToggle: (row) => {
-            if (row.selectable === true) {
-              host.post({
-                type: "toggleInstances",
-                ids: [row.id],
-                selected: row.selected !== true,
-              })
-            }
-          },
-        }}
-        empty={<NoMatches filter={view.filter} onFilter={onFilter} />}
-        footer={view.hasMoreInstances ? <LoadMore busy={busy} /> : undefined}
+      <InstanceTable
+        engine={view.engine.name}
+        rows={rows}
+        filter={view.filter}
+        onFilter={onFilter}
+        more={
+          view.hasMoreInstances
+            ? {
+                busy,
+                onMore: () => {
+                  host.post({ type: "loadMoreInstances" })
+                },
+              }
+            : undefined
+        }
+        select={select}
+        slots={slots}
       />
     </section>
   )

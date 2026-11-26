@@ -178,15 +178,30 @@ describe("KpiGrid clickable cells (WCAG 2.5.3, label in name)", () => {
     expect(attribute(second ?? "", "aria-describedby")).toBeUndefined()
   })
 
-  it("is a native button with the kit's inset focus ring and a Lucide chevron, no glyph", () => {
+  it("is a native button with the kit's inset focus ring and the drill's Lucide arrow, no glyph", () => {
     expect(attribute(first ?? "", "type")).toBe("button")
     expect(classOf(first)).toContain("focus-visible:ring-inset")
     // The outline only while focus is visible: forced colours draw it then, never at rest.
     expect(classOf(first).split(/\s+/)).toContain("focus-visible:outline-hidden")
     expect(classOf(first).split(/\s+/)).not.toContain("outline-hidden")
-    expect(html).toMatch(/<svg[^>]*class="lucide lucide-chevron-right[^"]*"/)
+    // A drill's arrow, as a DrillButton's: a chevron means expand, never navigate.
+    expect(html).toMatch(/<svg[^>]*class="lucide lucide-arrow-right[^"]*"/)
+    expect(html).not.toContain("lucide-chevron")
     for (const svg of openingTags(html, "svg")) expect(attribute(svg, "aria-hidden")).toBe("true")
     expect(html).not.toContain("›")
+  })
+
+  it("sets a label quiet at 400 above its figure, as a fact's term", () => {
+    const plain = renderToStaticMarkup(<KpiGrid cells={[{ label: "Running", value: 40 }]} />)
+    for (const markup of [html, plain]) {
+      const label = openingTags(markup, "div").find(
+        (t) => attribute(t, "data-slot") === "kpi-label",
+      )
+      expect(classOf(label).split(/\s+/)).toEqual(
+        expect.arrayContaining(["text-small", "text-muted-foreground"]),
+      )
+      expect(classOf(label)).not.toContain("font-semibold")
+    }
   })
 
   it("still applies a legacy ariaLabel (deprecated) for existing callers", () => {

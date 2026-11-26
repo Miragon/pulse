@@ -172,9 +172,10 @@ describe("the migration screen", () => {
     expect(posted("selectVersion")).toEqual([])
   })
 
-  it("zooms only the diagram the keys were pressed in", async () => {
+  it("zooms only the diagram the keys were pressed in once the diagrams move apart", async () => {
     await open("migration")
     const [source, target] = allParts(harness.root, "migration-diagram")
+    getRole(harness.root, "checkbox", { name: "Pan and zoom together" }).click()
     const zoomOf = (diagram: HTMLElement) => /\d+\s?%/.exec(diagram.textContent)?.[0]
     await vi.waitFor(() => {
       expect([zoomOf(source!), zoomOf(target!)]).not.toContain("100%")

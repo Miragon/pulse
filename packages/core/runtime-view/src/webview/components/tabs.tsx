@@ -6,6 +6,7 @@ export interface TabItem<Id extends string> {
   readonly id: Id
   readonly label: string
   readonly count: number
+  readonly atLeast?: boolean
 }
 
 export interface TabsProps<Id extends string> {
@@ -40,7 +41,7 @@ function TabTrigger<Id extends string>({
       }}
     >
       {item.label}
-      <span className={COUNT_PILL}>{CountLabels.exact(item.count)}</span>
+      <span className={COUNT_PILL}>{CountLabels.exact(item.count, item.atLeast)}</span>
     </TabsTrigger>
   )
 }

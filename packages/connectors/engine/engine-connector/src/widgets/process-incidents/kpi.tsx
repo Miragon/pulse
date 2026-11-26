@@ -28,18 +28,21 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
 
   const title = data.processDefinitionName ?? data.processDefinitionKey
   const fraction = diagramActivityFraction(data)
-  // Activities only older versions have are named beside the fraction, never folded in.
+  // The diagram's affected activities, one tile and no denominator (D6, D12); the activities only
+  // older versions have are named under it, never folded in.
   const activitiesCell: KpiCell = fraction
     ? {
-        label: t("procIncKpi.activitiesAffected"),
+        label: t("engineHealth.kpiAffectedActivities"),
         value: formatNumber(fraction.affected),
-        fraction: `/${formatNumber(fraction.total)}`,
         trend:
           fraction.olderVersionsOnly > 0
             ? t("procIncKpi.olderVersionsOnly", { count: formatNumber(fraction.olderVersionsOnly) })
             : undefined,
       }
-    : { label: t("procIncKpi.activitiesAffected"), value: formatNumber(data.activities.length) }
+    : {
+        label: t("engineHealth.kpiAffectedActivities"),
+        value: formatNumber(data.activities.length),
+      }
 
   // #322 U14: counts stay neutral, never a green or red digit or a tinted tile; open incidents and
   // jobs without retries alarm by their icon and words.
@@ -61,10 +64,6 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
       ),
     },
     {
-      label: t("procIncKpi.last24h"),
-      value: `+${formatNumber(data.last24hCount)}`,
-    },
-    {
       label: t("procIncKpi.failedJobs"),
       value: (
         <AlarmCount alarm={data.failedJobs > 0 && "jobsWithoutRetries"}>
@@ -79,13 +78,10 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
     activitiesCell,
   ]
 
+  // No header of its own: the bar above names the process and the version scope of its counts.
   return (
     <WidgetShell>
-      <KpiGrid
-        boxed
-        header={{ label: t("procIncKpi.overview"), badge: t("procIncKpi.headerBadge") }}
-        cells={cells}
-      />
+      <KpiGrid boxed ariaLabel={t("procIncKpi.overview")} cells={cells} />
     </WidgetShell>
   )
 }

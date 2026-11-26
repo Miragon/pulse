@@ -15,7 +15,7 @@ export class MigrationChecks {
   private pending: MigrationPlan | undefined
 
   constructor(
-    private readonly context: PanelContext,
+    private readonly context: Pick<PanelContext, "runtime" | "engine" | "wait">,
     private readonly checked: (plan: MigrationPlan, outcome: CheckOutcome) => void,
   ) {}
 

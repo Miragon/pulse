@@ -31,6 +31,9 @@ A board (`.board.json`) opens in its own editor, from the panel or from the file
 
 ![A board across two engines, one of them unreachable](../assets/orca/board.png)
 
+A migration plan file (`.migration.json`) opens as text: its preview is Pulse for VS Code's
+([Migration plans](../vscode/migration-plans.md)).
+
 ## Writes
 
 Retrying incidents, changing variables, moving tokens, cancelling and migrating instances follow

@@ -42,10 +42,11 @@ Three clients work on the same engines; pick the one that fits where you work.
 | [VS Code](apps/vscode/README.md)        | VS Code 1.101+, and editors on Open VSX  | [Marketplace](https://marketplace.visualstudio.com/items?itemName=miragon-gmbh.pulse-cockpit) · [Open VSX](https://open-vsx.org/extension/miragon-gmbh/pulse-cockpit)                     | Early   |
 
 The VS Code extension and [Pulse for Orca](apps/orca/README.md) also read Camunda 8 clusters from
-8.9 on, without writing ([Camunda 8](https://miragon.github.io/pulse/vscode/camunda8)), and the MCP
-server shows them on boards ([on the server](https://miragon.github.io/pulse/mcp/camunda8)). The
-server's image also holds a [web app](apps/web/README.md): the cockpit and the boards as pages under
-`/app`, read-only, for people who sign in through the server's identity provider instead of a chat.
+8.9 on, without writing ([Camunda 8](https://miragon.github.io/pulse/vscode/camunda8)); the MCP
+server shows them on boards in the chat and reads them whole in its web app
+([on the server](https://miragon.github.io/pulse/mcp/camunda8)). The server's image also holds a
+[web app](apps/web/README.md): the cockpit and the boards as pages under `/app`, read-only, for
+people who sign in through the server's identity provider instead of a chat.
 
 ## Get started
 
@@ -68,6 +69,11 @@ The Claude Code plugin teaches Claude to use the CLI whenever a task touches an 
 /plugin marketplace add Miragon/pulse
 /plugin install pulse-cli@pulse
 ```
+
+A second plugin, `pulse-artifact@pulse`, builds [Claude artifacts](docs/mcp/claude-artifacts.md)
+from a template: live pages in claude.ai that read your engine through the Pulse MCP server. A
+third, `pulse-boards@pulse`, writes [board files](docs/vscode/boards.md#let-claude-code-write-a-board)
+from your BPMN models and profiles and checks them as Pulse does.
 
 ## Help and feedback
 

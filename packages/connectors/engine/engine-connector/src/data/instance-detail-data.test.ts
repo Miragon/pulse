@@ -4,6 +4,8 @@ import { cibsevenProvider } from "../providers/index.js"
 // Primary-read failures are the rejection table in `honest-numbers.test.ts`.
 vi.mock("@miragon/pulse-c7-client/sdk", () => ({
   getActivityInstanceTree: vi.fn(),
+  getHistoricProcessInstance: vi.fn(),
+  getIncident: vi.fn(),
   getIncidents: vi.fn(),
   getIncidentsCount: vi.fn(),
   getProcessDefinitionBpmn20Xml: vi.fn(),
@@ -20,6 +22,8 @@ vi.mock("../lib/bpmn/task-form-schema.js", () => ({ buildTaskFormSchema: vi.fn()
 
 import {
   getActivityInstanceTree,
+  getHistoricProcessInstance,
+  getIncident,
   getIncidents,
   getIncidentsCount,
   getProcessDefinitionBpmn20Xml,
@@ -32,9 +36,12 @@ import {
 } from "@miragon/pulse-c7-client/sdk"
 import { buildTaskFormSchema } from "../lib/bpmn/task-form-schema.js"
 
+import { ROOT_CAUSE_READS } from "./incident-scan.js"
 import { buildInstanceDetailData } from "./instance-detail-data.js"
 
 const mockedActivityTree = vi.mocked(getActivityInstanceTree)
+const mockedHistoric = vi.mocked(getHistoricProcessInstance)
+const mockedIncident = vi.mocked(getIncident)
 const mockedIncidents = vi.mocked(getIncidents)
 const mockedIncidentsCount = vi.mocked(getIncidentsCount)
 const mockedBpmn = vi.mocked(getProcessDefinitionBpmn20Xml)
@@ -69,6 +76,110 @@ describe("buildInstanceDetailData", () => {
     mockedTasksCount.mockResolvedValue({ count: 0 })
     mockedBpmn.mockResolvedValue({ bpmn20Xml: "<xml/>" })
     mockedFormSchema.mockResolvedValue({ taskId: "t1", fields: [] })
+    mockedHistoric.mockResolvedValue({ id: "p1", startTime: null })
+  })
+
+  describe("the caller and the start, from the history (enrichment)", () => {
+    it("names the instance that called this one and when it started, in one read", async () => {
+      mockedHistoric.mockResolvedValueOnce({
+        id: "p1",
+        superProcessInstanceId: "caller-1",
+        startTime: "2026-11-01T09:33:14.000+0100",
+      })
+
+      const data = await buildInstanceDetailData(fakeClient, "e", { processInstanceId: "p1" })
+
+      expect(mockedHistoric).toHaveBeenCalledTimes(1)
+      expect(mockedHistoric.mock.calls[0]?.[0]?.path).toEqual({ id: "p1" })
+      expect(data.callerInstanceId).toBe("caller-1")
+      expect(data.startTime).toBe("2026-11-01T09:33:14.000+0100")
+    })
+
+    it("are null for a top-level instance and when the history has none (level none)", async () => {
+      const topLevel = await buildInstanceDetailData(fakeClient, "e", { processInstanceId: "p1" })
+      expect([topLevel.callerInstanceId, topLevel.startTime]).toEqual([null, null])
+
+      mockedHistoric.mockRejectedValueOnce(new Error("404 not found"))
+      const unread = await buildInstanceDetailData(fakeClient, "e", { processInstanceId: "p1" })
+      expect([unread.callerInstanceId, unread.startTime]).toEqual([null, null])
+    })
+  })
+
+  describe("a copy at a call activity (enrichment)", () => {
+    const copy = {
+      id: "copy-1",
+      processInstanceId: "p1",
+      activityId: "CallCheck",
+      incidentType: "failedJob",
+      incidentMessage: null,
+      rootCauseIncidentId: "root-1",
+    }
+
+    it("carries its root incident's message, element and called instance", async () => {
+      mockedIncidents.mockResolvedValueOnce([
+        copy,
+        // A root of its own reads nothing more.
+        { id: "own-1", activityId: "A1", incidentType: "failedJob", rootCauseIncidentId: "own-1" },
+      ] as never)
+      mockedIncident.mockResolvedValueOnce({
+        id: "root-1",
+        processDefinitionId: "Check:1:c",
+        processInstanceId: "called-1",
+        activityId: "CheckBlacklist",
+        incidentMessage: "Blacklist provider unreachable",
+      })
+      mockedBpmn.mockImplementation(({ path }: { path: { id: string } }) =>
+        Promise.resolve(
+          path.id === "Check:1:c"
+            ? {
+                bpmn20Xml:
+                  '<definitions><process id="Check"><serviceTask id="CheckBlacklist" name="Check blacklist"/></process></definitions>',
+              }
+            : { bpmn20Xml: "<xml/>" },
+        ),
+      )
+
+      const data = await buildInstanceDetailData(fakeClient, "e", { processInstanceId: "p1" })
+
+      expect(mockedIncident).toHaveBeenCalledTimes(1)
+      expect(mockedIncident.mock.calls[0]?.[0]?.path).toEqual({ id: "root-1" })
+      expect(data.incidents.map((i) => i.rootCause ?? null)).toEqual([
+        {
+          incidentId: "root-1",
+          message: "Blacklist provider unreachable",
+          activityId: "CheckBlacklist",
+          activityName: "Check blacklist",
+          processInstanceId: "called-1",
+        },
+        null,
+      ])
+      // The copy keeps its own (empty) message: the root's is the view's to show.
+      expect(data.incidents[0]?.incidentMessage).toBeNull()
+      // The root it stands for, which its row opens, by c7-core's rule; a root names none.
+      expect(data.incidents.map((i) => i.rootIncidentId)).toEqual(["root-1", null])
+    })
+
+    it("reads at most ROOT_CAUSE_READS roots, every copy still naming the root it opens", async () => {
+      const roots = Array.from({ length: ROOT_CAUSE_READS + 3 }, (_, n) => `root-${n}`)
+      const copies = roots.map((root, n) => ({ ...copy, id: `c${n}`, rootCauseIncidentId: root }))
+      mockedIncidents.mockResolvedValueOnce(copies)
+      mockedIncident.mockImplementation(({ path }) =>
+        Promise.resolve({ id: path.id, processInstanceId: `called-${path.id}` }),
+      )
+      const data = await buildInstanceDetailData(fakeClient, "e", { processInstanceId: "p1" })
+      expect(mockedIncident).toHaveBeenCalledTimes(ROOT_CAUSE_READS)
+      expect(data.incidents.filter((i) => i.rootCause)).toHaveLength(ROOT_CAUSE_READS)
+      expect(data.incidents.map((i) => i.rootIncidentId)).toEqual(roots)
+    })
+
+    it("has no root where its read fails, so its message stays the engine's '—'", async () => {
+      mockedIncidents.mockResolvedValueOnce([copy] as never)
+      mockedIncident.mockRejectedValueOnce(new Error("engine down"))
+
+      const data = await buildInstanceDetailData(fakeClient, "e", { processInstanceId: "p1" })
+
+      expect(data.incidents[0]?.rootCause).toBeNull()
+    })
   })
 
   it("collects the BPMN xml and the active + incident activity ids", async () => {
@@ -86,6 +197,18 @@ describe("buildInstanceDetailData", () => {
     expect(data.engineId).toBe("engine-a")
     // A diagram without a named process element names none.
     expect(data.processDefinitionName).toBeNull()
+  })
+
+  // One freshness on every route: the bar says when the server read the instance.
+  it("stamps the time its reads began, the bar's As of", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-10-10T08:00:00.000Z"))
+    try {
+      const data = await buildInstanceDetailData(fakeClient, "e", { processInstanceId: "p1" })
+      expect(data.fetchedAt).toBe("2026-10-10T08:00:00.000Z")
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it("names the process from its diagram and each incident row by the instance's business key", async () => {

@@ -5,6 +5,7 @@
  */
 
 import { engineError, json, noContent, type RecordedRequest, text } from "./fake-fetch.js"
+import { migrationRoutes } from "./workflow-engine-migration.js"
 
 export type Stage = "none" | "approve" | "book" | "failed" | "ended"
 
@@ -281,6 +282,7 @@ export function routeTable(state: EngineState): [string, RegExp, Route][] {
       (_, match) =>
         json((state.resources.get(id(match)) ?? []).map((name) => ({ id: `r-${name}`, name }))),
     ],
+    ...migrationRoutes(),
   ]
 }
 
@@ -319,13 +321,26 @@ function setRetries(state: EngineState): Response {
   return noContent()
 }
 
+/** The latest version of each key, as `latestVersion=true` filters (the fake has no tenants). */
+function isLatest(state: EngineState, definition: Definition): boolean {
+  return state.definitions.every(
+    (other) => other.key !== definition.key || other.version <= definition.version,
+  )
+}
+
 function definitionsFor(state: EngineState, request: RecordedRequest) {
   const resource = request.query.get("resourceName")
   const ids = request.query.get("processDefinitionIdIn")?.split(",")
+  const key = request.query.get("key")
+  const version = request.query.get("version")
+  const latest = request.query.get("latestVersion") === "true"
   return state.definitions.filter(
     (definition) =>
       (resource === null || definition.resource === resource) &&
-      (ids === undefined || ids.includes(definition.id)),
+      (ids === undefined || ids.includes(definition.id)) &&
+      (key === null || definition.key === key) &&
+      (version === null || String(definition.version) === version) &&
+      (!latest || isLatest(state, definition)),
   )
 }
 

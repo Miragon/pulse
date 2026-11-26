@@ -7,6 +7,7 @@ const ORDER: ProcessRow = {
   latestVersion: 3,
   running: 150,
   withIncident: 9,
+  incidents: 2,
 }
 
 const RETURNS: ProcessRow = {
@@ -15,6 +16,7 @@ const RETURNS: ProcessRow = {
   latestVersion: 1,
   running: 15,
   withIncident: 1,
+  incidents: 1,
 }
 
 const SHIPMENT: ProcessRow = {
@@ -22,6 +24,7 @@ const SHIPMENT: ProcessRow = {
   latestVersion: 1,
   running: 1_204,
   withIncident: 0,
+  incidents: 0,
 }
 
 export const ENGINE_VIEW: EngineView = {
@@ -36,6 +39,7 @@ export const ENGINE_VIEW: EngineView = {
   processes: [ORDER, RETURNS, SHIPMENT],
   filter: { scope: "all" },
   scopeCounts: { all: 3, withIncident: 2 },
+  totals: { processes: 3, running: 1_369, withIncident: 10 },
   emptyText: "No processes match this filter.",
   webUi: { label: "Open in Cockpit", title: "Open Cockpit on shop-dev" },
 }

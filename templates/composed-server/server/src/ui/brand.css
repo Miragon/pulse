@@ -30,7 +30,7 @@
  *                                                      surfaces: set none to hide it
  *
  * Miragon blue sits in more roles than --primary: --interaction, --link,
- * --focus, --ring, --accent-foreground, --info/-ink, --chart-1/-3 and
+ * --focus, --ring, --accent-foreground, --info/-ink, --chart-1 … --chart-5 and
  * --sidebar-primary/-accent-foreground/-ring carry it too. Give them your colour, or your
  * brand ships mixed with Miragon's: a view's selected section, for example,
  * is --accent-foreground on --accent.
@@ -57,9 +57,10 @@
  * Keep every pair readable: text and each -foreground on its fill 4.5:1;
  * edges, dots, icons and the focus ring 3:1. server/test/brand.test.ts
  * measures those pairs (the role and tone pairs of
- * @miragon/pulse-ui/testing) in light and dark over the Miragon
- * neutrals, the example at the end of this file included. It does not
- * measure charts, the sidebar, radii, shadows or fonts.
+ * @miragon/pulse-ui/testing, a chart's two series steps --chart-1 and
+ * --chart-2 among them) in light and dark over the Miragon neutrals, the
+ * example at the end of this file included. It does not measure the
+ * sidebar, radii, shadows or fonts.
  */
 @import "@miragon/pulse-ui/theme.css";
 
@@ -82,7 +83,7 @@
  * Copy the declarations into the blocks above and put in your own values.
  * brand.test.ts checks this example too, so it stays a valid starting point.
  * For a single brand, also set the roles named above that carry Miragon
- * blue (--info/-ink, --chart-1/-3, --sidebar-*).
+ * blue (--info/-ink, --chart-1 … --chart-5, --sidebar-*).
  *
  * brand-example:light
  *   --primary: #0b5cad;

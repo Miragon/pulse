@@ -7,6 +7,7 @@ import type {
   ProcessCommands,
 } from "@miragon/pulse-engine-core"
 import type { BulkKind, ScopeCounts } from "../protocol/index.js"
+import { MigrationFacts } from "../views/migration-facts.js"
 import type { BulkAction, BulkWording } from "./bulk-action.js"
 
 export interface MigrationVersions {
@@ -32,7 +33,7 @@ export class MigrateInstancesAction implements BulkAction {
       skipped: `ended or left v${versions.source}`,
       arrival: ` to v${versions.target}`,
       lasting: [],
-      warning: "Migrating can't be undone.",
+      warning: MigrationFacts.UNDONE,
       notDone: "The engine could not migrate them.",
       stalled:
         "The engine has not migrated any more instances. Check that it runs its background jobs, then wait or stop.",

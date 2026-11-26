@@ -11,11 +11,11 @@ import {
   type KpiCell,
 } from "@miragon/pulse-ui"
 import {
+  ListRow,
   ListTable,
   TableSkeleton,
   useToolQueries,
   type ListTableColumn,
-  type ListTableGroup,
 } from "@miragon/pulse-widget-shell/widgets"
 import { Info } from "lucide-react"
 import {
@@ -24,15 +24,12 @@ import {
   type LandscapeEngine,
 } from "../../lib/shared/fleet-landscape.js"
 import { useT, type T } from "../../messages/use-t.js"
-import {
-  HEALTH_FAILURE_TONE,
-  HEALTH_FAILURES,
-  healthFailureOf,
-  type HealthFailure,
-} from "../lib/health-verdict.js"
+import { healthFailureOf, type HealthFailure } from "../lib/health-verdict.js"
 import { AlarmCount, type CountAlarm } from "../lib/alarm-count.js"
 import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_JOB_BACKLOG_DATA } from "../../tool-names.js"
 import type { CockpitDashboardData, JobBacklogData } from "../../view-models.js"
+import { useEngineHealth } from "./engine-health.js"
+import { engineStatusKind, StatusMark } from "./engine-status.js"
 
 /**
  * Where an engine's overview stands: the chooser's words for it (#322 U15). A refused profile or
@@ -49,23 +46,15 @@ function stateOf(
   return healthFailureOf(overview.error) ?? "loading"
 }
 
-/** Each failure counted under its own word, in the order of {@link HEALTH_FAILURES}. */
-const FAILURE_COUNT: Readonly<Record<HealthFailure, string>> = {
-  unreachable: "fleet.landscape.kpiUnreachable",
-  refused: "fleet.landscape.kpiRefused",
-  unauthorized: "fleet.landscape.kpiUnauthorized",
-  forbidden: "fleet.landscape.kpiForbidden",
-}
-
 interface Landscape {
   figures: FleetLandscapeFigures
   states: Record<string, EngineState>
 }
 
 /**
- * Each engine's overview under the key the engine cards read it by (`useEngineHealth`), so the
+ * Each engine's overview under the key its row's verdict reads it by (`useEngineHealth`), so the
  * landscape adds no read of its own there, plus its job backlog; both under the cockpit's Refresh.
- * A profile the server refused it never reads: it counts as refused, as its card says.
+ * A profile the server refused it never reads: it counts as refused, as its row says.
  */
 function useLandscape(engineIds: readonly string[], refused: ReadonlySet<string>): Landscape {
   const readIds = engineIds.filter((id) => !refused.has(id))
@@ -104,31 +93,16 @@ function totalOf(value: number | null, complete: boolean): string {
   return formatCount(value === null || complete ? value : { atLeast: value })
 }
 
-function LandscapeKpis({ figures, states, t }: Landscape & { t: T }) {
+/**
+ * The sums over the engines read. The engines themselves the header counts and the table rows,
+ * each with its state: no tile repeats them (N8).
+ */
+function LandscapeKpis({ figures, t }: { figures: FleetLandscapeFigures; t: T }) {
   const { totals } = figures
   const complete = totals.readEngineCount === totals.engineCount
   // No engine read yet: no count of processes either, never a 0.
   const processes = totals.readEngineCount === 0 ? null : totals.processKeyCount
-  const failures = HEALTH_FAILURES.map((failure) => ({
-    failure,
-    count: Object.values(states).filter((state) => state === failure).length,
-  })).filter(({ count }) => count > 0)
-  const trend = failures.map(({ failure, count }) =>
-    t(FAILURE_COUNT[failure], { count: formatNumber(count) }),
-  )
-  // The worst failure's tone: an unreachable engine over a refused profile or login.
-  const tones = failures.map(({ failure }) => HEALTH_FAILURE_TONE[failure])
   const cells: KpiCell[] = [
-    {
-      label: t("fleet.landscape.kpiEngines"),
-      value: formatNumber(totals.engineCount),
-      trend: trend.length > 0 ? trend.join(" · ") : undefined,
-      trendTone: tones.includes("danger")
-        ? "danger"
-        : tones.includes("warning")
-          ? "warning"
-          : undefined,
-    },
     {
       label: t("fleet.landscape.kpiProcesses"),
       value: totalOf(processes, complete),
@@ -166,7 +140,7 @@ function Figure({ value, t }: { value: number | null; t: T }) {
 
 /**
  * A count that is a state: a neutral number that alarms by its icon and words while there are
- * any, as the engine cards show it (invariant 6).
+ * any, as the overview shows it (invariant 6).
  */
 function StateCount({ value, alarm, t }: { value: number | null; alarm: CountAlarm; t: T }) {
   if (value === null || value <= 0) return <Figure value={value} t={t} />
@@ -181,38 +155,59 @@ function CountCell({ value, alarm, t }: { value: number | null; alarm?: CountAla
   )
 }
 
-/** The backlog carries no process, so it alone compares engines; the inventory gives way below 768 px. */
+/**
+ * The backlog carries no process, so it alone compares engines; it gives way below 40rem of the
+ * table's region, the inventory below 48rem (a 760 px chat keeps the backlog), the load never.
+ */
 function engineColumns(t: T): ListTableColumn[] {
   return [
     { label: t("fleet.landscape.colEngine") },
     { label: t("fleet.landscape.colRunning"), align: "right" },
     { label: t("fleet.landscape.colIncidents"), align: "right" },
     { label: t("fleet.landscape.colFailedJobs"), align: "right" },
-    { label: t("fleet.landscape.colExecutable"), align: "right" },
-    { label: t("fleet.landscape.colSuspended"), align: "right" },
-    { label: t("fleet.landscape.colDueLater"), align: "right" },
-    { label: t("fleet.landscape.colExternalTasks"), align: "right" },
+    { label: t("fleet.landscape.colExecutable"), align: "right", hideBelow: "sm" },
+    { label: t("fleet.landscape.colSuspended"), align: "right", hideBelow: "sm" },
+    { label: t("fleet.landscape.colDueLater"), align: "right", hideBelow: "sm" },
+    { label: t("fleet.landscape.colExternalTasks"), align: "right", hideBelow: "sm" },
     { label: t("fleet.landscape.colDefinitions"), align: "right", hideBelow: "md" },
   ]
 }
 
-function engineGroups(t: T): ListTableGroup[] {
-  return [
-    {},
-    { label: t("fleet.landscape.groupLoad"), span: 3 },
-    { label: t("fleet.landscape.groupBacklog"), span: 4 },
-    {},
-  ]
+interface EngineRowProps {
+  engine: LandscapeEngine
+  state: EngineState
+  onEnter: (engineId: string) => void
+  t: T
 }
 
-function EngineRow({ engine: e, state, t }: { engine: LandscapeEngine; state: EngineState; t: T }) {
+/** The engine's verdict, as the landing's row shows it: its dot, or a failed read's icon. */
+function VerdictMark({ engineId }: { engineId: string }) {
+  const { failure, summary, status, tone } = useEngineHealth(engineId)
+  return <StatusMark kind={engineStatusKind({ failure, summary, status })} tone={tone} />
+}
+
+/**
+ * A row opens its engine on a click or Enter (the row convention, N8), the engine's verdict before
+ * its id, which stands in the sans of the landing's rows; a profile the server refused reads
+ * nothing, so its mark is a refused profile's.
+ */
+function EngineRow({ engine: e, state, onEnter, t }: EngineRowProps) {
   return (
-    <tr>
+    <ListRow
+      label={t("fleet.landscape.engineRow", { engine: e.engineId })}
+      onOpen={() => onEnter(e.engineId)}
+      copy={e.engineId}
+    >
       <Td>
         <span className="flex flex-wrap items-center gap-2">
+          {state === "refused" ? (
+            <StatusMark kind="refused" tone="neutral" />
+          ) : (
+            <VerdictMark engineId={e.engineId} />
+          )}
           {/* An engine id is short and one word ("prod-a"): never wrapped. */}
-          <span className="font-mono font-semibold whitespace-nowrap">{e.engineId}</span>
-          {/* The engine card's words, which may wrap: the backlog columns keep their room. */}
+          <span className="font-semibold whitespace-nowrap">{e.engineId}</span>
+          {/* The landing's words, which may wrap: the figures keep their room. */}
           {state !== "read" && (
             <span className="text-muted-foreground text-small">
               {t(`cockpit.landing.status.${state}`)}
@@ -237,7 +232,7 @@ function EngineRow({ engine: e, state, t }: { engine: LandscapeEngine; state: En
           </span>
         )}
       </Td>
-    </tr>
+    </ListRow>
   )
 }
 
@@ -245,24 +240,31 @@ function Legend({ children }: { children: string }) {
   return <p className="text-muted-foreground text-small mt-2">{children}</p>
 }
 
-function EngineTable({ figures, states, t }: Landscape & { t: T }) {
+function EngineTable({
+  figures,
+  states,
+  onEnterEngine,
+  t,
+}: Landscape & { onEnterEngine: (engineId: string) => void; t: T }) {
   const unknown = figures.engines.some((e) => !e.read || e.executableJobs === null)
   return (
     <section>
-      <SectionHeading
-        title={t("fleet.landscape.engines.title")}
-        hint={t("fleet.landscape.engines.hint")}
-      />
+      <SectionHeading as="h3" title={t("fleet.landscape.engines.title")} />
       <ListTable
         ariaLabel={t("fleet.landscape.engines.tableLabel")}
         columns={engineColumns(t)}
-        groups={engineGroups(t)}
         // Eight figures side by side: the density's cell padding and captions that
         // wrap keep every backlog column in a 760 px inline view, in German too.
         wrapHeads
       >
         {figures.engines.map((e) => (
-          <EngineRow key={e.engineId} engine={e} state={states[e.engineId] ?? "loading"} t={t} />
+          <EngineRow
+            key={e.engineId}
+            engine={e}
+            state={states[e.engineId] ?? "loading"}
+            onEnter={onEnterEngine}
+            t={t}
+          />
         ))}
       </ListTable>
       {unknown && <Legend>{`${formatNumber(null)} ${t("fleet.landscape.unknown")}`}</Legend>}
@@ -270,7 +272,11 @@ function EngineTable({ figures, states, t }: Landscape & { t: T }) {
   )
 }
 
-/** Shared definitions lead; the columns are the engines read, a missing one named below. */
+/**
+ * Shared definitions lead; the columns are the engines read, a missing one named below. A process
+ * on some engines only says on how many; one on every engine says nothing more than its cells
+ * (D14), and an empty cell, not deployed there, needs no legend.
+ */
 function ProcessMatrix({ figures, states, t }: Landscape & { t: T }) {
   const engineIds = figures.engines.filter((e) => e.read).map((e) => e.engineId)
   const unread = figures.engines.filter((e) => !e.read).map((e) => e.engineId)
@@ -284,15 +290,13 @@ function ProcessMatrix({ figures, states, t }: Landscape & { t: T }) {
   }
   const columns: ListTableColumn[] = [
     { label: t("fleet.landscape.colProcess") },
-    ...engineIds.map((id): ListTableColumn => ({
-      label: <span className="font-mono">{id}</span>,
-      align: "right",
-    })),
+    ...engineIds.map((id): ListTableColumn => ({ label: id, align: "right" })),
     { label: t("fleet.landscape.colIncidents"), align: "right" },
   ]
   return (
     <section>
       <SectionHeading
+        as="h3"
         title={t("fleet.landscape.matrix.title")}
         hint={t("fleet.landscape.matrix.hint")}
       />
@@ -306,7 +310,7 @@ function ProcessMatrix({ figures, states, t }: Landscape & { t: T }) {
             <Td>
               <span className="flex flex-wrap items-center gap-2">
                 <NamedId name={p.name} id={p.processDefinitionKey} />
-                {p.shared && (
+                {p.shared && p.engineIds.length < engineIds.length && (
                   <Badge variant="outline">
                     {t("fleet.landscape.sharedBadge", { count: formatNumber(p.engineIds.length) })}
                   </Badge>
@@ -329,7 +333,6 @@ function ProcessMatrix({ figures, states, t }: Landscape & { t: T }) {
           </tr>
         ))}
       </ListTable>
-      <Legend>{t("fleet.landscape.legendNotDeployed")}</Legend>
       {unread.length > 0 && (
         <Legend>
           {t("fleet.landscape.unreadNote", {
@@ -345,25 +348,27 @@ function ProcessMatrix({ figures, states, t }: Landscape & { t: T }) {
 /**
  * What runs where across the engines, from each engine's own REST API: counts only, never a
  * ranking (`lib/shared/fleet-landscape.ts`). An engine that does not answer is a row in words
- * and no column, never a row of zeros.
+ * and no column, never a row of zeros; each engine's row opens it.
  */
 export function FleetLandscape({
   engineIds,
   refused = new Set(),
+  onEnterEngine,
 }: {
   engineIds: readonly string[]
   /** The engines of `engineIds` whose profile the server refused: never read. */
   refused?: ReadonlySet<string>
+  onEnterEngine: (engineId: string) => void
 }) {
   const t = useT()
   const landscape = useLandscape(engineIds, refused)
   return (
     <section aria-label={t("fleet.landscape.title")} className="gap-section flex flex-col">
       <div>
-        <SectionHeading title={t("fleet.landscape.title")} hint={t("fleet.landscape.hint")} />
-        <LandscapeKpis {...landscape} t={t} />
+        <SectionHeading as="h2" title={t("fleet.landscape.title")} />
+        <LandscapeKpis figures={landscape.figures} t={t} />
       </div>
-      <EngineTable {...landscape} t={t} />
+      <EngineTable {...landscape} onEnterEngine={onEnterEngine} t={t} />
       <ProcessMatrix {...landscape} t={t} />
     </section>
   )

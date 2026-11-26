@@ -26,7 +26,9 @@ export default defineConfig({
     browserName: "chromium",
     colorScheme: "light",
     locale: "en-US",
-    viewport: { width: 1000, height: 780 },
+    // A desktop's window: from 64rem on the page's navigation stands beside the view, which
+    // keeps about the 1000 px it had before the frame took its 15rem and margins.
+    viewport: { width: 1280, height: 780 },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

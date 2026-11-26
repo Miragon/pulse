@@ -207,6 +207,11 @@ describe("renewalSource: the replica's refreshes", () => {
     ["the resource and no scopes by default", {}, { resource: RESOURCE }],
     ["no resource where the web client names none", { resource: false }, {}],
     [
+      "the web client's own resource in place of the gate's",
+      { resource: "5e3c1a7b" },
+      { resource: "5e3c1a7b" },
+    ],
+    [
       "the scopes besides where it names them at every grant",
       { grantScopes: true },
       {

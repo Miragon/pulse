@@ -44,25 +44,31 @@
  * and src/data, by its main entry (engine-core-consumers,
  * engine-connector-contract-by-its-main-entry).
  * The foundation packages every family builds on live under `packages/core/` (npm names
- * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; three of
+ * without a role suffix, e.g. `@miragon/pulse-widget-shell`), never one family's code; some of
  * them are leaves only their consumers import: the profile format (`@miragon/pulse-profile`,
  * PROFILE), read where a surface reads its profiles, the board format (`@miragon/pulse-board`,
- * BOARD), read where a surface reads its board files, and the transport (`@miragon/pulse-http`,
- * HTTP), used where a surface sends its engine requests; the building blocks
+ * BOARD), read where a surface reads its board files, the screens' format
+ * (`@miragon/pulse-screens`, SCREENS), read where a surface builds or reads a shared screen, the
+ * migration plan format (`@miragon/pulse-migration-plan`, MIGRATION_PLAN), read where the CLI
+ * writes a plan file and the runtime view previews one, and
+ * the transport (`@miragon/pulse-http`, HTTP), used where a surface sends its engine requests; the
+ * building blocks
  * (`@miragon/pulse-blocks`, BLOCKS) are React on pulse-ui that only the surfaces rendering them
  * import. The apps under `apps/` sit ON TOP of
  * the packages: the MCP server (`@miragon/pulse-mcp-server`) composes the
  * connectors, and the web app (apps/web, `@miragon/pulse-web`) shows their views on pages of the
  * server (web-is-a-page); of the interface apps, the CLI (apps/cli, `@miragon/pulse-cli`) imports no
  * workspace package but the ones CLI_BUNDLES names, which tsdown inlines (its family core, with
- * the main entry of engine-core that core imports, the profile format for its config layer and
- * the transport for its http layer), and the two editor hosts, the VS Code extension
+ * the main entry of engine-core that core imports, the profile format for its config layer, the
+ * transport for its http layer and the migration plan format for its workflow commands), and the
+ * two editor hosts, the VS Code extension
  * (apps/vscode, the unscoped `pulse-cockpit`, because vsce rejects scoped names) and the Orca
  * plugin (apps/orca, `@miragon/pulse-orca`), compose the runtime view (packages/core/runtime-view)
  * with the family adapters (c7-adapter, c8-adapter) and read the contract's ids and read models
  * from engine-core's main entry, all of which esbuild bundles; the runtime view's host kit reads
  * the project files with the profile format, its core and Pulse for VS Code's Boards view the
- * board files with the board format. No package and no app imports an app (the closed-world
+ * board files with the board format, and its core the migration plan files with the migration
+ * plan format. No package and no app imports an app (the closed-world
  * rules of the editor hosts and of the two packages they share live in each one's own
  * .dependency-cruiser.cjs).
  * APP_PACKAGES below names every app's npm name; the
@@ -114,18 +120,26 @@ const APP_NAMES = APP_PACKAGES.map(escapeRegExp).join("|")
 
 /**
  * The web app (apps/web, `@miragon/pulse-web`): the page a Pulse server serves under /app, the MCP
- * views on a page of their own. What its src may import (web-is-a-page): its own modules, the
- * rendering libraries, pulse-ui by its root and its stylesheet, the view runtime's view half and
- * the engine module's views, each by its entry.
+ * views on a page of their own and its own screens (owner decision D10 of 2026-11-19). What its
+ * src may import (web-is-a-page): its own modules, the rendering libraries, pulse-ui by its root,
+ * its BPMN entry and its stylesheet, the view runtime's view half, the engine module's views, the building
+ * blocks its screens compose and the screens' format, whose JSON forms its screens name by type
+ * alone (web-names-screens-by-type), each by its entry. As an import reaches the blocks and the
+ * screens: resolved through the app's node_modules to the build (or the src of a package without
+ * one) or bare.
  */
 const WEB_SRC = "^apps/web/src/"
 const WEB_IMPORTS = [
   WEB_SRC,
   ...npm("react|react-dom|lucide-react"),
   "(?:^|/)node_modules/@miragon/pulse-ui/",
-  "^@miragon/pulse-ui(?:/theme[.]css)?$",
+  "^@miragon/pulse-ui(?:/(?:bpmn|theme[.]css))?$",
   "^@miragon/pulse-widget-shell/widgets$",
   "^@miragon/pulse-engine-connector/widgets$",
+  "(?:^|/)node_modules/@miragon/pulse-blocks/(?:dist|src)/index[.](?:js|d[.]ts|tsx?)$",
+  "^@miragon/pulse-blocks$",
+  "(?:^|/)node_modules/@miragon/pulse-screens/(?:dist|src)/index[.](?:js|d[.]ts|ts)$",
+  "^@miragon/pulse-screens$",
 ]
 
 /** The root of a workspace package: an app, a foundation package or a family's package. */
@@ -291,10 +305,12 @@ const BLOCKS_SRC = `^${escapeRegExp(BLOCKS.tree)}/src/`
 
 /**
  * What the blocks' shipped code imports: its own modules, React, Lucide, pulse-ui's root and its
- * framework-free ./format and ./tones, and the board format's main entry, for the types of a built
- * board's JSON form. As an import reaches pulse-ui and the board format: resolved through the
- * importer's node_modules (to the build in the repository, to the src of a package without one)
- * or bare.
+ * framework-free ./format and ./tones, the board format's main entry, for the types of a built
+ * board's JSON form, and the screens' main entry (the screens' format, owner decision D10 of
+ * 2026-11-19), for the JSON forms of the shared screens and the rules a surface applies to them in
+ * the browser (a process list's filter); never the screens' ./builder or ./testing. As an import
+ * reaches pulse-ui, the board format and the screens: resolved through the importer's node_modules
+ * (to the build in the repository, to the src of a package without one) or bare.
  */
 const BLOCKS_IMPORTS = [
   BLOCKS_SRC,
@@ -303,17 +319,22 @@ const BLOCKS_IMPORTS = [
   "^@miragon/pulse-ui(?:/(?:format|tones))?$",
   `(?:^|/)node_modules/${escapeRegExp(BOARD.name)}/(?:dist|src)/index[.](?:js|d[.]ts|ts)$`,
   `^${escapeRegExp(BOARD.name)}$`,
+  `(?:^|/)node_modules/@miragon/pulse-screens/(?:dist|src)/index[.](?:js|d[.]ts|ts)$`,
+  `^@miragon/pulse-screens$`,
 ]
 
 /**
  * Where a surface renders the blocks, their only shipped importers: the runtime view's webview
- * (a board's tiles in Pulse for VS Code and Pulse for Orca; its closed world holds it to the main
- * entry) and the engine connector's widgets (the cockpit's board route, which brings its own table,
- * id and diagram as the slots). Tests import them anywhere.
+ * (a board's tiles and the engine tab's process list in Pulse for VS Code and Pulse for Orca; its
+ * closed world holds it to the main entry), the engine connector's widgets (the cockpit's board
+ * route, which brings its own table, id and diagram as the slots) and the web app's src (its own
+ * screens, owner decision D10 of 2026-11-19, by the main entry: web-is-a-page). Tests import them
+ * anywhere.
  */
 const BLOCKS_RENDERERS = [
   `${RUNTIME_VIEW_TREE}src/webview/`,
   `${ENGINE_CONNECTOR_TREE}src/widgets/`,
+  WEB_SRC,
 ]
 
 /**
@@ -347,12 +368,27 @@ const BOARD_BUILDER = [
 ]
 
 /**
- * Where a surface builds a board's numbers, the only shipped importers of the builder: the runtime
- * view's core (the board panel and the definition and instance views, which draw the same roll-up)
- * and the engine connector's data builders (src/data: the board feed, with boards in the MCP
- * server). Tests import it anywhere.
+ * The board builder's main entry as the screens' builder reaches it: resolved through its
+ * node_modules to the build, or bare. Never a file of its tree by path, ./testing or the format.
  */
-const BOARD_BUILDERS = [`${RUNTIME_VIEW_TREE}src/core/`, `${ENGINE_CONNECTOR_TREE}src/data/`]
+const BOARD_BUILDER_ENTRY = [
+  `(?:^|/)node_modules/${escapeRegExp(BOARD.name)}/dist/builder/index[.](?:js|d[.]ts)$`,
+  `^${escapeRegExp(BOARD.name)}/builder$`,
+]
+
+/**
+ * Where a surface builds a board's numbers, the only shipped importers of the builder: the runtime
+ * view's core (the board panel and the definition and instance views, which draw the same roll-up), the engine
+ * connector's data builders (src/data: the board feed, with boards in the MCP server) and the
+ * screens' builder (packages/core/screens/src/builder: the instance screen's markers roll up onto
+ * collapsed sub-processes with the board's CollapsedShapes, so no third copy of the XML tag
+ * reader; owner decision D8 as amended on 2026-11-19). Tests import it anywhere.
+ */
+const BOARD_BUILDERS = [
+  `${RUNTIME_VIEW_TREE}src/core/`,
+  `${ENGINE_CONNECTOR_TREE}src/data/`,
+  `^packages/core/screens/src/builder/`,
+]
 
 /**
  * The board package's tests that read the engine contract its builder builds on: its test tree and
@@ -363,6 +399,46 @@ const BOARD_BUILDERS = [`${RUNTIME_VIEW_TREE}src/core/`, `${ENGINE_CONNECTOR_TRE
  */
 const BOARD_TEST_TREE = `^${escapeRegExp(BOARD.tree)}/test/`
 const BOARD_TESTS = [BOARD_TEST_TREE, `${BOARD_BUILDER_TREE}.+[.]test[.]ts$`]
+
+/**
+ * The screens (packages/core/screens, npm `@miragon/pulse-screens`; owner decision D8 as amended on
+ * 2026-11-19, apps/vscode/docs/adr/ui-foundation.md): the JSON forms of the screens the web app and
+ * the editors share, their codes, the targets a screen opens and the pure rules a surface applies
+ * to them (the main entry and ./testing, a leaf: screens-format-is-a-leaf), and in ./builder each
+ * screen's numbers over the engine contract, a model of no text, the package's named exception
+ * written like the board builder's (screens-builder-builds-on-the-engine-contract). A foundation
+ * package, so it stays out of CORE_BUNDLES: who imports it is screens-format-consumers' and
+ * screens-builder-consumers'. As an import reaches the builder: a relative escape into its tree,
+ * resolved through an importer's node_modules to its build (shape 2) or bare (shape 3).
+ */
+const SCREENS = { name: "@miragon/pulse-screens", tree: "packages/core/screens" }
+const SCREENS_BUILDER_TREE = `^${escapeRegExp(SCREENS.tree)}/src/builder/`
+const SCREENS_BUILDER = [
+  SCREENS_BUILDER_TREE,
+  `(?:^|/)node_modules/${escapeRegExp(SCREENS.name)}/dist/builder/`,
+  `^${escapeRegExp(SCREENS.name)}/builder(?:/|$)`,
+]
+
+/**
+ * Where a surface builds a shared screen's numbers and applies its rules, the only shipped
+ * importers of the screens' builder: the runtime view's core (the engine panel of both editor
+ * hosts) and the engine connector's data builders (src/data, where the screen feeds of the web app
+ * build them). The format's readers are these, the building blocks (BLOCKS_SRC, held to the
+ * format's main entry by blocks-are-building-blocks), which render a screen's JSON form and apply
+ * its rules in the browser (owner decision D10 of 2026-11-19), and the web app's src, which names
+ * a screen's JSON form by type alone (web-names-screens-by-type) and renders it with the blocks.
+ * Tests import them anywhere.
+ */
+const SCREENS_BUILDERS = [`${RUNTIME_VIEW_TREE}src/core/`, `${ENGINE_CONNECTOR_TREE}src/data/`]
+const SCREENS_READERS = [...SCREENS_BUILDERS, BLOCKS_SRC, WEB_SRC]
+
+/**
+ * The screens package's tests that read the engine contract its builder builds on: its test tree
+ * and the builder's own test files, which core-is-foundation leaves out, as the board package's;
+ * screens-tests-build-on-the-engine-contract keeps every other family's package out of them.
+ */
+const SCREENS_TEST_TREE = `^${escapeRegExp(SCREENS.tree)}/test/`
+const SCREENS_TESTS = [SCREENS_TEST_TREE, `${SCREENS_BUILDER_TREE}.+[.]test[.]ts$`]
 
 /**
  * The transport (packages/core/http, npm `@miragon/pulse-http`): one HTTP client over an
@@ -422,14 +498,39 @@ const HTTP_MAIN_ENTRY = [
 const HTTP_ANY = [`^${escapeRegExp(HTTP.tree)}/`, ...npm(escapeRegExp(HTTP.name))]
 
 /**
+ * The migration plan format (packages/core/migration-plan, npm `@miragon/pulse-migration-plan`,
+ * private): the one parser and writer of the migration plan files
+ * (`.pulse/migrations/*.migration.json`) that `pulse plan-migration` writes and the runtime view
+ * previews, their words, file names and id and version rules. A foundation package and a leaf
+ * like the board format, so it stays out of CORE_BUNDLES too: its own rules are
+ * migration-plan-is-a-leaf and migration-plan-consumers.
+ */
+const MIGRATION_PLAN = {
+  name: "@miragon/pulse-migration-plan",
+  tree: "packages/core/migration-plan",
+}
+
+/**
+ * Where a surface reads or writes its plan files, the only shipped importers of MIGRATION_PLAN:
+ * the CLI's workflow commands (`pulse plan-migration` writes a plan file) and the runtime view's
+ * migration plan editor (src/core/plans, which Pulse for VS Code opens; its closed world admits
+ * the edge from the core). Tests import it anywhere.
+ */
+const MIGRATION_PLAN_READERS = [
+  "^apps/cli/src/workflow/",
+  "^packages/core/runtime-view/src/core/plans/",
+]
+
+/**
  * The workspace packages the CLI may bundle (tsdown inlines what it imports, so the published CLI
  * depends on none of them): its family core, CORE_BUNDLES' entry for apps/cli, the profile
- * format, which its config layer reads the profiles with, and the transport, which its http,
- * auth and operation layers send the engine requests with. The
+ * format, which its config layer reads the profiles with, the transport, which its http,
+ * auth and operation layers send the engine requests with, and the migration plan format, which
+ * its workflow commands write a plan file with. The
  * only workspace packages cli-is-headless lets the CLI import; cli-no-circular and
  * cli-not-to-test hold their trees as part of the CLI.
  */
-const CLI_BUNDLES = [CORE_BUNDLES["^apps/cli/"], PROFILE, HTTP]
+const CLI_BUNDLES = [CORE_BUNDLES["^apps/cli/"], PROFILE, HTTP, MIGRATION_PLAN]
 const CLI_BUNDLE_NAMES = CLI_BUNDLES.map(({ name }) => escapeRegExp(name)).join("|")
 const CLI_BUNDLE_TREES = CLI_BUNDLES.map(({ tree }) => escapeRegExp(tree)).join("|")
 
@@ -466,16 +567,20 @@ const ENGINE_CORE_IMPLEMENTERS = [
  * webview, which renders protocol view models, and the editor hosts' src, which wire them and
  * name ids. Their closed worlds hold each to engine-core's main entry. The board builder
  * (`@miragon/pulse-board/builder`, BOARD_BUILDER_TREE) reads the seven board reads through it too,
- * held to the main entry by board-builder-builds-on-the-engine-contract. The engine connector
+ * held to the main entry by board-builder-builds-on-the-engine-contract, and so does the screens'
+ * builder (`@miragon/pulse-screens/builder`, SCREENS_BUILDER_TREE), held by
+ * screens-builder-builds-on-the-engine-contract. The engine connector
  * reads it in its server layers (ENGINE_CONNECTOR_CONTRACT_READERS, below). The CLI does not
  * until it serves a second dialect (owner decision 2026-11-09): it reaches the contract's rules
  * through c7-core's causeOf. Test files and test-support import it anywhere, the test trees of the
- * runtime view, the adapters, the dialect cores and the board package too (ENGINE_CORE_TESTS).
+ * runtime view, the adapters, the dialect cores, the board package and the screens package too
+ * (ENGINE_CORE_TESTS).
  */
 const ENGINE_CORE_READERS = [
   `${RUNTIME_VIEW_TREE}src/(?:ports|core|model|host-kit)/`,
   ...EDITOR_HOST_SOURCES,
   BOARD_BUILDER_TREE,
+  SCREENS_BUILDER_TREE,
 ]
 
 /**
@@ -493,7 +598,7 @@ const ENGINE_CONNECTOR_CONTRACT_READERS = [
 
 /**
  * The test trees of the packages that run the contract, the runtime view's, the family adapters',
- * the dialect cores' and the board package's, whose builder reads it (their support modules, fakes
+ * the dialect cores', the board package's and the screens package's, whose builders read it (their support modules, fakes
  * and worlds, which are no *.test.ts): they import engine-core and its ./testing entry. Another
  * package's test tree imports it only from a test file or test-support, as its src does. The editor
  * hosts' test trees answer to their closed worlds; the CLI's are cli-is-headless's.
@@ -503,6 +608,7 @@ const ENGINE_CORE_TESTS = [
   `${FAMILY_ADAPTER_TREE}test/`,
   `${DIALECT_CORE_TREE}test/`,
   BOARD_TEST_TREE,
+  SCREENS_TEST_TREE,
 ]
 
 /**
@@ -530,12 +636,14 @@ const ADAPTER_IMPORTS = [
 
 /**
  * What a family's adapter's tests import beside ADAPTER_IMPORTS: the board format and its builder,
- * which build a board over the adapter's runtime, so a test holds the adapter to the numbers the
- * other surfaces show (c7-core's recorded board engine). Only adapter-tests-own-their-family
- * admits it: adapters-own-their-family, board-consumers, board-builder-consumers and the
- * adapter's closed world keep both out of its src.
+ * which build a board over the adapter's runtime, and the screens with their builder, which build
+ * the shared screens over it, so a test holds the adapter to the numbers the other surfaces show
+ * (c7-core's recorded board and screen engines). Only adapter-tests-own-their-family admits them:
+ * adapters-own-their-family, board-consumers, board-builder-consumers,
+ * screens-format-consumers, screens-builder-consumers and the adapter's closed world keep them
+ * out of its src.
  */
-const ADAPTER_TEST_IMPORTS = npm(escapeRegExp(BOARD.name))
+const ADAPTER_TEST_IMPORTS = npm(`${escapeRegExp(BOARD.name)}|${escapeRegExp(SCREENS.name)}`)
 
 /**
  * A family's adapter with its family as $1, the `from` of adapters-own-their-family, and its test
@@ -621,17 +729,41 @@ const EXT_APPS_HOST_ADAPTER = [
 const VIEW_STACK = `react|react-dom|lucide-react|@tanstack/[^/]+|@miragon/pulse-ui|${EXT_APPS_RUNTIME}|bpmn-js|diagram-js`
 
 /**
- * pulse-ui's framework-free entries, one folder each under src/ (`./format`, `./tones`): the UI
- * foundation every Pulse UI shares at runtime, the VS Code extension's core and webview included.
- * The group names the folder, so an entry imports only its own
- * (ui-foundation-entries-import-nothing).
+ * pulse-ui's framework-free entries, one folder each under src/ (`./format`, `./tones`,
+ * `./glossary`): the UI foundation every Pulse UI shares at runtime, the VS Code extension's core
+ * and webview included, and a page that loads the glossary in a browser as it is. The group names
+ * the folder, so an entry imports only its own (ui-foundation-entries-import-nothing).
  */
-const UI_FOUNDATION_ENTRIES = "^packages/core/ui/src/(format|tones)/"
+const UI_FOUNDATION_ENTRIES = "^packages/core/ui/src/(format|tones|glossary)/"
+
+/**
+ * pulse-ui's BPMN entry (`@miragon/pulse-ui/bpmn`, src/bpmn): the diagram for any page, the one
+ * folder of the kit that imports bpmn-js (an optional peer). It reaches the rest of the kit
+ * through the root entry alone (src/index.ts), so a bundle of the entry shares the kit's React
+ * contexts with a bundle of the root, and the rest of the kit never imports it, so a page without
+ * a diagram never resolves bpmn-js (ui-bpmn-in-its-entry-alone, ui-bpmn-reaches-the-kit-by-its-root).
+ */
+const UI_BPMN_ENTRY = "^packages/core/ui/src/bpmn/"
+const UI_ROOT_ENTRY = "^packages/core/ui/src/index[.]ts$"
 
 /** widget-shell's two halves and the protocol modules both import (see the seam rules). */
 const SHELL_SRC = "^packages/core/widget-shell/src/"
 const SHELL_VIEWS = `${SHELL_SRC}ui/`
 const SHELL_PROTOCOL = `${SHELL_SRC}protocol/`
+
+/**
+ * widget-shell's Claude artifact entry (`@miragon/pulse-widget-shell/claude-artifact`,
+ * src/ui/claude-artifact): the caller over claude.ai's artifact runtime (`window.claude`), the
+ * words in claude.ai's places and the mount. As an import reaches it: by its tree (shape 1),
+ * through an importer's node_modules into its build or src (shape 2, a deep import) or bare by its
+ * entry (shape 3) (widget-shell-claude-artifact-alone).
+ */
+const SHELL_CLAUDE_ARTIFACT = `${SHELL_VIEWS}claude-artifact/`
+const SHELL_CLAUDE_ARTIFACT_IMPORTS = [
+  SHELL_CLAUDE_ARTIFACT,
+  "(?:^|/)node_modules/@miragon/pulse-widget-shell/(?:dist|src)/ui/claude-artifact/",
+  "^@miragon/pulse-widget-shell/claude-artifact$",
+]
 
 /** The CLI's test code: colocated unit tests, and test/ with its fakes and engine suites. */
 const CLI_TEST_CODE = ["[.]test[.]ts$", "^apps/cli/test/"]
@@ -782,10 +914,17 @@ module.exports = {
         "The runtime view answers to runtime-view-builds-on-the-engine-contract, the board " +
         "builder (packages/core/board/src/builder) to board-builder-builds-on-the-engine-contract " +
         "and the board package's tests that read the engine contract (its test tree, the " +
-        "builder's own tests) to board-tests-build-on-the-engine-contract.",
+        "builder's own tests) to board-tests-build-on-the-engine-contract; the screens' builder " +
+        "(packages/core/screens/src/builder) and tests answer to the screens' rules alike.",
       from: {
         path: "^packages/core/",
-        pathNot: [RUNTIME_VIEW_TREE, BOARD_BUILDER_TREE, BOARD_TEST_TREE],
+        pathNot: [
+          RUNTIME_VIEW_TREE,
+          BOARD_BUILDER_TREE,
+          BOARD_TEST_TREE,
+          SCREENS_BUILDER_TREE,
+          SCREENS_TEST_TREE,
+        ],
       },
       to: {
         path: [
@@ -823,16 +962,45 @@ module.exports = {
         "packages/core/ui (@miragon/pulse-ui) is the design kit every Pulse view and every customer UI " +
         "builds on: it imports no workspace package and nothing of the MCP, query, server or schema " +
         "stack (@modelcontextprotocol, hono, jose, TanStack, zod, prom-client, " +
-        "@hey-api, bpmn-js, diagram-js). What needs the host, a tool call or BPMN belongs in widget-shell, " +
-        "which imports pulse-ui, never the other way round (CLAUDE.md invariants 6 and 8).",
+        "@hey-api). What needs the host or a tool call belongs in widget-shell, which imports " +
+        "pulse-ui, never the other way round (CLAUDE.md invariants 6 and 8); the BPMN diagram is " +
+        "its own entry (ui-bpmn-in-its-entry-alone).",
       from: { path: "^packages/core/ui/" },
       to: {
         path: [
           "^packages/(?!core/ui/)",
           "@miragon/pulse-(?!ui(?:/|$))",
           ...npm(
-            "@modelcontextprotocol/[^/]+|hono|@hono/[^/]+|jose|@tanstack/[^/]+|zod|prom-client|@hey-api/[^/]+|bpmn-js|diagram-js",
+            "@modelcontextprotocol/[^/]+|hono|@hono/[^/]+|jose|@tanstack/[^/]+|zod|prom-client|@hey-api/[^/]+",
           ),
+        ],
+      },
+    },
+    {
+      name: "ui-bpmn-in-its-entry-alone",
+      severity: "error",
+      comment:
+        "bpmn-js (and diagram-js under it) is an optional peer of pulse-ui that its BPMN entry " +
+        "alone imports (src/bpmn, published as @miragon/pulse-ui/bpmn): the rest of the kit never " +
+        "imports bpmn-js, diagram-js or a module of src/bpmn, so a page that renders no diagram " +
+        "never resolves bpmn-js.",
+      from: { path: "^packages/core/ui/", pathNot: UI_BPMN_ENTRY },
+      to: { path: [UI_BPMN_ENTRY, ...npm("bpmn-js|diagram-js")] },
+    },
+    {
+      name: "ui-bpmn-reaches-the-kit-by-its-root",
+      severity: "error",
+      comment:
+        "pulse-ui's BPMN entry (src/bpmn) imports its own folder, the kit's root entry " +
+        "(src/index.ts, never another file of the kit), React, Lucide and bpmn-js: a bundle of the " +
+        "entry (the browser bundle's pulse-ui-bpmn.js) then takes the kit from the root's bundle, " +
+        "one React and one copy of every context (the locale, the toasts). Its tests are exempt.",
+      from: { path: UI_BPMN_ENTRY, pathNot: SRC_TEST_CODE },
+      to: {
+        pathNot: [
+          UI_BPMN_ENTRY,
+          UI_ROOT_ENTRY,
+          ...npm("react|react-dom|lucide-react|bpmn-js|diagram-js"),
         ],
       },
     },
@@ -840,13 +1008,14 @@ module.exports = {
       name: "ui-foundation-entries-import-nothing",
       severity: "error",
       comment:
-        "pulse-ui's framework-free entries (src/format and src/tones, published as " +
-        "@miragon/pulse-ui/format and @miragon/pulse-ui/tones) " +
+        "pulse-ui's framework-free entries (src/format, src/tones and src/glossary, published as " +
+        "@miragon/pulse-ui/format, @miragon/pulse-ui/tones and @miragon/pulse-ui/glossary) " +
         "import only their own folder: no React, no Radix, no tailwind-merge, no other file of " +
         "the kit, no Node built-in. Framework-free code (the runtime view's core, which Pulse " +
-        "for VS Code and Pulse for Orca run outside the webview) bundles them, so what needs " +
-        "React or a class map stays in the kit's root, which may import them, never the other " +
-        "way round.",
+        "for VS Code and Pulse for Orca run outside the webview) bundles them, and a page loads " +
+        "the glossary in a browser as it is, so what needs React, a class map, typescript or " +
+        "node:fs stays in the kit's root or its ./testing, which may import them, never the " +
+        "other way round.",
       from: { path: UI_FOUNDATION_ENTRIES, pathNot: SRC_TEST_CODE },
       to: { pathNot: "^packages/core/ui/src/$1/" },
     },
@@ -891,6 +1060,20 @@ module.exports = {
         "server and in every view bundle alike; what one half alone needs stays in that half.",
       from: { path: SHELL_PROTOCOL, pathNot: SRC_TEST_CODE },
       to: { pathNot: SHELL_PROTOCOL },
+    },
+    {
+      name: "widget-shell-claude-artifact-alone",
+      severity: "error",
+      comment:
+        "widget-shell's Claude artifact entry (src/ui/claude-artifact, " +
+        "`@miragon/pulse-widget-shell/claude-artifact`) is the one place that speaks to claude.ai's " +
+        "artifact runtime (window.claude) and words a page in claude.ai's places, so nothing " +
+        "outside it imports it, by path or by its entry, not even for a type: not the rest of " +
+        "widget-shell (`/widgets`, the page reads), so no view bundle, no connector's widgets and " +
+        "no web app carries claude.ai. A page in claude.ai imports the entry itself; what every " +
+        "page needs goes into the page reads (src/ui/page-reads), which the entry builds on.",
+      from: { pathNot: [SHELL_CLAUDE_ARTIFACT, ...SRC_TEST_CODE] },
+      to: { path: SHELL_CLAUDE_ARTIFACT_IMPORTS },
     },
     {
       name: "ext-apps-runtime-in-the-adapter",
@@ -1002,7 +1185,8 @@ module.exports = {
         "The CLI (apps/cli) is a terminal interface, not an MCP host: it imports no workspace " +
         "package except the ones CLI_BUNDLES names, which tsdown inlines (" +
         "@miragon/pulse-c7-core, the Camunda 7 REST family's core, " +
-        "@miragon/pulse-profile, the profile format, and @miragon/pulse-http, the transport), " +
+        "@miragon/pulse-profile, the profile format, @miragon/pulse-http, the transport, and " +
+        "@miragon/pulse-migration-plan, the migration plan format), " +
         "and nothing of the MCP/UI/server " +
         "stack (react, react-dom, lucide-react, preact, bpmn-js, diagram-js, " +
         "@modelcontextprotocol, hono, jose, TanStack, prom-client, " +
@@ -1151,8 +1335,11 @@ module.exports = {
         "The board builder (@miragon/pulse-board/builder) may be imported only where a surface " +
         "builds a board's numbers (BOARD_BUILDERS): the runtime view's core " +
         "(packages/core/runtime-view/src/core: the board panel, and the definition and instance " +
-        "views, which draw the same roll-up onto collapsed sub-processes) and the engine " +
-        "connector's data builders (src/data: the board feed), and by tests anywhere. Not the " +
+        "views, which draw the same roll-up onto collapsed sub-processes), the engine " +
+        "connector's data builders (src/data: the board feed) and the screens' builder " +
+        "(packages/core/screens/src/builder, whose instance screen rolls its markers up the same " +
+        "way, by the builder's entry: screens-builder-builds-on-the-engine-contract), and by " +
+        "tests anywhere. Not the " +
         "editor hosts' src (they read board files, the runtime view builds their numbers), not " +
         "the runtime view's other layers, not the rest of the connector, no other package and no " +
         "other app until it shows a board itself, through a rule change of its own. A relative " +
@@ -1168,18 +1355,176 @@ module.exports = {
       to: { path: BOARD_BUILDER },
     },
     {
+      name: "migration-plan-is-a-leaf",
+      severity: "error",
+      comment:
+        "The migration plan format (packages/core/migration-plan, @miragon/pulse-migration-plan, " +
+        "its main entry and ./testing) has no runtime dependency: its shipped code (the ./testing " +
+        "export and its JSON fixtures included) imports only its own modules, no workspace " +
+        "package, no npm package and no Node built-in. It parses and writes the text of a plan " +
+        "file a reader hands it: finding, reading and writing the file, the engine a plan is " +
+        "checked on and every engine request stay with the reader (the CLI's workflow commands, " +
+        "the runtime view's migration plan editor). Its tests may import vitest and ajv.",
+      from: { path: `^${escapeRegExp(MIGRATION_PLAN.tree)}/src/`, pathNot: ["[.]test[.]ts$"] },
+      to: { pathNot: `^${escapeRegExp(MIGRATION_PLAN.tree)}/src/` },
+    },
+    {
+      name: "migration-plan-consumers",
+      severity: "error",
+      comment:
+        "The migration plan format (@miragon/pulse-migration-plan) may be imported only where a " +
+        "surface writes or reads its plan files (MIGRATION_PLAN_READERS): the CLI's workflow " +
+        "commands (apps/cli/src/workflow, pulse plan-migration) and the runtime view's migration " +
+        "plan editor (packages/core/runtime-view/src/core/plans), and by tests anywhere. Not the " +
+        "CLI's command layer or config, not the runtime view's other layers, not the editor " +
+        "hosts' src (they hand the editor the file's text and write what it hands back), no " +
+        "connector, no other package and " +
+        "no other app until it reads a plan file itself, through a rule change of its own. A " +
+        "relative escape into packages/core/migration-plan is a violation too.",
+      from: {
+        pathNot: [
+          ...MIGRATION_PLAN_READERS,
+          `^${escapeRegExp(MIGRATION_PLAN.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          `^${PACKAGE_ROOT}/(?:test|test-host)/`,
+        ],
+      },
+      to: {
+        path: [`^${escapeRegExp(MIGRATION_PLAN.tree)}/`, ...npm(escapeRegExp(MIGRATION_PLAN.name))],
+      },
+    },
+    {
+      name: "screens-format-is-a-leaf",
+      severity: "error",
+      comment:
+        "The screens' format (packages/core/screens, @miragon/pulse-screens, its main entry and " +
+        "./testing) has no runtime dependency: its shipped code imports only its own modules, " +
+        "never the builder (src/builder), no workspace package, no npm package and no Node " +
+        "built-in. It holds the JSON forms of the shared screens, their codes, the targets a " +
+        "screen opens and the pure rules a surface applies to them in the browser (a process " +
+        "list's filter, the sums across engines); the reads of a screen's numbers are the " +
+        "builder's and every word around them the surface's. Its tests may import vitest.",
+      from: {
+        path: `^${escapeRegExp(SCREENS.tree)}/src/`,
+        pathNot: ["[.]test[.]ts$", SCREENS_BUILDER_TREE],
+      },
+      to: { pathNot: `^${escapeRegExp(SCREENS.tree)}/src/(?!builder/)` },
+    },
+    {
+      name: "screens-builder-builds-on-the-engine-contract",
+      severity: "error",
+      comment:
+        "The screens' builder (packages/core/screens/src/builder, @miragon/pulse-screens/builder) " +
+        "is the screens package's one edge into a family, the named exception written like the " +
+        "board builder's (owner decision D8 as amended on 2026-11-19): it builds each shared " +
+        "screen's numbers over the reads of the engine contract, so it imports its own modules, " +
+        "the format (src/format), the main entry of @miragon/pulse-engine-core and the board " +
+        "builder's entry, @miragon/pulse-board/builder, whose CollapsedShapes rolls the instance " +
+        "screen's markers up onto collapsed sub-processes (both optional peers of the package), " +
+        "nothing else: no other subpath of engine-core (./testing ships the kit), not the board " +
+        "format's main entry or ./testing, no relative escape into either tree, no other " +
+        "workspace package, no npm package and no Node built-in. Every word, format and " +
+        "navigation stays with the surface that renders the screen (the runtime view's core " +
+        "words it in English). Its tests may import vitest and the kit.",
+      from: { path: SCREENS_BUILDER_TREE, pathNot: ["[.]test[.]ts$"] },
+      to: {
+        pathNot: [
+          `^${escapeRegExp(SCREENS.tree)}/src/(?:builder|format)/`,
+          ...ENGINE_CORE_ENTRY,
+          ...BOARD_BUILDER_ENTRY,
+        ],
+      },
+    },
+    {
+      name: "screens-tests-build-on-the-engine-contract",
+      severity: "error",
+      comment:
+        "The screens package's tests that read the engine contract its builder builds on, its " +
+        "test tree (packages/core/screens/test) and the builder's own tests " +
+        "(packages/core/screens/src/builder/*.test.ts), which core-is-foundation leaves out, " +
+        "import of the families only @miragon/pulse-engine-core, by its package entries: the " +
+        "main entry and ./testing, the kit's fake and world (engine-core-consumers admits both). " +
+        "No connector, client, adapter or other family core (a dialect's recorded screens are " +
+        "held by its family's adapter; a screens test reads the contract over the kit's fake), " +
+        "and no relative escape into engine-core's tree.",
+      from: { path: SCREENS_TESTS },
+      to: {
+        path: [
+          "^packages/connectors/",
+          "@miragon/pulse-[^/]+-(connector|client|core|adapter)(/|$)",
+        ],
+        pathNot: npm(escapeRegExp(ENGINE_CORE.name)),
+      },
+    },
+    {
+      name: "screens-format-consumers",
+      severity: "error",
+      comment:
+        "The screens' format (@miragon/pulse-screens, its main entry; ./testing for tests " +
+        "only, shipped-code-not-to-testing) may be imported only where a surface builds a " +
+        "shared screen or applies its rules " +
+        "(SCREENS_READERS): the runtime view's core (packages/core/runtime-view/src/core, the " +
+        "engine panel both editor hosts open), the engine connector's data builders " +
+        "(src/data, the screen feeds of the web app) and the building blocks " +
+        "(packages/core/blocks/src, which render a screen's JSON form and filter a process list " +
+        "in the browser), the web app's src (apps/web/src, whose screens name a screen's JSON " +
+        "form by type alone, web-names-screens-by-type), and by tests anywhere. Not the runtime " +
+        "view's protocol or other layers, not the rest of the connector, no other package and no " +
+        "other app. A relative escape into packages/core/screens is a violation too. Its builder " +
+        "answers to screens-builder-consumers.",
+      from: {
+        pathNot: [
+          ...SCREENS_READERS,
+          `^${escapeRegExp(SCREENS.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          `^${PACKAGE_ROOT}/(?:test|test-host)/`,
+        ],
+      },
+      to: {
+        path: [`^${escapeRegExp(SCREENS.tree)}/`, ...npm(escapeRegExp(SCREENS.name))],
+        pathNot: SCREENS_BUILDER,
+      },
+    },
+    {
+      name: "screens-builder-consumers",
+      severity: "error",
+      comment:
+        "The screens' builder (@miragon/pulse-screens/builder) may be imported only where a " +
+        "surface builds a shared screen's numbers (SCREENS_BUILDERS): the runtime view's core " +
+        "(packages/core/runtime-view/src/core, whose engine panel delegates its numbers to it) " +
+        "and the engine connector's data builders (src/data, the screen feeds of the web app), " +
+        "and by tests anywhere. Not the editor hosts' src (the runtime view builds their " +
+        "numbers), not the runtime view's other layers, not the rest of the connector, not the " +
+        "building blocks or the web app (they render a screen's JSON form, never build it), no " +
+        "other package and no other app. A relative escape into " +
+        "packages/core/screens/src/builder is a violation too.",
+      from: {
+        pathNot: [
+          ...SCREENS_BUILDERS,
+          `^${escapeRegExp(SCREENS.tree)}/(?:src|test)/`,
+          ...SRC_TEST_CODE,
+          `^${PACKAGE_ROOT}/(?:test|test-host)/`,
+        ],
+      },
+      to: { path: SCREENS_BUILDER },
+    },
+    {
       name: "blocks-are-building-blocks",
       severity: "error",
       comment:
         "Pulse's building blocks (packages/core/blocks, @miragon/pulse-blocks) are React on " +
         "@miragon/pulse-ui with props, callbacks and the slots a surface brings (its table, its " +
-        "id, its diagram): their shipped code imports only its own modules, react, react-dom, " +
-        "lucide-react, pulse-ui's root, @miragon/pulse-ui/format and @miragon/pulse-ui/tones, and " +
-        "the board format's main entry (@miragon/pulse-board, the types of a built board's JSON " +
-        "form). Never widget-shell or ext-apps (a host's view runtime: the surface wires its host " +
-        "through the slots), a family's package or engine-core, the board builder, another " +
+        "id, its diagram, its link): their shipped code imports only its own modules, react, " +
+        "react-dom, lucide-react, pulse-ui's root, @miragon/pulse-ui/format and " +
+        "@miragon/pulse-ui/tones, the board format's main entry (@miragon/pulse-board, the types " +
+        "of a built board's JSON form) and the screens' main entry (@miragon/pulse-screens, the " +
+        "JSON forms of the shared screens and the rules a surface applies to them in the " +
+        "browser). Never widget-shell or ext-apps (a host's view runtime: the surface wires its " +
+        "host through the slots), a family's package or engine-core, the board builder, the " +
+        "screens' builder (a surface renders a screen's JSON form, never builds it), another " +
         "subpath, an npm package of the MCP stack or a Node built-in, and no relative escape. " +
-        "Its tests may import vitest, Testing Library and the board's fixtures.",
+        "Its tests may import vitest, Testing Library and the fixtures of the board and the " +
+        "screens.",
       from: { path: BLOCKS_SRC, pathNot: SRC_TEST_CODE },
       to: { pathNot: BLOCKS_IMPORTS },
     },
@@ -1189,11 +1534,12 @@ module.exports = {
       comment:
         "The building blocks (@miragon/pulse-blocks) may be imported only where a surface renders " +
         "them (BLOCKS_RENDERERS): the runtime view's webview (packages/core/runtime-view/src/" +
-        "webview, a board's tiles in Pulse for VS Code and Pulse for Orca) and the engine " +
-        "connector's widgets (src/widgets, the cockpit's board route), and by tests anywhere. " +
-        "Not the runtime view's other layers, not the rest of the connector (its data builders, " +
-        "tools, lib folders), no other package and no app until it renders them itself, through a " +
-        "rule change of its own. A relative escape into packages/core/blocks is a violation too.",
+        "webview, a board's tiles and the engine tab in Pulse for VS Code and Pulse for Orca), " +
+        "the engine connector's widgets (src/widgets, the cockpit's board route) and the web " +
+        "app's src (apps/web/src, its own screens), and by tests anywhere. Not the runtime view's " +
+        "other layers, not the rest of the connector (its data builders, tools, lib folders), no " +
+        "other package and no other app until it renders them itself, through a rule change of " +
+        "its own. A relative escape into packages/core/blocks is a violation too.",
       from: {
         pathNot: [
           ...BLOCKS_RENDERERS,
@@ -1322,14 +1668,16 @@ module.exports = {
         "of the runtime view; and where the contract's answers are read (ENGINE_CORE_READERS): " +
         "the runtime view's layers src/ports, src/core, src/model and src/host-kit (never its " +
         "webview, which renders protocol view models), the src of the editor hosts, apps/vscode " +
-        "and apps/orca, and the board builder (packages/core/board/src/builder, held to the main " +
-        "entry by board-builder-builds-on-the-engine-contract); where the engine module runs the " +
+        "and apps/orca, the board builder (packages/core/board/src/builder, held to the main " +
+        "entry by board-builder-builds-on-the-engine-contract) and the screens' builder " +
+        "(packages/core/screens/src/builder, held to it by " +
+        "screens-builder-builds-on-the-engine-contract); where the engine module runs the " +
         "contract (ENGINE_CONNECTOR_CONTRACT_READERS, owner decision 2026-11-16 with boards in " +
         "the MCP server, the case #488 names): the connector's src/lib/engine, " +
         "src/lib/core-adapter and src/data, held to the main entry by " +
         "engine-connector-contract-by-its-main-entry; by test files and test-support anywhere " +
-        "and in the test trees of the runtime view, the adapters, the dialect cores and the " +
-        "board package (ENGINE_CORE_TESTS). Not another family's core (a family core of another " +
+        "and in the test trees of the runtime view, the adapters, the dialect cores, the " +
+        "board package and the screens package (ENGINE_CORE_TESTS). Not another family's core (a family core of another " +
         "source than a dialect included), not the rest of the engine connector (its view models, " +
         "widgets, src/lib/shared, tools and widget tools: they read what src/data builds), not " +
         "the CLI until it serves a second dialect (owner decision 2026-11-09: it reaches the " +
@@ -1438,8 +1786,9 @@ module.exports = {
       comment:
         "A family's adapter's tests (its test tree, its test files and their test-support) " +
         "import what adapters-own-their-family admits its src and ADAPTER_TEST_IMPORTS, the " +
-        "board format and its builder, which build a board over the adapter's runtime, so a test " +
-        "holds the adapter to the numbers the other surfaces show. No other workspace package: " +
+        "board format and its builder, which build a board over the adapter's runtime, and the " +
+        "screens with their builder, which build the shared screens over it, so a test holds the " +
+        "adapter to the numbers the other surfaces show. No other workspace package: " +
         "no connector, another family's core or client, or the UI; its own family's client is " +
         "client-consumers', which admits it in a test.",
       from: { path: FAMILY_ADAPTER_TEST_CODE },
@@ -1507,16 +1856,35 @@ module.exports = {
       comment:
         "The web app (apps/web) is the page of the MCP views a Pulse server serves under /app: " +
         "its src imports only its own modules, react, react-dom and lucide-react, " +
-        "@miragon/pulse-ui by its root and its stylesheet @miragon/pulse-ui/theme.css, the view " +
-        "runtime's view half @miragon/pulse-widget-shell/widgets (mountPage, the page's client of " +
-        "the web app's API) and the engine module's views @miragon/pulse-engine-connector/widgets. " +
+        "@miragon/pulse-ui by its root, its BPMN diagram @miragon/pulse-ui/bpmn and its stylesheet " +
+        "@miragon/pulse-ui/theme.css, the view " +
+        "runtime's view half @miragon/pulse-widget-shell/widgets (mountApp, the page's client of " +
+        "the web app's API), the engine module's views @miragon/pulse-engine-connector/widgets, " +
+        "the building blocks its screens compose (@miragon/pulse-blocks) and the screens' format " +
+        "(@miragon/pulse-screens, by type: web-names-screens-by-type), each by its main entry. " +
         "Nothing of a server (widget-shell's /server, a connector's root, the transport, zod, the " +
-        "MCP SDK), no MCP Apps runtime (the page is no chat), no ./testing entry, no Node " +
-        "built-in and no file of another package by path: the page reaches the engines through " +
-        "its server's call route alone. Its tests and the build's config (vite.config.ts) may " +
-        "import more.",
+        "MCP SDK), no MCP Apps runtime (the page is no chat), no screen's builder or engine " +
+        "contract (the server builds a screen, the page renders its JSON form), no ./testing " +
+        "entry, no Node built-in and no file of another package by path: the page reaches the " +
+        "engines through its server's call route alone. Its tests and the build's config " +
+        "(vite.config.ts) may import more.",
       from: { path: WEB_SRC, pathNot: SRC_TEST_CODE },
       to: { pathNot: WEB_IMPORTS },
+    },
+    {
+      name: "web-names-screens-by-type",
+      severity: "error",
+      comment:
+        "The web app's src names the screens' JSON forms (@miragon/pulse-screens) by type alone: " +
+        "a value of the format (ProcessFilter, FleetSums) reaches the page through the building " +
+        "blocks that apply it (useProcessList of @miragon/pulse-blocks), so the page keeps no " +
+        "rule of a screen of its own and the editors' engine tab and the page apply one. Use " +
+        "`import type`, or the block that applies the rule.",
+      from: { path: WEB_SRC, pathNot: SRC_TEST_CODE },
+      to: {
+        path: [`^${escapeRegExp(SCREENS.tree)}/`, ...npm(escapeRegExp(SCREENS.name))],
+        dependencyTypesNot: ["type-only"],
+      },
     },
     {
       name: "cli-family-core-only-in-named-layers",
@@ -1600,7 +1968,8 @@ module.exports = {
       severity: "error",
       comment:
         "The CLI (apps/cli) and the packages CLI_BUNDLES names (c7-core, the profile " +
-        "format, the transport) have no import cycle at all, type-only cycles included (stricter than " +
+        "format, the transport, the migration plan format) have no import cycle at all, type-only " +
+        "cycles included (stricter than " +
         "no-circular above). Extract the shared part into its own module.",
       from: { path: `^(?:apps/cli|${CLI_BUNDLE_TREES})/` },
       to: { circular: true },
@@ -1620,7 +1989,8 @@ module.exports = {
       severity: "error",
       comment:
         "Nothing in the CLI or in the packages CLI_BUNDLES names (c7-core, the profile " +
-        "format, the transport) imports a test file (*.test.ts) of its own tree. Shared test helpers live in " +
+        "format, the transport, the migration plan format) imports a test file (*.test.ts) of its " +
+        "own tree. Shared test helpers live in " +
         "apps/cli/test/support/ and in a bundled package's src/testing/.",
       from: { path: `^(apps/cli|${CLI_BUNDLE_TREES})/` },
       to: { path: "^$1/.*[.]test[.]ts$" },

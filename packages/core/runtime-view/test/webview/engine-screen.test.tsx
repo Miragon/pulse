@@ -65,18 +65,24 @@ describe("the engine overview", () => {
       "Latest version",
       "Running",
       "With incident",
+      "Incidents",
     ])
     expect(cells(order)).toEqual([
       "Order fulfillment order-fulfillment",
       "v3",
       "150",
       "9Has open incidents",
+      "2Has open incidents",
     ])
-    expect(cells(shipment)).toEqual(["shipment", "v1", "1,204", "0"])
+    expect(cells(shipment)).toEqual(["shipment", "v1", "1,204", "0", "0"])
     expect(order && queryPart(order, "incident-count", { tone: "danger" })?.textContent).toBe(
       "9Has open incidents",
     )
+    expect(order && queryPart(order, "root-incident-count", { tone: "danger" })?.textContent).toBe(
+      "2Has open incidents",
+    )
     expect(shipment && queryPart(shipment, "incident-count", { tone: "danger" })).toBeNull()
+    expect(shipment && queryPart(shipment, "root-incident-count", { tone: "danger" })).toBeNull()
     expect(queryPart(harness.root, "filter-summary")?.textContent).toBe(
       "3 processes · 1,369 running · 10 with incident · all versions",
     )

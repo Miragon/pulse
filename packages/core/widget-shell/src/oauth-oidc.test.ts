@@ -186,6 +186,13 @@ describe("oauthOidcProvider: what it serves and says", () => {
     expect(typeof provider.discovery?.keys).toBe("function")
   })
 
+  it("asks the sign-in for the Web API's identifier where an audience is ADFS's for it", () => {
+    const audience =
+      "https://api.example.test microsoft:identityserver:5e3c1a7b microsoft:identityserver:x"
+    const provider = oauthOidcProvider(readOidcSettings(ISSUER, { audience }), { log })
+    expect(provider.web).toEqual({ scopes: ["openid"], resource: "5e3c1a7b" })
+  })
+
   it.each<[Record<string, string>, string]>([
     [{}, "aud http://localhost/mcp (RFC 8707) and the sub claim"],
     [
@@ -303,6 +310,20 @@ describe("oauthOidcProvider: the gate over its discovery", () => {
     await expect(
       verifier.verifyAccessToken(token({ iss: "https://elsewhere.example.test" })),
     ).rejects.toThrow("JWT verification failed")
+  })
+
+  it("takes ADFS's audience of a Web API without a scope, never its client's ID token, whose id the identifier is", async () => {
+    serve("/a/keys", { access_token_issuer: TRUST })
+    // ADFS's wizard proposes the client's id as the Web API's identifier.
+    const id = "5e3c1a7b-2f4d-4c8e-9a6b-1d0f2e3c4b5a"
+    const verifier = gate({ audience: `microsoft:identityserver:${id}`, clientIds: id })
+    const access = token({ iss: TRUST, aud: `microsoft:identityserver:${id}`, appid: id })
+    expect(await verifier.verifyAccessToken(access)).toMatchObject({ clientId: id, scopes: [] })
+    // ADFS's ID token: the issuer, the client's id bare, no at_hash in the code flow.
+    const idToken = token({ aud: id, appid: id, auth_time: now(), nonce: "n-1" })
+    await expect(verifier.verifyAccessToken(idToken)).rejects.toThrow(
+      "Token audience does not include the protected resource",
+    )
   })
 
   it("refuses a token without an issuer, and one of the access tokens' issuer the discovery does not name", async () => {

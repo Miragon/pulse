@@ -1,0 +1,68 @@
+/*
+ * The Tailwind entry of dist/browser/pulse-ui.css, the stylesheet of a page without a build
+ * (scripts/browser-bundle.mjs compiles it, the README's "Use in a page without a build" shows it):
+ * Tailwind's base and utilities, the kit's theme (the vendored --cd-* tokens, the roles in light
+ * and dark, the density, the font stacks), every class the kit renders and the layout utilities
+ * below. No source is scanned but the kit's own: never its tests, render cases or the brand
+ * gates' fixtures in src/testing, which hold palette classes on purpose.
+ */
+@import "tailwindcss" source(none);
+@source "../src";
+@source not "../src/testing";
+@source not "../src/**/*.test.{ts,tsx}";
+@source not "../src/**/*.test-support.{ts,tsx}";
+@source not "../src/**/test-support";
+@source not "../src/render-*";
+/* Tailwind's own `shadow` paints a raw black, and the word in a comment of the kit would emit it:
+   the kit's shadows are shadow-1 to shadow-3, on the theme's roles. */
+@source not inline("shadow");
+@import "../src/theme.css";
+
+/*
+ * The layout utilities a page lays itself out with, each also under `sm:` and `lg:`, so a layout
+ * changes with the width: display, flex and grid, gap, padding and margin on Tailwind's spacing
+ * scale and the density's keys (gutter, section), width, the type scale's steps and weights,
+ * tabular figures, truncation, the neutral roles' text, surface and edge colours. A class outside
+ * this list and outside the kit renders nothing: the README's "Use in a page without a build"
+ * names them.
+ */
+@source inline(
+  "{,sm:,lg:}{block,inline-block,inline,flex,inline-flex,grid,inline-grid,hidden,contents}"
+);
+@source inline(
+  "{,sm:,lg:}{flex-row,flex-col,flex-wrap,flex-nowrap,flex-1,flex-auto,flex-none,grow,shrink-0}"
+);
+@source inline("{,sm:,lg:}{items-start,items-center,items-end,items-baseline,items-stretch}");
+@source inline("{,sm:,lg:}{justify-start,justify-center,justify-end,justify-between}");
+@source inline("{,sm:,lg:}{self-start,self-center,self-end,self-stretch}");
+@source inline("{,sm:,lg:}grid-cols-{1..12}");
+@source inline("{,sm:,lg:}col-span-{{1..12},full}");
+@source inline("{,sm:,lg:}{gap,gap-x,gap-y}-{0,1,2,3,4,6,8,gutter,section}");
+@source inline("{,sm:,lg:}{p,px,py,pt,pr,pb,pl}-{0,1,2,3,4,6,8,gutter}");
+@source inline("{,sm:,lg:}{m,mx,my,mt,mr,mb,ml}-{0,1,2,3,4,6,8}");
+@source inline("{,sm:,lg:}{mx-auto,ml-auto,mr-auto}");
+@source inline("{,sm:,lg:}{space-x,space-y}-{1,2,3,4,6}");
+@source inline("{,sm:,lg:}{w-full,w-auto,w-fit,w-1/2,w-1/3,w-2/3,w-1/4,w-3/4,min-w-0,max-w-full}");
+@source inline("{,sm:,lg:}max-w-{sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,prose}");
+@source inline("{,sm:,lg:}{h-full,h-auto,min-h-0}");
+@source inline("{,sm:,lg:}text-{title,section,body,dense,small}");
+@source inline("{,sm:,lg:}{font-sans,font-mono,font-normal,font-semibold,font-bold}");
+@source inline("{,sm:,lg:}{tabular-nums,truncate,whitespace-nowrap,break-words}");
+@source inline("{,sm:,lg:}text-{left,center,right}");
+@source inline("{,sm:,lg:}{text-foreground,text-muted-foreground,text-link}");
+@source inline("{,sm:,lg:}{bg-background,bg-card,bg-muted}");
+@source inline(
+  "{,sm:,lg:}{border,border-t,border-b,border-l,border-r,border-border,rounded-{sm,md,lg}}"
+);
+@source inline(
+  "{,sm:,lg:}{overflow-hidden,overflow-auto,overflow-x-auto,relative,sticky,top-0,sr-only}"
+);
+
+/*
+ * A page's body in the kit's font on the dense step, as every Pulse surface sets it. Unlayered,
+ * so it wins over a host's unlayered reset before it (a Claude artifact's skeleton sets the body
+ * in 14px system-ui), and a part the kit portals to the body reads as the page does.
+ */
+body {
+  @apply text-dense font-sans;
+}

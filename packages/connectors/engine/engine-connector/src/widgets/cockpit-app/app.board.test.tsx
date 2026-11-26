@@ -5,6 +5,7 @@ import {
   TestViewHost,
   createTestQueryClient,
   type HostAction,
+  type ViewLocation,
 } from "@miragon/pulse-widget-shell/widgets"
 import {
   ENGINE_BOARD_DATA,
@@ -15,8 +16,9 @@ import {
   ENGINE_LIST_ENGINES,
 } from "../../tool-names.js"
 import type { CockpitAppData, CockpitView } from "../../view-models.js"
-import { BOARD, RUNNING_INSTANCE } from "../board/board.test-support.js"
+import { BOARD, ENDED_INSTANCE, RUNNING_INSTANCE } from "../board/board.test-support.js"
 import { CockpitApp } from "./app.js"
+import { fakeAddress, headSection, trailLabels } from "./app.test-support.js"
 
 afterEach(cleanup)
 
@@ -37,7 +39,7 @@ const FULLSCREEN = { displayMode: "fullscreen" } as const
  * The cockpit opened on the board by `engine_open_cockpit`: no engine resolved, the start the
  * board's data. The engines' own feeds have no fakes: a view of an engine reads and fails.
  */
-function renderBoardCockpit(engines: CockpitAppData["engines"] = ENGINES) {
+function renderBoardCockpit(engines: CockpitAppData["engines"] = ENGINES, location?: ViewLocation) {
   const actions: HostAction[] = []
   const contexts: string[] = []
   const data: CockpitAppData = { engineId: null, engines, start: { view: BOARD_VIEW, data: BOARD } }
@@ -45,6 +47,7 @@ function renderBoardCockpit(engines: CockpitAppData["engines"] = ENGINES) {
     <TestViewHost
       client={createTestQueryClient()}
       host={FULLSCREEN}
+      {...(location === undefined ? {} : { location, startPage: "/app" })}
       onHostAction={(action) => actions.push(action)}
       onModelContext={(text) => contexts.push(text)}
       tools={{
@@ -98,7 +101,10 @@ describe("CockpitApp opens a board", () => {
     })
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
     expect(boardHeading()).toBeNull()
-    expect(within(trail()).getByRole("button", { name: "Overview" })).toBeTruthy()
+    // N10: the board, then the view; no overview the reader never passed, and no section current.
+    expect(trailLabels()).toEqual(["Invoices", "INV-0042"])
+    expect(headSection("Overview").getAttribute("aria-current")).toBeNull()
+    expect(headSection("Incidents").getAttribute("aria-current")).toBeNull()
     // The drill carries the name the tile gives, as the cockpit's own drills do.
     expect(within(trail()).getByText("INV-0042").getAttribute("aria-current")).toBe("page")
     expect(within(trail()).queryByText(`Instance ${RUNNING_INSTANCE.slice(0, 8)}…`)).toBeNull()
@@ -156,6 +162,60 @@ describe("CockpitApp opens a board", () => {
     ]) {
       expect(reads(feed), feed).toEqual([])
     }
+  })
+
+  // The web app's page shows a Camunda 8 engine's processes, a process, an instance and its history
+  // on screens of its own, as it claims their places (`ViewLocation.claims`): there the board's
+  // tiles and chip open them, the cockpit names the place whole and leaves it to the page, and an
+  // incident opens the instance that holds it, since no route reads a Camunda 8 incident by its id.
+  it("on a page whose screens show a Camunda 8 engine, its tiles and chip open them there", async () => {
+    const c8 = {
+      id: "prod-a",
+      environment: "default",
+      dialect: "c8" as const,
+      boards: ["invoices"],
+    }
+    const SCREENS = new Set(["overview", "process-detail", "instance-detail", "history"])
+    const pageShows = (args: Readonly<Record<string, unknown>>) =>
+      typeof args.view === "string" && SCREENS.has(args.view)
+    const opened = async (open: () => void, place: Record<string, unknown>) => {
+      const address = fakeAddress(undefined, pageShows)
+      const { reads } = renderBoardCockpit([c8], address.location)
+      open()
+      await waitFor(() =>
+        expect(address.reports.at(-1)).toMatchObject({ place: { args: place }, entry: "push" }),
+      )
+      // The page takes over: the cockpit renders nothing and reads nothing of the engine.
+      expect(boardHeading()).toBeNull()
+      expect(reads(ENGINE_INSTANCE_DETAIL_DATA)).toEqual([])
+      expect(reads(ENGINE_COCKPIT_OVERVIEW_DATA)).toEqual([])
+      cleanup()
+    }
+    const instances = () => screen.getByRole("region", { name: "Instances" })
+    await opened(
+      () => fireEvent.click(within(instances()).getByRole("row", { name: /^Instance INV-0042/ })),
+      { view: "instance-detail", engine: "prod-a", processInstanceId: RUNNING_INSTANCE },
+    )
+    await opened(
+      () => fireEvent.click(within(instances()).getAllByRole("row", { name: /^Instance / })[1]),
+      { view: "history", engine: "prod-a", processInstanceId: ENDED_INSTANCE },
+    )
+    await opened(
+      () =>
+        fireEvent.click(
+          within(screen.getByRole("region", { name: "Incidents" })).getAllByRole("row")[1],
+        ),
+      { view: "instance-detail", engine: "prod-a", processInstanceId: RUNNING_INSTANCE },
+    )
+    await opened(
+      () =>
+        fireEvent.click(
+          within(screen.getByRole("group", { name: "Engines of this board" })).getByRole("button", {
+            name: /^prod-a/,
+          }),
+        ),
+      { view: "overview", engine: "prod-a" },
+    )
   })
 
   it("'All engines' leaves the board for the chooser", () => {

@@ -1,9 +1,7 @@
 import type { Client } from "@miragon/pulse-c7-client"
 import {
   getHistoricActivityStatistics,
-  getHistoricProcessInstances,
   getHistoricProcessInstancesCount,
-  getProcessInstances,
 } from "@miragon/pulse-c7-client/sdk"
 import { mapLimit, toEngineDate } from "@miragon/pulse-c7-core"
 import { createCallerCache, oneAtATime } from "../lib/engine/per-engine.js"
@@ -16,7 +14,8 @@ import {
   fetchVersionIdsDeployedAfter,
   type DefinitionVersion,
 } from "./definition-info.js"
-import { countOf, DAY_MS, optional, rowsOf } from "./engine-reads.js"
+import { countOf, DAY_MS, rowsOf } from "./engine-reads.js"
+import { recordsHistory } from "./history-recorded.js"
 
 // The history statistics load the engine's database: per version, every instance started in the
 // window (of every definition) is checked against the version's activity index, and on an engine
@@ -189,24 +188,6 @@ async function throughputWindow(
   const cutTotal = await countStarted(client, { processDefinitionKey: key, startedAfter: cutAfter })
   const cut = await countCohorts(client, started, cutAfter, cutTotal)
   return { ...window, versions: withCohort(started, cut), uncounted: cut.uncounted }
-}
-
-/**
- * Whether the engine writes history at all, asked only when the window holds no instance: an
- * instance runs but none is open in the history. Both reads are enrichment; unknown is null.
- */
-async function recordsHistory(client: Client): Promise<boolean | null> {
-  const [running, open] = await Promise.all([
-    optional(getProcessInstances({ client, query: { maxResults: 1 } }).then(rowsOf)),
-    optional(
-      getHistoricProcessInstances({ client, query: { unfinished: true, maxResults: 1 } }).then(
-        rowsOf,
-      ),
-    ),
-  ])
-  if (running === null || open === null) return null
-  if (open.length > 0) return true
-  return running.length > 0 ? false : null
 }
 
 /** One version's statistics, through the engine's one-at-a-time gate. */

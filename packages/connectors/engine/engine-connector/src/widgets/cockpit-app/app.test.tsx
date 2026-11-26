@@ -258,11 +258,14 @@ describe("CockpitApp opens on the start view", RENDER, () => {
     expect(reads(ENGINE_JOBS_DATA)).toEqual([])
   })
 
-  it("another engine gets no seed: it reads on that engine", async () => {
+  it("another engine gets no seed: it reads on that engine, in the same section (N7)", async () => {
     const { reads } = renderCockpit(boot("prod-a", ENGINES, { section: "jobs" }, JOBS_DATA))
     await waitFor(() => expect(activeEngine()).toBe("prod-a"))
     fireEvent.change(screen.getByLabelText("Selected engine"), { target: { value: "prod-b" } })
-    await waitFor(() => expect(reads(ENGINE_HEALTH_DATA)).toEqual([{ engine: "prod-b" }]))
+    await waitFor(() =>
+      expect(reads(ENGINE_JOBS_DATA)).toEqual([expect.objectContaining({ engine: "prod-b" })]),
+    )
+    expect(headSection("Jobs").getAttribute("aria-current")).toBe("page")
   })
 
   it("the Jobs head section resets the stack", async () => {

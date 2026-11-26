@@ -36,6 +36,7 @@ const INSTANCES: ProcessInstancesData = {
   processDefinitionName: "Invoice",
   totalCount: 1,
   returnedCount: 1,
+  fetchedAt: "2026-10-26T08:00:00.000Z",
   allCount: 1,
   withIncidentCount: 0,
   suspendedCount: 0,
@@ -48,6 +49,7 @@ const INSTANCES: ProcessInstancesData = {
       version: 1,
       suspended: false,
       hasIncident: false,
+      startTime: null,
     },
   ],
   filters: {},
@@ -62,7 +64,6 @@ const CLUSTER: ClusterDetailData = {
   incidentCount: 1,
   scannedIncidentCount: 1,
   lastHourCount: 1,
-  last24hCount: 1,
   firstSeen: "2026-06-11T08:00:00.000Z",
   latestIncident: "2026-06-11T14:00:00.000Z",
   processDefinitionKeys: ["shipping"],
@@ -101,8 +102,8 @@ const LANDSCAPE: CockpitDashboardData = {
 const INCIDENTS: IncidentsDashboardData = {
   totalCount: 2,
   processCount: 1,
+  fetchedAt: "2026-10-26T08:00:00.000Z",
   affectedActivityCount: 1,
-  last24hCount: 1,
   latestIncident: "2026-10-10T12:00:00.000+0000",
   filters: {},
   engineVendor: "CIB seven",
@@ -116,7 +117,6 @@ const INCIDENTS: IncidentsDashboardData = {
       incidentCount: 2,
       scannedIncidentCount: 2,
       affectedActivityCount: 1,
-      last24hCount: 1,
       latestIncident: "2026-10-10T12:00:00.000+0000",
       cockpitUrl: null,
       activities: [],
@@ -154,7 +154,10 @@ const SITES: Record<string, SearchSite> = {
         messageSignature={CLUSTER.messageSignature ?? undefined}
       />
     ),
-    search: { en: "Filter by business key", de: "Nach Geschäftsschlüssel filtern" },
+    search: {
+      en: "Filter by business key or ID",
+      de: "Nach Geschäftsschlüssel oder ID filtern",
+    },
   },
   "cockpit definitions": {
     widget: () => <ProcessDefinitionsTable data={LANDSCAPE} engine="prod-a" />,
@@ -166,7 +169,6 @@ const SITES: Record<string, SearchSite> = {
       en: "Filter incidents by process, activity or error message",
       de: "Incidents filtern nach Prozess, Aktivität oder Fehlermeldung",
     },
-    scope: { en: "Show incidents", de: "Incidents zeigen" },
   },
 }
 

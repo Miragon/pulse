@@ -1,4 +1,4 @@
-import type { PanelState } from "../../core/protocol/index.js"
+import type { PanelState, PanelView } from "../../core/protocol/index.js"
 
 export class PanelTitle {
   static ofEngine(name: string): string {
@@ -10,12 +10,7 @@ export class PanelTitle {
   }
 
   static of(state: PanelState, fallback: string): string {
-    const view =
-      state.status === "ready"
-        ? state.view
-        : state.status === "failed"
-          ? state.staleView
-          : undefined
+    const view = PanelTitle.viewOf(state)
     if (view === undefined) {
       return fallback
     }
@@ -28,10 +23,20 @@ export class PanelTitle {
     if (view.kind === "definition") {
       return `${view.processName} · ${view.engine.name}`
     }
+    if (view.kind === "migrationPlan") {
+      return `${view.fileName} · ${view.engine.name}`
+    }
     if (view.kind === "migration") {
       const target = view.target === undefined ? "…" : `v${view.target.version}`
       return `${view.processName} v${view.source.version} → ${target} · ${view.engine.name}`
     }
     return `${view.instance.businessKey ?? view.instance.shortId} · ${view.instance.processName}`
+  }
+
+  private static viewOf(state: PanelState): PanelView | undefined {
+    if (state.status === "ready") {
+      return state.view
+    }
+    return state.status === "failed" ? state.staleView : undefined
   }
 }

@@ -33,6 +33,7 @@ export const de: Readonly<Record<WordKey, Message>> = {
   "open.process": "Prozess auf {engine} öffnen, neueste Version zuerst",
   "open.toSide": "{title} (Strg/Cmd+Klick: daneben)",
   "row.instance": "Instanz {id}",
+  "row.instanceAt": "Instanz {id} bei {element}",
   "summary.noIncident": "Keine Instanz hat einen offenen Incident.",
   "summary.noIncidentAnswered":
     "Keine Instanz hat einen offenen Incident auf den Engines, die geantwortet haben.",

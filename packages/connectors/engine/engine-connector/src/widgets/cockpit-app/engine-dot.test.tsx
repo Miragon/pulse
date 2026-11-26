@@ -19,23 +19,23 @@ afterEach(() => {
 })
 
 interface EngineCounts {
-  openIncidents: number
+  openRootIncidents: number
   largestCause: number
   failedJobs: number
   running: number
 }
 
 const ENGINES: Record<string, EngineCounts> = {
-  "one-incident": { openIncidents: 1, largestCause: 1, failedJobs: 0, running: 10 },
+  "one-incident": { openRootIncidents: 1, largestCause: 1, failedJobs: 0, running: 10 },
   "at-threshold": {
-    openIncidents: DEFAULT_VERDICT_THRESHOLDS.criticalIncidents,
+    openRootIncidents: DEFAULT_VERDICT_THRESHOLDS.criticalIncidents,
     largestCause: 3,
     failedJobs: 0,
     running: 10,
   },
-  "stuck-jobs": { openIncidents: 0, largestCause: 0, failedJobs: 4, running: 10 },
-  steady: { openIncidents: 0, largestCause: 0, failedJobs: 0, running: 10 },
-  idle: { openIncidents: 0, largestCause: 0, failedJobs: 0, running: 0 },
+  "stuck-jobs": { openRootIncidents: 0, largestCause: 0, failedJobs: 4, running: 10 },
+  steady: { openRootIncidents: 0, largestCause: 0, failedJobs: 0, running: 10 },
+  idle: { openRootIncidents: 0, largestCause: 0, failedJobs: 0, running: 0 },
 }
 
 const countsOf = (args: Record<string, unknown>) => ENGINES[String(args.engine)]
@@ -47,9 +47,23 @@ function overviewFeed(args: Record<string, unknown>): CockpitDashboardData {
       totalDefinitions: 2,
       totalRunningInstances: e.running,
       totalFailedJobs: e.failedJobs,
-      totalIncidents: e.openIncidents,
+      totalIncidents: e.openRootIncidents,
     },
-    definitions: [],
+    // The fleet's rows count from the definitions, the landing's words from the summary.
+    definitions: [
+      {
+        id: "p:1:d",
+        key: "p",
+        name: "P",
+        latestVersion: 1,
+        instances: e.running,
+        failedJobs: e.failedJobs,
+        incidents:
+          e.openRootIncidents > 0
+            ? [{ incidentType: "failedJob", incidentCount: e.openRootIncidents }]
+            : [],
+      },
+    ],
     engineId: String(args.engine),
   }
 }
@@ -59,14 +73,13 @@ function healthFeed(args: Record<string, unknown>): EngineHealthData {
   const e = countsOf(args)
   return {
     status: engineVerdict(
-      { openIncidents: e.openIncidents, largestCluster: e.largestCause },
+      { openRootIncidents: e.openRootIncidents, largestCluster: e.largestCause },
       DEFAULT_VERDICT_THRESHOLDS,
     ),
     statusRule: "",
     summary: {
-      totalIncidents: e.openIncidents,
+      totalIncidents: e.openRootIncidents,
       lastHourIncidents: 0,
-      last24hIncidents: 0,
       affectedActivities: null,
       affectedDefinitions: 0,
       runningInstances: e.running,
@@ -93,13 +106,14 @@ async function landingRow(engineId: string): Promise<HTMLElement> {
   return screen.findByRole("button", { name: new RegExp(`^${engineId}\\s*,`) })
 }
 
-/** The engine's card: the landscape below names the engine too, but in no button. */
-function fleetCard(engineId: string): HTMLElement {
-  const cards = screen
+/** The engine's row of the "Per engine" table, which opens it (N8): its dot before its id. */
+function fleetRow(engineId: string): HTMLElement {
+  const table = screen.getByRole("region", { name: "Load and job backlog per engine" })
+  const rows = within(table)
     .getAllByText(engineId, { selector: "span" })
-    .flatMap((name) => name.closest("button") ?? [])
-  expect(cards).toHaveLength(1)
-  return cards[0]
+    .flatMap((name) => name.closest("tr") ?? [])
+  expect(rows).toHaveLength(1)
+  return rows[0]
 }
 
 it("the fixture's verdicts are c7-core's: one incident is warning, the threshold critical", () => {
@@ -117,7 +131,7 @@ describe("the landing's engine dot follows the one verdict", () => {
     )
   }
 
-  it("one open incident, no threshold reached: warning, as the overview badge says", async () => {
+  it("one open root incident, no threshold reached: warning, as the overview badge says", async () => {
     renderLanding()
     const row = await landingRow("one-incident")
     await waitFor(() => expect(dotTone(row)).toBe("warning"))
@@ -154,6 +168,36 @@ describe("the landing's engine dot follows the one verdict", () => {
     expect(dotTone(row)).toBe("neutral")
   })
 
+  it("an engine with nothing deployed whose verdict is no ok shows its dot, never empty", async () => {
+    // A root incident outside any process (a batch's, the history cleanup's) counts in the
+    // verdict, which the overview's badge and the web app's state show: so does the landing.
+    const bare = (args: Record<string, unknown>) => args.engine === "bare"
+    const tools = {
+      [ENGINE_COCKPIT_OVERVIEW_DATA]: (args: Record<string, unknown>) => {
+        const data = overviewFeed(bare(args) ? { engine: "idle" } : args)
+        if (!bare(args)) return data
+        return { ...data, summary: { ...data.summary, totalDefinitions: 0 }, definitions: [] }
+      },
+      [ENGINE_HEALTH_DATA]: (args: Record<string, unknown>) => {
+        const data = healthFeed(bare(args) ? { engine: "idle" } : args)
+        if (!bare(args)) return data
+        return {
+          ...data,
+          status: "warning",
+          summary: { ...data.summary, totalDefinitions: 0 },
+          engineId: "bare",
+        }
+      },
+    }
+    render(
+      <TestViewHost tools={tools} client={queryClient}>
+        <LandingChooser engines={[{ id: "bare" }, { id: "steady" }]} onEnterEngine={() => {}} />
+      </TestViewHost>,
+    )
+    const row = await screen.findByRole("button", { name: /^bare\s*,\s*no running instances$/ })
+    await waitFor(() => expect(dotTone(row)).toBe("warning"))
+  })
+
   it("without a verdict the dot is neutral: the counts alone never colour it", async () => {
     render(
       <TestViewHost tools={{ [ENGINE_COCKPIT_OVERVIEW_DATA]: overviewFeed }} client={queryClient}>
@@ -175,19 +219,35 @@ describe("the fleet view's engine dot follows the one verdict", () => {
     )
   }
 
-  it("one open incident is warning, the threshold danger; the counts stay on the card", async () => {
+  it("one open root incident is warning, the threshold danger; the counts stay in the row", async () => {
     renderFleet()
-    await waitFor(() => expect(dotTone(fleetCard("one-incident"))).toBe("warning"))
-    await waitFor(() => expect(dotTone(fleetCard("at-threshold"))).toBe("danger"))
-    expect(within(fleetCard("at-threshold")).getByText("50")).toBeTruthy()
+    await waitFor(() => expect(dotTone(fleetRow("one-incident"))).toBe("warning"))
+    await waitFor(() => expect(dotTone(fleetRow("at-threshold"))).toBe("danger"))
+    expect(within(fleetRow("at-threshold")).getByText("50")).toBeTruthy()
+  })
+
+  it("is one row per engine and no card: the row opens its engine", async () => {
+    const entered: string[] = []
+    render(
+      <TestViewHost tools={TOOLS} client={queryClient}>
+        <FleetView engines={engines} onEnterEngine={(id) => entered.push(id)} />
+      </TestViewHost>,
+    )
+    await waitFor(() => expect(dotTone(fleetRow("steady"))).toBe("neutral"))
+    expect(screen.queryByRole("heading", { name: "Engine health" })).toBeNull()
+    expect(screen.queryByText("Open")).toBeNull()
+    fleetRow("steady").click()
+    expect(entered).toEqual(["steady"])
+    // The id in the landing's sans, never mono.
+    expect(within(fleetRow("steady")).getByText("steady").className).not.toContain("font-mono")
   })
 
   it("jobs without retries keep their alarm on the count but do not colour the dot", async () => {
     renderFleet()
     await waitFor(() => expect(healthQueryDone("stuck-jobs")).toBe(true))
-    expect(dotTone(fleetCard("stuck-jobs"))).toBe("neutral")
+    expect(dotTone(fleetRow("stuck-jobs"))).toBe("neutral")
     // A neutral number with the danger tone's icon and words (invariant 6).
-    const count = within(fleetCard("stuck-jobs"))
+    const count = within(fleetRow("stuck-jobs"))
       .getByText("4")
       .closest('[data-slot="count-figure"]')!
     expect(count.getAttribute("data-tone")).toBe("danger")
@@ -197,10 +257,10 @@ describe("the fleet view's engine dot follows the one verdict", () => {
   it("an idle engine stays neutral", async () => {
     renderFleet()
     await waitFor(() => expect(healthQueryDone("idle")).toBe(true))
-    expect(dotTone(fleetCard("idle"))).toBe("neutral")
+    expect(dotTone(fleetRow("idle"))).toBe("neutral")
   })
 
-  it("an unreachable engine's card has no quiet dot: the outage's icon in danger, as on the landing", async () => {
+  it("an unreachable engine's row has no quiet dot: the outage's icon in danger, as on the landing", async () => {
     const down = () => {
       throw new Error("engine down unreachable (ECONNREFUSED)")
     }
@@ -212,10 +272,10 @@ describe("the fleet view's engine dot follows the one verdict", () => {
         <FleetView engines={[{ id: "down" }, { id: "also-down" }]} onEnterEngine={() => {}} />
       </TestViewHost>,
     )
-    await waitFor(() => expect(fleetCard("down").textContent).toContain("unreachable"))
-    const card = fleetCard("down")
-    expect(card.querySelector("[data-part='verdict']")).toBeNull()
-    const mark = card.querySelector("svg")?.getAttribute("class") ?? ""
+    await waitFor(() => expect(fleetRow("down").textContent).toContain("unreachable"))
+    const row = fleetRow("down")
+    expect(row.querySelector("[data-part='verdict']")).toBeNull()
+    const mark = row.querySelector("svg")?.getAttribute("class") ?? ""
     expect(mark).toContain("lucide-unplug")
     expect(mark).toContain(TONE_ICON.danger)
   })

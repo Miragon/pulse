@@ -46,7 +46,8 @@ export {
 export { Alert, AlertDescription, AlertTitle } from "./primitives/alert.js"
 export { Switch } from "./primitives/switch.js"
 
-// The tone model: the vocabulary, the situation table and the count ladder (the framework-free
+// The tone model: the vocabulary, the situation table, an engine's verdict and its failed read,
+// and the count ladder (the framework-free
 // `./tones` entry, the same names), then the kit's class maps (three roles per tone: colour,
 // tint, ink); the type scale, the focus ring, cn.
 export {
@@ -55,12 +56,16 @@ export {
   resolveTone,
   isToneVariant,
   SITUATION_TONES,
+  VERDICT_TONES,
+  READ_FAILURE_TONES,
   countTone,
   severityTone,
   type ToneVariant,
   type ToneAlias,
   type ToneName,
   type Situation,
+  type Verdict,
+  type ReadFailure,
 } from "./tones/index.js"
 export {
   TONE_SOFT,
@@ -91,10 +96,8 @@ export {
   type KpiGridSkeletonProps,
 } from "./components/KpiGrid.js"
 export {
-  LivePill,
   CountPill,
   StatusBadge,
-  type LivePillProps,
   type CountPillProps,
   type StatusBadgeProps,
   type StatusBadgeText,
@@ -105,7 +108,7 @@ export {
   type WidgetHeaderProps,
   type WidgetHeadingLevel,
 } from "./components/WidgetHeader.js"
-export { GroupCard, type GroupCardProps } from "./components/GroupCard.js"
+export { GROUP_CARD_INSET, GroupCard, type GroupCardProps } from "./components/GroupCard.js"
 export { FilterBar, type FilterBarProps, type FilterChip } from "./components/FilterBar.js"
 export { DrillButton, type DrillButtonProps } from "./components/DrillButton.js"
 export { ListFooter, type ListFooterProps } from "./components/ListFooter.js"
@@ -132,9 +135,11 @@ export { ErrorState, type ErrorStateProps, type ErrorStateTone } from "./compone
 // host inside; the cockpit and, after the switch, the webview compose them.
 export {
   ViewBar,
+  ViewBarSlots,
   type ViewBarAccess,
   type ViewBarHeadingLevel,
   type ViewBarProps,
+  type ViewBarSlotsProps,
 } from "./components/ViewBar.js"
 export {
   StatusStrip,
@@ -151,6 +156,28 @@ export { CopyableId, type CopyableIdProps } from "./components/CopyableId.js"
 export { ConditionChip, type ConditionChipProps } from "./components/ConditionChip.js"
 export { LoadingState, type LoadingStateProps } from "./components/LoadingState.js"
 export { NavTab, NavTabs, type NavTabProps, type NavTabsProps } from "./components/NavTabs.js"
+export {
+  SideNav,
+  SideNavGroup,
+  SideNavItem,
+  SideNavList,
+  type SideNavGroupProps,
+  type SideNavItemProps,
+  type SideNavListProps,
+  type SideNavProps,
+} from "./components/SideNav.js"
+
+// Charts: React and SVG, no chart library; the blue ramp (--chart-1, --chart-2) and red for
+// incidents only, a tooltip, a legend for two series and a table for a screen reader each.
+export { BarChart, type BarChartProps } from "./components/charts/BarChart.js"
+export { LineChart, type LineChartProps } from "./components/charts/LineChart.js"
+export {
+  Sparkline,
+  type SparklinePoint,
+  type SparklineProps,
+} from "./components/charts/Sparkline.js"
+export { MeterRows, type MeterRow, type MeterRowsProps } from "./components/charts/MeterRows.js"
+export type { ChartPoint, ChartSeries, ChartUnit } from "./components/charts/chart-types.js"
 
 // Hooks
 export { useDebouncedValue } from "./hooks/use-debounced-value.js"
@@ -183,6 +210,7 @@ export {
 export {
   UI_MESSAGES,
   resolveUiMessages,
+  type BpmnMessages,
   type CommonMessages,
   type ConditionChipMessages,
   type CopyableIdMessages,
@@ -242,7 +270,13 @@ export {
 } from "./kit/segmented-control.js"
 export { RowCard } from "./kit/row-card.js"
 export { NamedId, type NamedIdLayout } from "./kit/named-id.js"
-export { LogText, LOG_TEXT_PREVIEW, TEXT_BLOCK_FRAME } from "./kit/log-text.js"
+export {
+  LogText,
+  LOG_TEXT_PREVIEW,
+  TEXT_BLOCK_FRAME,
+  type LogTextKind,
+  type LogTextSize,
+} from "./kit/log-text.js"
 // The Komet belongs on app-level surfaces only (a landing, a first start), never in a widget.
 export { KometMark, AppEmptyState } from "./kit/brand-mark.js"
 export { NavigationFocus } from "./kit/navigation-focus.js"
@@ -268,6 +302,7 @@ export {
   truncate,
   setFormatLocale,
   getFormatLocale,
+  getFormatTimeZone,
   subscribeFormatLocale,
   type ClockOptions,
   type Count,
@@ -275,3 +310,31 @@ export {
   type FormatLocale,
   type TimeOptions,
 } from "./format/index.js"
+
+// Dashboard blocks (Miragon/pulse#664): a section's read in its states, the panels of a page and
+// their grid, when the numbers were read, and the page error vocabulary a page outside a host
+// maps its transport's failures to once.
+export {
+  SectionState,
+  SectionStateGroup,
+  type SectionStateGroupProps,
+  type SectionStateProps,
+  type SectionStateValue,
+} from "./components/SectionState.js"
+export { SKELETON_DELAY_MS } from "./hooks/use-elapsed.js"
+export { Panel, PanelGrid, type PanelGridProps, type PanelProps } from "./components/PanelGrid.js"
+export { FreshnessStamp, type FreshnessStampProps } from "./components/FreshnessStamp.js"
+export {
+  PAGE_ERROR_CODES,
+  describePageError,
+  type DescribePageErrorOptions,
+  type PageError,
+  type PageErrorCode,
+  type SectionFailure,
+} from "./locale/page-errors.js"
+export type {
+  FreshnessMessages,
+  PageErrorMessages,
+  PageErrorParams,
+  SectionStateMessages,
+} from "./locale/ui-messages.js"

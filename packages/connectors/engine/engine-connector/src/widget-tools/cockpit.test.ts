@@ -131,11 +131,11 @@ describe("engine_open_cockpit: the start view", () => {
       engineId: "solo",
       start: {
         view: { section: "jobs", processDefinitionKey: "order", failedOnly: true },
-        data: { totalCount: 1, failedCount: 1 },
+        data: { totalCount: 1, allCount: 1, failedCount: 1 },
       },
     })
     expect(textOf(result)).toBe(
-      '{"engine":"solo","view":"jobs","processDefinitionKey":"order","failedOnly":true,"totalCount":1,"failedCount":1}',
+      '{"engine":"solo","view":"jobs","processDefinitionKey":"order","failedOnly":true,"totalCount":1,"allCount":1,"failedCount":1}',
     )
   })
 
@@ -160,7 +160,7 @@ describe("engine_open_cockpit: the start view", () => {
       healthThresholds: { ...DEFAULT_VERDICT_THRESHOLDS, criticalIncidents: 10 },
     })
     expect(factsOf(await handler({})).statusRule).toBe(
-      "From the engine's open incidents, read live: critical at >=10 open incidents or >=25 of one cause, warning with any, else ok.",
+      "From the engine's open root incidents (a copy at a call activity never counts), read live: critical at >=10 open root incidents or >=25 of one cause, warning with any, else ok.",
     )
   })
 })

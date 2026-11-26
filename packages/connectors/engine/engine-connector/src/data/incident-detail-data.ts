@@ -4,18 +4,18 @@ import {
   readProcessInstanceVariables,
   type Client,
 } from "@miragon/pulse-c7-client"
-import { incidentRecovery } from "@miragon/pulse-c7-core"
+import { incidentRecovery, rootIdOfCopy } from "@miragon/pulse-c7-core"
 import type {
   ActivityTree,
   IncidentDetailData,
   IncidentDetailExternalTask,
   IncidentDetailJob,
+  IncidentDetailRootCause,
   IncidentRecovery,
   VariableValue,
 } from "../view-models.js"
 import {
   getActivityInstanceTree,
-  getHistoricActivityInstancesCount,
   getIncident,
   getJobs,
   getProcessDefinition,
@@ -27,8 +27,11 @@ import type { EngineProvider } from "../engine-provider.js"
 import { bpmnProcessNameOf, readBpmnNames } from "@miragon/pulse-widget-shell/server"
 import {
   definitionKeyInId,
+  elementNameIn,
   fetchDefinitionXml,
+  fetchNamesByDefinition,
   processDefinitionKeyFromId,
+  processNameIn,
 } from "./definition-info.js"
 import { optional, rowsOf } from "./engine-reads.js"
 
@@ -173,10 +176,34 @@ async function fetchRootCauseIncident(
   client: Client,
   rawIncident: RawIncident,
 ): Promise<RawIncident | null> {
-  const rootId = rawIncident.rootCauseIncidentId
-  return rootId && rootId !== rawIncident.id
-    ? await getIncident({ client, path: { id: rootId } })
-    : null
+  const rootId = rootIdOfCopy(rawIncident)
+  return rootId === undefined ? null : await getIncident({ client, path: { id: rootId } })
+}
+
+/**
+ * Where a delegated incident's failure happened: its root incident (read as PRIMARY, since it
+ * decides the job and the message), by its element and its process, whose names are enrichment
+ * (the called process's definition and diagram); null for a root incident.
+ */
+async function fetchRootCauseDetail(
+  client: Client,
+  root: RawIncident | null,
+): Promise<IncidentDetailRootCause | null> {
+  if (!root?.id || !root.processInstanceId) return null
+  const definitionId = root.processDefinitionId ?? ""
+  const [meta, names] = await Promise.all([
+    fetchDefinitionMeta(client, definitionId),
+    fetchNamesByDefinition(client, [definitionId]),
+  ])
+  const key = meta?.key ?? (definitionId ? definitionKeyInId(definitionId) : null)
+  return {
+    incidentId: root.id,
+    message: root.incidentMessage || null,
+    activityId: root.activityId ?? "",
+    activityName: elementNameIn(names, definitionId, root.activityId),
+    processInstanceId: root.processInstanceId,
+    processName: meta?.name ?? processNameIn(names, definitionId, key) ?? key,
+  }
 }
 
 type IncidentContext = [
@@ -184,15 +211,14 @@ type IncidentContext = [
   activityTree: unknown,
   variables: unknown,
   xmlResponse: { bpmn20Xml?: string } | null,
-  historyCount: { count?: number } | null,
   definitionMeta: RawDefinition | null,
   job: IncidentDetailJob | null,
   externalTask: IncidentDetailExternalTask | null,
 ]
 
 /**
- * Instance and job are PRIMARY (the tabs present them as facts); diagram, name, history total and
- * an external task's error details are enrichment.
+ * Instance and job are PRIMARY (the tabs present them as facts); diagram, name and an external
+ * task's error details are enrichment.
  */
 function fetchIncidentContext(client: Client, incident: IncidentRecord): Promise<IncidentContext> {
   const { processInstanceId, processDefinitionId, jobId, recovery } = incident
@@ -215,12 +241,6 @@ function fetchIncidentContext(client: Client, incident: IncidentRecord): Promise
             bpmn20Xml: xml ?? undefined,
           })),
         )
-      : Promise.resolve(null),
-    // The History tab pages its rows itself; this is the total, null when history is disabled.
-    processInstanceId
-      ? (getHistoricActivityInstancesCount({ client, query: { processInstanceId } }).catch(
-          () => null,
-        ) as Promise<{ count?: number } | null>)
       : Promise.resolve(null),
     fetchDefinitionMeta(client, processDefinitionId),
     jobId ? fetchJob(client, jobId) : Promise.resolve(null),
@@ -298,6 +318,8 @@ export async function buildIncidentDetailData(
   client: Client,
   options: BuildOptions,
 ): Promise<IncidentDetailData> {
+  // When the reads began: the bar's "As of".
+  const fetchedAt = new Date().toISOString()
   const rawIncident = (await getIncident({
     client,
     path: { id: options.incidentId },
@@ -309,15 +331,12 @@ export async function buildIncidentDetailData(
   const { processInstanceId, processDefinitionId, activityId } = incident
 
   const [
-    rawInstance,
-    activityTree,
-    variables,
-    xmlResponse,
-    historyCount,
-    definitionMeta,
-    job,
-    externalTask,
-  ] = await fetchIncidentContext(client, incident)
+    [rawInstance, activityTree, variables, xmlResponse, definitionMeta, job, externalTask],
+    rootCause,
+  ] = await Promise.all([
+    fetchIncidentContext(client, incident),
+    fetchRootCauseDetail(client, rawRootCause),
+  ])
 
   const bpmnXml = xmlResponse?.bpmn20Xml ?? null
   const diagramNames = readBpmnNames(bpmnXml ?? "")
@@ -363,6 +382,7 @@ export async function buildIncidentDetailData(
     activityTree: activityTree as ActivityTree | null,
     variables: variables as Record<string, VariableValue>,
 
-    historyTotalCount: typeof historyCount?.count === "number" ? historyCount.count : null,
+    rootCause,
+    fetchedAt,
   }
 }

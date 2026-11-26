@@ -6,13 +6,18 @@ import {
   isSessionEnded,
   leadsToStartPage,
 } from "./describe-error.js"
+import { PAGE_HINTS } from "./page-hints.js"
 import { WebApiError } from "./web-caller.js"
 
 /**
- * The words on a page that posts to no chat (`followUp` other than `chat`), and the refusals no
- * retry changes that a page meets at its start or when its session ends: a board the server does
- * not show, a board file that gives none, arguments the tool does not take, a session gone.
+ * The words on a page that posts to no chat (`followUp` other than `chat`, its host's `pageHints`),
+ * and the refusals no retry changes that a page meets at its start or when its session ends: a
+ * board the server does not show, a board file that gives none, arguments the tool does not take,
+ * a session gone.
  */
+
+/** A page's options, as its host gives them (`useErrorWords`). */
+const PAGE = { followUp: "none", pageHints: PAGE_HINTS } as const
 
 const UNKNOWN_BOARD = '[UNKNOWN_BOARD] Unknown board id "shipping". Boards: invoices.'
 const BOARD_REFUSED =
@@ -40,7 +45,7 @@ describe("describeError on a page", () => {
       expect(chat.kind).toBe(kind)
       expect(chat.hint).toMatch(CHAT[locale])
       for (const followUp of ["none", "copy"] as const) {
-        const page = describeError(new Error(raw), locale, { followUp })
+        const page = describeError(new Error(raw), locale, { followUp, pageHints: PAGE_HINTS })
         expect(page.title).toBe(chat.title)
         expect(page.hint).not.toMatch(CHAT[locale])
       }
@@ -48,7 +53,7 @@ describe("describeError on a page", () => {
   })
 
   it("says what to do on the page instead, en and de", () => {
-    const page = { followUp: "none" } as const
+    const page = PAGE
     expect(describeError("Something odd happened", "en", page).hint).toBe(
       "Try again. If it fails again, reload the page.",
     )
@@ -65,11 +70,23 @@ describe("describeError on a page", () => {
       "Try again. If it fails again, ask in the chat.",
     )
   })
+
+  it("takes a page's words from its host alone, so a chat's bundle carries none", () => {
+    // A chat's host brings no page hints: even with a page's followUp the kit has only a chat's.
+    expect(describeError("Something odd happened", "en", { followUp: "none" }).hint).toBe(
+      "Try again. If it fails again, ask in the chat.",
+    )
+    // A page's host words only the kinds whose chat words send the reader to the chat.
+    expect(Object.keys(PAGE_HINTS.en).sort()).toEqual(Object.keys(PAGE_HINTS.de).sort())
+    expect(describeError(BOARD_REFUSED, "en", PAGE).hint).toBe(
+      describeError(BOARD_REFUSED, "en").hint,
+    )
+  })
 })
 
 describe("the refusals no retry changes", () => {
   it("a board the server does not show: what happened in the box, the boards under Details", () => {
-    expect(describeError(new Error(UNKNOWN_BOARD), "en", { followUp: "none" })).toEqual({
+    expect(describeError(new Error(UNKNOWN_BOARD), "en", PAGE)).toEqual({
       kind: "unknownBoard",
       title: "This board isn't on this server",
       hint: "Go to Pulse's start page, which shows this server's boards and engines.",
@@ -82,39 +99,57 @@ describe("the refusals no retry changes", () => {
 
   it("a board file that gives no board: its problems in the server's log, on every host", () => {
     for (const followUp of ["chat", "none"] as const) {
-      expect(describeError(BOARD_REFUSED, "en", { followUp })).toMatchObject({
-        kind: "boardRefused",
-        title: "This board can't be shown: its file gives no board",
-        hint: "Its problems are under Details and in the server's log at startup. Ask whoever runs this server to fix the file.",
-      })
+      expect(describeError(BOARD_REFUSED, "en", { followUp, pageHints: PAGE_HINTS })).toMatchObject(
+        {
+          kind: "boardRefused",
+          title: "This board can't be shown: its file gives no board",
+          hint: "Its problems are under Details and in the server's log at startup. Ask whoever runs this server to fix the file.",
+        },
+      )
     }
   })
 
   it("arguments the tool does not take, as the SDK words them, with or without its code", () => {
     expect(classifyError(INVALID_VIEW).kind).toBe("invalidArguments")
     expect(classifyError(`MCP error -32602: ${INVALID_VIEW}`).kind).toBe("invalidArguments")
-    expect(describeError(INVALID_VIEW, "en", { followUp: "none" })).toMatchObject({
+    // As claude.ai's artifact runtime hands it on, without the SDK's lead (the probe of 2026-11-25).
+    const bare = 'Invalid arguments for tool engine_activity_counts: Unknown key "n".'
+    expect(classifyError(bare).kind).toBe("invalidArguments")
+    expect(isPermanentError(bare)).toBe(true)
+    expect(describeError(INVALID_VIEW, "en", PAGE)).toMatchObject({
       title: "The server refused this request",
       hint: "You'll find the reason under Details. Open the view from Pulse's start page instead.",
     })
   })
 
   it("an engine the call's dialect does not read: neutral words, the server's text under Details", () => {
-    expect(describeError(new Error(NOT_SERVED), "en", { followUp: "none" })).toEqual({
+    expect(describeError(new Error(NOT_SERVED), "en", PAGE)).toEqual({
       kind: "notServed",
       title: "This view doesn't read this engine",
-      hint: "This server shows it on boards only. Pulse's start page lists the boards.",
+      hint: "Pulse shows its processes and instances on pages of their own. Open the engine from Pulse's start page.",
       details: NOT_SERVED,
+    })
+    // A chat shows such an engine on boards only; a page shows its processes and instances on
+    // screens of its own, which its start page leads to (the state's link).
+    expect(leadsToStartPage("notServed")).toBe(true)
+    expect(describeError(NOT_SERVED, "en")).toMatchObject({
+      hint: "This server shows it on boards only. Ask in the chat which boards show it.",
     })
     expect(describeError(NOT_SERVED, "de")).toMatchObject({
       title: "Diese Ansicht liest diese Engine nicht",
       hint: "Dieser Server zeigt sie nur auf Boards. Frag im Chat, welche Boards sie zeigen.",
     })
+    expect(describeError(NOT_SERVED, "de", PAGE)).toMatchObject({
+      hint: "Pulse zeigt ihre Prozesse und Instanzen auf eigenen Seiten. Öffne die Engine über die Startseite von Pulse.",
+    })
     expect(classifyError(NOT_SERVED).source).toEqual({ type: "engine", id: "orders-c8" })
     // The words name no dialect: the server's text does, under Details.
     for (const locale of ["en", "de"] as const) {
       for (const followUp of ["chat", "none"] as const) {
-        const { title, hint } = describeError(NOT_SERVED, locale, { followUp })
+        const { title, hint } = describeError(NOT_SERVED, locale, {
+          followUp,
+          pageHints: PAGE_HINTS,
+        })
         expect(`${title} ${hint}`).not.toMatch(/Camunda|CIB|Operaton|c8\b|dialect|Dialekt/i)
       }
     }
@@ -122,7 +157,7 @@ describe("the refusals no retry changes", () => {
 
   it("a page's call that found its session gone, by the web app's code, never its status", () => {
     expect(classifyError(signedOut())).toMatchObject({ kind: "signedOut", status: 401 })
-    expect(describeError(signedOut(), "en", { followUp: "none" })).toMatchObject({
+    expect(describeError(signedOut(), "en", PAGE)).toMatchObject({
       title: "You're signed out",
       hint: "Sign in again to see the current state.",
     })
@@ -143,6 +178,7 @@ describe("the refusals no retry changes", () => {
       "[BOARD_REFUSED]",
       "[ENGINE_DIALECT_NOT_SERVED]",
       "Input validation error: ",
+      "Invalid arguments for tool x: ",
     ]) {
       const quoted = `[500 ProcessEngineException] Script failed on "${code}x" (engine prod)`
       expect(classifyError(quoted).kind).toBe("failed")

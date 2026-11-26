@@ -87,6 +87,34 @@ describe("runtimeOf: the engine contract's runtime of an engine the server resol
     expect(sent(engine)).toEqual(["GET /process-definition/order:1:d/xml"])
   })
 
+  it("reads a version's diagram once per engine and caller, through the one XML cache, across calls", async () => {
+    const { engine } = await runtimeWith({
+      "GET /process-definition/order:1:d/xml": {
+        body: { id: "order:1:d", bpmn20Xml: '<callActivity id="Call" calledElement="label" />' },
+      },
+      "GET /process-definition/statistics": { body: [] },
+      "GET /process-definition/gone:1:d/xml": {
+        status: 404,
+        body: { type: "InvalidRequestException", message: "No definition gone:1:d" },
+      },
+    })
+    const provider = providerForEntry({ id: "fake" })
+    const client = clientFor(engine)
+    const first = runtimeOf({ client, provider })
+    expect(await first.getDiagramXml(DefinitionId("order:1:d"))).toContain("Call")
+    expect(
+      await runtimeOf({ client, provider }).getCalledProcesses(DefinitionId("order:1:d")),
+    ).toStrictEqual([{ elementId: "Call", bpmnProcessId: "label" }])
+    // A version the engine does not know reads as none, and is asked for again.
+    expect(await first.getDiagramXml(DefinitionId("gone:1:d"))).toBeUndefined()
+    expect(await first.getDiagramXml(DefinitionId("gone:1:d"))).toBeUndefined()
+    expect(sent(engine).filter((request) => request.endsWith("/xml"))).toEqual([
+      "GET /process-definition/order:1:d/xml",
+      "GET /process-definition/gone:1:d/xml",
+      "GET /process-definition/gone:1:d/xml",
+    ])
+  })
+
   it("fails a refused read as forbidden, in the words the model reads", async () => {
     const { runtime } = await runtimeWith({
       "GET /process-definition/order:1:d/xml": {

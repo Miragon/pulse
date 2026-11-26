@@ -25,7 +25,8 @@ const FOCUS_IN_CELL = "in-[td]:focus-visible:ring-offset-0"
  * narrower than 36rem a button WITH an icon hides it visually and keeps it as its accessible name
  * (`sr-only`, never `display: none`), and turns square around the icon at the control's height.
  * Any other container (a table's region, a card's head) leaves it alone. A button without an icon
- * keeps its label, or it would be an empty box. An inline card at 760 px keeps its labels.
+ * keeps its label, or it would be an empty box. An inline card at 760 px keeps its labels. A
+ * `ViewBar`'s actions show them again under 30rem, where they take a line of their own.
  */
 const TOOLBAR_COLLAPSE =
   "@max-[36rem]/bar:has-[>svg]:min-w-control @max-[36rem]/bar:has-[>svg]:px-0 @max-[36rem]/bar:has-[>svg]:[&>[data-slot=button-label]]:sr-only"

@@ -115,6 +115,28 @@ describe("the web sign-in at ADFS", () => {
     expect(decodeJwt(String(fake.issued.access.at(-1))).aud).toBe(RESOURCE)
   })
 
+  it("asks for the Web API's identifier at every grant where its audience is ADFS's, and the gate takes the token", async () => {
+    // A Web API whose identifier is no URL, so ADFS knows no <MCP_URL>/mcp.
+    const webApi = "5e3c1a7b-2f4d-4c8e-9a6b-1d0f2e3c4b5a"
+    await startAdfs({ accessTokenSeconds: 5 })
+    const env = { MCP_OAUTH_OIDC_AUDIENCE: `microsoft:identityserver:${webApi}` }
+    const browser = new Browser(await bootAdfs(env))
+    const { authorization } = await startSignIn(browser, fake)
+    expect(new URL(authorization).searchParams.getAll("resource")).toEqual([webApi])
+    const callback = await browser.fetch(await fake.signIn(authorization))
+    expect(callback.headers.get("location")).toBe("/app")
+    expect(decodeJwt(String(fake.issued.access.at(-1))).aud).toBe(
+      `microsoft:identityserver:${webApi}`,
+    )
+    expect(await sessionOf(browser)).toMatchObject({ status: 200, body: { name: ALICE.email } })
+    const grants = [
+      ...requestsTo("token", "authorization_code"),
+      ...requestsTo("token", "refresh_token"),
+    ]
+    expect(grants.length).toBeGreaterThan(1)
+    for (const grant of grants) expect(grant.form.getAll("resource")).toEqual([webApi])
+  })
+
   it("signs out without a revocation, at ADFS's end of the session with the client and the signed-out page", async () => {
     await startAdfs()
     const browser = new Browser(await bootAdfs())

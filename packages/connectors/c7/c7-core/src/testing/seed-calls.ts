@@ -1,5 +1,6 @@
 /** The requests of the Camunda 7 world's seed, each sent through the engine it is handed. */
 
+import { isRootIncident } from "../root-incident.js"
 import type {
   C7SeedEngine,
   C7SeedRequest,
@@ -119,7 +120,7 @@ export async function start(
 
 async function rootIncidentCount(engine: C7SeedEngine): Promise<number> {
   const incidents = await engineCall<IncidentAnswer[]>(engine, "/incident")
-  return incidents.filter((incident) => incident.id === incident.rootCauseIncidentId).length
+  return incidents.filter(isRootIncident).length
 }
 
 /**

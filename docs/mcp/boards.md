@@ -22,6 +22,7 @@ with its count of problems; the server's log at startup says what they are.
 With the [web app](../web/index.md) on, `/app` lists the same boards, and `/app/boards/<id>`
 opens one in the browser with the same tiles and numbers, read with the token of whoever signed
 in; an id the server has no board for, or a file that gives none, shows why, with a link to `/app`.
+A page of its own reads a board's JSON form through `engine_get_board`, with its `formatVersion`.
 
 ## What a board shows
 

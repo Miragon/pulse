@@ -35,14 +35,9 @@ describe("engine copy follows the voice rules", () => {
 })
 
 // A hint that is a sentence (a verb's, not a phrase's) starts upper case in both languages, as a
-// sentence does: "Klapp einen Prozess auf …", never "klapp einen Prozess auf …".
+// sentence does: "Kopier einen Prompt …", never "kopier einen Prompt …".
 describe("a sentence starts upper case", () => {
-  const SENTENCE_HINTS = [
-    "incidentsList.clickToExpand",
-    "fleet.engineHealth.hint",
-    "fleet.fleetAnalyses.copyHint",
-    "fleet.fleetAnalyses.hint",
-  ] as const
+  const SENTENCE_HINTS = ["fleet.fleetAnalyses.copyHint", "fleet.fleetAnalyses.hint"] as const
 
   it.each(["en", "de"] as const)("in %s", (language) => {
     const catalog = catalogs[language] as Record<string, unknown>

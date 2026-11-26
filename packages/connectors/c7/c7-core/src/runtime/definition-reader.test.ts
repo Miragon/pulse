@@ -16,13 +16,25 @@ const ref = (definition: { id: string; key: string; version: number; name?: stri
   ...(definition.name === undefined ? {} : { name: definition.name }),
 })
 
-/** Statistics in an order that is neither the versions' nor the keys': the reader sorts. */
+const rootIncidents = (failedJobs: number, externalTasks = 0) => [
+  { incidentType: "failedJob", incidentCount: failedJobs },
+  ...(externalTasks === 0
+    ? []
+    : [{ incidentType: "failedExternalTask", incidentCount: externalTasks }]),
+]
+
+/**
+ * Statistics in an order that is neither the versions' nor the keys': the reader sorts. The root
+ * incidents per type, as the engine answers `rootIncidents=true`: invoice 1 holds three of two
+ * types, invoice 3 one, review 1 none though an instance of it has an incident (it waits for one in
+ * an instance it called, whose copy is no root incident).
+ */
 const STATISTICS = [
-  { definition: REVIEW_1, instances: 2 },
-  { definition: INVOICE_1, instances: 5 },
-  { definition: ORDER_1, instances: 0 },
-  { definition: INVOICE_3, instances: 1 },
-  { definition: INVOICE_2, instances: 7 },
+  { definition: REVIEW_1, instances: 2, incidents: [] },
+  { definition: INVOICE_1, instances: 5, incidents: rootIncidents(2, 1) },
+  { definition: ORDER_1, instances: 0, incidents: [] },
+  { definition: INVOICE_3, instances: 1, incidents: rootIncidents(1) },
+  { definition: INVOICE_2, instances: 7, incidents: [] },
 ]
 
 /** Instances with an open incident: two on invoice 1, one on invoice 3, one on review 1. */
@@ -46,9 +58,9 @@ describe("DefinitionReader.list", () => {
   it("summarises each process by its latest version with the sums over its versions", async () => {
     const { reader } = readerOver()
     expect(await reader.list()).toStrictEqual([
-      { latest: ref(INVOICE_3), running: 13, withIncident: 3 },
-      { latest: ref(ORDER_1), running: 0, withIncident: 0 },
-      { latest: ref(REVIEW_1), running: 2, withIncident: 1 },
+      { latest: ref(INVOICE_3), running: 13, withIncident: 3, incidents: 4 },
+      { latest: ref(ORDER_1), running: 0, withIncident: 0, incidents: 0 },
+      { latest: ref(REVIEW_1), running: 2, withIncident: 1, incidents: 0 },
     ])
   })
 
@@ -59,13 +71,14 @@ describe("DefinitionReader.list", () => {
     expect(keys).not.toEqual(["invoice", "order", "ReviewInvoice"].sort())
   })
 
-  it("reads the statistics and the instances with an open incident, every page", async () => {
+  it("reads the statistics with their root incidents and the instances with an open incident, every page", async () => {
     const { port, reader } = readerOver()
     await reader.list()
     expect(port.calls.map((call) => call.operationId)).toEqual([
       "getProcessDefinitionStatistics",
       "getProcessInstances",
     ])
+    expect(port.calls[0]?.input.query).toEqual({ rootIncidents: "true" })
     expect(port.calls[1]?.input.query).toEqual({
       withIncident: "true",
       sortBy: "instanceId",
@@ -85,9 +98,9 @@ describe("DefinitionReader.versions", () => {
   it("lists the versions of one process newest first, each with its own counts", async () => {
     const { reader } = readerOver()
     expect(await reader.versions(BpmnProcessId("invoice"))).toStrictEqual([
-      { definition: ref(INVOICE_3), running: 1, withIncident: 1 },
-      { definition: ref(INVOICE_2), running: 7, withIncident: 0 },
-      { definition: ref(INVOICE_1), running: 5, withIncident: 2 },
+      { definition: ref(INVOICE_3), running: 1, withIncident: 1, incidents: 1 },
+      { definition: ref(INVOICE_2), running: 7, withIncident: 0, incidents: 0 },
+      { definition: ref(INVOICE_1), running: 5, withIncident: 2, incidents: 3 },
     ])
   })
 

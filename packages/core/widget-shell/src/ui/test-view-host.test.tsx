@@ -25,11 +25,15 @@ import { useShellHost } from "./shell-host.js"
 import { createTestQueryClient, TestViewHost, type HostAction } from "./test-view-host.js"
 import {
   HostModelContext,
+  useHostChrome,
   useHostFollowUp,
+  useHostLocation,
   useHostWrites,
   useViewHost,
   ViewHostProvider,
+  type HostChrome,
   type ViewHost,
+  type ViewLocation,
 } from "./view-host.js"
 import { useHostDisplayMode } from "./widget-shell.js"
 
@@ -102,6 +106,22 @@ describe("TestViewHost: what the widget asked the host", () => {
     ])
   })
 
+  it("logs a call's options where a page's read names them, and none where it names none", async () => {
+    const actions: HostAction[] = []
+    const host = hostWith({ tools: { t: {} }, onHostAction: (a) => actions.push(a) })
+    await host.callTool("t", { id: 1 }, { refresh: true, connector: "Shop" })
+    await host.callTool("t", { id: 2 })
+    expect(actions).toStrictEqual([
+      {
+        type: "callTool",
+        name: "t",
+        args: { id: 1 },
+        options: { refresh: true, connector: "Shop" },
+      },
+      { type: "callTool", name: "t", args: { id: 2 } },
+    ])
+  })
+
   it("posts a hand-off as a chat host does unless a test names another follow-up", () => {
     expect(hostWith().followUp).toBe("chat")
     expect(hostWith({ followUp: "copy" }).followUp).toBe("copy")
@@ -131,6 +151,34 @@ describe("TestViewHost: what the widget asked the host", () => {
     expect(writesUnder()).toBe(true)
     expect(writesUnder(true)).toBe(true)
     expect(writesUnder(false)).toBe(false)
+  })
+
+  it("offers no address as a chat host does unless a test renders the view on a page", () => {
+    const locationUnder = (location?: ViewLocation) =>
+      renderHook(() => useHostLocation(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <TestViewHost location={location}>{children}</TestViewHost>
+        ),
+      }).result.current
+    expect(locationUnder()).toBeUndefined()
+    expect("location" in hostWith()).toBe(false)
+    const location: ViewLocation = { report: () => undefined, subscribe: () => () => undefined }
+    expect(locationUnder(location)).toBe(location)
+  })
+
+  it("offers no chrome as a chat host does unless a test renders the view on a page with one", () => {
+    const chromeUnder = (chrome?: HostChrome) =>
+      renderHook(() => useHostChrome(), {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <TestViewHost chrome={chrome}>{children}</TestViewHost>
+        ),
+      }).result.current
+    expect(chromeUnder()).toBeUndefined()
+    expect("chrome" in hostWith()).toBe(false)
+    const chrome: HostChrome = { menu: null }
+    expect(chromeUnder(chrome)).toBe(chrome)
+    // Outside any view host, as a kit piece rendered on its own: none.
+    expect(renderHook(() => useHostChrome()).result.current).toBeUndefined()
   })
 
   it("lets a view write under an adapter that states nothing about writes", () => {

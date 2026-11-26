@@ -1,8 +1,7 @@
-// The Pulse docs site, built with the Miragon docs kit (docs/.vitepress/miragon/,
-// vendored unchanged from Miragon/corporate-identity, skill docs-site). The kit sets
+// The Pulse docs site, built with the Miragon docs kit (@miragon/docs-starter). The kit sets
 // everything else: base from DOCS_BASE (the repo name, set in .github/workflows/docs.yml),
 // theme, colours light and dark, GitHub anchors, Mermaid, search, the legal row.
-import { miragonDocs } from "./miragon/config"
+import { miragonDocs } from "@miragon/docs-starter"
 
 export default miragonDocs({
   repo: "Miragon/pulse",
@@ -14,7 +13,7 @@ export default miragonDocs({
   title: "Miragon",
   siteTitle: "Pulse",
   description:
-    "Pulse: operate and analyse your Camunda 7, CIB seven and Operaton engines from your AI chat, the web app, your terminal and your editor, and read your Camunda 8 clusters in your editor and on boards.",
+    "Pulse: operate and analyse your Camunda 7, CIB seven and Operaton engines from your AI chat, the web app, your terminal and your editor, and read your Camunda 8 clusters in your editor, the web app and on boards.",
   productPage: "https://miragon.ai/tools/pulse/",
   footerMessage: "Released under the MIT License.",
 
@@ -35,7 +34,10 @@ export default miragonDocs({
   sidebar: [
     {
       text: "Pulse",
-      items: [{ text: "Overview", link: "/overview" }],
+      items: [
+        { text: "Overview", link: "/overview" },
+        { text: "Glossary", link: "/glossary" },
+      ],
     },
     {
       text: "MCP server",
@@ -46,6 +48,7 @@ export default miragonDocs({
         { text: "Usage", link: "/mcp/usage" },
         { text: "Boards", link: "/mcp/boards" },
         { text: "Camunda 8", link: "/mcp/camunda8" },
+        { text: "Claude artifacts", link: "/mcp/claude-artifacts" },
         { text: "Tools and settings", link: "/mcp/reference" },
         { text: "Operations", link: "/mcp/operations" },
         { text: "Identity providers", link: "/mcp/identity-providers" },
@@ -105,6 +108,7 @@ export default miragonDocs({
         { text: "Camunda 8", link: "/vscode/camunda8" },
         { text: "Usage", link: "/vscode/usage" },
         { text: "Boards", link: "/vscode/boards" },
+        { text: "Migration plans", link: "/vscode/migration-plans" },
         { text: "Architecture", link: "/vscode/architecture" },
         { text: "Parity with the MCP cockpit", link: "/vscode/parity" },
       ],

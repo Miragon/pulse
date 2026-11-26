@@ -15,6 +15,7 @@ export const en: UiMessages = {
     loadFailed: "This content couldn't be loaded",
     loadFailedHint: "Try again. If it fails again, ask in the chat.",
     loading: "Loading…",
+    noValue: "no value",
   },
   listFooter: {
     showing: ({ shown, total, noun }) => `Showing ${shown} of ${total} ${noun}`.trimEnd(),
@@ -63,5 +64,52 @@ export const en: UiMessages = {
     incident: "Incident",
   },
   count: { atLeast: ({ count }) => `at least ${count}`, unknown: "count unknown" },
-  pills: { live: "Live" },
+  freshness: { asOf: ({ time }) => `As of ${time}` },
+  sectionState: {
+    kept: "You're seeing the previous result.",
+    sameFailure: "Not read, for the same reason as above.",
+    sameFailureKept:
+      "Not refreshed, for the same reason as above. You're seeing the previous result.",
+  },
+  pageError: {
+    needsReauth: ({ connector }) => `Your sign-in to ${connector} has expired`,
+    needsReauthHint: ({ connector, place }) =>
+      `Reconnect to ${connector}${at(place)}, then try again.`,
+    notConnected: ({ connector }) => `This page isn't connected to ${connector}`,
+    notConnectedHint: ({ connector, place }) => `Set up ${connector}${at(place)}, then try again.`,
+    notAllowed: () => "This page may not call the tool it needs",
+    notAllowedHint: () =>
+      "A setting of the page or a policy of your organization blocks the call. Ask whoever published the page.",
+    approvalRequired: () => "This read waits for your approval",
+    approvalRequiredHint: ({ connector }) =>
+      `Allow the page to use ${connector} when you're asked, then try again.`,
+    unavailable: ({ connector }) => `${connector} doesn't answer`,
+    unavailableHint: ({ connector }) =>
+      `Try again in a moment. If it keeps failing, ask whoever runs ${connector}.`,
+    toolError: ({ connector }) => `${connector} couldn't complete this read`,
+    toolErrorHint: ({ connector }) =>
+      `Try again. If it fails again, ask whoever runs ${connector}.`,
+  },
+  bpmn: {
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    fit: "Fit to viewport",
+    drawFailed: "The diagram couldn't be drawn",
+    drawFailedHint: "Open the model in your modeler to check it.",
+    countRunning: ({ element, count }) =>
+      `${element}: ${count} ${String(count) === "1" ? "instance" : "instances"} running`,
+    countIncidents: ({ element, count }) =>
+      `${element}: ${count} ${String(count) === "1" ? "incident" : "incidents"}`,
+    countIncidentsInCalledInstances: ({ element, count }) =>
+      `${element}: ${count} ${String(count) === "1" ? "incident" : "incidents"} in called instances`,
+    legendLabel: "Legend",
+    legendRunning: "waiting here",
+    legendIncidents: "incident here",
+    legendIncidentsInCalledInstances: "incident in a called instance",
+  },
+}
+
+/** A place after a name, as the page passes it ("in claude.ai, …"); nothing without one. */
+function at(place: string | undefined): string {
+  return place ? ` ${place}` : ""
 }

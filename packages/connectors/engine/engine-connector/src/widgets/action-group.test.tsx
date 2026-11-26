@@ -35,7 +35,8 @@ beforeAll(async () => {
 /** The view's bar (WidgetHeader renders the kit's ViewBar): its facts and its one action group. */
 function head(container: HTMLElement) {
   const bar = container.querySelector<HTMLElement>('[data-slot="view-bar"]')!
-  const facts = bar.querySelector<HTMLElement>('[data-slot="view-bar-facts"]')!
+  // A bar whose facts would only repeat its tiles has none (the overview's).
+  const facts = bar.querySelector<HTMLElement>('[data-slot="view-bar-facts"]')
   const group = bar.querySelector<HTMLElement>('[data-slot="view-bar-actions"]')
   const actions = Array.from(group?.querySelectorAll<HTMLElement>("a, button") ?? [])
   return { facts, actions }
@@ -49,7 +50,7 @@ async function expectOneGroup(container: HTMLElement, names: RegExp[]) {
   await waitFor(() => expect(head(container).actions).toHaveLength(names.length))
   const { facts, actions } = head(container)
   // Facts only: no link and no action in the meta line.
-  expect(facts.querySelectorAll("a")).toHaveLength(0)
+  expect(facts?.querySelectorAll("a") ?? []).toHaveLength(0)
   expect(actions.map(nameOf)).toEqual(names.map((name) => expect.stringMatching(name) as string))
   for (const action of actions) {
     const name = nameOf(action)
@@ -75,7 +76,6 @@ const DEFINITION: ProcessIncidentsData = {
   cockpitUrl: "https://engine.example/cockpit/leasing",
   runningInstances: 99,
   incidentCount: 3,
-  last24hCount: 1,
   failedJobs: 2,
   totalActivityCount: 2,
   affectedDiagramActivityCount: 1,
@@ -114,8 +114,18 @@ const INCIDENT: IncidentDetailData = {
   },
   activityTree: null,
   variables: {},
-  historyTotalCount: null,
+  rootCause: null,
   engineId: "prod",
+}
+
+/** A delegated incident's root cause: the failure in a called instance. */
+const ROOT_CAUSE: NonNullable<IncidentDetailData["rootCause"]> = {
+  incidentId: "inc-root",
+  message: "boom",
+  activityId: "checkBlacklist",
+  activityName: "Check blacklist",
+  processInstanceId: "called-1",
+  processName: "Assess customer",
 }
 
 const HEALTH: EngineHealthData = {
@@ -124,7 +134,6 @@ const HEALTH: EngineHealthData = {
   summary: {
     totalIncidents: 3,
     lastHourIncidents: 1,
-    last24hIncidents: 2,
     affectedActivities: 1,
     affectedDefinitions: 1,
     runningInstances: 12,
@@ -141,7 +150,7 @@ const HEALTH: EngineHealthData = {
 const QUIET: EngineHealthData = {
   ...HEALTH,
   status: "ok",
-  summary: { ...HEALTH.summary, totalIncidents: 0, lastHourIncidents: 0, last24hIncidents: 0 },
+  summary: { ...HEALTH.summary, totalIncidents: 0, lastHourIncidents: 0 },
 }
 
 const definitionView = () => (
@@ -161,15 +170,38 @@ describe("one action group per view, one action size", () => {
     await expectOneGroup(container, [/^View running instances$/, /^Open in CIB seven/, /chat/i])
   })
 
-  it("incident detail: the instance in the engine's web app, then the chat", async () => {
+  it("incident detail: its instance, the instance in the engine's web app, then the chat", async () => {
     const { container } = render(<TestViewHost tools={tools}>{incidentView()}</TestViewHost>)
-    await expectOneGroup(container, [/^Open instance in CIB seven/, /chat/i])
+    await expectOneGroup(container, [/^Open instance$/, /^Open instance in CIB seven/, /chat/i])
+  })
+
+  it("a delegated incident: its instance, its root cause, the engine's web app, then the chat", async () => {
+    const { container } = render(
+      <TestViewHost tools={tools}>
+        {incidentView({ ...INCIDENT, rootCause: ROOT_CAUSE })}
+      </TestViewHost>,
+    )
+    await expectOneGroup(container, [
+      /^Open instance$/,
+      /^Open cause$/,
+      /^Open instance in CIB seven/,
+      /chat/i,
+    ])
   })
 
   // Suspend and Cancel are admin writes; the operations toolset offers neither.
   it("instance detail: its process, then the chat", async () => {
     const { container } = render(<TestViewHost tools={tools}>{instanceView()}</TestViewHost>)
     await expectOneGroup(container, [/^View process$/, /chat/i])
+  })
+
+  it("a called instance: its caller, its process, then the chat", async () => {
+    const { container } = render(
+      <TestViewHost tools={tools}>
+        {instanceView(instance({ callerInstanceId: "30654aea-1111-2222-3333-444455556666" }))}
+      </TestViewHost>,
+    )
+    await expectOneGroup(container, [/^Open caller 30654aea…$/, /^View process$/, /chat/i])
   })
 
   // The cockpit's head holds the one Refresh (#322 U27), so the overview has none of its own.
@@ -209,15 +241,17 @@ describe("a page that hides hand-offs keeps a bar's other actions, or draws no g
 
   it.each([
     ["definition view", definitionView, [/^View running instances$/, /^Open in CIB seven/]],
-    ["incident detail", () => incidentView(), [/^Open instance in CIB seven/]],
+    ["incident detail", () => incidentView(), [/^Open instance$/, /^Open instance in CIB seven/]],
     ["instance detail", () => instanceView(), [/^View process$/]],
     ["engine status", () => healthView(), [/^View incidents$/]],
   ] as const)("%s: its deterministic actions alone", async (_, view, names) => {
     await expectOneGroup(await onPage(view()), [...names])
   })
 
-  it("incident detail without a link to the engine's web app: no group", async () => {
-    noGroup(await onPage(incidentView({ ...INCIDENT, cockpitInstanceUrl: null })))
+  it("incident detail without a link to the engine's web app: its instance alone", async () => {
+    await expectOneGroup(await onPage(incidentView({ ...INCIDENT, cockpitInstanceUrl: null })), [
+      /^Open instance$/,
+    ])
   })
 
   it("instance detail whose process it cannot name: no group", async () => {

@@ -3,7 +3,7 @@
   "manifestVersion": 2,
   "id": "pulse-cockpit",
   "name": "Pulse",
-  "version": "0.28.0",
+  "version": "0.34.0",
   "description": "The Pulse engine cockpit for Operaton, CIB seven and Camunda 7 inside Orca, and for Camunda 8 read-only.",
   "author": {
     "name": "Miragon GmbH",

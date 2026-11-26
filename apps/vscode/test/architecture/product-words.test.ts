@@ -16,6 +16,7 @@ import {
   ENGINE_CORE_SOURCES,
   HOST_LAYERS,
   HOST_SOURCES,
+  MIGRATION_PLAN_SOURCES,
   RUNTIME_VIEW_LAYERS,
   RUNTIME_VIEW_SOURCES,
   SHOWN_PACKAGES,
@@ -93,10 +94,23 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
     expect(wordFindings(format)).toEqual([])
   })
 
-  test("in the building blocks, whose board tiles both editors show, use the product's words too", () => {
+  test("in the migration plan format, whose problems the preview shows, use the product's words too", () => {
+    const format = join(REPO_ROOT, MIGRATION_PLAN_SOURCES)
+    expect(Object.keys(sourceTexts(format))).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^format\/plan-problems\.ts:/)]),
+    )
+    expect(wordFindings(format)).toEqual([])
+  })
+
+  test("in the building blocks, whose board tiles, engine tab, instance view and definition view both editors show, use the product's words too", () => {
     const blocks = join(REPO_ROOT, BLOCKS_SOURCES)
     expect(Object.keys(sourceTexts(blocks))).toEqual(
-      expect.arrayContaining([expect.stringMatching(/^messages\/en\.ts:/)]),
+      expect.arrayContaining([
+        expect.stringMatching(/^messages\/en\.ts:/),
+        expect.stringMatching(/^messages\/screen-en\.ts:/),
+        expect.stringMatching(/^messages\/instance-en\.ts:/),
+        expect.stringMatching(/^messages\/process-en\.ts:/),
+      ]),
     )
     expect(wordFindings(blocks)).toEqual([])
   })
@@ -106,20 +120,25 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
     expect(texts).toEqual(expect.arrayContaining([expect.stringMatching(/no tenant filter/)]))
   })
 
-  test("name the counts with the count terms the MCP widgets use", () => {
+  test("name the counts with the count terms the MCP widgets use, in the webview and the blocks of its definition view", () => {
     const texts = Object.values(sourceTexts(WEBVIEW))
-    expect(texts).toContain(COUNT_TERMS.withIncident.en)
+    const processTexts = Object.entries(sourceTexts(join(REPO_ROOT, BLOCKS_SOURCES)))
+      .filter(([key]) => key.startsWith("messages/process-en.ts"))
+      .map(([, text]) => text)
     expect(texts).toContain(COUNT_TERMS.incidents.en)
+    expect(processTexts).toContain(COUNT_TERMS.withIncident.en)
   })
 
   test("name the version scope of the counts over every version, in the overview and the tree", () => {
     const coreTexts = Object.entries(sourceTexts(join(RUNTIME_VIEW_SOURCES, "core")))
-    const scoped = (file: string) =>
-      coreTexts
+    const blockTexts = Object.entries(sourceTexts(join(REPO_ROOT, BLOCKS_SOURCES)))
+    const scoped = (texts: readonly (readonly [string, string])[], file: string) =>
+      texts
         .filter(([key]) => key.startsWith(file))
         .some(([, text]) => text.includes(COUNT_TERMS.allVersions.en))
-    expect(scoped("views/engine-view-builder.ts")).toBe(true)
-    expect(scoped("explorer/definition-nodes.ts")).toBe(true)
+    expect(scoped(coreTexts, "views/engine-view-builder.ts")).toBe(true)
+    expect(scoped(blockTexts, "messages/screen-en.ts")).toBe(true)
+    expect(scoped(coreTexts, "explorer/definition-nodes.ts")).toBe(true)
   })
 
   test("are held to rules that each catch their own probe", () => {
@@ -142,13 +161,14 @@ describe("the extension's texts", PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, () => {
     },
   )
 
-  test("in the manifest and the board schema, which VS Code shows, promise no later feature", () => {
+  test("in the manifest and the board and plan schemas, which VS Code shows, promise no later feature", () => {
     const texts = manifestTexts()
     expect(Object.keys(texts)).toEqual(
       expect.arrayContaining([
         "package.json.description",
         expect.stringMatching(/^package\.json\.contributes\.commands\[\d+\]\.title$/),
         expect.stringMatching(/^schemas\/board\.schema\.json\..*description$/),
+        expect.stringMatching(/^schemas\/migration-plan\.schema\.json\..*description$/),
       ]),
     )
     expect(PromiseWords.findings(texts, STATE_TEXTS)).toEqual([])

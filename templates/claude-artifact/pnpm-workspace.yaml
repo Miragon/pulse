@@ -1,0 +1,7 @@
+packages:
+  - "."
+
+# An unmet peer fails the install instead of printing a warning that scrolls by: one
+# @miragon/pulse-* package bumped alone leaves a package next to a peer it was never built with.
+# Upgrade every @miragon/pulse-* pin in package.json together, to one version.
+strictPeerDependencies: true

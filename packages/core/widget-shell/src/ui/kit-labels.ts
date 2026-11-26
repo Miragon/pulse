@@ -4,9 +4,6 @@ import { resolveLanguage, type Locale } from "./host-context.js"
 /** The kit ships no catalog, so its components' few defaults come from here; props override. */
 export interface KitLabels {
   loadingView: string
-  zoomIn: string
-  zoomOut: string
-  fitViewport: string
   retry: string
   /** `useDetailView`'s stale notice. */
   refreshFailed: string
@@ -27,6 +24,8 @@ export interface KitLabels {
    * the reader to the view the row opens, which shows it whole.
    */
   rowCopyFailedHint: string
+  /** A text block's copy that failed (`TextBlock`): its text is now selected, to copy by hand. */
+  textCopyFailedHint: string
   /** A hand-off where the host posts to no chat: its prompt, copied for a chat of the user's own. */
   copyPrompt: (handOff: string) => string
   promptCopied: string
@@ -59,9 +58,6 @@ export interface KitLabels {
 const LABELS: Record<Locale, KitLabels> = {
   en: {
     loadingView: "Loading view…",
-    zoomIn: "Zoom in",
-    zoomOut: "Zoom out",
-    fitViewport: "Fit to viewport",
     retry: "Try again",
     refreshFailed: "Couldn't refresh this view",
     refreshStale: "You're seeing the last loaded state.",
@@ -89,6 +85,7 @@ const LABELS: Record<Locale, KitLabels> = {
     copiedOf: (label) => `${label} copied`,
     copyFailedOf: (label) => `${label} not copied`,
     rowCopyFailedHint: "Open the row and copy it from its view.",
+    textCopyFailedHint: "The text is now selected. Copy it yourself.",
     copyPrompt: (handOff) => `Copy prompt: ${handOff}`,
     promptCopied: "Prompt copied. Paste it into your chat.",
     promptCopyFailed: "Couldn't copy the prompt",
@@ -113,9 +110,6 @@ const LABELS: Record<Locale, KitLabels> = {
   },
   de: {
     loadingView: "Ansicht wird geladen…",
-    zoomIn: "Vergrößern",
-    zoomOut: "Verkleinern",
-    fitViewport: "An Ansicht anpassen",
     retry: "Erneut versuchen",
     refreshFailed: "Die Ansicht konnte nicht aktualisiert werden",
     refreshStale: "Du siehst den zuletzt geladenen Stand.",
@@ -143,6 +137,7 @@ const LABELS: Record<Locale, KitLabels> = {
     copiedOf: (label) => `${label} kopiert`,
     copyFailedOf: (label) => `${label} nicht kopiert`,
     rowCopyFailedHint: "Öffne die Zeile und kopier sie aus ihrer Ansicht.",
+    textCopyFailedHint: "Der Text ist jetzt markiert. Kopier ihn selbst.",
     copyPrompt: (handOff) => `Prompt kopieren: ${handOff}`,
     promptCopied: "Prompt kopiert. Füg ihn in deinen Chat ein.",
     promptCopyFailed: "Der Prompt ließ sich nicht kopieren",

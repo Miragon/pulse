@@ -382,10 +382,11 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     }
   })
 
-  it("the real map lists c7-core, the transport, engine-core's rules, the profile format, the board format with its builder, the web app's server rules with the gate's JWT verifier and c8-core's rules, each with the owner's decision", () => {
+  it("the real map lists c7-core, the transport, engine-core's rules, the profile format, the board format with its builder, the screens with their builder, the web app's server rules with the gate's JWT verifier and c8-core's rules, each with the owner's decision", () => {
     const engineCore = "packages/connectors/engine/engine-core"
     const profile = "packages/core/profile"
     const board = "packages/core/board"
+    const screens = "packages/core/screens"
     const widgetShell = "packages/core/widget-shell"
     const c8Core = "packages/connectors/c8/c8-core"
     assert.deepEqual(Object.keys(MUTATED_PACKAGES), [
@@ -394,6 +395,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       engineCore,
       profile,
       board,
+      screens,
       widgetShell,
       c8Core,
     ])
@@ -422,6 +424,14 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
         "format and builder are mutated, not its barrels or fixtures",
     )
     assert.equal(
+      MUTATED_PACKAGES[screens],
+      "owner decision 2026-11-19 (D8 as amended, apps/vscode/docs/adr/ui-foundation.md): the " +
+        "screens' builder decides the numbers of the screens the web app and the editors share, " +
+        "and its format the rules a surface applies to them (a process list's filter, the sums " +
+        "across engines), so a surviving mutant is a wrong number on two surfaces, the board " +
+        "package's criterion; its format and builder are mutated, not its barrels or ./testing",
+    )
+    assert.equal(
       MUTATED_PACKAGES[widgetShell],
       "owner decisions 2026-11-16 to 2026-11-18: the web app's server rules (src/web: the seal " +
         "of its cookies, the cookies, the return path, the CSRF check, the forward of a page's " +
@@ -432,8 +442,14 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
         "(src/oauth-discovery.ts) where the sign-in sends its secrets and which key set the gate " +
         "trusts, the generic OpenID Connect provider (src/oauth-oidc.ts) which settings the gate " +
         "refuses, and Microsoft Entra ID (src/oauth-entra.ts) which tenant, version and scope its " +
-        "tokens carry, so a surviving mutant there is a security hole; only those sixteen files " +
-        "are mutated, not the boot, the view runtime or the other routes",
+        "tokens carry, so a surviving mutant there is a security hole; owner decision " +
+        "2026-11-25: a page's calls (src/ui/page-reads/page-reader.ts) decide when an artifact " +
+        "asks past every cache, what it keeps and that a call never retries inside its " +
+        "section's retries, and a Claude artifact's caller " +
+        "(src/ui/claude-artifact/claude-tool-caller.ts) which of the runtime's answers is " +
+        "data, a tool's error or a refusal, so a surviving mutant there shows old numbers or " +
+        "wrong words or multiplies the calls on every artifact; only those eighteen files are " +
+        "mutated, not the boot, the view runtime or the other routes",
     )
     assert.equal(
       MUTATED_PACKAGES[c8Core],
@@ -473,7 +489,19 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     ])
   })
 
-  it("widget-shell's config mutates exactly the web app's twelve rule files, the JWT verifier, the discovery, the generic provider and Entra ID, as its reason says", () => {
+  it("the screens' config mutates their format and builder without the tests, the barrels and ./testing, as its reason says", () => {
+    const config = JSON.parse(
+      readFileSync(path.join(repoRoot, "packages/core/screens/stryker.config.json"), "utf8"),
+    )
+    assert.deepEqual(config.mutate, [
+      "src/format/**/*.ts",
+      "src/builder/**/*.ts",
+      "!src/**/*.test.ts",
+      "!src/builder/index.ts",
+    ])
+  })
+
+  it("widget-shell's config mutates exactly the web app's twelve rule files, the JWT verifier, the discovery, the generic provider, Entra ID, a page's calls and a Claude artifact's caller, as its reason says", () => {
     const config = JSON.parse(
       readFileSync(path.join(repoRoot, "packages/core/widget-shell/stryker.config.json"), "utf8"),
     )
@@ -494,6 +522,8 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       "src/oauth-discovery.ts",
       "src/oauth-oidc.ts",
       "src/oauth-entra.ts",
+      "src/ui/page-reads/page-reader.ts",
+      "src/ui/claude-artifact/claude-tool-caller.ts",
     ])
   })
 

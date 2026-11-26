@@ -3,10 +3,11 @@
  * incidents newest first, paged by offset, root incidents only (one copied up from a called
  * instance is its caller's view of the same failure), each with the version it was raised in from
  * one read of the definition statistics, never one call per incident, and the job or external task
- * `incidentRecovery` names. An id of the filter no engine assigns fails as `misconfigured`. A page
- * keeps what becomes an incident of the contract and fills from further windows
- * (`filling-pages.ts`), cut in the engine's order (`incidentTimestamp` descending, its one sort
- * key); only the page it returns is sorted, newest first and then by id.
+ * `incidentRecovery` names. An id of the filter no engine assigns fails as `misconfigured`. The
+ * engine orders by `incidentTimestamp` alone, its one sort key, so incidents raised at the same
+ * instant come in any order; a page reads them whole and orders them by id (`tied-pages.ts`), so
+ * the order is newest first and then by id on every read and across pages, and a page keeps what
+ * becomes an incident of the contract and fills from further windows.
  */
 
 import {
@@ -22,12 +23,13 @@ import {
 import type { EnginePort } from "../port.js"
 import { compareText } from "../records.js"
 import { queryInput } from "../requests.js"
+import { isRootIncident } from "../root-incident.js"
 import { compact } from "../util.js"
 import type { DefinitionReader } from "./definition-reader.js"
 import { engineIdOf } from "./engine-ids.js"
-import { FillingPages } from "./filling-pages.js"
-import { type IncidentRow, incidentRowsOf, isRootIncident, recoveryIdOf } from "./incident-rows.js"
+import { type IncidentRow, incidentRowsOf, recoveryIdOf } from "./incident-rows.js"
 import type { OffsetWindow } from "./offset-paging.js"
+import { TiedPages } from "./tied-pages.js"
 import { timestampOf } from "./timestamps.js"
 
 /** The newest incident first, as the engine pages them. */
@@ -62,10 +64,9 @@ function incidentOf(
   }
 }
 
-/** The newer incident first, of two raised at once the one with the lower id. */
+/** The newer incident first; incidents raised at once keep their order, by id (`TiedPages`). */
 function newerFirst(left: Incident, right: Incident): number {
-  const byTime = compareText(right.createdAt, left.createdAt)
-  return byTime === 0 ? compareText(left.id, right.id) : byTime
+  return compareText(right.createdAt, left.createdAt)
 }
 
 /** Searches the open incidents of an engine over its port. */
@@ -78,12 +79,16 @@ export class IncidentSearch {
   /** A page of the root incidents `filter` finds, newest first. */
   async search(filter: IncidentFilter, page: PageRequest): Promise<Page<Incident>> {
     let definitions: Promise<ReadonlyMap<string, DefinitionRef>> | undefined
-    const found = await new FillingPages(page).pageOf(async (window) => {
+    const found = await new TiedPages(page).pageOf(async (window) => {
       const [rows, definitionsById] = await Promise.all([
         this.rows(filter, window),
         (definitions ??= this.definitions.refsById()),
       ])
-      return rows.map((row) => incidentOf(row, definitionsById))
+      return rows.map((row) => ({
+        key: timestampOf(row.incidentTimestamp),
+        id: row.id,
+        item: incidentOf(row, definitionsById),
+      }))
     })
     return { ...found, items: [...found.items].sort(newerFirst) }
   }

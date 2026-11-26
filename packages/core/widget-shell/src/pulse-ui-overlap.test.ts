@@ -55,14 +55,17 @@ const PULSE_UI = {
   root: exportsOf(join(UI_ROOT, "dist/index.d.ts")).map((e) => e.name),
   format: exportsOf(join(UI_ROOT, "dist/format/index.d.ts")).map((e) => e.name),
   tones: exportsOf(join(UI_ROOT, "dist/tones/index.d.ts")).map((e) => e.name),
+  glossary: exportsOf(join(UI_ROOT, "dist/glossary/index.d.ts")).map((e) => e.name),
+  bpmn: exportsOf(join(UI_ROOT, "dist/bpmn/index.d.ts")).map((e) => e.name),
   testing: exportsOf(join(UI_ROOT, "dist/testing/index.d.ts")).map((e) => e.name),
 }
-const KIT = new Set([...PULSE_UI.root, ...PULSE_UI.format, ...PULSE_UI.tones, ...PULSE_UI.testing])
+const KIT = new Set(Object.values(PULSE_UI).flat())
 const WIDGETS = {
   widgets: exportsOf(join(here, "ui/index.ts")),
+  claudeArtifact: exportsOf(join(here, "ui/claude-artifact/index.ts")),
   testing: exportsOf(join(here, "testing/index.ts")),
 }
-const SHELL = [...WIDGETS.widgets, ...WIDGETS.testing]
+const SHELL = [...WIDGETS.widgets, ...WIDGETS.claudeArtifact, ...WIDGETS.testing]
 
 describe("widget-shell exports no pulse-ui name (one kit)", () => {
   it("reads the export lists of both packages, values and types", () => {
@@ -76,6 +79,12 @@ describe("widget-shell exports no pulse-ui name (one kit)", () => {
     for (const name of ["countTone", "severityTone", "SITUATION_TONES", "ToneVariant"]) {
       expect(PULSE_UI.tones, name).toContain(name)
     }
+    for (const name of ["PRODUCT_GLOSSARY", "COUNT_TERMS", "glossaryFindings", "GlossaryRule"]) {
+      expect(PULSE_UI.glossary, name).toContain(name)
+    }
+    for (const name of ["BpmnDiagram", "useBpmnViewer", "BPMN_TOKENS", "readBpmnNames"]) {
+      expect(PULSE_UI.bpmn, name).toContain(name)
+    }
     for (const name of [
       "scanGlyphs",
       "themeStylesheets",
@@ -85,17 +94,27 @@ describe("widget-shell exports no pulse-ui name (one kit)", () => {
       expect(PULSE_UI.testing, name).toContain(name)
     }
     const widgets = WIDGETS.widgets.map((e) => e.name)
-    for (const name of ["WidgetShell", "mountViews", "PagedRows", "useViewData"]) {
+    for (const name of [
+      "WidgetShell",
+      "mountViews",
+      "PagedRows",
+      "useViewData",
+      "useSectionRead",
+      "playRecording",
+    ]) {
       expect(widgets, name).toContain(name)
+    }
+    for (const name of ["mountClaudeArtifact", "ARTIFACT_PAGE_HINTS", "ClaudeRuntime"]) {
+      expect(WIDGETS.claudeArtifact.map((e) => e.name)).toContain(name)
     }
     expect(WIDGETS.testing.map((e) => e.name)).toContain("recordingModuleServer")
   })
 
-  it("/widgets and /testing share no name with pulse-ui's root, /format, /tones or /testing", () => {
+  it("/widgets, /claude-artifact and /testing share no name with pulse-ui's root, /format, /tones, /glossary, /bpmn or /testing", () => {
     expect(SHELL.filter((e) => KIT.has(e.name)).map((e) => e.name)).toEqual([])
   })
 
-  it("/widgets and /testing re-export no pulse-ui piece, under any name", () => {
+  it("/widgets, /claude-artifact and /testing re-export no pulse-ui piece, under any name", () => {
     const reexported = SHELL.filter((e) => e.files.some((file) => file.startsWith(UI_PREFIX)))
     expect(reexported.map((e) => e.name)).toEqual([])
   })

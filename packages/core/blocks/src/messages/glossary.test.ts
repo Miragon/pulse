@@ -10,7 +10,23 @@ import {
 } from "@miragon/pulse-ui/testing"
 import { describe, expect, it } from "vitest"
 import { de } from "./de.js"
+import { enginesDe } from "./engines-de.js"
+import { enginesEn } from "./engines-en.js"
+import { findDe } from "./find-de.js"
+import { findEn } from "./find-en.js"
+import { historyDe } from "./history-de.js"
+import { historyEn } from "./history-en.js"
 import { en, isOne } from "./en.js"
+import { instanceDe } from "./instance-de.js"
+import { instanceEn } from "./instance-en.js"
+import { instanceTranslate } from "./instance-words.js"
+import { humanized } from "./message.js"
+import { processDe } from "./process-de.js"
+import { processEn } from "./process-en.js"
+import { processTranslate } from "./process-words.js"
+import { screenDe } from "./screen-de.js"
+import { screenEn } from "./screen-en.js"
+import { screenTranslate } from "./screen-words.js"
 
 /**
  * The engine module's own rules that hold for the tiles too, each with a probe it must catch. The
@@ -32,11 +48,23 @@ const EN_RULES: readonly GlossaryRule[] = [
 ]
 
 const LANGUAGES = [
-  ["German", de, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
-  ["English", en, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the tiles' German", de, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the tiles' English", en, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the screens' German", screenDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the screens' English", screenEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["an instance's German", instanceDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["an instance's English", instanceEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["a process's German", processDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["a process's English", processEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the history notice's German", historyDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the history notice's English", historyEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the search's German", findDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the search's English", findEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the engines' German", enginesDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the engines' English", enginesEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
 ] as const
 
-describe.each(LANGUAGES)("the tiles' glossary holds in %s", (_language, catalog, rules) => {
+describe.each(LANGUAGES)("the glossary holds in %s", (_language, catalog, rules) => {
   it("uses the glossary terms, never their synonyms", () => {
     expect(glossaryFindings(catalog, rules)).toEqual([])
   })
@@ -83,5 +111,155 @@ describe("GLOSSARY.md names every term the gate holds the words to", () => {
   it("the product-wide terms", () => {
     const doc = readFileSync(new URL("./GLOSSARY.md", import.meta.url), "utf8")
     expect(unnamedGlossaryTerms(doc, [...PRODUCT_GLOSSARY.de, ...PRODUCT_GLOSSARY.en])).toEqual([])
+  })
+})
+
+describe("the screens' words", () => {
+  it("follow the voice rules in both languages (du, no dash as a connector, the plural)", () => {
+    expect(catalogTextFindings(screenEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(screenDe, { language: "de" })).toEqual([])
+  })
+
+  it("have a German entry for every English key and no other", () => {
+    expect(Object.keys(screenDe).sort()).toEqual(Object.keys(screenEn).sort())
+  })
+
+  it("name the instances with incident and the version scope with the count terms every Pulse UI uses", () => {
+    const counts = { processes: "4", running: "1,274", withIncident: "17" }
+    expect([screenEn["column.withIncident"], screenEn["processes.scope.withIncident"]]).toEqual([
+      COUNT_TERMS.withIncident.en,
+      COUNT_TERMS.withIncident.en,
+    ])
+    expect([screenDe["column.withIncident"], screenDe["processes.scope.withIncident"]]).toEqual([
+      COUNT_TERMS.withIncident.de,
+      COUNT_TERMS.withIncident.de,
+    ])
+    expect(screenTranslate("en", "processes.summary", counts)).toMatch(
+      new RegExp(` · ${COUNT_TERMS.allVersions.en}$`),
+    )
+    expect(screenTranslate("de", "processes.summary", counts)).toMatch(
+      new RegExp(` · ${COUNT_TERMS.allVersions.de}$`),
+    )
+  })
+})
+
+describe("an instance's words", () => {
+  it("follow the voice rules in both languages (du, no dash as a connector, the plural)", () => {
+    expect(catalogTextFindings(instanceEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(instanceDe, { language: "de" })).toEqual([])
+  })
+
+  it("have a German entry for every English key and no other", () => {
+    expect(Object.keys(instanceDe).sort()).toEqual(Object.keys(instanceEn).sort())
+  })
+
+  it("put the noun in the number its count has, in both languages", () => {
+    const words = (locale: string, key: string, count: string) =>
+      instanceTranslate(locale, key, { count })
+    expect([
+      words("en", "headline.incidents", "1"),
+      words("en", "headline.incidents", "1,204"),
+    ]).toEqual(["1 incident", "1,204 incidents"])
+    expect([words("de", "wait.retriesLeft", "1"), words("de", "wait.retriesLeft", "0")]).toEqual([
+      "1 Versuch übrig",
+      "0 Versuche übrig",
+    ])
+    expect([words("en", "called.menu", "1"), words("de", "called.menu", "2")]).toEqual([
+      "1 called instance",
+      "2 aufgerufene Instanzen",
+    ])
+  })
+
+  it("read an engine's code no catalog names in words, as the editors did", () => {
+    expect(
+      ["failedJob", "JOB_NO_RETRIES", "failed-external_task", "callActivity2Failed"].map(humanized),
+    ).toEqual(["Failed job", "Job no retries", "Failed external task", "Call activity2 failed"])
+    expect(instanceTranslate("en", "incident.type", { type: "failedExternalTask" })).toBe(
+      "Failed external task",
+    )
+    expect(instanceTranslate("de", "incident.type", { type: "failedExternalTask" })).toBe(
+      "Fehlgeschlagene externe Aufgabe",
+    )
+  })
+})
+
+describe("a process's words", () => {
+  it("follow the voice rules in both languages (du, no dash as a connector, the plural)", () => {
+    expect(catalogTextFindings(processEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(processDe, { language: "de" })).toEqual([])
+  })
+
+  it("have a German entry for every English key and no other", () => {
+    expect(Object.keys(processDe).sort()).toEqual(Object.keys(processEn).sort())
+  })
+
+  it("name the instances with incident with the count term every Pulse UI uses", () => {
+    expect([processEn["scope.withIncident"], processDe["scope.withIncident"]]).toEqual([
+      COUNT_TERMS.withIncident.en,
+      COUNT_TERMS.withIncident.de,
+    ])
+    const option = { version: 7, running: "12", withIncident: "2" }
+    const inSentence = (term: string) => `${term.charAt(0).toLowerCase()}${term.slice(1)}`
+    expect(processTranslate("en", "version.optionWithIncident", option)).toMatch(
+      new RegExp(` · 2 ${inSentence(COUNT_TERMS.withIncident.en)}$`),
+    )
+    expect(processTranslate("de", "version.optionWithIncident", option)).toMatch(
+      new RegExp(` · 2 ${inSentence(COUNT_TERMS.withIncident.de)}$`),
+    )
+  })
+
+  it("put the noun and the verb in the number their count has, in both languages", () => {
+    const words = (locale: string, key: string, params: Record<string, unknown>) =>
+      processTranslate(locale, key, params)
+    expect([
+      words("en", "older.title", { running: "1" }),
+      words("en", "older.title", { running: "1,204" }),
+      words("de", "older.title", { running: "1" }),
+      words("de", "older.title", { running: "3" }),
+    ]).toEqual([
+      "1 instance still runs on older versions.",
+      "1,204 instances still run on older versions.",
+      "1 Instanz läuft noch auf älteren Versionen.",
+      "3 Instanzen laufen noch auf älteren Versionen.",
+    ])
+    expect([
+      words("en", "variables.filterCount", { count: "1" }),
+      words("de", "variables.filterCount", { count: "2" }),
+    ]).toEqual(["Filter by variables, 1 condition", "Nach Variablen filtern, 2 Bedingungen"])
+  })
+})
+
+describe("the history notice's words", () => {
+  it("follow the voice rules in both languages and have a German entry for every English key", () => {
+    expect(catalogTextFindings(historyEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(historyDe, { language: "de" })).toEqual([])
+    expect(Object.keys(historyDe).sort()).toEqual(Object.keys(historyEn).sort())
+  })
+})
+
+describe("the search's words", () => {
+  it("follow the voice rules in both languages and have a German entry for every English key", () => {
+    expect(catalogTextFindings(findEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(findDe, { language: "de" })).toEqual([])
+    expect(Object.keys(findDe).sort()).toEqual(Object.keys(findEn).sort())
+  })
+})
+
+describe("the words of the engines side by side", () => {
+  it("follow the voice rules in both languages and have a German entry for every English key", () => {
+    expect(catalogTextFindings(enginesEn, { language: "en" })).toEqual([])
+    expect(catalogTextFindings(enginesDe, { language: "de" })).toEqual([])
+    expect(Object.keys(enginesDe).sort()).toEqual(Object.keys(enginesEn).sort())
+  })
+
+  it("name the instances with incident with the count term every Pulse UI uses", () => {
+    expect([
+      enginesEn["engines.column.withIncident"],
+      enginesEn["matrix.column.withIncident"],
+    ]).toEqual([COUNT_TERMS.withIncident.en, COUNT_TERMS.withIncident.en])
+    expect([
+      enginesDe["engines.column.withIncident"],
+      enginesDe["matrix.column.withIncident"],
+    ]).toEqual([COUNT_TERMS.withIncident.de, COUNT_TERMS.withIncident.de])
   })
 })

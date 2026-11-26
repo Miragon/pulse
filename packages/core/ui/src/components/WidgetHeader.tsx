@@ -32,6 +32,12 @@ export interface WidgetHeaderProps {
   /** The view's actions (buttons, drill controls), one group. */
   actions?: ReactNode
   /**
+   * When the view's numbers were read, at the bar's end (`ViewBar`'s freshness slot): widget-shell's
+   * `FreshnessStamp`, "As of 14:32" without seconds, the whole instant in its title. Never a fact
+   * among the facts. A view's bar only: the app-level hero shows none.
+   */
+  freshness?: ReactNode
+  /**
    * @deprecated The tinted tile is gone (the icon-tile pattern the CI rules out, anti-slop U2): a
    * view's bar draws the icon at 16 px before its title, the app-level title leaves it out. Say
    * a state in words with a `StatusBadge` in {@link WidgetHeaderProps.badge}.
@@ -44,8 +50,8 @@ export interface WidgetHeaderProps {
 
 /**
  * The header at the top of a widget. A view's header is its `ViewBar` (the default): the title
- * as the bar's heading in 13 px at 600, the state after it, the facts and the actions, wrapping
- * where it gets narrow. At app level (`size="app"`, a landing, all engines) it is the hero: the
+ * as the bar's heading in 13 px at 600, the state after it, the facts, the actions and, at its
+ * end, when the numbers were read (`freshness`), wrapping where it gets narrow. At app level (`size="app"`, a landing, all engines) it is the hero: the
  * state above a 28 px title at 700, the meta row under it and the actions on the right. Use once
  * per widget surface.
  */
@@ -57,6 +63,7 @@ export function WidgetHeader({
   badge,
   sub,
   actions,
+  freshness,
   icon,
   iconTone = "neutral",
   className,
@@ -71,6 +78,7 @@ export function WidgetHeader({
         badge={badge}
         facts={sub}
         actions={actions}
+        freshness={freshness}
         className={className}
       />
     )

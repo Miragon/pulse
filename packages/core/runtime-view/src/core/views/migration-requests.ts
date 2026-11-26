@@ -3,10 +3,8 @@ import type { MigrationState } from "../panels/migration-reads.js"
 import { BulkRequests, type BulkPreview } from "./bulk-requests.js"
 import { Labels } from "./labels.js"
 import { MigrationElements } from "./migration-elements.js"
+import { MigrationFacts } from "./migration-facts.js"
 import { MigrationRows } from "./migration-rows.js"
-
-const TRIGGERS = "New or unmapped timers and subscriptions start now."
-const CALLED = "Called instances stay on their version."
 
 export class MigrationRequests {
   private readonly elements: MigrationElements
@@ -59,45 +57,21 @@ export class MigrationRequests {
       ...(leftOut.length === 0
         ? []
         : [`${Labels.count(leftOut.length)} left out, staying on v${source.version}`]),
-      this.ownWayFact(),
+      MigrationFacts.ownWay(source.version, this.preview.plan.ids.length),
       ...new MigrationRows(this.state).restartingTimers(),
-      ...this.versionFacts(),
+      ...MigrationFacts.versionNotes(
+        source.version,
+        this.targetVersion(),
+        this.state.versions[0]?.definition.version,
+      ),
     ]
-  }
-
-  private ownWayFact(): string {
-    const version = this.state.source.version
-    return this.preview.plan.ids.length === 1
-      ? `If it fails, it stays on v${version}.`
-      : `Each migrates on its own; failed ones stay on v${version}.`
   }
 
   private stays(): string[] {
-    const incidents = this.incidents()
-    const target = this.targetVersion()
     return [
-      ...this.incidentFact(incidents, target),
-      ...(this.elements.hasCallActivity() ? [CALLED] : []),
-      ...(this.elements.hasCatchingEvents() ? [TRIGGERS] : []),
+      ...MigrationFacts.incidents(this.incidents(), this.targetVersion()),
+      ...MigrationFacts.modelFacts(this.elements),
     ]
-  }
-
-  private incidentFact(incidents: number, target: number): string[] {
-    if (incidents === 0) {
-      return []
-    }
-    return incidents === 1
-      ? [`1 has an incident and keeps it; retry it on v${target}.`]
-      : [`${incidents} have an incident and keep it; retry them on v${target}.`]
-  }
-
-  private versionFacts(): string[] {
-    const target = this.targetVersion()
-    const latest = this.state.versions[0]?.definition.version ?? target
-    if (target < this.state.source.version) {
-      return [`v${target} is older than v${this.state.source.version}.`]
-    }
-    return target < latest ? [`v${target} is not the latest version (v${latest}).`] : []
   }
 
   private incidents(): number {

@@ -16,7 +16,7 @@ import {
   type FakeEngineRest,
   type RestRoute,
 } from "./support/fake-engine-rest.js"
-import { fixture, WORLD_IDS } from "./support/fixtures.js"
+import { fixture, WORLD_IDS, worldDiagram } from "./support/fixtures.js"
 
 interface IncidentRow {
   readonly processDefinitionId: string
@@ -86,24 +86,36 @@ const ROUTE = {
   },
   incidentsOfDispatch: {
     route: "GET /incident",
-    when: (url: URL) => url.searchParams.get("processDefinitionId") === WORLD_IDS.dispatch1,
+    when: (url: URL) =>
+      url.searchParams.get("processDefinitionId") === WORLD_IDS.dispatch1 &&
+      url.searchParams.get("activityId") === "Activity_PrintShippingLabel",
     answer: incidentsOf(WORLD_IDS.dispatch1),
-  },
-  incidentsOfOrder: {
-    route: "GET /incident",
-    when: (url: URL) => url.searchParams.get("processDefinitionId") === WORLD_IDS.order1,
-    answer: incidentsOf(WORLD_IDS.order1),
   },
   activitiesOfOrder: {
     route: `GET /process-definition/${pathOf(WORLD_IDS.order1)}/statistics`,
+    when: (url: URL) => url.searchParams.get("incidents") === "true",
     answer: [
       { id: "Activity_ReviewOrder", instances: 1, failedJobs: 0, incidents: [] },
-      { id: "Activity_ChargePayment", instances: 1, failedJobs: 1, incidents: [] },
+      {
+        id: "Activity_ChargePayment",
+        instances: 1,
+        failedJobs: 1,
+        incidents: [{ incidentType: "failedJob", incidentCount: 1 }],
+      },
     ],
   },
   activitiesOfDispatch: {
     route: `GET /process-definition/${pathOf(WORLD_IDS.dispatch1)}/statistics`,
+    when: (url: URL) => url.searchParams.get("incidents") === "true",
     answer: new Response(fixture("activity-statistics-dispatch.json")),
+  },
+  orderXml: {
+    route: `GET /process-definition/${pathOf(WORLD_IDS.order1)}/xml`,
+    answer: { id: WORLD_IDS.order1, bpmn20Xml: worldDiagram("order") },
+  },
+  dispatchXml: {
+    route: `GET /process-definition/${pathOf(WORLD_IDS.dispatch1)}/xml`,
+    answer: { id: WORLD_IDS.dispatch1, bpmn20Xml: worldDiagram("dispatch") },
   },
   labelXml: {
     route: `GET /process-definition/${pathOf(WORLD_IDS.label1)}/xml`,
@@ -345,7 +357,11 @@ describe("the C7 runtime over recorded engine answers", () => {
   })
 
   test("splits incidents raised at an element from those in called instances", async () => {
-    const { runtime } = fakeRuntime([ROUTE.activitiesOfDispatch, ROUTE.incidentsOfDispatch])
+    const { runtime } = fakeRuntime([
+      ROUTE.activitiesOfDispatch,
+      ROUTE.dispatchXml,
+      ROUTE.incidentsOfDispatch,
+    ])
 
     const statistics = await runtime.getElementStatistics(DefinitionId(WORLD_IDS.dispatch1))
 
@@ -360,7 +376,7 @@ describe("the C7 runtime over recorded engine answers", () => {
   })
 
   test("counts an element with an incident raised there as incident, not as active", async () => {
-    const { runtime } = fakeRuntime([ROUTE.activitiesOfOrder, ROUTE.incidentsOfOrder])
+    const { runtime, engine } = fakeRuntime([ROUTE.activitiesOfOrder, ROUTE.orderXml])
 
     const statistics = await runtime.getElementStatistics(DefinitionId(WORLD_IDS.order1))
 
@@ -373,6 +389,7 @@ describe("the C7 runtime over recorded engine answers", () => {
         incidentsInCalledInstances: 0,
       },
     ])
+    expect(routesOf(engine).filter((route) => route.startsWith("GET /incident"))).toEqual([])
   })
 
   test("returns the deployed XML of a version and undefined for an unknown one", async () => {
@@ -567,9 +584,14 @@ describe("the C7 runtime over recorded engine answers", () => {
     })
   })
 
-  test("counts instances without an incident as all of them minus those with one", async () => {
+  test("counts instances without an incident as the history's minus its count of the runtime's ids with one", async () => {
     const { runtime, engine } = fakeRuntime([
-      { route: "GET /process-instance/count", answer: { count: 1 } },
+      { ...ROUTE.instancesWithIncident, answer: failingRows().slice(0, 1) },
+      {
+        route: "POST /history/process-instance/count",
+        when: (_url: URL, body: string) => body.includes("processInstanceIds"),
+        answer: { count: 1 },
+      },
       { route: "POST /history/process-instance/count", answer: { count: 3 } },
     ])
 
@@ -580,11 +602,30 @@ describe("the C7 runtime over recorded engine answers", () => {
 
     expect(count).toEqual({ count: 2 })
     expect(engine.requests.filter((request) => request.body.includes("ncident"))).toEqual([])
+    expect(routesOf(engine).filter((route) => route === "GET /process-instance/count")).toEqual([])
+    expect(engine.requests[routesOf(engine).indexOf("GET /process-instance")]?.query).toMatchObject(
+      { withIncident: "true", processDefinitionKey: "pulse-order" },
+    )
     expect(
-      bodyOf(engine, routesOf(engine).indexOf("POST /history/process-instance/count")),
-    ).toEqual({
-      processDefinitionKey: "pulse-order",
-    })
+      engine.requests
+        .map((request, index) => ({ request, index }))
+        .filter(({ request }) => request.route === "POST /history/process-instance/count")
+        .map(({ index }) => bodyOf(engine, index)),
+    ).toEqual([
+      { processDefinitionKey: "pulse-order" },
+      { processDefinitionKey: "pulse-order", processInstanceIds: [WORLD_IDS.charge] },
+    ])
+  })
+
+  test("counts no instance without an incident, never below 0, where the history holds none the runtime runs", async () => {
+    const { runtime } = fakeRuntime([
+      ROUTE.instancesWithIncident,
+      { route: "POST /history/process-instance/count", answer: { count: 0 } },
+    ])
+
+    const count = await runtime.countInstances({ withIncident: false })
+
+    expect(count).toEqual({ count: 0 })
   })
 
   test("details an instance through the inspection's reads, its typed variables and the history of a called instance", async () => {
@@ -731,7 +772,7 @@ describe("the C7 runtime over recorded engine answers", () => {
       ["sortBy", "incidentTimestamp"],
       ["sortOrder", "desc"],
       ["firstResult", "0"],
-      ["maxResults", "51"],
+      ["maxResults", "52"],
     ])
   })
 

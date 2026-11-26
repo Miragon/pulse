@@ -1,6 +1,6 @@
 {
   "name": "pulse-monorepo",
-  "version": "0.28.0",
+  "version": "0.34.0",
   "private": true,
   "license": "MIT",
   "packageManager": "pnpm@10.32.1",
@@ -46,7 +46,7 @@
     "docs:preview": "pnpm --fail-if-no-match --filter @miragon/pulse-docs preview",
     "fitness": "node scripts/fitness-report.mjs",
     "lint:deadcode": "knip --exclude exports,types",
-    "lint:deadcode:exports": "knip --workspace '!docs' --include exports,types"
+    "lint:deadcode:exports": "knip --include exports,types"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

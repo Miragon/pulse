@@ -12,18 +12,25 @@ import {
 } from "@miragon/pulse-ui/testing"
 import { afterAll, describe, expect, test } from "vitest"
 import { PARSING_SOURCES_ON_A_BUSY_CI_RUNNER, REPO_ROOT } from "./support/files.js"
-import { BOARD_SOURCES, ENGINE_CORE_SOURCES, WEBVIEW, WORDED_LAYERS } from "./support/layers.js"
+import {
+  BOARD_SOURCES,
+  ENGINE_CORE_SOURCES,
+  MIGRATION_PLAN_SOURCES,
+  WEBVIEW,
+  WORDED_LAYERS,
+} from "./support/layers.js"
 
 const RENDERER_PAINT = "diagram/canvas-roles.ts"
 
 const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {
   "components/count-badge.tsx": "the incident icon inside a 20 px count badge on the diagram",
   "diagram/code-button.tsx": "the code button, a 20 px overlay on a shape",
+  "diagram/mapping-handles.tsx": "a mapping handle, a 20 px overlay on a shape",
   "diagram/move-badge.tsx": "the move badge, a 20 px overlay on a shape",
   "diagram/move-entry.tsx": "a move entry, a 20 px overlay on a shape",
   "screens/called-instance-link.tsx": "an inline link inside a line of dense text",
   "screens/instance-header.tsx": "the caller link inside the header's dense meta line",
-  "screens/mapping-table.tsx": "a warning inside a dense table cell",
+  "screens/mapping-cells.tsx": "a warning inside a dense table cell",
   "screens/move-panel.tsx": "a warning inside a dense list line",
   "screens/variables-tab.tsx": "the shadow warning beside a variable's name in a dense table cell",
 }
@@ -73,6 +80,10 @@ describe(
 
     test("the texts of the board format, whose problems both editors show, draw no glyph either", () => {
       expect(scanGlyphs(join(REPO_ROOT, BOARD_SOURCES))).toEqual([])
+    })
+
+    test("the texts of the migration plan format, whose problems the preview shows, draw no glyph either", () => {
+      expect(scanGlyphs(join(REPO_ROOT, MIGRATION_PLAN_SOURCES))).toEqual([])
     })
 
     test(`the webview draws icons at the CI sizes, ${CI_ICON_SIZES.join(" and ")} px, or at ${DENSE_ICON_SIZE} px where the named deviation lists it, beside dense text and on the diagram's 20 px overlays`, () => {

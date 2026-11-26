@@ -18,6 +18,13 @@ import {
  * on pulse-ui's theme after Tailwind and keeps the view's shape.
  */
 const SRC = fileURLToPath(new URL("../src", import.meta.url))
+
+/**
+ * The files that may draw the dense 12 px icon, each with its reason (the density deviation of
+ * CLAUDE.md's design section: the icons on the diagram's 20 px overlays). None: the page's diagram
+ * badges are pulse-ui's (`CanvasBadge`), which its own gate allows.
+ */
+const DENSE_ICONS_ALLOWED: Readonly<Record<string, string>> = {}
 const STYLES = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8")
 
 describe("the page's sources", () => {
@@ -25,8 +32,8 @@ describe("the page's sources", () => {
     expect(scanGlyphs(SRC)).toEqual([])
   })
 
-  it("draw icons at 16 and 24 px, never the dense 12 px", () => {
-    expect(scanIconSizes(SRC)).toEqual([])
+  it("draw icons at 16 and 24 px, the dense 12 px only on the diagram's overlays", () => {
+    expect(scanIconSizes(SRC, { allowDense: DENSE_ICONS_ALLOWED })).toEqual([])
   })
 
   it("colour through role names only", () => {
@@ -59,9 +66,11 @@ describe("the page's stylesheet", () => {
     expect(rules).toMatch(/@source "[^"]*packages\/core\/blocks\/src"/)
   })
 
-  it("lays every page on one ground, the card's surface, after the theme", () => {
+  it("lays every page on one ground, the app's ground, after the theme", () => {
     const rules = stylesheetRules(STYLES)
-    const ground = rules.search(/@layer base\s*\{\s*html,\s*body\s*\{\s*@apply bg-card;\s*\}\s*\}/)
+    const ground = rules.search(
+      /@layer base\s*\{\s*html,\s*body\s*\{\s*@apply bg-background;\s*\}\s*\}/,
+    )
     expect(ground).toBeGreaterThan(rules.indexOf('@import "@miragon/pulse-ui/theme.css"'))
   })
 })

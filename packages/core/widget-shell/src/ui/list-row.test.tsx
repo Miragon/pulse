@@ -18,15 +18,18 @@ afterEach(cleanup)
 function Instances({
   onOpen = vi.fn(),
   locale = "en",
+  href,
 }: {
   onOpen?: (id: string) => void
   locale?: string
+  /** The first row's address, as a page with addresses links it. */
+  href?: string
 }) {
   return (
     <LocaleProvider locale={locale}>
       <ToastProvider>
         <ListTable ariaLabel="Instances" columns={[{ label: "Instance" }, { label: "Actions" }]}>
-          <ListRow label="Instance ORD-1" onOpen={() => onOpen("i-1")} copy="i-1">
+          <ListRow label="Instance ORD-1" onOpen={() => onOpen("i-1")} href={href} copy="i-1">
             <Td>ORD-1</Td>
             <Td>
               <button type="button">Retry ORD-1</button>
@@ -52,6 +55,24 @@ describe("ListRow: a row opens on a click or Enter (one row convention)", () => 
     fireEvent.keyDown(row, { key: "Enter" })
     fireEvent.click(within(row).getByRole("button", { name: "Retry ORD-1" }))
     expect(onOpen.mock.calls).toEqual([["i-1"], ["i-1"]])
+  })
+
+  it("links to what it opens on a page: a new tab with Ctrl or Cmd or a middle click, in place else", () => {
+    const onOpen = vi.fn()
+    const opened = vi.spyOn(window, "open").mockReturnValue(null)
+    render(<Instances onOpen={onOpen} href="/app/engines/prod/instances/i-1" />)
+    const row = screen.getByRole("row", { name: "Instance ORD-1" })
+    fireEvent.click(within(row).getByText("ORD-1"))
+    fireEvent.click(within(row).getByText("ORD-1"), { ctrlKey: true })
+    fireEvent.keyDown(row, { key: "Enter", metaKey: true })
+    fireEvent(row, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }))
+    expect(onOpen.mock.calls).toEqual([["i-1"]])
+    expect(opened.mock.calls.map(([url]) => url)).toEqual([
+      "/app/engines/prod/instances/i-1",
+      "/app/engines/prod/instances/i-1",
+      "/app/engines/prod/instances/i-1",
+    ])
+    opened.mockRestore()
   })
 
   it("is a plain row without onOpen: no name, no tab stop, a click opens nothing", () => {

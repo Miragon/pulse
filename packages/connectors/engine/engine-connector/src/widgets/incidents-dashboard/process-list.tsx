@@ -1,19 +1,17 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 
 import {
   CountBadge,
+  GROUP_CARD_INSET,
   GroupCard,
   SearchField,
   SectionHeading,
-  SegmentedControl,
   Toolbar,
   cn,
   DrillButton,
   TableEmptyState,
   formatCount,
   formatNumber,
-  formatTimestamp,
-  type SegmentedControlOption,
 } from "@miragon/pulse-ui"
 import type {
   IncidentsDashboardActivity,
@@ -23,11 +21,12 @@ import type {
 
 import { useNav } from "../navigation.js"
 import { ENGINE_INCIDENTS_DATA } from "../../tool-names.js"
-import { GroupSummaryRow } from "../group-summary-row.js"
 import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { MoreActions } from "../lib/more-actions.js"
-import { useT, type T } from "../../messages/use-t.js"
+import { useT } from "../../messages/use-t.js"
+import { ActivityTable } from "./activity-table.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
+import { TimeAgo } from "./time-ago.js"
 
 import {
   HandOffButton,
@@ -37,11 +36,6 @@ import {
   useViewData,
   type ViewDataResult,
 } from "@miragon/pulse-widget-shell/widgets"
-
-const SCOPE_ALL = "all"
-const SCOPE_LAST24H = "last24h"
-
-type IncidentScope = typeof SCOPE_ALL | typeof SCOPE_LAST24H
 
 /** On a type-filtered dashboard the filter travels as an id and the count as the matching incidents. */
 export function processRootCauseHandOff(
@@ -57,10 +51,9 @@ export function processRootCauseHandOff(
     facts: {
       countScope: "allVersions",
       latestVersion: process.latestVersion,
-      openIncidents: incidentType ? undefined : process.incidentCount,
-      matchingIncidents: incidentType ? process.incidentCount : undefined,
+      openRootIncidents: incidentType ? undefined : process.incidentCount,
+      matchingRootIncidents: incidentType ? process.incidentCount : undefined,
       affectedActivities: process.affectedActivityCount,
-      last24h: process.last24hCount,
       latestIncident: process.latestIncident,
       runningInstances: process.runningInstances,
     },
@@ -68,33 +61,38 @@ export function processRootCauseHandOff(
   }
 }
 
-interface DisplayProcess extends IncidentsDashboardProcess {
-  /** Null = unknown. */
-  shownCount: number | null
-  /** The count is the incidents of the last 24 hours (the Last 24h scope), not every open one. */
-  last24h: boolean
+/**
+ * The group's name in its toggle: the full process name, never cut, its key quiet in mono after
+ * it, so the toggle is named by the process.
+ */
+function ProcessTitle({ process }: { process: IncidentsDashboardProcess }) {
+  return (
+    <span className="text-dense min-w-0 font-semibold break-words">
+      {process.processDefinitionName ?? process.processDefinitionKey}
+      {process.processDefinitionName && (
+        <span className="text-muted-foreground text-small ms-2 font-mono font-normal">
+          {process.processDefinitionKey}
+        </span>
+      )}
+    </span>
+  )
 }
 
-/** The group's count in words, exact: its open incidents or those of the last 24 hours. */
-function shownCountLabel(t: T, process: DisplayProcess): string {
-  if (process.shownCount === null) return t("incidentsList.countUnknown")
-  const count = formatNumber(process.shownCount)
-  return process.last24h
-    ? t("incidentsList.new24h", { count })
-    : t("procIncHeader.openIncidents", { count })
-}
-
-/** #322 U20: two lines; the full process name, never cut; the cockpit link and hand-off behind "more". */
+/**
+ * #322 U20: two lines, the group's toggle (its chevron and the process) with its count, then its
+ * facts and its actions, lined up with the name after the chevron; the cockpit link and hand-off
+ * behind "more". The actions sit beside the toggle, never inside it.
+ */
 function ProcessSummary({
+  toggle,
   process,
-  expanded,
   engineId,
   vendor,
   filters,
   onOpenDetail,
 }: {
-  process: DisplayProcess
-  expanded: boolean
+  toggle: ReactNode
+  process: IncidentsDashboardProcess
   vendor: string
   engineId: string
   filters: IncidentsDashboardData["filters"]
@@ -109,38 +107,29 @@ function ProcessSummary({
     process.affectedActivityCount === null
       ? `${formatCount(null)} ${t("incidentsList.activitiesLabel")}`
       : t("incidentsList.activities", { count: formatNumber(process.affectedActivityCount) }),
-    process.last24hCount === null
-      ? null
-      : t("incidentsList.new24h", { count: formatNumber(process.last24hCount) }),
     t("incidentsList.instancesCount", { count: formatNumber(process.runningInstances) }),
-    t("incidentsList.lastSeen", { time: formatTimestamp(process.latestIncident) }),
-  ].filter((fact): fact is string => fact !== null)
+  ]
 
   return (
-    <div
-      className={cn(
-        "px-cell py-cell min-h-entry flex flex-col justify-center gap-1.5",
-        expanded && "border-border border-b",
-      )}
-    >
+    <div className="px-cell py-cell min-h-entry flex flex-col justify-center gap-1.5">
       <div className="flex items-start gap-3">
-        <span className="text-foreground text-dense min-w-0 flex-1 font-semibold break-words">
-          {name}
-          {process.processDefinitionName && (
-            <span className="text-muted-foreground text-small ms-2 font-mono font-normal">
-              {process.processDefinitionKey}
-            </span>
-          )}
-        </span>
+        <div className="min-w-0 flex-1">{toggle}</div>
         {/* A neutral count with the incident's icon, never a coloured number (invariant 6). */}
         <CountBadge
-          count={process.shownCount}
-          situation={(process.shownCount ?? 0) > 0 ? "openIncident" : undefined}
-          label={shownCountLabel(t, process)}
+          count={process.incidentCount}
+          situation={process.incidentCount > 0 ? "openIncident" : undefined}
+          label={t("procIncHeader.openIncidents", { count: formatNumber(process.incidentCount) })}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <span className="text-muted-foreground text-small min-w-0 flex-1">{facts.join(" · ")}</span>
+      <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1.5", GROUP_CARD_INSET)}>
+        <span className="text-muted-foreground text-small min-w-0 flex-1">
+          {facts.join(" · ")}
+          {" · "}
+          {/* A time ago, its instant in its title, as the process view's bar says its last event. */}
+          <TimeAgo iso={process.latestIncident}>
+            {(time) => t("incidentsList.lastSeen", { time })}
+          </TimeAgo>
+        </span>
         <div className="flex items-center gap-1">
           <DrillButton
             size="xs"
@@ -168,28 +157,22 @@ function ProcessSummary({
   )
 }
 
-function ActivityRow({ activity }: { activity: IncidentsDashboardActivity }) {
-  const t = useT()
-  return (
-    <GroupSummaryRow
-      title={activity.activityName ?? activity.activityId}
-      subline={activity.representativeMessage ?? activity.activityId}
-      stats={[{ value: formatTimestamp(activity.firstSeen), label: t("incidentsList.firstSeen") }]}
-      incidents={activity.scannedIncidentCount}
-      className="border-border border-b last:border-b-0"
-    />
-  )
-}
-
 /**
  * From the newest-first recency scan, so a partial scan says so; exact counts are in the definition
  * view. The group's body lies on the ground, nested under its summary on the card and indented by
- * the gutter, its rules too: forced colours drop the ground, the indent stays.
+ * the gutter, its table's head and rules too (as a process's activity groups): forced colours drop
+ * the ground, the indent stays.
  */
-function ActivityList({ process }: { process: DisplayProcess }) {
+function ActivityList({
+  process,
+  onOpen,
+}: {
+  process: IncidentsDashboardProcess
+  onOpen: (activity: IncidentsDashboardActivity) => void
+}) {
   const t = useT()
   return (
-    <div className="bg-muted ps-gutter">
+    <div className="bg-muted ps-gutter [--table-surface:var(--muted)]">
       {process.scannedIncidentCount < process.incidentCount && (
         <p className="text-muted-foreground border-border text-small px-cell py-cell border-b">
           {t("incidentsList.breakdownPartial", {
@@ -198,14 +181,14 @@ function ActivityList({ process }: { process: DisplayProcess }) {
           })}
         </p>
       )}
-      {process.activities.map((a) => (
-        <ActivityRow key={a.activityId} activity={a} />
-      ))}
+      <ActivityTable
+        processName={process.processDefinitionName ?? process.processDefinitionKey}
+        activities={process.activities}
+        onOpen={onOpen}
+      />
     </div>
   )
 }
-
-const mayHaveLast24h = (count: number | null) => count === null || count > 0
 
 function matchesSearch(activity: IncidentsDashboardActivity, q: string): boolean {
   return (
@@ -215,37 +198,25 @@ function matchesSearch(activity: IncidentsDashboardActivity, q: string): boolean
   )
 }
 
-/** Filters narrow the list, never the numbers: a sum over a partial scan would understate. */
+/** The search narrows the list, never the numbers: a sum over a partial scan would understate. */
 function filterProcesses(
   processes: IncidentsDashboardProcess[],
   search: string,
-  showLast24h: boolean,
-): DisplayProcess[] {
+): IncidentsDashboardProcess[] {
   const q = search.trim().toLowerCase()
   return processes
-    .map<DisplayProcess | null>((p) => {
-      if (showLast24h && !mayHaveLast24h(p.last24hCount)) return null
-      let activities = showLast24h
-        ? p.activities.filter((a) => mayHaveLast24h(a.last24hCount))
-        : p.activities
+    .map<IncidentsDashboardProcess | null>((p) => {
       const processMatches =
         (p.processDefinitionName ?? "").toLowerCase().includes(q) ||
         p.processDefinitionKey.toLowerCase().includes(q)
-      if (q.length > 0 && !processMatches) {
-        activities = activities.filter((a) => matchesSearch(a, q))
-        if (activities.length === 0) return null
-      }
-      return {
-        ...p,
-        activities,
-        shownCount: showLast24h ? p.last24hCount : p.incidentCount,
-        last24h: showLast24h,
-      }
+      if (q.length === 0 || processMatches) return p
+      const activities = p.activities.filter((a) => matchesSearch(a, q))
+      return activities.length === 0 ? null : { ...p, activities }
     })
-    .filter((p): p is DisplayProcess => p !== null)
+    .filter((p): p is IncidentsDashboardProcess => p !== null)
 }
 
-/** One widget so the search and the scope stay with the list. */
+/** One widget so the search stays with the list. */
 function IncidentProcessListView({
   view,
   engine,
@@ -258,32 +229,26 @@ function IncidentProcessListView({
   const { data, loading, error, refetch } = view
 
   const [search, setSearch] = useState("")
-  const [scope, setScope] = useState<IncidentScope>(SCOPE_ALL)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  const filteredProcesses = useMemo<DisplayProcess[]>(
-    () => (data ? filterProcesses(data.processes, search, scope === SCOPE_LAST24H) : []),
-    [data, search, scope],
+  const filteredProcesses = useMemo<IncidentsDashboardProcess[]>(
+    () => (data ? filterProcesses(data.processes, search) : []),
+    [data, search],
   )
 
   if (!data) {
     return (
-      <ViewDataState
-        loading={loading}
-        error={error}
-        onRetry={refetch}
-        loadingText={t("incidentsList.loading")}
-        emptyText={t("incidentsList.noData")}
-      />
+      <WidgetShell>
+        <ViewDataState
+          loading={loading}
+          error={error}
+          onRetry={refetch}
+          loadingText={t("incidentsList.loading")}
+          emptyText={t("incidentsList.noData")}
+        />
+      </WidgetShell>
     )
   }
-
-  // One pick of two, the instance scope's control: each count from the payload on screen (the
-  // KPIs above show the same two), a neutral number.
-  const scopes: SegmentedControlOption<IncidentScope>[] = [
-    { value: SCOPE_ALL, label: t("incidentsList.scopeAll"), count: data.totalCount },
-    { value: SCOPE_LAST24H, label: t("incidentsList.scopeLast24h"), count: data.last24hCount },
-  ]
 
   function toggleExpanded(key: string) {
     setExpanded((prev) => {
@@ -303,30 +268,23 @@ function IncidentProcessListView({
   }
 
   return (
-    <>
-      {/* The scope segments first, then the search, as the instance list's filters. A bar inside
-          the content reaches the card's edges, as a view's tab bar does. */}
-      <Toolbar className="-mx-gutter">
-        <SegmentedControl
-          ariaLabel={t("incidentsList.scopeLabel")}
-          options={scopes}
-          value={scope}
-          onChange={setScope}
-        />
-        <SearchField
-          value={search}
-          onChange={setSearch}
-          delayMs={0}
-          placeholder={t("incidentsList.searchPlaceholder")}
-          aria-label={t("incidentsList.searchLabel")}
-        />
-      </Toolbar>
-
+    <WidgetShell
+      header={
+        // The search under the view's bar, from edge to edge; the bar above names the open root
+        // incidents in words, the cards count them per process.
+        <Toolbar>
+          <SearchField
+            value={search}
+            onChange={setSearch}
+            delayMs={0}
+            placeholder={t("incidentsList.searchPlaceholder")}
+            aria-label={t("incidentsList.searchLabel")}
+          />
+        </Toolbar>
+      }
+    >
       <section>
-        <SectionHeading
-          title={t("incidentsList.groupedByProcess")}
-          hint={t("incidentsList.clickToExpand")}
-        />
+        <SectionHeading as="h2" title={t("incidentsList.groupedByProcess")} />
 
         {filteredProcesses.length === 0 ? (
           <TableEmptyState>
@@ -338,31 +296,43 @@ function IncidentProcessListView({
           filteredProcesses.map((p) => (
             <GroupCard
               key={p.processDefinitionKey}
+              as="h3"
               expanded={expanded.has(p.processDefinitionKey)}
               onToggle={() => toggleExpanded(p.processDefinitionKey)}
-              summary={
+              title={<ProcessTitle process={p} />}
+              summary={(toggle) => (
                 <ProcessSummary
+                  toggle={toggle}
                   process={p}
-                  expanded={expanded.has(p.processDefinitionKey)}
                   engineId={engine}
                   vendor={data.engineVendor}
                   filters={data.filters}
                   onOpenDetail={() => openDetail(p)}
                 />
-              }
+              )}
             >
-              <ActivityList process={p} />
+              <ActivityList
+                process={p}
+                onOpen={(activity) =>
+                  go({
+                    type: "cluster-detail",
+                    activityId: activity.activityId,
+                    incidentType: activity.incidentType,
+                    label: activity.activityName ?? undefined,
+                  })
+                }
+              />
             </GroupCard>
           ))
         )}
       </section>
-    </>
+    </WidgetShell>
   )
 }
 
 /**
- * The list under the KPIs, over the same feed (one query, shared): a failed read is the KPIs' to
- * say, once, with their Try again, which reads it for both.
+ * The list under the route's bar, over the same feed (one query, shared): a failed read is the
+ * bar's to say, once, with its Try again, which reads it for both.
  */
 export function IncidentProcessList({
   data,
@@ -380,9 +350,5 @@ export function IncidentProcessList({
     true,
   )
   if (!view.data && view.error) return null
-  return (
-    <WidgetShell>
-      <IncidentProcessListView view={view} engine={engine} />
-    </WidgetShell>
-  )
+  return <IncidentProcessListView view={view} engine={engine} />
 }

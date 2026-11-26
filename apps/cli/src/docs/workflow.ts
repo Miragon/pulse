@@ -4,8 +4,8 @@
  * and the docs drift tests. Pure.
  */
 
-import type { Effect } from "../catalog/types.js"
-import type { ArgumentDoc, OptionDoc } from "./options.js"
+import type { ArgumentDoc } from "./options.js"
+import type { WorkflowDoc } from "./workflow-doc.js"
 import {
   ADVANCE_OPTIONS,
   DEPLOY_OPTIONS,
@@ -14,25 +14,9 @@ import {
   STATUS_OPTIONS,
   WAIT_COMMAND_OPTIONS,
 } from "./workflow-options.js"
+import { PLAN_MIGRATION_DOC } from "./workflow-plan-migration.js"
 
-export interface WorkflowDoc {
-  readonly name: string
-  /** `pulse inspect [process-instance-id] [options]` */
-  readonly usage: string
-  readonly summary: string
-  /** What the command does, in paragraphs. */
-  readonly description: string
-  /** The REST calls in order, as prose for `--help`. */
-  readonly requests: string
-  /** The base effect (for `commands --effect` and the guards). */
-  readonly effect: Effect
-  readonly effectNote?: string
-  readonly arguments: readonly ArgumentDoc[]
-  readonly options: readonly OptionDoc[]
-  /** Every operationId the command may send. */
-  readonly calls: readonly string[]
-  readonly examples: readonly string[]
-}
+export type { WorkflowDoc } from "./workflow-doc.js"
 
 const INSTANCE_ARGUMENT: ArgumentDoc = {
   name: "process-instance-id",
@@ -254,7 +238,7 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
     summary:
       "Triage the engine: grouped incidents with root cause, job executor and external task worker health",
     description:
-      "Engine triage in one call: the definitions with instances and incidents, the root incidents grouped by definition, activity, type and message with their root cause, overdue executable jobs (is the job executor running?), external task topics with waiting, locked and expired tasks (is a worker subscribed?), open tasks and failed batches. Every finding names the next command. The status is critical from 50 open incidents, 25 of one cause or an overdue job, warning with any other finding; --fail-on makes CI fail on it.",
+      "Engine triage in one call: the definitions with instances and incidents, the root incidents grouped by definition, activity, type and message with their root cause, overdue executable jobs (is the job executor running?), external task topics with waiting, locked and expired tasks (is a worker subscribed?), open tasks and failed batches. Every finding names the next command. The status is critical from 50 open root incidents (a call activity's copy of a called instance's incident never counts), 25 of one cause or an overdue job, warning with any other finding; --fail-on makes CI fail on it.",
     requests:
       "in parallel GET /version, GET /process-definition/statistics, GET /incident and /incident/count, GET /external-task and /external-task/count, GET /job/count and GET /job (executable, created before --stale-after), GET /task/count and GET /batch/statistics; then one root cause per incident group shown",
     effect: "read",
@@ -276,6 +260,7 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
     ]),
     examples: ["pulse status", "pulse status --process-definition-key payment --fail-on warning"],
   },
+  PLAN_MIGRATION_DOC,
 ]
 
 /** The workflow command of a name. */

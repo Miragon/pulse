@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { resolveEngine } from "../lib/engine/resolve-engine.js"
 import { cibsevenProvider } from "../providers/index.js"
 import {
@@ -42,7 +42,7 @@ const INSTANCE: FakeRoutes = {
 
 async function build(routes: FakeRoutes) {
   // Enrichment lookups the routes leave out (diagram, definition name,
-  // history total, stacktrace) answer 404 and degrade.
+  // stacktrace) answer 404 and degrade.
   const engine = await startFakeEngine(
     { ...INSTANCE, ...routes },
     { status: 404, body: { message: "not here" } },
@@ -58,6 +58,21 @@ async function build(routes: FakeRoutes) {
 }
 
 describe("buildIncidentDetailData through the REST contract", () => {
+  // One freshness on every route: the bar says when the server read the incident.
+  it("stamps the time its reads began, the bar's As of", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-10-10T08:00:00.000Z"))
+    try {
+      const { data } = await build({
+        "GET /incident/inc-1": { body: incident({}) },
+        "GET /job": { body: [{ id: "job-1", retries: 0, exceptionMessage: "boom" }] },
+      })
+      expect(data.fetchedAt).toBe("2026-10-10T08:00:00.000Z")
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it("offers a job retry for a failedJob and reads its stacktrace as text/plain", async () => {
     const { data, engine } = await build({
       "GET /incident/inc-1": { body: incident({}) },
@@ -138,6 +153,69 @@ describe("buildIncidentDetailData through the REST contract", () => {
     expect(data.recovery).toEqual({ action: "retry-job", jobId: "job-9" })
     expect(data.incidentMessage).toBe("deep boom")
     expect(data.job?.id).toBe("job-9")
+  })
+
+  it("names a delegated incident's root cause: its element and process in the called instance", async () => {
+    const { data } = await build({
+      "GET /incident/inc-1": {
+        body: incident({ configuration: null, incidentMessage: null, rootCauseIncidentId: "root" }),
+      },
+      "GET /incident/root": {
+        body: incident({
+          id: "root",
+          processDefinitionId: "check:1:c",
+          processInstanceId: "called-1",
+          activityId: "checkBlacklist",
+          configuration: "job-9",
+          incidentMessage: "deep boom",
+        }),
+      },
+      "GET /process-definition/check:1:c": {
+        body: { id: "check:1:c", key: "check", name: "Assess customer credibility", version: 1 },
+      },
+      "GET /process-definition/check:1:c/xml": {
+        body: {
+          id: "check:1:c",
+          bpmn20Xml:
+            '<definitions><process id="check"><serviceTask id="checkBlacklist" name="Check blacklist"/></process></definitions>',
+        },
+      },
+      "GET /job": { body: [{ id: "job-9", retries: 0 }] },
+    })
+    expect(data.rootCause).toEqual({
+      incidentId: "root",
+      message: "deep boom",
+      activityId: "checkBlacklist",
+      activityName: "Check blacklist",
+      processInstanceId: "called-1",
+      processName: "Assess customer credibility",
+    })
+  })
+
+  it("names a root cause by its process's key where its names are unread (enrichment)", async () => {
+    const { data } = await build({
+      "GET /incident/inc-1": {
+        body: incident({ configuration: null, incidentMessage: null, rootCauseIncidentId: "root" }),
+      },
+      "GET /incident/root": {
+        body: incident({
+          id: "root",
+          processDefinitionId: "check:1:c",
+          activityId: "checkBlacklist",
+        }),
+      },
+      "GET /job": { body: [] },
+    })
+    expect(data.rootCause).toMatchObject({ activityName: null, processName: "check" })
+  })
+
+  it("has no root cause for a root incident, and reads no history total", async () => {
+    const { data, engine } = await build({
+      "GET /incident/inc-1": { body: incident({}) },
+      "GET /job": { body: [] },
+    })
+    expect(data.rootCause).toBeNull()
+    expect(engine.requests.some((r) => r.path.startsWith("/history"))).toBe(false)
   })
 
   it("resolves only a custom incident", async () => {

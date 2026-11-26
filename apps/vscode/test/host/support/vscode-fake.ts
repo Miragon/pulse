@@ -59,9 +59,59 @@ export class ThemeIcon {
   ) {}
 }
 
-export const Uri = {
-  from: (components: object): object => components,
-  file: (fsPath: string): object => ({ fsPath }),
+interface UriComponents {
+  readonly scheme: string
+  readonly path: string
+  readonly query?: string
+}
+
+export class Uri {
+  readonly fsPath: string
+
+  private constructor(
+    readonly scheme: string,
+    readonly path: string,
+    readonly query = "",
+  ) {
+    this.fsPath = path
+  }
+
+  static file(fsPath: string): Uri {
+    return new Uri("file", fsPath)
+  }
+
+  static parse(value: string): Uri {
+    const url = new URL(value)
+    return new Uri(url.protocol.slice(0, -1), decodeURIComponent(url.pathname), url.search.slice(1))
+  }
+
+  static from(components: UriComponents): Uri {
+    return new Uri(components.scheme, components.path, components.query)
+  }
+
+  static joinPath(base: Uri, ...parts: string[]): Uri {
+    return new Uri(base.scheme, [base.path, ...parts].join("/"))
+  }
+
+  toString(): string {
+    return `${this.scheme}://${this.path}${this.query === "" ? "" : `?${this.query}`}`
+  }
+}
+
+export class TabInputText {
+  constructor(readonly uri: Uri) {}
+}
+
+export class TabInputCustom {
+  constructor(
+    readonly uri: Uri,
+    readonly viewType: string,
+  ) {}
+}
+
+export enum ViewColumn {
+  Active = -1,
+  Beside = -2,
 }
 
 export class FakeTreeView {
@@ -86,20 +136,98 @@ export const treeViews: FakeTreeView[] = []
 
 export const windowStateChanged = new EventEmitter<{ focused: boolean; active: boolean }>()
 
+export const tabGroups: { activeTabGroup: { activeTab?: { readonly input: unknown } } } = {
+  activeTabGroup: {},
+}
+
+export const informed: string[] = []
+
 export const window = {
   state: { focused: true, active: true },
   onDidChangeWindowState: windowStateChanged.event,
+  tabGroups,
+  activeTextEditor: undefined,
   createTreeView: (): FakeTreeView => {
     const view = new FakeTreeView()
     treeViews.push(view)
     return view
   },
+  showInformationMessage: (message: string): Promise<undefined> => {
+    informed.push(message)
+    return Promise.resolve(undefined)
+  },
+}
+
+export class Position {
+  constructor(
+    readonly line: number,
+    readonly character: number,
+  ) {}
+}
+
+export class Range {
+  constructor(
+    readonly start: Position,
+    readonly end: Position,
+  ) {}
+}
+
+export class WorkspaceEdit {
+  readonly replaced: { readonly uri: Uri; readonly range: Range; readonly text: string }[] = []
+
+  replace(uri: Uri, range: Range, text: string): void {
+    this.replaced.push({ uri, range, text })
+  }
+}
+
+export class FakeTextDocument {
+  constructor(
+    readonly uri: Uri,
+    public text: string,
+  ) {}
+
+  getText(): string {
+    return this.text
+  }
+
+  positionAt(offset: number): Position {
+    return new Position(0, offset)
+  }
+}
+
+export const textDocuments: FakeTextDocument[] = []
+export const edits: { refused: boolean; applied: WorkspaceEdit[] } = { refused: false, applied: [] }
+export const executed: unknown[][] = []
+
+export const commands = {
+  executeCommand: (...args: unknown[]): Promise<undefined> => {
+    executed.push(args)
+    return Promise.resolve(undefined)
+  },
 }
 
 export const documentSaved = new EventEmitter<{ readonly uri: { readonly path: string } }>()
+export const documentChanged = new EventEmitter<{ readonly document: FakeTextDocument }>()
 export const debugEnded = new EventEmitter<unknown>()
 export const taskEnded = new EventEmitter<unknown>()
 
-export const workspace = { onDidSaveTextDocument: documentSaved.event }
+export const workspace = {
+  onDidSaveTextDocument: documentSaved.event,
+  onDidChangeTextDocument: documentChanged.event,
+  applyEdit: (edit: WorkspaceEdit): Promise<boolean> => {
+    if (edits.refused) {
+      return Promise.resolve(false)
+    }
+    edits.applied.push(edit)
+    for (const { uri, text } of edit.replaced) {
+      const document = textDocuments.find((open) => open.uri.toString() === uri.toString())
+      if (document !== undefined) {
+        document.text = text
+        documentChanged.fire({ document })
+      }
+    }
+    return Promise.resolve(true)
+  },
+}
 export const debug = { onDidTerminateDebugSession: debugEnded.event }
 export const tasks = { onDidEndTaskProcess: taskEnded.event }

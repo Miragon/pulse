@@ -1,10 +1,4 @@
-import {
-  BpmnProcessId,
-  DefinitionId,
-  ElementId,
-  InstanceId,
-  PageCursor,
-} from "@miragon/pulse-engine-core"
+import { BpmnProcessId, DefinitionId, InstanceId, PageCursor } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import { type FakeCall, fakePort, type Route } from "../testing/fake-port.js"
 import { InstanceSearch } from "./instance-search.js"
@@ -217,6 +211,35 @@ describe("InstanceSearch.search", () => {
     expect(port.calls).toStrictEqual([])
   })
 
+  it.each([
+    ["a text a reader typed", { instanceIds: [InstanceId("Müller GmbH / 10442 hängt")] }],
+    ["an empty id", { instanceIds: [InstanceId("")] }],
+    ["such ids with an incident", { instanceIds: [InstanceId("p 1")], withIncident: true }],
+    ["such ids without an incident", { instanceIds: [InstanceId("p/1")], withIncident: false }],
+  ] as const)(
+    "finds nothing by ids no engine assigns (%s), without a request",
+    async (_name, filter) => {
+      const { port, search } = searchOver({})
+
+      expect(await search.search(filter, { limit: 50 })).toStrictEqual({ items: [] })
+      expect(port.calls).toStrictEqual([])
+    },
+  )
+
+  it("sends only the ids an engine could have assigned", async () => {
+    const { port, search } = searchOver({
+      queryHistoricProcessInstances: () => [],
+    })
+
+    await search.search(
+      { instanceIds: [InstanceId("p1"), InstanceId("ORD-1003"), InstanceId("a b")] },
+      { limit: 5 },
+    )
+
+    expect(bodyOf(port.calls[0])).toContain('"processInstanceIds":["p1","ORD-1003"]')
+    expect(port.calls[0]?.input.query.maxResults).toBe("2")
+  })
+
   it("asks for no more rows than there are ids, and for the page and one more otherwise", async () => {
     const ids = ["p1", "p2", "p3"].map((id) => InstanceId(id))
     const { port, search } = searchOver({
@@ -323,98 +346,5 @@ describe("InstanceSearch.search without an incident", () => {
       search.search({ withIncident: false }, { limit: 5, after: PageCursor("x") }),
     ).rejects.toThrow(RangeError)
     expect(port.calls).toStrictEqual([])
-  })
-})
-
-describe("InstanceSearch.count", () => {
-  it("counts the running instances in the history, asking the runtime nothing", async () => {
-    const { port, search } = searchOver({
-      queryHistoricProcessInstancesCount: () => ({ count: 4 }),
-    })
-
-    expect(await search.count({ lifecycle: "running" })).toBe(4)
-    expect(port.calls).toStrictEqual([
-      {
-        operationId: "queryHistoricProcessInstancesCount",
-        input: { pathArgs: [], query: {}, body: { unfinished: true } },
-      },
-    ])
-  })
-
-  it("counts the history's instances of the filter", async () => {
-    const { port, search } = searchOver({
-      queryHistoricProcessInstancesCount: () => ({ count: 3 }),
-    })
-
-    expect(
-      await search.count({ businessKey: "ORD-1", activeElementId: ElementId("Activity_Pack") }),
-    ).toBe(3)
-    expect(bodyOf(port.calls[0])).toBe(
-      '{"processInstanceBusinessKey":"ORD-1","activityIdIn":["Activity_Pack"]}',
-    )
-  })
-
-  it("counts the instances with an incident in one runtime count when the runtime knows the filter", async () => {
-    const { port, search } = searchOver({ getProcessInstancesCount: () => ({ count: 2 }) })
-
-    expect(
-      await search.count({
-        definitionId: DefinitionId("order:1:a"),
-        lifecycle: "running",
-        withIncident: true,
-        businessKey: "ORD-1",
-      }),
-    ).toBe(2)
-    expect(port.calls).toStrictEqual([
-      {
-        operationId: "getProcessInstancesCount",
-        input: {
-          pathArgs: [],
-          query: { withIncident: "true", processDefinitionId: "order:1:a", businessKey: "ORD-1" },
-        },
-      },
-    ])
-  })
-
-  it("counts the instances with an incident at an element over the runtime's ids", async () => {
-    const { port, search } = searchOver({
-      getProcessInstances: () => [{ id: "p1", definitionId: "order:1:a" }],
-      queryHistoricProcessInstancesCount: () => ({ count: 1 }),
-    })
-
-    expect(
-      await search.count({ withIncident: true, activeElementId: ElementId("Activity_Pay") }),
-    ).toBe(1)
-    expect(sent(port.calls)).toStrictEqual([
-      "getProcessInstances",
-      "queryHistoricProcessInstancesCount",
-    ])
-    expect(bodyOf(port.calls[1])).toBe(
-      '{"processInstanceIds":["p1"],"activityIdIn":["Activity_Pay"]}',
-    )
-  })
-
-  it("counts no ended instance with an incident and no given ids, without a request", async () => {
-    const { port, search } = searchOver({})
-
-    expect(await search.count({ lifecycle: "ended", withIncident: true })).toBe(0)
-    expect(await search.count({ instanceIds: [] })).toBe(0)
-    expect(port.calls).toStrictEqual([])
-  })
-
-  it("counts the instances without an incident as all of them minus those with one", async () => {
-    const { port, search } = searchOver({
-      queryHistoricProcessInstancesCount: () => ({ count: 3 }),
-      getProcessInstancesCount: () => ({ count: 1 }),
-    })
-
-    expect(await search.count({ bpmnProcessId: BpmnProcessId("order"), withIncident: false })).toBe(
-      2,
-    )
-    expect(sent(port.calls)).toStrictEqual([
-      "queryHistoricProcessInstancesCount",
-      "getProcessInstancesCount",
-    ])
-    expect(bodyOf(port.calls[0])).toBe('{"processDefinitionKey":"order"}')
   })
 })

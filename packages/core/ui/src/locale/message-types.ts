@@ -26,6 +26,11 @@ export interface CommonMessages {
   loadFailedHint: string
   /** What a `LoadingState` says while its content loads. */
   loading: string
+  /**
+   * A value no read gave, as a screen reader hears it where the screen shows "—": a chart's
+   * duration or share (a count says {@link CountMessages.unknown}).
+   */
+  noValue: string
 }
 
 /**
@@ -163,6 +168,34 @@ export interface CountMessages {
   unknown: string
 }
 
+/**
+ * The words of the BPMN diagram (`@miragon/pulse-ui/bpmn`): its zoom bar, its failure, what each
+ * count on an element says and the legend of the counts. A count reaches an entry formatted, and
+ * the entry puts the noun in the number it asks for.
+ */
+export interface BpmnMessages {
+  zoomIn: string
+  zoomOut: string
+  /** The zoom bar's button that fits the whole diagram into the canvas. */
+  fit: string
+  /** What the canvas says when bpmn-js could not draw the XML (its own text under "Details"). */
+  drawFailed: string
+  /** The line under {@link BpmnMessages.drawFailed}: what you can do. */
+  drawFailedHint: string
+  /** An element's running instances, e.g. "Approve: 3 instances running". */
+  countRunning: (params: { element: string; count: string }) => string
+  /** An element's open root incidents, e.g. "Approve: 2 incidents". */
+  countIncidents: (params: { element: string; count: string }) => string
+  /** The incidents in the instances an element called, never part of its incident count. */
+  countIncidentsInCalledInstances: (params: { element: string; count: string }) => string
+  /** The legend's button. */
+  legendLabel: string
+  /** The legend's line of each badge: what it says on an element. */
+  legendRunning: string
+  legendIncidents: string
+  legendIncidentsInCalledInstances: string
+}
+
 /** One locale's complete kit catalog. */
 export interface UiMessages {
   common: CommonMessages
@@ -175,5 +208,65 @@ export interface UiMessages {
   conditionChip: ConditionChipMessages
   stateLabel: StateLabelMessages
   count: CountMessages
-  pills: { live: string }
+  freshness: FreshnessMessages
+  sectionState: SectionStateMessages
+  pageError: PageErrorMessages
+  bpmn: BpmnMessages
+}
+
+/** The words of `FreshnessStamp`: when the numbers of a view or a page were read. */
+export interface FreshnessMessages {
+  /** The stamp in a bar's freshness slot, e.g. "As of 14:32". The time arrives formatted. */
+  asOf: (params: { time: string }) => string
+}
+
+/**
+ * The words `SectionState` adds to a section's failure: that the section still shows its last
+ * good read, and the quiet line of a section whose failure a section before it already says
+ * (`SectionStateGroup`).
+ */
+export interface SectionStateMessages {
+  /** After a failure's hint, where the section keeps the data of its last good read. */
+  kept: string
+  /** A section without data that failed for the reason a section before it says. */
+  sameFailure: string
+  /** The same for a section that keeps the data of its last good read. */
+  sameFailureKept: string
+}
+
+/**
+ * What the page error words name: `connector` is what the page calls its way to Pulse (the name
+ * of the viewer's connector, "Pulse" by default), `place` where the viewer manages it, a phrase
+ * the hint puts after that name as it is ("in claude.ai, in Settings under Connectors"); without
+ * a place the hint leaves it out.
+ */
+export interface PageErrorParams {
+  connector: string
+  place?: string
+}
+
+/**
+ * The page error vocabulary (`describePageError`): per code of `PageErrorCode` what happened and
+ * what you can do, in words that hold for any transport a page reaches Pulse through; the
+ * transport's names and places come in as {@link PageErrorParams}.
+ */
+export interface PageErrorMessages {
+  /** `needs_reauth`: the sign-in of the page's connection ran out. */
+  needsReauth: (params: PageErrorParams) => string
+  needsReauthHint: (params: PageErrorParams) => string
+  /** `not_connected`: the viewer has no connection of that name, or has to pick one. */
+  notConnected: (params: PageErrorParams) => string
+  notConnectedHint: (params: PageErrorParams) => string
+  /** `not_allowed`: the page may not call the tool it needs; no retry changes that. */
+  notAllowed: (params: PageErrorParams) => string
+  notAllowedHint: (params: PageErrorParams) => string
+  /** `approval_required`: the viewer has not approved the page's access yet. */
+  approvalRequired: (params: PageErrorParams) => string
+  approvalRequiredHint: (params: PageErrorParams) => string
+  /** `unavailable`: the connection or the server does not answer. */
+  unavailable: (params: PageErrorParams) => string
+  unavailableHint: (params: PageErrorParams) => string
+  /** `tool_error`: the server answered with an error, the engine's or the tool's own. */
+  toolError: (params: PageErrorParams) => string
+  toolErrorHint: (params: PageErrorParams) => string
 }

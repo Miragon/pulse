@@ -87,6 +87,24 @@ describe("webToolCaller", () => {
     expect(onSignedOut).toHaveBeenCalledOnce()
   })
 
+  it("refuses a call that names another connection, and sends nothing", async () => {
+    const fetch = server(200, { result: { content: [] } })
+    const callTool = webToolCaller(SESSION, { fetch })
+    await expect(
+      callTool("engine_jobs_data", { engine: "prod" }, { connector: "Shop" }),
+    ).rejects.toThrow("The web app calls its own server only, not Shop.")
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("asks as always on a refresh: the API keeps no answers of its own", async () => {
+    const fetch = server(200, { result: { content: [] } })
+    const callTool = webToolCaller(SESSION, { fetch })
+    await callTool("engine_jobs_data", { engine: "prod" })
+    await callTool("engine_jobs_data", { engine: "prod" }, { refresh: true })
+    const [plain, refreshed] = fetch.mock.calls.map(([input, init]) => [input, init])
+    expect(refreshed).toEqual(plain)
+  })
+
   it("names the status where the answer says nothing", async () => {
     const callTool = webToolCaller(SESSION, { fetch: server(502, "<html>") })
     await expect(callTool("engine_jobs_data", {})).rejects.toMatchObject({

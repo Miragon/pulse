@@ -2,6 +2,7 @@ import type { Client } from "@miragon/pulse-c7-client"
 import {
   earliestEngineDate,
   engineLike,
+  isRootIncident,
   latestEngineDate,
   messageSignature,
   toEngineDate,
@@ -18,27 +19,34 @@ import {
   type IncidentLike,
   type ScanCoverage,
 } from "./cluster-scan.js"
+import { bpmnCallActivityIds } from "../lib/bpmn/bpmn-parse.js"
 import {
   elementNameIn,
+  fetchDefinitionXml,
   fetchNamesByDefinition,
   processNameIn,
   resolveDefinitionKeys,
 } from "./definition-info.js"
-import { countOf, DAY_MS, optional, rowsOf } from "./engine-reads.js"
+import { countOf, optional, rowsOf } from "./engine-reads.js"
 import { fetchBusinessKeys, isOnOrAfter } from "./incident-scan.js"
 
 /**
  * `/incident` has no business-key filter: matching instance ids come from
- * `/process-instance?businessKeyLike=`. Only the list narrows; the KPIs keep
- * describing the WHOLE cluster.
+ * `/process-instance?businessKeyLike=`, and the term also finds a row by a part of its instance's
+ * or its incident's id, which the rows show (a called instance has no business key). Only the
+ * list narrows; the KPIs keep describing the WHOLE cluster.
  */
 export type ClusterDetailArgs = ClusterDetailFilters & PagingArgs
 
 /**
+ * A cluster is one cause, so its rows are its root incidents (`isRootIncident`, as the overview
+ * forms its causes): a call activity's copy of a called instance's failure is that failure's.
  * The process keys scope guarded remediation, so they resolve exactly (primary).
  * Once the scan hits {@link CLUSTER_SCAN_LIMIT} (a mass failure, exactly when a
- * cluster gets drilled into) its length is no total: counts come from
- * `/incident/count` without a message filter, else are null.
+ * cluster gets drilled into) its length is no total: counts come from `/incident/count`, which
+ * counts a call activity's copies too, so only without a message filter, where the scan holds no
+ * copy and the cluster's element is no call activity on its newest root incident's diagram (read
+ * through the one XML cache, as its names are; `countableAt`), else they are null.
  */
 export async function buildClusterDetailData(
   client: Client,
@@ -69,14 +77,13 @@ export async function buildClusterDetailData(
   ])
 
   const coverage = scanCoverage(incidentsRaw)
+  const roots = incidentsRaw.filter(isRootIncident)
   const matching =
     args.messageSignature === undefined
-      ? incidentsRaw
-      : incidentsRaw.filter(
-          (i) => messageSignature(i.incidentMessage ?? null) === args.messageSignature,
-        )
+      ? roots
+      : roots.filter((i) => messageSignature(i.incidentMessage ?? null) === args.messageSignature)
 
-  const listed = filterToSearchHits(matching, searchHitsRaw)
+  const listed = filterToSearch(matching, args.businessKeyLike, searchHitsRaw)
 
   const nowMs = Date.now()
 
@@ -88,7 +95,15 @@ export async function buildClusterDetailData(
   const page = listed.slice(first, first + pageSize)
 
   const [counts, businessKeyById, keyOf, names] = await Promise.all([
-    clusterCounts(client, args, { coverage, matching, nowMs }),
+    clusterCounts(client, args, {
+      coverage,
+      matching,
+      nowMs,
+      countable: () =>
+        roots.length === incidentsRaw.length
+          ? countableAt(client, matching[0]?.processDefinitionId, args.activityId)
+          : Promise.resolve(false),
+    }),
     // Enrichment: a failed lookup names the rows by their short ids.
     optional(
       fetchBusinessKeys(
@@ -140,14 +155,53 @@ export async function buildClusterDetailData(
   }
 }
 
-/** Search narrows the LIST (and its total), never the cluster KPIs. */
-function filterToSearchHits(
+/**
+ * Search narrows the LIST (and its total), never the cluster KPIs: a row whose instance's business
+ * key the engine matched, or whose instance or incident id holds the term (`%` a wildcard).
+ */
+function filterToSearch(
   matching: IncidentLike[],
+  term: string | undefined,
   searchHits: Array<{ id?: string | null }> | null,
 ): IncidentLike[] {
-  if (searchHits === null) return matching
+  if (searchHits === null || !term) return matching
   const hitIds = new Set(searchHits.map((i) => i.id).filter((id): id is string => !!id))
-  return matching.filter((i) => i.processInstanceId && hitIds.has(i.processInstanceId))
+  const inId = idMatcher(term)
+  return matching.filter(
+    (i) =>
+      (!!i.processInstanceId && (hitIds.has(i.processInstanceId) || inId(i.processInstanceId))) ||
+      (!!i.id && inId(i.id)),
+  )
+}
+
+/**
+ * The term as the business key's LIKE reads it (`engineLike`: a substring unless it holds a `%`,
+ * each `%` any run of characters), case ignored, over an id. Read in one pass over the id, never as
+ * a pattern that backtracks: the term is the viewer's, and a run of `%` before a letter no id holds
+ * would cost a backtracking pattern minutes per id on the server's one event loop. A run of `%` is
+ * one; the parts between them are found in order, the first at the id's start, the last at its end.
+ * A term of `%` alone finds nothing by its id.
+ */
+function idMatcher(term: string): (id: string) => boolean {
+  const like = engineLike(term.trim().toLowerCase())
+  const parts = like?.replace(/%+/g, "%").split("%") ?? []
+  if (parts.every((part) => part === "")) return () => false
+  return (id) => matchesLikeParts(id.toLowerCase(), parts)
+}
+
+/** Whether `id` is `parts` joined by runs of any characters (`engineLike` keeps a `%`, so 2 or more). */
+function matchesLikeParts(id: string, parts: readonly string[]): boolean {
+  const first = parts[0] ?? ""
+  const last = parts[parts.length - 1] ?? ""
+  const end = id.length - last.length
+  if (end < first.length || !id.startsWith(first) || !id.endsWith(last)) return false
+  let at = first.length
+  for (const part of parts.slice(1, -1)) {
+    const found = id.indexOf(part, at)
+    if (found < 0 || found + part.length > end) return false
+    at = found + part.length
+  }
+  return true
 }
 
 function aggregateClusterKpis(
@@ -165,10 +219,22 @@ function aggregateClusterKpis(
   return { timestamps: matching.map((inc) => inc.incidentTimestamp), defCounts }
 }
 
-type ClusterWindowCounts = Pick<
-  ClusterDetailData,
-  "incidentCount" | "lastHourCount" | "last24hCount"
->
+type ClusterWindowCounts = Pick<ClusterDetailData, "incidentCount" | "lastHourCount">
+
+/**
+ * Whether `/incident/count` can count the cluster at `activityId`: it counts every incident there,
+ * a call activity's copies of its called instances' incidents too, so only where the element is no
+ * call activity on the diagram of `definitionId` (the cluster's newest root incident's version);
+ * an unread diagram cannot tell, so it cannot either.
+ */
+async function countableAt(
+  client: Client,
+  definitionId: string | null | undefined,
+  activityId: string,
+): Promise<boolean> {
+  const xml = definitionId ? await optional(fetchDefinitionXml(client, definitionId)) : null
+  return xml !== null && !bpmnCallActivityIds(xml).includes(activityId)
+}
 
 /**
  * From the scan where it can vouch (whole cluster, or reaches past the window),
@@ -178,11 +244,18 @@ type ClusterWindowCounts = Pick<
 function clusterCounts(
   client: Client,
   args: ClusterDetailArgs,
-  scan: { coverage: ScanCoverage; matching: IncidentLike[]; nowMs: number },
+  scan: {
+    coverage: ScanCoverage
+    matching: IncidentLike[]
+    nowMs: number
+    /** Whether `/incident/count` holds no copy of the cluster's (`countableAt`), asked once. */
+    countable: () => Promise<boolean>
+  },
 ): Promise<ClusterWindowCounts> {
   const { coverage, matching, nowMs } = scan
-  const exact = (sinceMs?: number) =>
-    args.messageSignature === undefined
+  let countable: Promise<boolean> | undefined
+  const exact = async (sinceMs?: number) =>
+    args.messageSignature === undefined && (await (countable ??= scan.countable()))
       ? getIncidentsCount({
           client,
           query: {
@@ -192,7 +265,7 @@ function clusterCounts(
               sinceMs === undefined ? undefined : toEngineDate(new Date(sinceMs)),
           },
         }).then(countOf)
-      : Promise.resolve(null)
+      : null
   const since = (sinceMs: number) =>
     coverage.covers(sinceMs)
       ? Promise.resolve(matching.filter((i) => isOnOrAfter(i.incidentTimestamp, sinceMs)).length)
@@ -200,10 +273,5 @@ function clusterCounts(
   return Promise.all([
     coverage.complete ? Promise.resolve(matching.length) : exact(),
     since(nowMs - HOUR_MS),
-    since(nowMs - DAY_MS),
-  ]).then(([incidentCount, lastHourCount, last24hCount]) => ({
-    incidentCount,
-    lastHourCount,
-    last24hCount,
-  }))
+  ]).then(([incidentCount, lastHourCount]) => ({ incidentCount, lastHourCount }))
 }

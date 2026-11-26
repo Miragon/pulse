@@ -8,9 +8,12 @@ import {
   type FakeRoutes,
   type RecordedRequest,
 } from "../tools/test-support/fake-engine.js"
+import { buildClusterDetailData } from "./cluster-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
 
-// #335 N61: a burst on one process must not push another off the overview.
+// #335 N61: a burst on one process must not push another off the overview. Its counts are open
+// root incidents (owner decision D2, amended on 2026-11-19): the statistics with
+// `rootIncidents=true`, a call activity's copy of a called instance's incident never a row.
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -37,12 +40,9 @@ const stats = (key: string, version: number, instances: number, incidentCount: n
   definition: { id: `${key}:${version}:d`, key, name: key.toUpperCase(), version },
 })
 
-function routes(scan: unknown[], counts: { total: number; last24h: number }): FakeRoutes {
+function routes(scan: unknown[]): FakeRoutes {
   return {
     "GET /incident": { body: scan },
-    "GET /incident/count": (r: RecordedRequest) => ({
-      body: { count: r.query.incidentTimestampAfter ? counts.last24h : counts.total },
-    }),
     "GET /process-definition/statistics": {
       body: [
         stats("burst", 1, 10, 100),
@@ -75,12 +75,11 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
     const scan = Array.from({ length: 200 }, (_, n) =>
       row(n, "burst", n % 4 ? "charge" : "ship", n * 1000),
     )
-    const { data, requests } = await build(routes(scan, { total: 257, last24h: 251 }))
+    const { data, requests } = await build(routes(scan))
 
     expect(data).toMatchObject({
       totalCount: 257,
       processCount: 2,
-      last24hCount: 251,
       // Neither card's breakdown is complete: unknown, not a sum of scans.
       affectedActivityCount: null,
       latestIncident: scan[0].incidentTimestamp,
@@ -94,8 +93,6 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
       incidentCount: 250,
       scannedIncidentCount: 200,
       affectedActivityCount: null,
-      // The scan does not reach back 24h: the burst alone is newer.
-      last24hCount: null,
     })
     expect(
       burst.activities.map((a) => [a.activityId, a.scannedIncidentCount, a.firstSeen]),
@@ -114,34 +111,33 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
     const scanQuery = requests.find((r) => r.path === "/incident")?.query
     expect(scanQuery).toEqual({ maxResults: "200", sortBy: "incidentTimestamp", sortOrder: "desc" })
     expect(requests.find((r) => r.path === "/process-definition/statistics")?.query).toEqual({
-      incidents: "true",
+      rootIncidents: "true",
     })
+    // The total is the cards' sum: no /count, which counts a call activity's copies too.
+    expect(requests.some((r) => r.path === "/incident/count")).toBe(false)
   })
 
-  it("reports exact breakdowns, 24h counts and first-seen when the scan is complete", async () => {
+  it("reports exact breakdowns and first-seen when the scan is complete", async () => {
     const scan = [
       row(0, "burst", "charge", HOUR),
       row(1, "burst", "charge", 30 * HOUR),
       row(2, "quiet", "ship", 2 * HOUR),
     ]
     const { data } = await build({
-      ...routes(scan, { total: 3, last24h: 2 }),
+      ...routes(scan),
       "GET /process-definition/statistics": {
         body: [stats("burst", 1, 4, 2), stats("quiet", 1, 1, 1)],
       },
     })
 
     expect(data.affectedActivityCount).toBe(2)
-    expect(
-      data.processes.map((p) => [p.processDefinitionKey, p.last24hCount, p.affectedActivityCount]),
-    ).toEqual([
-      ["burst", 1, 1],
-      ["quiet", 1, 1],
+    expect(data.processes.map((p) => [p.processDefinitionKey, p.affectedActivityCount])).toEqual([
+      ["burst", 1],
+      ["quiet", 1],
     ])
     expect(data.processes[0].activities[0]).toMatchObject({
       activityId: "charge",
       scannedIncidentCount: 2,
-      last24hCount: 1,
       firstSeen: scan[1].incidentTimestamp,
       latestIncident: scan[0].incidentTimestamp,
     })
@@ -157,7 +153,7 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
       processDefinitionId: uuid,
     }))
     const { data } = await build({
-      ...routes(scan, { total: 3, last24h: 3 }),
+      ...routes(scan),
       "GET /process-definition/statistics": {
         body: [
           {
@@ -178,7 +174,6 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
       incidentCount: 3,
       scannedIncidentCount: 3,
       affectedActivityCount: 2,
-      last24hCount: 3,
       latestIncident: scan[0].incidentTimestamp,
     })
     expect(data.affectedActivityCount).toBe(2)
@@ -188,7 +183,7 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
     // The statistics list a version the scan rows cannot be joined to: the
     // card keeps its exact count, its scan facts are unknown, not zeros.
     const { data } = await build({
-      ...routes([], { total: 0, last24h: 0 }),
+      ...routes([]),
       "GET /process-definition/statistics": { body: [stats("late", 1, 2, 4)] },
     })
 
@@ -197,19 +192,32 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
       incidentCount: 4,
       scannedIncidentCount: 0,
       affectedActivityCount: null,
-      last24hCount: null,
     })
   })
 
   it("fails on a scope key no version is deployed for, never '0 open incidents'", async () => {
-    await expect(
-      build(routes([], { total: 0, last24h: 0 }), { processDefinitionKey: "invoce" }),
-    ).rejects.toThrow('No process definition with key "invoce" is deployed on this engine.')
+    await expect(build(routes([]), { processDefinitionKey: "invoce" })).rejects.toThrow(
+      'No process definition with key "invoce" is deployed on this engine.',
+    )
   })
 
   it("narrows every read to the requested key and incident type", async () => {
     const { data, requests } = await build(
-      routes([row(0, "quiet", "ship", HOUR)], { total: 7, last24h: 1 }),
+      {
+        ...routes([row(0, "quiet", "ship", HOUR)]),
+        "GET /process-definition/statistics": {
+          body: [
+            {
+              ...stats("quiet", 1, 5, 7),
+              incidents: [
+                { incidentType: "failedJob", incidentCount: 7 },
+                { incidentType: "custom", incidentCount: 2 },
+              ],
+            },
+            stats("burst", 1, 10, 100),
+          ],
+        },
+      },
       {
         processDefinitionKey: "quiet",
         incidentType: "failedJob",
@@ -217,17 +225,16 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
     )
 
     expect(data.processes.map((p) => p.processDefinitionKey)).toEqual(["quiet"])
+    // The requested type alone: the engine counts root incidents per type, the view picks one.
+    expect(data.totalCount).toBe(7)
+    expect(data.processes[0]?.incidentCount).toBe(7)
     // Echoed: a hand-off states this scope, since a filtered total is not the engine's.
     expect(data.filters).toEqual({ processDefinitionKey: "quiet", incidentType: "failedJob" })
     const filter = { processDefinitionKeyIn: "quiet", incidentType: "failedJob" }
-    expect(requests.filter((r) => r.path === "/incident/count").map((r) => r.query)).toEqual([
-      filter,
-      { ...filter, incidentTimestampAfter: expect.any(String) as string },
-    ])
     expect(requests.find((r) => r.path === "/incident")?.query).toMatchObject(filter)
-    // The statistics count the requested type only (the engine takes one or the other).
+    // `rootIncidents=true` takes no type of its own (nor `incidentsForType` beside it).
     expect(requests.find((r) => r.path === "/process-definition/statistics")?.query).toEqual({
-      incidentsForType: "failedJob",
+      rootIncidents: "true",
     })
   })
 })
@@ -236,7 +243,7 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
 describe("buildIncidentsDashboardData: names", () => {
   it("names a card's unnamed process by its Modeler pool, reading only that diagram", async () => {
     const pooled = `<definitions><collaboration id="C"><participant id="Pool" name="Miravelo - Bike Leasing" processRef="quiet"/></collaboration><process id="quiet"/></definitions>`
-    const base = routes([], { total: 257, last24h: 0 })
+    const base = routes([])
     const { data, requests } = await build({
       ...base,
       "GET /process-definition/statistics": {
@@ -254,6 +261,169 @@ describe("buildIncidentsDashboardData: names", () => {
     ])
     expect(requests.filter((r) => r.path.endsWith("/xml")).map((r) => r.path)).toEqual([
       "/process-definition/quiet:1:d/xml",
+    ])
+  })
+})
+
+// N3 step 1, X9: an activity's row is named by its diagram and opens its failure cluster, so it
+// carries the cluster's scope (the activity and the incident type); its failure is in words, never
+// the activity's id again. A call activity's copies of its called instances' incidents are no row:
+// their root incidents are the called process's.
+describe("buildIncidentsDashboardData: an activity's row", () => {
+  const XML = `<definitions><process id="burst"><serviceTask id="charge" name="Charge card"/><callActivity id="billing" name="Run billing"/></process></definitions>`
+
+  const scan = () => {
+    const charge = row(1, "burst", "charge", HOUR)
+    const custom = { ...row(2, "burst", "charge", 2 * HOUR), incidentType: "custom" }
+    const root = { ...row(3, "billing", "debit", 3 * HOUR), incidentMessage: "Debit refused" }
+    // The call activity's incident, copied from the root in the called instance.
+    const copy = {
+      ...row(4, "burst", "billing", 3 * HOUR),
+      incidentMessage: null,
+      rootCauseIncidentId: root.id,
+    }
+    // A copy whose root lies beyond the scan.
+    const orphan = {
+      ...row(5, "burst", "lost", 4 * HOUR),
+      incidentMessage: null,
+      rootCauseIncidentId: "elsewhere",
+    }
+    return [charge, custom, root, copy, orphan]
+  }
+
+  async function dashboard() {
+    const { data, requests } = await build({
+      "GET /incident": { body: scan() },
+      // The root incidents: burst's two at charge, billing's one; never the copies.
+      "GET /process-definition/statistics": {
+        body: [stats("burst", 1, 10, 2), stats("billing", 1, 3, 1)],
+      },
+      "GET /process-definition/burst:1:d/xml": { body: { bpmn20Xml: XML } },
+    })
+    const burst = data.processes.find((p) => p.processDefinitionKey === "burst")!
+    return { data, burst, requests }
+  }
+
+  it("is one per activity and incident type of its root incidents, the scope of the cluster it opens", async () => {
+    const { burst } = await dashboard()
+    expect(burst.activities.map((a) => [a.activityId, a.incidentType])).toEqual([
+      ["charge", "failedJob"],
+      ["charge", "custom"],
+    ])
+    // Activities, not their types: charge failing two ways is one; the copies are none.
+    expect(burst.affectedActivityCount).toBe(1)
+  })
+
+  it("leaves a call activity's copies to the called process, whose card holds their root", async () => {
+    const { data } = await dashboard()
+    expect(data.totalCount).toBe(3)
+    expect(
+      data.processes.map((p) => [
+        p.processDefinitionKey,
+        p.incidentCount,
+        p.activities.map((a) => [a.activityId, a.scannedIncidentCount]),
+      ]),
+    ).toEqual([
+      [
+        "burst",
+        2,
+        [
+          ["charge", 1],
+          ["charge", 1],
+        ],
+      ],
+      ["billing", 1, [["debit", 1]]],
+    ])
+  })
+
+  it("is named in the diagram of its newest incident's version, else null (its id shows)", async () => {
+    const { burst, requests } = await dashboard()
+    expect(burst.activities.map((a) => a.activityName)).toEqual(["Charge card", "Charge card"])
+    // One diagram per version read, each once.
+    const diagrams = requests.filter((r) => r.path.endsWith("/xml")).map((r) => r.path)
+    expect(diagrams.sort()).toEqual([
+      "/process-definition/billing:1:d/xml",
+      "/process-definition/burst:1:d/xml",
+    ])
+  })
+
+  it("says its failure in the engine's words", async () => {
+    const { data, burst } = await dashboard()
+    expect(burst.activities.map((a) => a.representativeMessage)).toEqual([
+      "charge failed",
+      "charge failed",
+    ])
+    expect(data.processes[1]?.activities[0]?.representativeMessage).toBe("Debit refused")
+  })
+})
+
+// A copy of a called instance's failure is that failure, and a cluster is one cause, its root
+// incidents alone: a caller whose call activity holds only copies has no card, and the called
+// process's row opens the cluster that lists every root incident it counts.
+describe("buildIncidentsDashboardData: a call chain counts its root incidents once", () => {
+  const BLACKLIST = "Blacklist provider unreachable"
+  const root = (n: number) => ({
+    ...row(n, "check", "CheckBlacklist", HOUR + n),
+    incidentMessage: BLACKLIST,
+    rootCauseIncidentId: `check-${n}`,
+  })
+  // Each root's copy at the caller's call activity, newer than the root by nothing.
+  const copy = (n: number) => ({
+    ...row(n, "leasing", "AssessCredit", HOUR + n),
+    incidentMessage: null,
+    rootCauseIncidentId: `check-${n}`,
+  })
+  const INCIDENTS = [copy(0), root(0), copy(1), root(1), copy(2), root(2)]
+
+  /** The engine filters `/incident` and its count by the activity and the type, as a cluster reads. */
+  function world(): FakeRoutes {
+    const matching = (r: RecordedRequest) =>
+      INCIDENTS.filter(
+        (i) =>
+          (!r.query.activityId || i.activityId === r.query.activityId) &&
+          (!r.query.incidentType || i.incidentType === r.query.incidentType),
+      )
+    return {
+      "GET /incident": (r: RecordedRequest) => ({ body: matching(r) }),
+      "GET /incident/count": (r: RecordedRequest) => ({ body: { count: matching(r).length } }),
+      // `rootIncidents=true`: the called process's three; `incidents=true` would count the copies
+      // at leasing too.
+      "GET /process-definition/statistics": (r: RecordedRequest) => ({
+        body: [
+          stats("leasing", 1, 5, r.query.rootIncidents === "true" ? 0 : 3),
+          stats("check", 1, 3, 3),
+        ],
+      }),
+    }
+  }
+
+  it("names the called process's root incidents once, whose cluster lists each", async () => {
+    const engine = await startFakeEngine(world(), { body: [] })
+    engines.push(engine)
+    const client = clientFor(engine)
+    const data = await buildIncidentsDashboardData(client, {
+      baseUrl: engine.baseUrl,
+      provider: cibsevenProvider,
+    })
+
+    // Three open incidents, not six; the caller, whose call activity holds the copies, no card.
+    expect(data.totalCount).toBe(3)
+    expect(data.processes.map((p) => p.processDefinitionKey)).toEqual(["check"])
+    const [row] = data.processes[0]?.activities ?? []
+    expect(row).toMatchObject({
+      activityId: "CheckBlacklist",
+      representativeMessage: BLACKLIST,
+      scannedIncidentCount: 3,
+    })
+    const cause = await buildClusterDetailData(client, "fake", {
+      activityId: row.activityId,
+      incidentType: row.incidentType,
+    })
+    expect(cause.incidentCount).toBe(3)
+    expect(cause.incidents.map((i) => i.incidentId).sort()).toEqual([
+      "check-0",
+      "check-1",
+      "check-2",
     ])
   })
 })

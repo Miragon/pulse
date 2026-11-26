@@ -26,6 +26,7 @@
  * see golden.ts).
  */
 export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
+  "engine_activity_counts",
   "engine_activity_incidents_data",
   "engine_activity_statistics_data",
   "engine_board_data",
@@ -35,10 +36,12 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "engine_health_data",
   "engine_status",
   "engine_format_incident_issue",
+  "engine_get_board",
   "engine_get_deployment",
   "engine_get_job_stacktrace",
   "engine_get_process_definition_xml",
   "engine_get_process_instance_variables",
+  "engine_get_screen",
   "engine_get_task",
   "engine_get_task_form",
   "engine_get_task_variables",
@@ -60,11 +63,20 @@ export const EXPECTED_TOOLS_READ_ONLY: readonly string[] = [
   "engine_open_cockpit",
   "engine_process_incidents_data",
   "engine_process_instances_data",
+  "engine_process_stats",
   "engine_query_historic_activity_instances",
   "engine_query_historic_incidents",
   "engine_query_historic_process_instances",
   "engine_query_historic_task_instances",
   "engine_query_historic_variable_instances",
+  "engine_screen_find_data",
+  "engine_screen_incident_text_data",
+  "engine_screen_instance_data",
+  "engine_screen_instances_data",
+  "engine_screen_process_data",
+  "engine_screen_processes_data",
+  "engine_screen_variable_names_data",
+  "engine_screen_verdict_data",
   "engine_widget_actions_data",
 ]
 
@@ -112,11 +124,23 @@ export const EXPECTED_TOOLS_ADMIN: readonly string[] = [
 /**
  * A server of Camunda 8 engines alone, in every toolset: the boot registers only what serves a
  * configured engine's dialect (each tool's, feed's and route's mark), so the engine list, the
- * cockpit (its board and landing) and the board and XML feeds; no write, since none serves Camunda 8.
+ * cockpit (its board and landing), the board and XML feeds, the web app's screen feeds (an
+ * engine's processes, a process in one version, its instance list and its variable names, an
+ * instance, an incident's text) and the screens and boards as JSON for the model (#666); no
+ * write, since none serves Camunda 8.
  */
 export const EXPECTED_TOOLS_CAMUNDA_8: readonly string[] = [
   "engine_board_data",
   "engine_bpmn_xml_data",
+  "engine_get_board",
+  "engine_get_screen",
   "engine_list_engines",
   "engine_open_cockpit",
+  "engine_screen_find_data",
+  "engine_screen_incident_text_data",
+  "engine_screen_instance_data",
+  "engine_screen_instances_data",
+  "engine_screen_process_data",
+  "engine_screen_processes_data",
+  "engine_screen_variable_names_data",
 ]

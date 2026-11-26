@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-c7-core",
-  "version": "0.28.0",
+  "version": "0.34.0",
   "description": "The core of the Camunda 7 REST dialect family (Operaton, CIB seven, Camunda 7), its workflow domain: the engine port, instance selection, the inspect view, the status triage, the root cause of an incident and the plans of retry and advance, the pure engine REST rules (dates, filters, sorting, variable writes, incident recovery), the route of each REST operation (method, path, effect), generated from one spec, and, under ./runtime, every read of the engine contract over the port, C7Runtime (the engine, its processes, the counts on a diagram, the processes a version calls, its instances, a version's variable names, an instance's detail, the open incidents and an incident's details, a bulk operation and its failures, a migration's plan and its check), the reads a surface's commands check before a write (an instance's activity tree, the history's instances, a batch) and the checked views of an engine answer and the one engine id rule. Its one runtime dependency is @miragon/pulse-engine-core, whose root-cause rule it applies and whose ProcessRuntime reads ./runtime answers.",
   "license": "MIT",
   "keywords": [
@@ -71,7 +71,7 @@
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "22.20.5",
-    "fast-check": "4.10.2",
+    "fast-check": "4.10.3",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vitest": "5.1.1"

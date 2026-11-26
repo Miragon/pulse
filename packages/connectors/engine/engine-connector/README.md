@@ -61,6 +61,32 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   by the format's builder in the app-only `engine_board_data` (a failure in its place, never 0, kept
   30 s per caller) and its tiles drawn by
   [`@miragon/pulse-blocks`](https://www.npmjs.com/package/@miragon/pulse-blocks), as in the editors.
+- **The web app's screens.** App-only screen feeds read the engine contract in every dialect and
+  build a screen of [`@miragon/pulse-screens`](https://www.npmjs.com/package/@miragon/pulse-screens)
+  in its JSON form, the numbers the editors show: `engine_screen_processes_data` an engine's
+  processes with their latest version, running instances and instances with incident, beside the
+  engine's own web app; `engine_screen_process_data` a process in one version (its number, else
+  the latest) with every version's counts, the counts on its diagram (root incidents, incidents in
+  called instances apart, running), its call targets and the notice that older versions still run,
+  beside the version in the engine's web app (a process without a version refused as
+  `UNKNOWN_PROCESS`); `engine_screen_instances_data` a page of 50 of the version's instances by
+  scope, element, exact business key and variable conditions, its cursor and on the first page the
+  counts of its scopes (a condition the engine refuses refused as `REFUSED_CONDITION`);
+  `engine_screen_variable_names_data` the names of the version's variables and the kinds of
+  condition the engine refuses; the reads that load the engine's database (element statistics,
+  the search, history counts, variable names) kept 30 s per caller and arguments;
+  `engine_screen_instance_data` an instance, running or ended, with its root
+  incidents and those of the instances it called, its waits, path, variables and markers, beside
+  it the instance in the engine's web app and on Camunda 7 each incident's cause (an instance the
+  engine does not know refused as `UNKNOWN_INSTANCE`); `engine_screen_incident_text_data` a root
+  incident's stack trace or error message with the line its root cause stands on, cut at 64 KiB;
+  `engine_screen_find_data` what the search across engines finds on one engine: the instance with
+  the text as its id and up to 20 with it as their exact business key, running and ended, and where
+  the engine's history misses running instances (on the floor of 30 s per caller and text). Beside
+  them, of Camunda 7 alone, `engine_screen_verdict_data` an engine's live verdict, c7-core's over its
+  open root incidents by the `ENGINE_HEALTH_*` thresholds, its root incidents from the engine
+  screen's own read and its incident scan on a floor of 30 s per caller. No view of the cockpit
+  reads them; the server's web app renders them.
 - **Engines as profiles.** `ENGINES_FILE` or `ENGINES_JSON` hold a profile file of
   `@miragon/pulse-profile`, the format of the CLI and Pulse for VS Code; without one,
   `ENGINE_BASE_URL` and its siblings yield the profile of a single engine. A profile's name is the

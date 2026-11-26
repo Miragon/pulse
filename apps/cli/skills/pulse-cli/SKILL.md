@@ -1,6 +1,6 @@
 ---
 name: pulse-cli
-description: Inspect and operate Camunda 7, Operaton and CIB seven process engines through their REST API with the Pulse CLI (deployments, process instances, user tasks, external tasks, incidents, jobs, history, variables, decisions), and drive process instances with its workflow commands (inspect, wait, advance, retry, deploy, status). Use it whenever a task needs to read or change the state of such an engine.
+description: Inspect and operate Camunda 7, Operaton and CIB seven process engines through their REST API with the Pulse CLI (deployments, process instances, user tasks, external tasks, incidents, jobs, history, variables, decisions), and drive process instances with its workflow commands (inspect, wait, advance, retry, deploy, status, plan-migration). Use it whenever a task needs to read or change the state of such an engine.
 ---
 
 # Pulse CLI: the Camunda 7 REST API from the command line
@@ -84,6 +84,8 @@ id, `--business-key` or `--process-definition-key <key> --latest`; `next` lists 
 - `pulse retry`: sets the retries behind open incidents; `--now` executes the jobs.
 - `pulse deploy`: deploys changed files and directories, reports the versions in effect.
 - `pulse status`: grouped incidents with root cause, overdue jobs, external task workers.
+- `pulse plan-migration`: writes a migration plan between two versions as a file; Pulse for
+  VS Code edits it in diagrams.
 
 ```sh
 pulse deploy bpmn --start --business-key B-1 --var amount=250
@@ -159,7 +161,7 @@ read `engineMessage` and fix the cause instead of retrying. On exit 4: `pulse gu
 
 `pulse guide <topic>` prints the details of a topic; `pulse guide --list` lists the topics:
 
-- `workflow`: Workflow commands in detail: selection, inspect, wait, advance, retry, deploy, status
+- `workflow`: Selection, inspect, wait, advance, retry, deploy, status and plan-migration in detail
 - `input`: Arguments, flags, booleans, arrays, dates, variables, request bodies, files, paging
 - `output`: JSON and tables, --fields, XML, text and binary responses, --out-file, previews
 - `config`: Profiles, config and project files, environment variables, engines, headers, timeouts

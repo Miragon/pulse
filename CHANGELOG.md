@@ -1,5 +1,183 @@
 # Changelog
 
+## [0.34.0](https://github.com/Miragon/pulse/compare/v0.33.0...v0.34.0) (2026-11-26)
+
+
+### Features
+
+* **widget-shell,templates:** a Claude artifact entry and page reads in widget-shell, and a thinner artifact template held to the server ([#678](https://github.com/Miragon/pulse/issues/678)) ([429a494](https://github.com/Miragon/pulse/commit/429a4942d32b7753779eaf47e8cd43580580de5d))
+
+## [0.33.0](https://github.com/Miragon/pulse/compare/v0.32.0...v0.33.0) (2026-11-26)
+
+
+### Features
+
+* **vscode:** a Claude Code plugin that writes board files, and the repo skills go ([#648](https://github.com/Miragon/pulse/issues/648)) ([c3ea54b](https://github.com/Miragon/pulse/commit/c3ea54b7f0ff4f6fd8fe44a49aef55c3db30e586))
+* **widget-shell:** ADFS's audience of a Web API whose identifier is no URL ([#679](https://github.com/Miragon/pulse/issues/679)) ([75b4b99](https://github.com/Miragon/pulse/commit/75b4b99e6a1d0b5cb151572f0f079c0f56d696a6))
+
+
+### Bug Fixes
+
+* **c7-core:** incidents raised at one instant page without gaps or repeats ([#680](https://github.com/Miragon/pulse/issues/680)) ([af84fb1](https://github.com/Miragon/pulse/commit/af84fb1737d18c0ed162fcdce6c27cd755fd1fdc))
+* **templates:** the artifact template's tests follow CONNECTOR_NAME, and pnpm shot takes an installed Chrome ([#676](https://github.com/Miragon/pulse/issues/676)) ([d2f3e11](https://github.com/Miragon/pulse/commit/d2f3e1148a2148cb87e49d0c97f691f5b2d37ccd))
+
+## [0.32.0](https://github.com/Miragon/pulse/compare/v0.31.0...v0.32.0) (2026-11-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **ui,engine,templates:** @miragon/pulse-widget-shell/widgets no longer exports FreshnessStamp; import it from @miragon/pulse-ui. The kit's UiMessages catalog has three more sections (freshness, sectionState, pageError), so a complete catalog built by hand adds them.
+
+### Features
+
+* **cli,vscode:** migration plans written with pulse plan-migration and previewed in Pulse for VS Code ([#656](https://github.com/Miragon/pulse/issues/656)) ([ec7c7df](https://github.com/Miragon/pulse/commit/ec7c7dfd344b195fb4d7850463f2d236eb05d623))
+* **runtime-view,vscode:** migration plans edited in diagrams, mapped by drag and drop as in the Camunda 7 Cockpit ([#659](https://github.com/Miragon/pulse/issues/659)) ([be68b69](https://github.com/Miragon/pulse/commit/be68b6935359d430475f40844f1c557e04d77fb2))
+* **ui,engine,templates:** Claude artifacts on Pulse, a live process dashboard in minutes with three calls a load ([#674](https://github.com/Miragon/pulse/issues/674)) ([447e1dc](https://github.com/Miragon/pulse/commit/447e1dcef92a7ccfe6268bae6f11a4066aa769e0))
+
+## [0.31.0](https://github.com/Miragon/pulse/compare/v0.30.0...v0.31.0) (2026-11-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **web:** `DefinitionSummary` and `VersionSummary` of @miragon/pulse-engine-core require `incidents`, the open root incidents of a process over every version and of a version (with `incidentsAtLeast: true` where the engine stopped counting), held by two new read laws: an implementation of `ProcessRuntime` outside this repository answers them. `ProcessRowData` of @miragon/pulse-screens, and so `EngineScreenData`, requires `incidents` (with `incidentsAtLeast` where the engine stopped counting): a producer of the engine screen's JSON form outside this repository writes it, and `ProcessTable` of @miragon/pulse-blocks reads it; the `/testing` entry's `ScreenFigures.engine` rows end with the incidents and whether they are a lower bound, six figures where they held four. c7-core's definition statistics read asks `rootIncidents=true`, and c8-core's definitions and versions search a cluster's incidents, so recorded answers of the old requests no longer serve them.
+* **cockpit:** the MCP server's cockpit, in the chat and in the operations views the web app embeds, counts open root incidents: a copy Camunda 7 holds at a call activity of a called instance's incident counts in the called process, never at the caller, and is no row of a process, an activity or a cause (an activity's incident page, `engine_activity_incidents_data`, lists and counts its root incidents alone, and an unknown key fails as not found); the process flow's "Running" counts a token held by a root incident as that incident and shows the incidents in called instances apart. "New in 24h" is gone from the health route, its top failures, the process route, the incidents route (its scope) and the cluster detail, with `last24hCount` and `last24hIncidents` from the feeds' payloads; the cockpit's facts name root incidents (`openRootIncidents`, `rootIncidentCount`, `rootIncidentsLastHour`). The verdict still judges every open incident.
+
+### Features
+
+* **cockpit:** the chat and the operations views count root incidents, and the element statistics read only call activities ([#644](https://github.com/Miragon/pulse/issues/644)) ([72ee099](https://github.com/Miragon/pulse/commit/72ee0991b7109b5ddb60f21cbc624f629d1b5eff))
+* **web:** the screens serve Camunda 8 engines, and an instance search across engines ([#645](https://github.com/Miragon/pulse/issues/645)) ([547b149](https://github.com/Miragon/pulse/commit/547b149a86227c8d663c90c5bc3f61b740d570dd))
+* **web:** the start page across all engines, the open root incidents in the engine contract, and a verdict that counts them ([#647](https://github.com/Miragon/pulse/issues/647)) ([5cd2f41](https://github.com/Miragon/pulse/commit/5cd2f413a9032cce441472e4d5196aaf2a0bfb91))
+
+## [0.30.0](https://github.com/Miragon/pulse/compare/v0.29.0...v0.30.0) (2026-11-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cockpit:** pulse-ui's GroupCard takes the group's name as a required `title`, and `summary` is an optional function `(toggle) => ReactNode` that places the toggle among the bar's other controls instead of a ReactNode; the summary has no role="button" or tab stop any more, the toggle is a button with aria-expanded (data-slot="group-card-toggle"). SectionHeading's `as` is required (`SectionHeadingLevel | "span"`). LogText's `kind` ("message" | "code") is required. LivePill and LivePillProps are removed, and with them UiMessages' `pills`, which a UiMessagesOverride can no longer set. NavigationFocus drops its `label` prop and its role="status" region and focuses the new view's h1 instead. widget-shell's BpmnCanvas interface requires `scroll({ dx, dy })`, so an object typed as one (a test's fake canvas) has to implement it. formatClock and formatTime write a 12-hour clock without a leading zero ("4:41 PM", was "04:41 PM").
+
+### Features
+
+* **cockpit:** apply the UI and UX review to the cockpit and its kit ([#635](https://github.com/Miragon/pulse/issues/635)) ([fe21bab](https://github.com/Miragon/pulse/commit/fe21babd55e38e8c83f5838126adc398d918439d))
+* **web:** own router and canonical addresses ([#638](https://github.com/Miragon/pulse/issues/638)) ([a5e89d5](https://github.com/Miragon/pulse/commit/a5e89d5685985c7958673573470a844353aaacab))
+* **web:** the engine screen over shared blocks, and history level NONE pinned ([#641](https://github.com/Miragon/pulse/issues/641)) ([c6ffbd1](https://github.com/Miragon/pulse/commit/c6ffbd1a1e1c953bd871d7a4fea7d9183f7ab115))
+* **web:** the frame, the themed BPMN canvas and @miragon/pulse-screens ([#640](https://github.com/Miragon/pulse/issues/640)) ([75f4c8a](https://github.com/Miragon/pulse/commit/75f4c8a3572e650ac949cb12e646132b4e67e868))
+* **web:** the instance screen over shared blocks, and no instance count below 0 ([#642](https://github.com/Miragon/pulse/issues/642)) ([11d10ee](https://github.com/Miragon/pulse/commit/11d10ee056e7f53d33c9cab594f68d0b682a1be1))
+* **web:** the process screen over shared blocks, with variable conditions in both surfaces ([#643](https://github.com/Miragon/pulse/issues/643)) ([ffdc609](https://github.com/Miragon/pulse/commit/ffdc60970bdad27a918629a7d067828820054f28))
+
+## [0.29.0](https://github.com/Miragon/pulse/compare/v0.28.0...v0.29.0) (2026-11-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **ui:** starters and customer modules on pulse-ui get the guide's neutrals: the light ground is #F9F7F7 instead of white; on dark, cards, overlays, hover and lines lift off the ground as the guide sets them and the scrim is 60 %; outline buttons, the active tab and filter chips sit on --raised; the checked switch and the tab bar take --interaction; the dark info ink is the text. A brand that sets its own blue sets --interaction too.
+* **ui:** starters and customer modules on pulse-ui see dense text at 13 px instead of 14 (tables, buttons, tabs, menus, fields; fields stay 16 px on touch), no weight 500 (badges, alert, table and toast titles at 600, menu entries and inactive tabs at 400) and disabled controls opaque in quiet text on the hover fill instead of faded to half opacity; a disabled button keeps pointer events for its not-allowed cursor. scanTypeScale now also reports any weight but 400, 600 and 700 (rule off-weight).
+* **ui:** starters and customer modules on pulse-ui see 28 px controls (Button default and sm, the icon and icon-sm buttons, Input, NativeSelect; the default was 36 px), 24 px xs, a 36 px lg (was 40), the sm radius (6 px) on buttons, 36 px menu entries, the restyled line tabs (a rule under the bar, the active tab filled with a 2 px --interaction bar), 24 px segments with a checked edge instead of the info tint, 20 px count pills, hover fills on --accent and a narrower dialog over a greyed scrim. Icon's dense draws 12 px at stroke 2.5 instead of 16 px at stroke 2 (DENSE_ICON_STROKE is removed), and scanIconSizes reports it outside the files its allowDense names.
+* **ui:** starters and customer modules on pulse-ui see the compact table: Th on the row height with the card's surface and one rule below instead of the muted band with rules above and below, its caption on one line (DataTable's wrapHeads, ListTable's wrapHeads let it wrap), Td on the row height with 12 px sides and 2 px above and below instead of px-4 py-3, and a NamedId inside a DataTable's body on one line instead of two. widget-shell's --list-table-surface is now pulse-ui's --table-surface: a starter that set the old name sets the new one.
+* **ui:** starters and customer modules on pulse-ui see the compact building blocks: WidgetHeader draws a view's 40 px bar with a 13 px title and the badge after it (size="app" keeps the 28 px hero); EmptyState is compact by default (size="page" for the 16 px help line); ErrorState is the status box, at most 560 px wide, in 13 px with its actions beside the text; Card is flat with a border instead of a ring, in the sm geometry; KpiGrid's figures are 21 px; FilterBar's search is a 200 px SearchField that reports the trimmed text; the Button toolbar variant's label collapses only inside a container named `bar`.
+* **ui:** SegmentedControl is a radiogroup of role="radio" segments with aria-checked instead of a group of aria-pressed buttons; ariaLabel is required, onChange no longer fires for the segment already checked, the arrow keys move the check, and with busy passed a picked segment shows checked until value follows or busy ends. TabCount's count is a Count (a number, { atLeast } or null) and its name says a bound or an unknown count in words. Dialog's content box has no padding or gap any more: DialogHeader, the new DialogBody and DialogFooter carry the spacing (16/16/8/24 px, 0 24 24 px and 16 24 px under a rule), and a dialog that put its content straight into DialogContent puts it into DialogBody. FIELD_TEXT is `text-field` over the --field-text role instead of `text-dense any-pointer-coarse:text-body`.
+* **engine-connector:** widget-shell's WidgetShell pads only its content. Put a view's WidgetHeader, the StatusStrips under it and a list's filter Toolbar right under the bar into its new `header` prop: in the children they sit in the gutter a second time. A Toolbar further down in the content takes -mx-gutter to reach the card's edges. useDetailView's `notice` is a StatusStrip for the view's header (the engine's raw text under its Details), no longer an inline ErrorState. pulse-ui's bars no longer read `--bar-inset`; Facts aligns on baselines and StateLabel's baseline is its word's.
+* **ui:** pulse-ui's KpiGrid drops `variant` ("strip" | "soft") and KpiCell's `tone`, and KpiGridSkeleton drops `variant`: every tile is neutral, and an alarming figure is the cell's value as a CountFigure (`situation` and `label`). The header's badge renders as quiet text without its chip, a trend's tone without a direction draws an icon of its own shape for danger and warning and no dot for any tone, and Section's title is 13 px at 600 instead of 21 px.
+* **engine-connector:** pulse-ui's section titles (SectionHeading, Section) are drawn in the foreground instead of muted, so a starter's section titles change colour. END_NESTED_COMMIT
+* **profile:** @miragon/pulse-profile's Flavor, Dialect and AuthType gain values (camunda8, c8, clientCredentials), so a Record over them needs the new keys; describeProblem's flavor, auth type and auth-type-mismatch sentences name them.
+* **engine-core:** the conformance kit of @miragon/pulse-engine-core/testing holds three more read laws. A dialect that lists incidents in another order than newest first, or gives a page fewer items than its limit while more follow, fails them.
+* **board:** BoardParser.parse returns { board, notes } or { problems }; a problem is { path, code, values } instead of { path, reason } (BoardProblems.describe gives the sentence), and a board's rows hold refused widgets ({ widget, title, refused }) in the place of a broken widget, which no longer refuses the file; BoardTiles.of(board) gives the rows a reader reads. A counter or instance list of ended instances with withIncident true, valid before and always 0, is now refused in its place.
+* **widget-shell:** the Keycloak provider refuses a token without sid or auth_time, so a Keycloak service account's token (client credentials, with or without a session) and a password grant's get 401 at /mcp; a signed-in user's tokens carry both where the realm's basic scope maps auth_time, as Keycloak's built-in one does. @miragon/pulse-http's serverMetadata refuses an authorization or token endpoint on a loopback host named by a remote issuer (MetadataProblem gains endpoint-loopback) and drops such a revocation or end-session endpoint.
+
+### Features
+
+* a row opens on a click or Enter on every surface ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **blocks:** @miragon/pulse-blocks, the board tiles; the webview renders them ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **board:** @miragon/pulse-board, the board file format, moved out of the runtime view ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **board:** a board model's JSON form, one for every surface ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **board:** a broken tile shows its problem in its place; notes, the version rule, tenants and no tile that can only read 0 ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **board:** the board builder in @miragon/pulse-board/builder; the runtime view renders its model ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **board:** the board schema and fixtures in @miragon/pulse-board, one starter board for both editors ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* BPMN labels in Arial on every surface, as the diagrams' modelers draw them ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **c7-core:** a runtime entry for the engine contract's reads: checked views and the id rule ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **c7-core:** C7Runtime answers every read of the engine contract ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **c7-core:** instances and incidents over the port ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **c7-core:** the engine and its definitions over the port ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **c7-core:** the instance detail over the port ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **c8-adapter:** Camunda 8 answers the engine contract ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **c8-adapter:** the Camunda 8 reads: definitions, instances, incidents, variables, wait states and element statistics ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **c8-adapter:** the Camunda 8 wire on @miragon/pulse-http, its REST client and checked views ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** a tool, feed and route offers only the engines it serves ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** board files from ENGINE_BOARDS_DIR and the feed engine_board_data ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** boards on the cockpit's landing, with one engine too ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** Camunda 8 profiles on the server: client credentials, boards and the engine list read them, every other tool refuses ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the board list and the board pages ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the cockpit knows an engine's dialect and shows a Camunda 8 engine on boards only ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the cockpit's board route renders the shared tiles ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the cockpit's frame takes the compact look ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the cockpit's tables and numbers take the compact look ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the engine contract in the connector's src; C7Runtime its runtime ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the server's Camunda 8 wire on @miragon/pulse-http; ENGINE_DIALECTS gains c8 and @miragon/pulse-c8-core is published ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-core:** read laws for boards: incidents newest first, pages without gaps, full pages ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **http:** the OAuth client's pieces for a web sign-in: RFC 8707 resource and the end-session endpoint ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **http:** the OAuth client's pieces for Entra ID and ADFS ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **orca:** Pulse for Orca reads the engines of the CLI's user config ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **profile:** Camunda 8 profiles: the flavor camunda8, the auth type clientCredentials and auth types per dialect ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **runtime-view:** Camunda 8 engines in Pulse for VS Code and Pulse for Orca, read-only, signed in with client credentials ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **runtime-view:** Pulse for VS Code reads the engines of the CLI's user config ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **runtime-view:** the webview of Pulse for VS Code and Pulse for Orca renders with React on pulse-ui ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **runtime-view:** words that hold on every engine: causes, cuts and missing rights ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **ui:** colour roles on the guide's --cd-ui-* roles, high contrast and forced colours ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **ui:** compact primitives on the density roles ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **ui:** compact tables: DataTable with sticky head, hover, column sizing and row focus; ids in one line ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **ui:** dense type is 13 px, every primitive on the scale ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **ui:** density roles in rem on the shell tokens, compact by default, comfortable on touch ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **ui:** dialog geometry, radio segments, counts in tabs and a field text role the compact pin reaches ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **ui:** form primitives: Checkbox, Textarea, Label and Field, Progress, SearchField ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **ui:** neutral KPI tiles, compact section titles, a navigation line-tab block and a gate against permanent outlines ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **ui:** shared building blocks from the webview: ViewBar, StatusStrip, Facts, StateLabel, CountBadge, Toolbar, CopyableId, LoadingState ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **web:** apps/web, the cockpit as a page ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **web:** show the page's view on a card over the app's ground ([#631](https://github.com/Miragon/pulse/issues/631)) ([caccee0](https://github.com/Miragon/pulse/commit/caccee0dc93458f55b5db1cc9d644bad03262e07))
+* **widget-shell:** /app serves its assets compressed, a page that leaves cancels its call, and Stryker covers the web app's server rules ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** /app serves the web build, with its cache headers and CSP ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** a generic OpenID Connect provider for /mcp and /app (ADFS and other OIDC) ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** a host-neutral view root for pages outside a chat ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** a page offers no write and words its states for a page ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** Microsoft Entra ID for /mcp and /app, one tenant ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** one discovery of the identity provider for the gate and the web sign-in, which keeps its last good answer ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** the gate verifies by the provider's issuers, key sets, audiences and caller claim, and refuses ID tokens ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** the page's calls go in-process to /mcp with the session's token ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** the web session renews by the OAuth BFF rules, survives a rotation race between replicas, and can be checked at an interval ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** the web sign-in without RFC 8707 resource and with scopes at every grant, and the test identity provider's Entra flavor ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** the web sign-in's rules, its wire contract and a test identity provider ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** web sign-in through the server's OAuth provider: login, callback, logout, session ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+
+
+### Bug Fixes
+
+* a page words its states without a chat, says once that its session ended, and has one main landmark and a heading ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* an expired token says so at /mcp and in the web app's forward; a refused profile of the other dialect shows its own reason; the cockpit words incident types as the webview does ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **board:** the board schema matches the parser, and several engines outside a board read as several ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* bump the npm-dependencies group across 2 directories with 13 updates ([#629](https://github.com/Miragon/pulse/issues/629)) ([cd81d26](https://github.com/Miragon/pulse/commit/cd81d267798068b8d2e12467beff2797e8bb2cc3))
+* **c7-core:** full pages of instances without an incident and of root incidents ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **c7:** "with incident" means one thing on every C7 surface ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the cockpit at narrow widths, one-line ids in incident tables and neutral counts in view headers ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the cockpit fits its columns through ListTable, names its action heads and settles a hook's dependencies ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the cockpit's last details at 320 and 400 px ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the cockpit's last remnants at narrow widths ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** the cockpit's loose ends in the compact look ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **engine-connector:** what the security review of Camunda 8 on the server found ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **release:** release-please bumps the starter's pin of @miragon/pulse-blocks, and a gate refuses a pin it would not bump ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **runtime-view:** the remnants of Camunda 8 in the editors ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **runtime-view:** the webview's remnants of the switch ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* the cockpit at 320 px, tone icons under forced colours and a live-update test that does not depend on the clock ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* the final review of the pull request: ENGINE_NOT_SELECTED names only the engines a tool offers, a refused profile shows as refused on the landing and in the cross-engine view, the landing's engine rows at 320 px, accessible names of badge counts, the zoom readout and the process link, German KPI captions hyphenated, a board summary's note over engines that answered ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* the last remnants of Camunda 8 on the server and the page ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* the remnants of Camunda 8 on the server ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* the remnants of phase 9 ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* the remnants of the compact look in the cockpit and the webview ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* the server image runs on Node 26.13.1, its base two security releases behind ([#630](https://github.com/Miragon/pulse/issues/630)) ([e1c68e3](https://github.com/Miragon/pulse/commit/e1c68e33bb40e6556fdbeee8128c42f9b77b95b0))
+* **ui:** DataTable fits composed rows to their content, and the column grip shows its focus under forced colours ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **ui:** the focus outline only on focus under forced colours, counts in the kit locale, the copy field on the field text role ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** a refused signed-out session revokes its refresh token, and the web app's last page states ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** the test identity provider of @miragon/pulse-widget-shell/testing/oidc ends every refresh token of an ended sign-in, one a renewal under way mints included ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** what the security review of the identity providers found ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+* **widget-shell:** what the security review of the web app found ([84f7de4](https://github.com/Miragon/pulse/commit/84f7de4daf8cec0ed73f06e3045c28467da23b66))
+
 ## [0.28.0](https://github.com/Miragon/pulse/compare/v0.27.1...v0.28.0) (2026-11-17)
 
 

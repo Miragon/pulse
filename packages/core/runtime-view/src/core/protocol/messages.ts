@@ -74,6 +74,7 @@ export type WebviewIntent =
     }
   | { readonly type: "openBoardEngine"; readonly engine: string; readonly toSide: boolean }
   | { readonly type: "openBoardFile" }
+  | { readonly type: "openPlanFile" }
   | { readonly type: "setBoardCredentials"; readonly engine: string }
   | {
       readonly type: "moveToken"

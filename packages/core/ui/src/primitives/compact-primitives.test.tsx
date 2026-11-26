@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
 import { Search } from "lucide-react"
 import { compile } from "tailwindcss"
-import { CountPill, LivePill, StatusBadge } from "../components/Pills.js"
+import { CountPill, StatusBadge } from "../components/Pills.js"
 import { setFormatLocale, type Count } from "../format/index.js"
 import { Icon } from "../kit/icon.js"
 import { MENU_ITEM } from "../kit/menu-item.js"
@@ -224,14 +224,14 @@ describe("Tabs: the line bar of a view, the box of a card", () => {
     expect(active?.getAttribute("data-state")).toBe("active")
   })
 
-  it("forced colours draw the active bar, a navigation's current bar and a checked segment's edge in Highlight, the others' in Canvas", () => {
+  it("forced colours draw the active bar, a navigation's current bar or edge and a checked segment's edge in Highlight, the others' in Canvas", () => {
     const forced = rules.slice(rules.indexOf("@media (forced-colors: active)")).replace(/\s+/g, " ")
     expect(forced).toContain(
-      '[data-slot="tabs-trigger"][data-variant="line"][data-state="active"], [data-slot="nav-tab"][aria-current="page"], [data-slot="segmented-option"][aria-checked="true"] ) { border-color: Highlight; }',
+      '[data-slot="tabs-trigger"][data-variant="line"][data-state="active"], [data-slot="nav-tab"][aria-current="page"], [data-slot="side-nav-item"][aria-current="page"], [data-slot="segmented-option"][aria-checked="true"] ) { border-color: Highlight; }',
     )
     // The selected rule is more specific, so it wins over this one in either order.
     expect(forced).toContain(
-      ':is( [data-slot="tabs-trigger"][data-variant="line"], [data-slot="nav-tab"], [data-slot="segmented-option"] ) { border-color: Canvas; }',
+      ':is( [data-slot="tabs-trigger"][data-variant="line"], [data-slot="nav-tab"], [data-slot="side-nav-item"], [data-slot="segmented-option"] ) { border-color: Canvas; }',
     )
   })
 
@@ -371,12 +371,11 @@ describe("menu entries and badges", () => {
   it("pills take the badge height; a count pill is a 13 px pill at least as wide as it is high", () => {
     render(
       <>
-        <LivePill>Live</LivePill>
         <StatusBadge tone="neutral">Running</StatusBadge>
         <CountPill>7</CountPill>
       </>,
     )
-    for (const text of ["Live", "Running"]) {
+    for (const text of ["Running"]) {
       const pill = screen.getByText(text).closest("span:not([aria-hidden])")
       expect(classes(pill), text).toContain("min-h-badge")
       expect(classes(pill), text).not.toContain("py-0.5")

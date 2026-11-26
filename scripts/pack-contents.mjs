@@ -13,7 +13,10 @@
  * - every `exports` target, `main` and `types` is in the tarball;
  * - every relative import of a shipped module (JS, TS, declarations) resolves inside the
  *   tarball, so a `files` list never leaves behind a module a widget imports (a host's Vite
- *   compiles `./widgets` from that source) or a declaration a declaration names;
+ *   compiles `./widgets` from that source) or a declaration a declaration names. The one
+ *   exception is a browser bundle's import of a sibling library on a CDN (CDN_SIBLING): it
+ *   resolves inside the tarball of that library, packed in the same run at exactly the version
+ *   it names;
  * - every source a shipped map names (`.js.map`, `.d.ts.map`) is inside the tarball or inlined
  *   as its `sourcesContent`: a host's Vite loads the map of every module it transforms and
  *   warns "points to missing source files" once per module otherwise, and an editor's
@@ -80,6 +83,38 @@ function candidates(from, spec) {
   ]
 }
 
+/**
+ * A browser bundle's import of a sibling library on a CDN that serves npm packages by name and
+ * version (`/npm/@miragon/<name>@<version>/…` on jsDelivr and unpkg): from `dist/browser/<file>.js`
+ * three levels up is the package's scope, so `../../../pulse-ui@0.32.0/dist/browser/pulse-ui.js`
+ * names pulse-ui's browser bundle of that version (widget-shell's claude-artifact.js takes React
+ * and the kit from it). Its groups: the library's name in the scope, the version, the file.
+ */
+export const CDN_SIBLING =
+  /^\.\.\/\.\.\/\.\.\/(pulse-[a-z-]+)@(\d+\.\d+\.\d+)\/(dist\/browser\/[\w.-]+\.js)$/
+
+/** A browser bundle's module: the only place a CDN-sibling import may stand. */
+const BROWSER_BUNDLE = /^dist\/browser\/[^/]+\.js$/
+
+/**
+ * Why a CDN-sibling import of `file` fails, or undefined when the library is packed in the same
+ * run (`siblings`: its name to its version and files) at exactly that version and holds the file.
+ * The library's name is the package's scope plus the import's name.
+ */
+function siblingFinding(manifest, sibling, siblings) {
+  const [, base, version, target] = sibling
+  const scope = /^(@[^/]+)\//.exec(manifest.name ?? "")?.[1]
+  const name = scope === undefined ? base : `${scope}/${base}`
+  const packed = siblings.get(name)
+  const beside = `${name}'s file beside it on a CDN`
+  if (packed === undefined) return `${beside}, but this run packs no ${name}`
+  if (packed.version !== version) {
+    return `${beside} at ${version}, but this run packs ${name} ${packed.version}: a page loads both by one version`
+  }
+  if (!packed.files.has(target)) return `${beside}, which ${name}'s tarball lacks`
+  return undefined
+}
+
 /** A source map, of a module or of a declaration. */
 const SOURCE_MAP = /\.map$/
 
@@ -123,9 +158,11 @@ function exportTargets(value, key = ".") {
 
 /**
  * The findings for one tarball: its `manifest`, its `files` (paths relative to the package
- * root) and `read(file)` for a module's text.
+ * root), `read(file)` for a module's text and the `siblings` packed in the same run (each
+ * library's name to its `version` and the Set of its `files`), which a CDN-sibling import
+ * resolves in.
  */
-export function packFindings({ manifest, files, read }) {
+export function packFindings({ manifest, files, read, siblings = new Map() }) {
   const shipped = new Set(files)
   const findings = []
   for (const file of files) {
@@ -148,9 +185,14 @@ export function packFindings({ manifest, files, read }) {
   for (const file of files) {
     if (!MODULE.test(file) || TEST_FILE.test(file)) continue
     for (const spec of new Set(relativeSpecifiers(file, read(file)))) {
-      if (!candidates(file, spec).some((candidate) => shipped.has(candidate))) {
+      if (candidates(file, spec).some((candidate) => shipped.has(candidate))) continue
+      const sibling = BROWSER_BUNDLE.test(file) ? CDN_SIBLING.exec(spec) : null
+      if (sibling === null) {
         findings.push(`${file}: imports ${spec}, which the tarball lacks (add it to files)`)
+        continue
       }
+      const why = siblingFinding(manifest, sibling, siblings)
+      if (why !== undefined) findings.push(`${file}: imports ${spec}, ${why}`)
     }
   }
   // One finding for every map a tarball lacks sources for: they share one fix, and a package
@@ -183,8 +225,32 @@ const filesUnder = (dir) =>
     )
     .sort()
 
-/** The findings for the tarball at `tgz`, read the way npm unpacks it. */
-export function tarballFindings(tgz) {
+/**
+ * What each tarball of a run packs, by its name: its version and the Set of its files, which a
+ * CDN-sibling import of another tarball resolves in.
+ */
+export function packedSiblings(tarballs) {
+  const packed = tarballs.map((tgz) => {
+    const manifest = JSON.parse(
+      execFileSync("tar", ["-xzOf", tgz, "package/package.json"], { encoding: "utf8" }),
+    )
+    const files = execFileSync("tar", ["-tzf", tgz], {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    })
+      .split("\n")
+      .filter((entry) => entry.startsWith("package/") && !entry.endsWith("/"))
+      .map((entry) => entry.slice("package/".length))
+    return [manifest.name, { version: manifest.version, files: new Set(files) }]
+  })
+  return new Map(packed)
+}
+
+/**
+ * The findings for the tarball at `tgz`, read the way npm unpacks it, beside the `siblings`
+ * packed in the same run (packedSiblings).
+ */
+export function tarballFindings(tgz, siblings = new Map()) {
   const dir = mkdtempSync(path.join(os.tmpdir(), "pack-contents-"))
   try {
     execFileSync("tar", ["-xzf", tgz, "-C", dir])
@@ -195,7 +261,7 @@ export function tarballFindings(tgz) {
     return {
       name: manifest.name,
       files: files.length,
-      findings: packFindings({ manifest, files, read }),
+      findings: packFindings({ manifest, files, read, siblings }),
     }
   } finally {
     rmSync(dir, { recursive: true, force: true })
@@ -210,8 +276,9 @@ if (isMain) {
     process.exit(2)
   }
   let failed = false
+  const siblings = packedSiblings(tarballs)
   for (const tgz of tarballs) {
-    const { name, files, findings } = tarballFindings(tgz)
+    const { name, files, findings } = tarballFindings(tgz, siblings)
     if (findings.length === 0) {
       console.log(
         `pack-contents: ${name}: ${files} files, no test, every entry, import and map source inside`,

@@ -8,6 +8,8 @@ import {
   recordingModuleServer,
 } from "@miragon/pulse-widget-shell/testing"
 import { BoardParser } from "@miragon/pulse-board"
+import type { EngineScreenData, FindScreenData, InstanceScreenData } from "@miragon/pulse-screens"
+import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import {
   FakeEngine as ContractFake,
@@ -25,6 +27,13 @@ import {
   ENGINE_BPMN_XML_DATA,
   ENGINE_LIST_ENGINES,
   ENGINE_OPEN_COCKPIT,
+  ENGINE_SCREEN_FIND_DATA,
+  ENGINE_SCREEN_INCIDENT_TEXT_DATA,
+  ENGINE_SCREEN_INSTANCE_DATA,
+  ENGINE_SCREEN_INSTANCES_DATA,
+  ENGINE_SCREEN_PROCESS_DATA,
+  ENGINE_SCREEN_VARIABLE_NAMES_DATA,
+  ENGINE_SCREEN_PROCESSES_DATA,
   ENGINE_WIDGET_ACTIONS_DATA,
 } from "./tool-names.js"
 import { worldReply } from "./tools/test-support/engine-world.js"
@@ -34,7 +43,8 @@ import { feedPayload } from "./tools/test-support/feed-payload.js"
 /**
  * An engine of another dialect beside a Camunda 7 one, hand-built: its runtime factory is a spy.
  * Every tool and feed of the admin surface offers it only where its mark serves its dialect (the
- * engine list, the board feed, the XML feed, the cockpit's board and landing), and the call-time
+ * engine list, the board feed, the XML feed, the web app's screen feeds, the cockpit's board and
+ * landing), and the call-time
  * net refuses it elsewhere before its runtime is built, the default engine above all.
  */
 describe("createPlugin on an engine of another dialect", () => {
@@ -101,8 +111,18 @@ describe("createPlugin on an engine of another dialect", () => {
     ENGINE_LIST_ENGINES,
     ENGINE_BOARD_DATA,
     ENGINE_BPMN_XML_DATA,
+    ENGINE_SCREEN_PROCESSES_DATA,
+    ENGINE_SCREEN_PROCESS_DATA,
+    ENGINE_SCREEN_INSTANCES_DATA,
+    ENGINE_SCREEN_VARIABLE_NAMES_DATA,
+    ENGINE_SCREEN_INSTANCE_DATA,
+    ENGINE_SCREEN_INCIDENT_TEXT_DATA,
+    ENGINE_SCREEN_FIND_DATA,
     ENGINE_OPEN_COCKPIT,
     ENGINE_WIDGET_ACTIONS_DATA,
+    // The screens and boards as JSON (#666), as the feeds they build alike.
+    "engine_get_screen",
+    "engine_get_board",
   ]
   const REFUSAL = '[ENGINE_DIALECT_NOT_SERVED] Engine "c8" is a Camunda 8 engine'
 
@@ -119,6 +139,16 @@ describe("createPlugin on an engine of another dialect", () => {
     expect(others.length).toBeGreaterThan(50)
     for (const name of others) expect(offered(recording, name), name).toEqual(["a"])
     expect(offered(recording, ENGINE_BPMN_XML_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_PROCESSES_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_PROCESS_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_INSTANCES_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_VARIABLE_NAMES_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_INSTANCE_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_INCIDENT_TEXT_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, ENGINE_SCREEN_FIND_DATA)).toEqual(["a", "c8"])
+    expect(offered(recording, "engine_get_screen")).toEqual(["a", "c8"])
+    // A board names its engines itself.
+    expect(offered(recording, "engine_get_board")).toBeUndefined()
     // The cockpit's `engine` names every engine it shows: a route of one engine refuses this one.
     expect(offered(recording, ENGINE_OPEN_COCKPIT)).toEqual(["a", "c8"])
     expect(offered(recording, ENGINE_LIST_ENGINES)).toBeUndefined()
@@ -189,7 +219,7 @@ describe("createPlugin on an engine of another dialect", () => {
     expect(runtime).not.toHaveBeenCalled()
   })
 
-  it("serves the XML feed and the board feed through its runtime", async () => {
+  it("serves the XML feed, the board feed and the screen feeds through its runtime", async () => {
     const { recording, runtime } = await bootOverBoth()
     const definitionId = FakeWorld.seed().world.definitionIds["order@1"]
     const xml = feedPayload<{ bpmnXml: string | null }>(
@@ -205,6 +235,31 @@ describe("createPlugin on an engine of another dialect", () => {
       ["a", "ready"],
       ["c8", "ready"],
     ])
+    // The web app's engine screen of the kit's world: the numbers its builder gives that world.
+    const screen = feedPayload<EngineScreenData>(
+      await recording.tool(ENGINE_SCREEN_PROCESSES_DATA).call({ engine: "c8" }),
+    )
+    expect(ScreenFigures.engine(screen)).toEqual(ScreenFigures.engine(WORLD_SCREENS.engine))
+    // Its instance screen and the text of the root incident the instance it called holds.
+    const called = WORLD_SCREENS.calledInstance
+    const instance = feedPayload<InstanceScreenData>(
+      await recording
+        .tool(ENGINE_SCREEN_INSTANCE_DATA)
+        .call({ engine: "c8", instance: called.instance.id }),
+    )
+    expect(ScreenFigures.instance(instance)).toEqual(ScreenFigures.instance(called))
+    const [card] = called.incidents
+    const text = feedPayload<{ rootCause: string | null }>(
+      await recording
+        .tool(ENGINE_SCREEN_INCIDENT_TEXT_DATA)
+        .call({ engine: "c8", incident: card?.rootIncident.id }),
+    )
+    expect(text.rootCause).toBe(card?.rootCauseLine)
+    // What the search finds on it by a business key.
+    const found = feedPayload<FindScreenData>(
+      await recording.tool(ENGINE_SCREEN_FIND_DATA).call({ engine: "c8", text: "ORD-1003" }),
+    )
+    expect(ScreenFigures.find(found)).toEqual(ScreenFigures.find(WORLD_SCREENS.find))
     expect(runtime).toHaveBeenCalled()
   })
 
@@ -306,7 +361,21 @@ describe("createPlugin over Camunda 8 profiles and the boards that name them", (
   it("a server of Camunda 8 engines alone registers what serves them, and nothing else", async () => {
     const recording = bootFromEnv()
     expect([...recording.tools.keys()].sort()).toEqual(
-      [ENGINE_LIST_ENGINES, ENGINE_OPEN_COCKPIT, ENGINE_BPMN_XML_DATA, ENGINE_BOARD_DATA].sort(),
+      [
+        ENGINE_LIST_ENGINES,
+        ENGINE_OPEN_COCKPIT,
+        ENGINE_BPMN_XML_DATA,
+        ENGINE_BOARD_DATA,
+        ENGINE_SCREEN_PROCESSES_DATA,
+        ENGINE_SCREEN_PROCESS_DATA,
+        ENGINE_SCREEN_INSTANCES_DATA,
+        ENGINE_SCREEN_VARIABLE_NAMES_DATA,
+        ENGINE_SCREEN_INSTANCE_DATA,
+        ENGINE_SCREEN_INCIDENT_TEXT_DATA,
+        ENGINE_SCREEN_FIND_DATA,
+        "engine_get_screen",
+        "engine_get_board",
+      ].sort(),
     )
     // The prompt drafts through a Camunda 7 tool, which is not there.
     expect([...recording.prompts.keys()]).toEqual([])

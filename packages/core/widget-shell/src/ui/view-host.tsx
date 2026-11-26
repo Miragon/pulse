@@ -1,41 +1,140 @@
 import { createContext, useContext, type ComponentType, type ReactNode } from "react"
 import type { ToolResult } from "../protocol/tool-result.js"
+import type { PageHints } from "./page-hints.js"
 
 /**
  * What a hand-off does in this host: `chat` posts it into the chat (`sendFollowUp`), `copy` offers
  * its prompt to copy into a chat of the user's own, `none` shows no hand-off. Only a chat host
- * posts; a page outside a chat (`mountPage`) copies or hides.
+ * posts; a page outside a chat (`mountApp`, `mountPage`) copies or hides.
  */
 export type FollowUp = "chat" | "copy" | "none"
 
 /**
+ * Where a view is, in its view tool's argument shape (`{ view, engine, <ids> }` for the cockpit):
+ * what a page's address names. `memo` is the view's own record of how it got there (its trail, say),
+ * which the page keeps with the entry and hands back on Back or Forward; the page never reads it.
+ */
+export interface ViewPlace {
+  readonly args: Readonly<Record<string, unknown>>
+  readonly memo?: unknown
+}
+
+/**
+ * A page's address, which follows the view (`ViewHost.location`): only a page outside a chat offers
+ * it (`PageView`'s `location`, `mountPage`'s), a chat has no address to follow.
+ */
+export interface ViewLocation {
+  /**
+   * Where the page's address put the view at its start, where the view tool's arguments name less
+   * than the address (a page path of its own over the view's start); absent otherwise.
+   */
+  readonly start?: ViewPlace
+  /**
+   * The view moved: `push` adds an entry to the page's history (a drill, a section), `replace`
+   * names the entry the reader is on anew (the view's first place, a tab inside a view).
+   */
+  readonly report: (place: ViewPlace, entry: "push" | "replace") => void
+  /**
+   * Back or Forward on the page: `go` gets the place the entry names and answers whether the view
+   * goes there itself; where no view does, the page loads the entry anew. Returns the unsubscribe.
+   */
+  readonly subscribe: (go: (place: ViewPlace) => boolean) => () => void
+  /**
+   * Whether the page shows the place `args` names itself, with a screen of its own: a view that
+   * reaches it reports it as any other move (`report`) and renders nothing there, and never goes
+   * there itself on Back or Forward, so the page takes over. Without it the page shows none.
+   */
+  readonly claims?: (args: ViewPlace["args"]) => boolean
+  /**
+   * The page's name of a place it shows itself (`claims`), its navigation's word: a view's trail
+   * names a crumb that leads there by it, so the page calls one place one thing. Undefined, or
+   * without it, the view names the place itself.
+   */
+  readonly nameOf?: (args: ViewPlace["args"]) => string | undefined
+}
+
+/**
+ * A page's chrome of its own around its views (`PageView`'s `chrome`): the page navigates itself,
+ * its navigation holding what a view's head holds in a chat (the sections, the engine switch, the
+ * view across engines), so a view leaves that head to it and keeps its bar. Only a page offers it,
+ * a chat never.
+ */
+export interface HostChrome {
+  /**
+   * The page's menu button, which opens its navigation where the page hides it (a narrow
+   * window): the first element of every view bar (pulse-ui's `ViewBarSlots` `lead`).
+   */
+  readonly menu: ReactNode
+}
+
+/**
+ * How a page asks for one call, where its caller can tell (`mountApp`'s `callTool`). A chat's host
+ * takes neither and calls as it always does.
+ */
+export interface ToolCallOptions {
+  /**
+   * Ask the server, past every cache under the caller (a page's Refresh, its Try again): a caller
+   * that keeps answers of its own, as an artifact's runtime does, reads anew.
+   */
+  readonly refresh?: boolean
+  /**
+   * The connection to call, by the name the page knows it under, where it is not the caller's own:
+   * a page that reads two servers names the second. A caller that reaches one server refuses it.
+   */
+  readonly connector?: string
+}
+
+/**
  * The ONE seam between a view and its host. Widgets never import `@modelcontextprotocol/ext-apps`:
  * a chat provides the ext-apps adapter (`mountViews`), a page outside a chat the browser adapter
- * (`mountPage`), tests `TestViewHost`. Display mode stays in the host-agnostic
+ * (`mountApp`, `mountPage`), tests `TestViewHost`. Display mode stays in the host-agnostic
  * `useShellHost`/`useDisplayModeControl`.
  */
 export interface ViewHost {
   /**
    * Calls any server tool by name. RESOLVES with the raw result, an `isError` result included
    * (`decodeToolResult` throws it); rejects only on a transport failure (no host, no
-   * `serverTools` capability, a JSON-RPC error such as an unknown tool).
+   * `serverTools` capability, a JSON-RPC error such as an unknown tool). Only a page's caller
+   * reads `options`; a chat's host calls as it always does.
    */
-  callTool: (name: string, args?: object) => Promise<ToolResult>
+  callTool: (name: string, args?: object, options?: ToolCallOptions) => Promise<ToolResult>
   /** Posts a USER message into the chat (hand-offs, navigation). Fail-soft: never throws. */
   sendFollowUp: (prompt: string) => void
   /** Whether a hand-off posts (`chat`), is copied (`copy`) or shows not at all (`none`). */
   followUp: FollowUp
   /**
+   * A page's words of what to do after a failure (`PAGE_HINTS`), where its `followUp` is not
+   * `chat`: the kit's words of a kind that would send the reader to the chat say what to do on the
+   * page instead (`describeError`'s `pageHints`). Only a page's host brings them, so a chat's
+   * bundle carries none.
+   */
+  pageHints?: PageHints
+  /**
    * Whether a view may write to an engine here: absent or true in a chat and in `TestViewHost`,
-   * false on a page outside a chat (`mountPage`), which offers no write, so no write control
-   * shows there (`useHostWrites`).
+   * false on a page outside a chat (`mountApp`, `mountPage`), which offers no write, so no write
+   * control shows there (`useHostWrites`).
    */
   writes?: boolean
   /**
-   * The page's start page, where a page's words of a refused start lead (`mountPage`'s
-   * `startPage`): the failure's state then links to it. A chat has none.
+   * The page's start page, where a page's words of a refused start lead (`mountApp`'s and
+   * `mountPage`'s `startPage`): the failure's state then links to it. A chat has none.
    */
   startPage?: string
+  /**
+   * The page's address for this view, which follows where it is (`PageView`'s `location`,
+   * `mountPage`'s): a view reports each move and goes where Back and Forward lead. A chat has none.
+   */
+  location?: ViewLocation
+  /**
+   * The page's chrome around the view (`PageView`'s `chrome`), where the page navigates itself:
+   * the view leaves its own head to it and shows the page's menu first in its bar. A chat has none.
+   */
+  chrome?: HostChrome
+  /**
+   * The page's clock, where its numbers are not read now (a recording's `asOf`): what its reads
+   * count from (`mountApp`'s `now`). A chat has none, and neither has a page that reads live.
+   */
+  now?: () => Date
   /** Opens a URL outside the frame. Fail-soft. */
   openExternal: (url: string) => void
   /** One node of the view's model-context tree; nested nodes join into one context. */
@@ -65,12 +164,14 @@ export function useHostFollowUp(): FollowUp {
 }
 
 /**
- * Where the kit's words of a failure say what to do: a chat's (`chat`) may send the reader there,
- * a page's (`copy`, `none`) say what to do on the page (`describeError`'s `followUp`). Outside a
- * view host (a kit piece rendered on its own) a chat's, as before the host told.
+ * Where the kit's words of a failure say what to do, as `describeError`'s options: a chat's
+ * (`chat`) may send the reader there, a page's (`copy`, `none`) say what to do on the page in the
+ * page's words (`pageHints`). Outside a view host (a kit piece rendered on its own) a chat's, as
+ * before the host told.
  */
-export function useWordsFollowUp(): FollowUp {
-  return useContext(ViewHostContext)?.followUp ?? "chat"
+export function useErrorWords(): { followUp: FollowUp; pageHints: PageHints | undefined } {
+  const host = useContext(ViewHostContext)
+  return { followUp: host?.followUp ?? "chat", pageHints: host?.pageHints }
 }
 
 /**
@@ -79,6 +180,22 @@ export function useWordsFollowUp(): FollowUp {
  */
 export function useStartPage(): string | undefined {
   return useContext(ViewHostContext)?.startPage
+}
+
+/**
+ * The page's address (`ViewHost.location`), without the host's tool caller; outside a view host
+ * and in a chat none, so a view that asks it moves on screen alone.
+ */
+export function useHostLocation(): ViewLocation | undefined {
+  return useContext(ViewHostContext)?.location
+}
+
+/**
+ * The page's chrome around the view (`ViewHost.chrome`), without the host's tool caller; outside a
+ * view host, in a chat and on a page without chrome of its own none, so a view shows its own head.
+ */
+export function useHostChrome(): HostChrome | undefined {
+  return useContext(ViewHostContext)?.chrome
 }
 
 /**

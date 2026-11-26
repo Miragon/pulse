@@ -69,9 +69,7 @@ export const clusterDetailFilterShape = {
   businessKeyLike: z
     .string()
     .optional()
-    .describe(
-      "Narrow the affected-instance list by business key (substring; % wildcards allowed).",
-    ),
+    .describe("Narrow the incident list by business key or id (substring; % wildcards allowed)."),
 }
 export type ClusterDetailFilters = z.infer<z.ZodObject<typeof clusterDetailFilterShape>>
 

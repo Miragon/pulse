@@ -36,9 +36,9 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 ## Where things are
 
 - `packages/core/runtime-view/src/webview/host`: the bridge to the host and the stored UI state (`HostBridge`, `UiStateStore`)
-- `packages/core/runtime-view/src/webview/screens`: the three screens, filter bars, instance tabs and the variable editor
+- `packages/core/runtime-view/src/webview/screens`: the three screens, filter bars, instance tabs and the variable editor; the engine tab renders the process list of `@miragon/pulse-blocks` with its slots (`process-slots.tsx`), the instance view the instance's blocks with its table, links and copy (`instance-slots.tsx`, the rows in the blocks' form through `instance-forms.ts`) and its writes in their slots, the definition view a process's blocks with the same table, its id and its count badge, its selection and bulk actions in the instance table's write slot (`instance-list.tsx`, `instance-selection.tsx`)
 - `packages/core/runtime-view/src/webview/screens/board`: the board screen, which holds the host calls and renders the tiles of `@miragon/pulse-blocks` with the webview's slots (`board-slots.tsx`: its table, its short id, the target a tile opens as an intent; `board-diagram.tsx`: its canvas), its engine strip and the words of what is its own (`BoardLabels`)
-- `packages/core/runtime-view/src/webview/diagram`: the bpmn-js viewer with its badges and call buttons (`RuntimeCanvas`)
+- `packages/core/runtime-view/src/webview/diagram`: the bpmn-js viewer with its overlays (`RuntimeCanvas`, `DecorationLayer`), which draws the blocks' badge clusters and call buttons with its count badge
 - `packages/core/runtime-view/src/webview/components`: the webview's parts over pulse-ui's kit: the table with resizable columns, the header bar, tabs, scope segments, the diagram
 - `packages/core/runtime-view/src/webview/styles`: the one Tailwind entry (`webview.css`: pulse-ui's `theme.css`, the fonts, the diagram's vendor CSS) and `diagram.css`, the overlays' own classes
 - `packages/core/runtime-view/src/webview/theme`: the vendored Miragon canvas (`cd-canvas.css`) and the token values the renderer's paint is pinned to
@@ -47,7 +47,8 @@ Only UI state (open tab, split, column widths, zoom) stays in the webview's own 
 ## Rules
 
 - Takes the core's protocol types, pulse-ui's `/tones` and `/format` (the latter from `format/`),
-  the main entry of `@miragon/pulse-blocks` (a board's tiles),
+  the main entry of `@miragon/pulse-blocks` (a board's tiles, the engine tab's process list, the
+  instance view's and the definition view's blocks),
   pulse-ui's React kit and `theme.css`, and `react`, `react-dom` and `lucide-react`; nothing else
   of ours (dependency-cruiser). It moved from Preact to React on pulse-ui in one switch (D9 in
   `apps/vscode/docs/adr/ui-foundation.md`)

@@ -11,7 +11,7 @@ import {
   formatNumber,
   SectionHeading,
 } from "@miragon/pulse-ui"
-import { WidgetShell } from "@miragon/pulse-widget-shell/widgets"
+import { useHostChrome, useStartPage, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
 import { ArrowRight, Ban, ClipboardList, Layers, Server } from "lucide-react"
 import { DEFAULT_ENVIRONMENT_ID, groupEnginesByEnvironment } from "../../lib/shared/environments.js"
 import { translator } from "../../messages/use-t.js"
@@ -83,8 +83,9 @@ function EngineRowFrame({
 function EngineRow(props: EngineRowProps) {
   const locale = useLocale()
   const tr = (key: string, params?: Record<string, unknown>) => translator(locale, key, params)
-  const { failure, summary, tone } = useEngineHealth(props.engineId)
-  const kind = engineStatusKind({ failure, summary })
+  const health = useEngineHealth(props.engineId)
+  const { failure, summary, tone } = health
+  const kind = engineStatusKind({ failure, summary, status: health.status })
   const status =
     kind === "incidents"
       ? tr("cockpit.landing.status.incidents", {
@@ -241,24 +242,29 @@ function BoardList({
 
 /**
  * #322 U15: hangs on the theme slot a customer brand empties (`--brand-mark-display: none`). The
- * title is the app-level one (`WidgetHeader` `size="app"`), the signature above it. The action
- * sits beside the hero where both fit and wraps under it where they do not, on the whole width,
- * never past the gutter (WCAG 1.4.10: the German one is wider than the Komet's column at 320 px).
+ * title is the app-level one (`WidgetHeader` `size="app"`), the signature above it in a chat's
+ * card; a page's bar names the product already, so there the Komet and the title stand alone
+ * (V12). The action sits beside the hero where both fit and wraps under it where they do not, on
+ * the whole width, never past the gutter (WCAG 1.4.10: the German one is wider than the Komet's
+ * column at 320 px).
  */
 export function LandingHeader({ subtitle, action }: { subtitle?: string; action?: ReactNode }) {
   const locale = useLocale()
+  const page = useStartPage() !== undefined
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
       <div className="flex min-w-0 items-center gap-4">
         <KometMark />
         <div className="min-w-0 flex-1">
-          <p
-            data-brand-signature=""
-            className="text-muted-foreground text-small font-semibold"
-            style={{ display: "var(--brand-mark-display, block)" }}
-          >
-            {translator(locale, "cockpit.signature")}
-          </p>
+          {!page && (
+            <p
+              data-brand-signature=""
+              className="text-muted-foreground text-small font-semibold"
+              style={{ display: "var(--brand-mark-display, block)" }}
+            >
+              {translator(locale, "cockpit.signature")}
+            </p>
+          )}
           <WidgetHeader
             size="app"
             title={translator(locale, "cockpit.landing.title")}
@@ -272,6 +278,22 @@ export function LandingHeader({ subtitle, action }: { subtitle?: string; action?
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * The landing's title on a page with chrome of its own: its view bar's, the page's menu first
+ * (`ViewBarSlots`), what it offers its facts and its action the bar's one action. The page's
+ * navigation names the product, so neither the Komet nor the signature shows.
+ */
+export function LandingBar({ subtitle, action }: { subtitle?: string; action?: ReactNode }) {
+  const locale = useLocale()
+  return (
+    <WidgetHeader
+      title={translator(locale, "cockpit.landing.title")}
+      sub={subtitle}
+      actions={action}
+    />
   )
 }
 
@@ -291,7 +313,8 @@ function subtitleKey(named: boolean, boards: ServerBoards | null): string {
 /**
  * The same live health and verdict as the engine's own overview (#322 U15). With `boards` (the
  * server's ENGINE_BOARDS_DIR) the boards follow the engines, which then have a heading of their
- * own where no environment names them.
+ * own where no environment names them. Its lists take the view's width, a page's sheet's too
+ * (V12): a narrower column would leave the sheet's sides empty.
  */
 export function LandingChooser({
   engines,
@@ -326,20 +349,34 @@ export function LandingChooser({
     envCount: formatNumber(groups.length),
     boardCount: formatNumber(boards?.boards.length ?? 0),
   })
+  // On a page with chrome the title is the view bar's, its action one of the bar's buttons.
+  const chrome = useHostChrome() !== undefined
+  const action = onOpenFleet && (
+    <Button
+      type="button"
+      variant={chrome ? "toolbar" : "outline"}
+      size={chrome ? "sm" : "default"}
+      onClick={onOpenFleet}
+    >
+      <Icon icon={Layers} />
+      {tr("cockpit.landing.fleet.open")}
+    </Button>
+  )
   return (
-    <WidgetShell header={notice}>
-      <div className="gap-section mx-auto flex w-full max-w-3xl flex-col">
-        <LandingHeader
-          subtitle={subtitle}
-          action={
-            onOpenFleet && (
-              <Button type="button" variant="outline" onClick={onOpenFleet}>
-                <Icon icon={Layers} />
-                {tr("cockpit.landing.fleet.open")}
-              </Button>
-            )
-          }
-        />
+    <WidgetShell
+      header={
+        chrome ? (
+          <>
+            <LandingBar subtitle={subtitle} action={action} />
+            {notice}
+          </>
+        ) : (
+          notice
+        )
+      }
+    >
+      <div className="gap-section flex flex-col">
+        {!chrome && <LandingHeader subtitle={subtitle} action={action} />}
         {groups.map((g) => (
           <section
             key={g.id}

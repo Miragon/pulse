@@ -2,7 +2,9 @@
  * @miragon/pulse-ui/globals.css: the one-line stylesheet for an app entry that
  * has no Tailwind entry of its own: Tailwind, the kit's design tokens
  * (./theme.css, Miragon by default) and the kit's compiled class sources in
- * `dist/` (the package ships no tests there). Fonts are opt-in:
+ * `dist/` (the package ships no tests there), never the browser bundle in
+ * `dist/browser/` (React and the icons in it hold words Tailwind reads as
+ * classes). Fonts are opt-in:
  * add `@import "@miragon/pulse-ui/fonts.css"` or serve them with `fontFaces()`.
  * A brand overrides the role variables after this import: see the Theme
  * section of the package README.
@@ -11,3 +13,4 @@
 @import "./theme.css";
 
 @source "../dist";
+@source not "../dist/browser";

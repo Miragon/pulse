@@ -9,6 +9,14 @@
     {
       "name": "pulse-cli",
       "source": "./apps/cli/skills/pulse-cli"
+    },
+    {
+      "name": "pulse-artifact",
+      "source": "./apps/mcp-server/skills/pulse-artifact"
+    },
+    {
+      "name": "pulse-boards",
+      "source": "./apps/vscode/skills/pulse-boards"
     }
   ]
 }

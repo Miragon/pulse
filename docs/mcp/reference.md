@@ -12,11 +12,21 @@ ones, so a misspelled filter cannot widen the answer to the whole engine.
 
 BPM operations across these domains (`category`): `engines`, `process-definitions`,
 `process-instances`, `tasks`, `external-tasks`, `messages-signals`, `deployments`, `incidents`,
-`jobs`, `history`, `migrations`, `batches`. Highlights:
+`jobs`, `history`, `migrations`, `batches`, `process-numbers`, `screens`. Highlights:
 
 - **Engines:** `list_engines` (each with its `dialect`), `engine_status` (one engine's triage:
-  findings by severity, counts, the live verdict from the thresholds `ENGINE_HEALTH_*` and findings)
+  findings, counts, the live verdict from its open root incidents by `ENGINE_HEALTH_*` and findings)
 - **Process definitions:** `list_process_definitions`, `get_process_definition_xml`
+- **Process numbers** to show, every version of a key: `engine_process_stats` (now: running, open
+  root incidents, with incident, jobs without retries, open tasks, started and ended in 24 hours;
+  per day or hour of a `timeZone` (a bare date is that zone's day), at most 48 buckets: started,
+  ended and ended per end event, with the median and P90 duration (nearest rank) overall and per end
+  event, unknown past 50,000 instances) and `engine_activity_counts` (per activity the cockpit's
+  diagram counts, open user tasks and the oldest, each kind's latest incident, the screens' diagram
+  decorations; `version` counts one version on its own diagram). Each figure is the engine's count:
+  `{ atLeast }` where its history time to live may have removed some (`history.keptFrom`), `null`
+  where it writes none (`history.recorded`). No XML: `definitionId` names the diagram, so a page
+  loads both and the diagram in three calls; each answer is kept 30 seconds per caller
 - **Process instances:** `start`, `list`, `inspect_process_instance` (where one instance waits and
   why, running or ended, by id, business key or definition key), `delete`, `modify`,
   `set_*_suspension`, `get_activity_instance_tree` (admin, the ids `modify` takes), variables
@@ -51,6 +61,11 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   from the engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
 - **Boards:** with `ENGINE_BOARDS_DIR`, `list_engines` names them, `open_cockpit` (`view` `board`,
   its id) shows one, built by `engine_board_data` ([Boards](boards.md), [Camunda 8](camunda8.md))
+- **Screens and boards as JSON** (`screens`): `engine_get_screen` (`screen` `engine`; `process` with
+  `processDefinitionKey` and `version`; `instance` with `processInstanceId`) and `engine_get_board`
+  return a web app screen's or a board's JSON form, `{ formatVersion, data }`, which a page renders
+  with `@miragon/pulse-blocks`; data only, every dialect, built by the web app's and the cockpit's
+  builders, kept 30 s per caller as theirs, an instance's screen read anew on every call
 
 ### Toolsets
 
@@ -101,7 +116,7 @@ The most common variables. See [Operations](operations.md#environment-variables)
 ### Multi-engine
 
 The server can route to several engines: CIB seven, Operaton and Camunda 7 mixed in one fleet,
-Camunda 8 clusters on boards beside them. Describe them in one profile file, the format of the CLI
+Camunda 8 clusters read-only beside them. Describe them in one profile file, the format of the CLI
 and the editors (`@miragon/pulse-profile`), inline in `ENGINES_JSON` or as a path in `ENGINES_FILE`
 (which wins). It replaces the single-engine variables, which the boot then names as ignored:
 
@@ -127,8 +142,8 @@ and the editors (`@miragon/pulse-profile`), inline in `ENGINES_JSON` or as a pat
 A profile's name is its engine id: the per-call `engine` selector, an enum of the engines a tool
 serves, and the name the cockpit shows. `url` is the REST root; `flavor` (`cibseven` | `operaton` |
 `camunda7`, default `camunda7`) selects the cockpit-link routes and display name, and `camunda8`
-names a cluster the server reads on boards ([Camunda 8](camunda8.md)). `cockpitUrl`, `timeout` (it
-beats `ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that engine) are optional. Each
+names a read-only cluster ([Camunda 8](camunda8.md)). `cockpitUrl`, `timeout` (it beats
+`ENGINE_REQUEST_TIMEOUT_MS`) and `readOnly` (no tool writes to that engine) are optional. Each
 profile signs in on its own (`none`, `basic`, `bearer`, `passthrough`; a cluster `none`, `basic` or
 `clientCredentials`), and a secret never sits in the file: `auth.passwordEnv`, `tokenEnv` or
 `clientSecretEnv` names the variable that holds it, and the server reads only names that start with
@@ -151,9 +166,9 @@ the server's login with HTTP 401 reads "credentials rejected", with 403 "access 
 neither the landing nor the cross-engine view calls it unreachable; the latter counts it apart, both
 give it a refused profile's warning tone, and its overview names the status. An engine's dot, there
 and in the cross-engine view, has the tone of the engine overview's verdict (ok, warning, critical),
-so one open incident below the thresholds is a warning, not an alarm. With two engines or more the
-cockpit offers the cross-engine view: each engine's health, its job backlog and which processes run
-where, read from every engine itself, as counts, never a ranking of the engines. `environment`
+so one open root incident below the thresholds is a warning, not an alarm. With two engines or more
+the cockpit offers the cross-engine view: each engine's health, its job backlog and which processes
+run where, read from every engine itself, as counts, never a ranking of the engines. `environment`
 groups the engines: the landing lists them under their environment, the engine switcher and
 `engine_list_engines` group them, and every engine view names the environment as a chip ("PROD")
 next to the engine, write confirmations included. With [boards](boards.md) the landing lists them
