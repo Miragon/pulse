@@ -95,14 +95,15 @@ the fonts by URL with `fontFaces({ baseUrl })` instead.
 
 ## Use in a page without a build
 
-A page with no bundler and no Tailwind, a Claude artifact say, loads the kit as one ES module
-and one stylesheet from the package's `dist/browser/`, on a CDN such as jsDelivr:
+A page with no bundler and no Tailwind, a Claude artifact say, loads the kit and its stylesheet
+as two ES modules from the package's `dist/browser/`, on a CDN such as jsDelivr, and ships no file
+of its own:
 
 ```html
-<link rel="stylesheet" href="pulse-ui.css" />
 <div id="root"></div>
 <script type="module">
   import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@<version>/dist/browser/pulse-ui.js"
+  import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@<version>/dist/browser/pulse-ui-css.js"
 
   const h = ui.createElement
   const incidents = { situation: "openIncident", label: "4 open incidents" }
@@ -127,6 +128,14 @@ and one stylesheet from the package's `dist/browser/`, on a CDN such as jsDelivr
   from it only: a second React from another URL breaks every hook. Without a build there is no
   JSX; `createElement`, as `h` here, writes the same tree. Pin the version you install, as for every
   `@miragon/pulse-*` package below 1.0.
+- **`pulse-ui-css.js`** holds the text of `pulse-ui.css` (below), and its import puts it into the
+  page as one `<style data-pulse-ui>` at the end of `<head>`: where a `<link>` at the top of the
+  page's content stands, after a host's skeleton and before the page's own styles. A second
+  import, of another copy or another version, adds nothing. A Claude artifact in a chat has no
+  files of its own and loads stylesheets only inline and from Google Fonts, never from a CDN, so
+  import it from the same CDN at the same version as `pulse-ui.js`. A page that ships files of its
+  own, one with a build such as the Claude artifact template, links `pulse-ui.css` as one of them
+  instead.
 - **`lucide.js`** beside it holds every Lucide icon under lucide-react's names, on the same React,
   for a page that draws icons of its own (`import { Activity } from ".../dist/browser/lucide.js"`);
   `pulse-ui.js` holds only the icons the kit draws.
@@ -152,14 +161,17 @@ and one stylesheet from the package's `dist/browser/`, on a CDN such as jsDelivr
   | Position | `overflow-hidden`, `overflow-auto`, `overflow-x-auto`, `relative`, `sticky`, `top-0`, `sr-only`                                                                                                                                                                                     |
 
   It sets the body in the kit's font on the 13 px step, unlayered, so a host's reset before it
-  (a Claude artifact's skeleton) does not win. A Claude artifact loads stylesheets from its own
-  files only: copy `pulse-ui.css` into them. Geist comes from Google Fonts by a `<link>` of the
+  (a Claude artifact's skeleton) does not win. Geist comes from Google Fonts by a `<link>` of the
   page (`family=Geist:wght@400;600;700&family=Geist+Mono:wght@400;600`); without it the system
   font renders.
 
 The page is light or dark by the root's `data-theme` (`"light"` or `"dark"`), as an MCP host and
 a Claude artifact write it. With none of `data-theme`, `data-cd-theme` and `data-theme-mode` on
-the root, it follows the OS's setting (`prefers-color-scheme`) with no script of its own.
+the root, it follows the OS's setting (`prefers-color-scheme`) with no script of its own. A page
+that reads an MCP server through a Claude artifact's connector loads widget-shell's page reads
+beside these modules the same way:
+[widget-shell's README](https://github.com/Miragon/pulse/tree/main/packages/core/widget-shell#use-in-a-page-without-a-build),
+"Use in a page without a build".
 
 ## What it provides
 

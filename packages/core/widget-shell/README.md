@@ -370,13 +370,14 @@ each connector's sections says it once.
 
 A page with no bundler (a Claude artifact written as one HTML page, say) loads the page reads and
 the Claude artifact's entry as one ES module from the package's `dist/browser/`, beside
-pulse-ui's browser bundle on the same CDN at the same version:
+pulse-ui's browser bundle and its stylesheet on the same CDN at the same version, and ships no
+file of its own:
 
 ```html
-<link rel="stylesheet" href="pulse-ui.css" />
 <div id="root"></div>
 <script type="module">
   import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@<version>/dist/browser/pulse-ui.js"
+  import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@<version>/dist/browser/pulse-ui-css.js"
   import {
     mountClaudeArtifact,
     PageGate,
@@ -427,20 +428,21 @@ pulse-ui's browser bundle on the same CDN at the same version:
   kit: it imports both from pulse-ui's `pulse-ui.js` of the same version beside it on the CDN
   (`../../../pulse-ui@<version>/dist/browser/pulse-ui.js`), so the page and the module run on one
   React and one copy of the kit's contexts (its locale, its toasts, `SectionStateGroup`). Load
-  both modules from one CDN, jsDelivr or unpkg, at one version, pinned as every
+  all three modules from one CDN, jsDelivr or unpkg, at one version, pinned as every
   `@miragon/pulse-*` package below 1.0, and take React and the kit from that `pulse-ui.js` only:
   a second React from another URL breaks every hook. Without a build there is no JSX;
   `createElement`, as `h` here, writes the same tree.
-- **The stylesheet** is pulse-ui's `pulse-ui.css` (pulse-ui's README, "Use in a page without a
-  build"), which the page ships as one of its own files, as a page Claude Code publishes with its
-  files and the Claude artifact template do; its classes are the only ones the page's own
-  elements can use. A page Claude writes in a chat has no files of its own: how it gets the
-  stylesheet there waits for a probe in claude.ai.
+- **The stylesheet** is pulse-ui's `pulse-ui.css`, which pulse-ui's `pulse-ui-css.js` holds and
+  puts into the page as one `<style>` when the page imports it (pulse-ui's README, "Use in a page
+  without a build"). So the page is one HTML document with no file of its own, in a chat, whose
+  content security policy loads no stylesheet from a CDN, and published alike. Its classes are the
+  only ones the page's own elements can use.
 - **The rest** is a Claude artifact's (above): the page declares the `mcp` capability with the
   tools it calls, reads nothing but through `window.claude` (no fetch, XHR or WebSocket, which the
   artifact's content security policy refuses anyway), follows claude.ai's theme and speaks the
   browser's language. `packages/core/widget-shell/test/browser-page.test.ts` renders this example
-  in Chromium, in a sandboxed frame under an artifact's content security policy.
+  in Chromium, in a chat's frame and in a published artifact's sandboxed frame, each under its
+  content security policy.
 
 ## The web app
 

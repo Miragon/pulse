@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { mkdirSync, readFileSync } from "node:fs"
+import { mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { type Browser, chromium, type Page } from "playwright"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
@@ -15,12 +15,13 @@ import {
 import { THEME_INLINE } from "./theme/theme-css.test-support.js"
 
 /**
- * A plain index.html over the browser bundle, as a page without a build writes it: pulse-ui.css
- * linked, one module script importing pulse-ui.js (and lucide.js, and the probe of a later entry),
- * no other script, rendered in Chromium (the Playwright pin CI installs). Light and dark by the
- * root's data-theme, and the OS's mode where the root names none. The contrast pairs are measured
- * on the roles as the browser resolves them from the shipped stylesheet. Set
- * PULSE_UI_BROWSER_SHOTS to a folder to keep a screenshot of every case there.
+ * A plain index.html over the browser bundle, as a page with files of its own writes it:
+ * pulse-ui.css linked, one module script importing pulse-ui.js (and lucide.js, and the probe of a
+ * later entry), no other script, rendered in Chromium (the Playwright pin CI installs). Light and
+ * dark by the root's data-theme, and the OS's mode where the root names none. The contrast pairs
+ * are measured on the roles as the browser resolves them from the shipped stylesheet. A page with
+ * no file of its own, the README's example, is browser-chat.test.ts's. Set PULSE_UI_BROWSER_SHOTS
+ * to a folder to keep a screenshot of every case there.
  */
 
 const ORIGIN = "http://pulse-ui.test"
@@ -148,21 +149,6 @@ async function open({ theme, os, width = 1240, html, script }: Case) {
     .locator(html === undefined && script === undefined ? '[data-slot="browser-probe"]' : "h1")
     .waitFor()
   return { page, problems, close: () => context.close() }
-}
-
-/**
- * The README's example ("Use in a page without a build") as a page's content: its module from the
- * CDN's stand-in on another origin, the stylesheet copied into the page's own files, as a Claude
- * artifact keeps it. The example the README shows is one that renders.
- */
-function readmeExample(): string {
-  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8")
-  const section = readme.slice(readme.indexOf("## Use in a page without a build"))
-  const example = /```html\n([\s\S]*?)```/.exec(section)?.[1] ?? ""
-  const jsdelivr = "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@<version>/dist/browser/"
-  expect(example).toContain(jsdelivr)
-  const head = '<meta charset="utf-8" /><title>Leasing</title>'
-  return `<!doctype html><html lang="en"><head>${head}</head><body>${example.replace(jsdelivr, CDN)}</body></html>`
 }
 
 /**
@@ -297,19 +283,6 @@ describe("a plain index.html over the browser bundle", () => {
         const file = name.replace(/[^a-z]+/gi, "-").replace(/^-|-$/g, "")
         await page.screenshot({ path: join(SHOTS, `${file}.png`), fullPage: true })
       }
-      expect(problems).toEqual([])
-    } finally {
-      await close()
-    }
-  })
-
-  it("renders the README's example as it stands", TIMEOUT, async () => {
-    const { page, problems, close } = await open({ os: "dark", html: readmeExample() })
-    try {
-      await expect(page.locator("h1").textContent()).resolves.toBe("Leasing")
-      expect(await page.locator('[data-slot="count-figure"] svg.lucide').count()).toBe(1)
-      expect(await ground(page)).toMatchObject(DARK_GROUND)
-      if (SHOTS) await page.screenshot({ path: join(SHOTS, "readme-example.png"), fullPage: true })
       expect(problems).toEqual([])
     } finally {
       await close()

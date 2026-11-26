@@ -8,6 +8,8 @@
  *   the JSX runtime's `jsx` and `jsxs`, and `React` and `ReactDOM` themselves. React is in it once.
  * - pulse-ui.css: the stylesheet scripts/browser-bundle.css compiles: Tailwind's base, the theme,
  *   every class the kit renders and a set of layout utilities.
+ * - pulse-ui-css.js: an ES module whose import puts that same text into the page, for a page
+ *   that cannot link a stylesheet of its own (`stylesheetModule` below).
  * - Every entry of BROWSER_ENTRIES beside them: a module that imports React, ReactDOM and every
  *   module of the kit pulse-ui.js holds from ./pulse-ui.js (one React, one locale and toast
  *   context) and bundles the rest. lucide.js is every Lucide icon, named as lucide-react names it.
@@ -35,6 +37,10 @@ const SRC = join(PACKAGE, "src")
 export const RUNTIME = "pulse-ui.js"
 export const STYLESHEET = "pulse-ui.css"
 const STYLESHEET_ENTRY = fileURLToPath(import.meta.resolve("./browser-bundle.css"))
+/** The module that puts the stylesheet into the page. */
+export const STYLESHEET_MODULE = "pulse-ui-css.js"
+/** The attribute that marks its `<style>`; its value is the package's version. */
+export const STYLESHEET_MARK = "data-pulse-ui"
 
 /**
  * The entries beside pulse-ui.js: the file each writes, and the module it bundles (a package's
@@ -189,6 +195,46 @@ async function stylesheet(minify) {
 }
 
 /**
+ * pulse-ui-css.js: an ES module whose import puts `css`, the text of pulse-ui.css from the same
+ * build, into the page as ONE `<style data-pulse-ui="<version>">` at the end of `<head>`. That is
+ * where a `<link>` at the top of the page's content stands in a page a host wraps in a skeleton
+ * of its own (a Claude artifact): after the skeleton's reset, so the kit's unlayered rules (the
+ * roles, `color-scheme`, the body's font) win over it as they do from the linked file, and before
+ * the page's own styles, so the kit declares its layer order first and the page's own rules win.
+ * A `<style>` behaves as the linked file does, every at-rule in document order, `@property` (on
+ * whose registrations Tailwind's utilities rest) and `@layer` included; whether a constructed
+ * sheet (`adoptedStyleSheets`) registers `@property` is not established. An import of another
+ * copy (another URL, another version) finds the mark and inserts nothing, and where there is no
+ * document (Node) the import does nothing. It exports nothing.
+ *
+ * VERIFIED on 2026-11-26 by a probe artifact in a claude.ai chat (an artifact with no files of its
+ * own, in the Claude desktop app):
+ * 1. A stylesheet from a CDN is refused: the frame's content security policy names in `style-src`
+ *    only the frame's own origin, 'unsafe-inline' and Google Fonts, so a `<link>` to jsDelivr's
+ *    pulse-ui.css fails with a `style-src-elem` violation.
+ * 2. A module script from jsDelivr loads (`script-src` names `https://cdn.jsdelivr.net/npm/`).
+ * 3. A `<style>` a module script appends to `<head>` applies.
+ * 4. `connect-src` names no CDN, so a module cannot fetch pulse-ui.css: the text is in the module.
+ */
+function stylesheetModule(css, version) {
+  return `/*
+ * @miragon/pulse-ui ${version}, dist/browser/${STYLESHEET_MODULE}: importing it puts the text of
+ * dist/browser/${STYLESHEET} below into the page as one <style ${STYLESHEET_MARK}> at the end of
+ * <head>, once per page, for a page that cannot link a stylesheet (a Claude artifact in a chat
+ * loads none from a CDN).
+ */
+((css) => {
+  const head = typeof document === "undefined" ? null : document.head
+  if (!head || document.querySelector("style[${STYLESHEET_MARK}]")) return
+  const style = document.createElement("style")
+  style.setAttribute("${STYLESHEET_MARK}", ${JSON.stringify(version)})
+  style.textContent = css
+  head.append(style)
+})(${JSON.stringify(css)})
+`
+}
+
+/**
  * The files a build wrote, by their names: the script, and a stylesheet beside it when its
  * modules import CSS (`pulse-ui-bpmn.css` for diagram-js's, say).
  */
@@ -235,7 +281,9 @@ export async function buildBrowserBundle({ minify = true, entries = BROWSER_ENTR
     files = { ...files, ...outputsOf(result) }
   }
   const sheet = await stylesheet(minify)
+  const { version } = JSON.parse(await readFile(join(PACKAGE, "package.json"), "utf8"))
   files[STYLESHEET] = sheet.css
+  files[STYLESHEET_MODULE] = stylesheetModule(sheet.css, version)
   return { files, results, runtimeExports: runtime.exports, stylesheet: sheet.plugin }
 }
 

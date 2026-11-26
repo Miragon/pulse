@@ -11,33 +11,73 @@ import {
 
 /**
  * A page without a build over the browser bundle, as a Claude artifact runs one: the page's
- * content in a skeleton like claude.ai's, with pulse-ui.css as its own file, on the artifact's
- * origin in a sandboxed frame (origin null) under the artifact's content security policy
- * (scripts inline and from the CDN, stylesheets from the page's files and Google Fonts, no fetch,
- * XHR or WebSocket). Its module imports pulse-ui.js and claude-artifact.js from a CDN's stand-in
- * on another origin with jsDelivr's layout and CORS, and `window.claude` is a frozen stand-in of
- * the artifact runtime as a probe verified it on 2026-11-25 (contract 0.2.99), which records every
- * call. Rendered in Chromium (the Playwright pin CI installs). The README's example ("Use in a page
- * without a build") runs as it stands; a page of the suite's own adds what the example does not
- * show: two sections on one read and a second connector. Set PULSE_WIDGET_SHELL_BROWSER_SHOTS to a
- * folder to keep a screenshot of every case there.
+ * content in a skeleton like claude.ai's (its reset sets the body in a 14px system font), with no
+ * file of its own, in one of two frames. A chat's: on the frame's own origin under the content
+ * security policy a probe read in a claude.ai chat on 2026-11-26 (pulse-ui's
+ * scripts/browser-bundle.mjs, pulse-ui-css.js). A published artifact's: on the artifact's origin
+ * in a sandboxed frame (origin null) under its policy. Both run scripts inline and from the CDN,
+ * load stylesheets only from the frame's own origin, inline and from Google Fonts, and let no
+ * fetch, XHR or WebSocket reach the CDN. Its module imports pulse-ui.js, pulse-ui-css.js and
+ * claude-artifact.js from a CDN's stand-in on another origin with jsDelivr's layout and CORS, and
+ * `window.claude` is a frozen stand-in of the artifact runtime as a probe verified it on
+ * 2026-11-25 (contract 0.2.99), which records every call. Rendered in Chromium (the Playwright pin
+ * CI installs). The README's example ("Use in a page without a build") runs as it stands; a page of
+ * the suite's own adds what the example does not show: two sections on one read and a second
+ * connector. Set PULSE_WIDGET_SHELL_BROWSER_SHOTS to a folder to keep a screenshot of every case
+ * there.
  */
 
 const CHAT = "http://claude.test"
 const ARTIFACT = "http://artifact.test"
+const CHAT_FRAME = "http://frame.claude.test"
 const NPM = "http://cdn.test/npm/"
+/** pulse-ui's module whose import puts its stylesheet into the page, beside pulse-ui.js. */
+const STYLESHEET_MODULE = "pulse-ui-css.js"
 const TIMEOUT = { timeout: 60_000 }
 const SHOTS = process.env.PULSE_WIDGET_SHELL_BROWSER_SHOTS
 
-/** The artifact's content security policy; the page's own files stand on its origin. */
-const CSP = [
-  "default-src 'none'",
-  `script-src 'unsafe-inline' ${NPM}`,
-  `style-src ${ARTIFACT} 'unsafe-inline' https://fonts.googleapis.com`,
-  "font-src https://fonts.gstatic.com",
-  "img-src data:",
-  "connect-src 'none'",
-].join("; ")
+/** Where the page runs: a published artifact's frame, or a chat's. */
+type FrameKind = "published" | "chat"
+
+/** A frame the page runs in: its origin, its iframe's sandbox and its content security policy. */
+interface ArtifactFrame {
+  readonly origin: string
+  readonly sandbox: string
+  readonly csp: string
+}
+
+const FRAMES: Readonly<Record<FrameKind, ArtifactFrame>> = {
+  published: {
+    origin: ARTIFACT,
+    sandbox: ' sandbox="allow-scripts"',
+    csp: [
+      "default-src 'none'",
+      `script-src 'unsafe-inline' ${NPM}`,
+      `style-src ${ARTIFACT} 'unsafe-inline' https://fonts.googleapis.com`,
+      "font-src https://fonts.gstatic.com",
+      "img-src data:",
+      "connect-src 'none'",
+    ].join("; "),
+  },
+  // The probe's policy, the frame's host as 'self' and the CDN's stand-in for jsDelivr's /npm/;
+  // its origin was the frame's own, never null.
+  chat: {
+    origin: CHAT_FRAME,
+    sandbox: "",
+    csp: [
+      "default-src 'self'",
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: ${NPM}`,
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: blob:",
+      "font-src 'self' data: blob: https://fonts.gstatic.com",
+      "connect-src 'self' blob: https://fonts.googleapis.com https://fonts.gstatic.com",
+      "worker-src 'self' blob:",
+      "form-action 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+    ].join("; "),
+  },
+}
 
 /** When the stand-in's answers were read. */
 const AS_OF = "2026-11-25T09:30:00.000Z"
@@ -119,6 +159,8 @@ interface Case {
   readonly locale?: string
   /** The runtime's stand-in; none for a page outside an artifact. */
   readonly runtime?: Behaviour
+  /** The frame the page runs in; default a published artifact's. */
+  readonly frame?: FrameKind
 }
 
 /** The page's document: claude.ai's skeleton around its content, the stand-ins first. */
@@ -127,6 +169,7 @@ const artifactDocument = ({ content, theme, runtime }: Case) => `<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<style>:root{color-scheme:light}body{margin:0;font:14px system-ui}</style>
 <script>${ROOT_WATCH}</script>
 ${runtime === undefined ? "" : `<script>${runtimeStub(runtime)}</script>`}
 </head>
@@ -136,27 +179,28 @@ ${content}
 </html>
 `
 
-const CHAT_PAGE = `<!doctype html><html><body style="margin:0">
-<iframe title="Artifact" sandbox="allow-scripts" src="${ARTIFACT}/index.html" style="width:1240px;height:900px;border:0"></iframe>
+/** The chat around the artifact's frame. */
+const chatPage = ({ origin, sandbox }: ArtifactFrame) => `<!doctype html>
+<html><body style="margin:0">
+<iframe title="Artifact"${sandbox} src="${origin}/index.html" style="width:1240px;height:900px;border:0"></iframe>
 </body></html>`
 
 let bundle: BrowserBundle
 let browser: Browser
 /** The CDN's files, by their path under /npm/. */
 let cdn: Record<string, string>
-let stylesheet: string
 
 beforeAll(async () => {
   ;[bundle, browser] = await Promise.all([buildBrowserBundle(), chromium.launch()])
   const { dir, version } = bundle.runtime
+  const pulseUi = (file: string) => ({
+    [`@miragon/pulse-ui@${version}/dist/browser/${file}`]: readFileSync(join(dir, file), "utf8"),
+  })
   cdn = {
-    [`@miragon/pulse-ui@${version}/dist/browser/${RUNTIME}`]: readFileSync(
-      join(dir, RUNTIME),
-      "utf8",
-    ),
+    ...pulseUi(RUNTIME),
+    ...pulseUi(STYLESHEET_MODULE),
     [`@miragon/pulse-widget-shell@${version}/dist/browser/${BUNDLE}`]: bundle.files[BUNDLE] ?? "",
   }
-  stylesheet = readFileSync(join(dir, "pulse-ui.css"), "utf8")
 }, 60_000)
 
 afterAll(async () => {
@@ -177,15 +221,15 @@ async function open(page: Case) {
   tab.on("console", (message) => {
     if (message.type() === "error" || message.type() === "warning") problems.push(message.text())
   })
+  const frame = FRAMES[page.frame ?? "published"]
   await tab.route("**/*", (route) => {
     const url = route.request().url()
-    if (url === `${CHAT}/`) return route.fulfill({ body: CHAT_PAGE, contentType: "text/html" })
-    if (url === `${ARTIFACT}/index.html`) {
-      const headers = { "content-security-policy": CSP }
+    if (url === `${CHAT}/`)
+      return route.fulfill({ body: chatPage(frame), contentType: "text/html" })
+    if (url === `${frame.origin}/index.html`) {
+      const headers = { "content-security-policy": frame.csp }
       return route.fulfill({ body: artifactDocument(page), contentType: "text/html", headers })
     }
-    if (url === `${ARTIFACT}/pulse-ui.css`)
-      return route.fulfill({ body: stylesheet, contentType: "text/css" })
     const file = url.startsWith(NPM) ? cdn[url.slice(NPM.length)] : undefined
     if (file === undefined) {
       problems.push(`requested ${url}`)
@@ -195,14 +239,14 @@ async function open(page: Case) {
     return route.fulfill({ body: file, contentType: "text/javascript", headers })
   })
   await tab.goto(`${CHAT}/`)
-  const frame = tab.frames().find((each) => each.url() === `${ARTIFACT}/index.html`)
-  if (frame === undefined) throw new Error("the chat shows no artifact")
+  const artifact = tab.frames().find((each) => each.url() === `${frame.origin}/index.html`)
+  if (artifact === undefined) throw new Error("the chat shows no artifact")
   const shot = async (name: string) => {
     if (!SHOTS) return
     mkdirSync(SHOTS, { recursive: true })
     await tab.screenshot({ path: join(SHOTS, `${name}.png`), fullPage: true })
   }
-  return { frame, problems, shot, close: () => context.close() }
+  return { frame: artifact, problems, shot, close: () => context.close() }
 }
 
 /** The calls the runtime's stand-in recorded. */
@@ -247,6 +291,9 @@ function readmeExample(): string {
   expect(example).toContain(
     `${jsdelivr}@miragon/pulse-widget-shell@<version>/dist/browser/${BUNDLE}`,
   )
+  expect(example).toContain(
+    `import "${jsdelivr}@miragon/pulse-ui@<version>/dist/browser/${STYLESHEET_MODULE}"`,
+  )
   return example.replaceAll(jsdelivr, NPM).replaceAll("@<version>", `@${bundle.runtime.version}`)
 }
 
@@ -255,10 +302,10 @@ function readmeExample(): string {
  * reads a second connector, outside that gate.
  */
 const TWO_CONNECTORS = `
-<link rel="stylesheet" href="pulse-ui.css" />
 <div id="root"></div>
 <script type="module">
   import * as ui from "${NPM}@miragon/pulse-ui@VERSION/dist/browser/pulse-ui.js"
+  import "${NPM}@miragon/pulse-ui@VERSION/dist/browser/pulse-ui-css.js"
   import { mountClaudeArtifact, PageGate, useSectionRead } from "${NPM}@miragon/pulse-widget-shell@VERSION/dist/browser/claude-artifact.js"
 
   const h = ui.createElement
@@ -288,11 +335,17 @@ const TWO_CONNECTORS = `
 const twoConnectors = () => TWO_CONNECTORS.replaceAll("@VERSION", `@${bundle.runtime.version}`)
 
 describe("a page without a build in a Claude artifact", () => {
-  it(
-    "renders the README's example: one call on Pulse, claude.ai's theme followed and never written, Refresh past the runtime's cache",
+  it.each(["chat", "published"] as const)(
+    "renders the README's example in a %s artifact's frame: one call on Pulse, claude.ai's theme followed and never written, Refresh past the runtime's cache",
     TIMEOUT,
-    async () => {
-      const page = await open({ content: readmeExample(), theme: "light", os: "dark", runtime: {} })
+    async (frameKind) => {
+      const page = await open({
+        content: readmeExample(),
+        theme: "light",
+        os: "dark",
+        runtime: {},
+        frame: frameKind,
+      })
       try {
         const { frame } = page
         await frame.getByText("1,284", { exact: true }).waitFor()
@@ -309,7 +362,7 @@ describe("a page without a build in a Claude artifact", () => {
           scheme: "",
           writes: [],
         })
-        await page.shot("readme-example-light")
+        await page.shot(`readme-example-${frameKind}-light`)
 
         await frame.getByRole("button", { name: "Refresh" }).click()
         await expect.poll(async () => (await callsOf(frame)).length).toBe(2)
@@ -323,7 +376,7 @@ describe("a page without a build in a Claude artifact", () => {
         // claude.ai switches to dark: the stylesheet follows its attribute.
         await frame.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"))
         await expect.poll(async () => (await looks(frame)).background).toBe(DARK.background)
-        await page.shot("readme-example-dark")
+        await page.shot(`readme-example-${frameKind}-dark`)
         expect(page.problems).toEqual([])
       } finally {
         await page.close()

@@ -63,14 +63,14 @@ a release, run `claude plugin marketplace update pulse`, then
 
 ## Without a build
 
-A page of a few panels needs no template: one module script loads pulse-ui's browser bundle and
-widget-shell's page reads for a Claude artifact from jsDelivr, both at the release's version, and
-the page ships the package's `pulse-ui.css` as its one file:
+A page of a few panels needs no template and ships no file: one module script loads pulse-ui's
+browser bundle, its stylesheet and widget-shell's page reads from jsDelivr at the release's version:
 
 <!-- x-release-please-start-version -->
 
 ```js
 import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui.js"
+import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui-css.js"
 import {
   mountClaudeArtifact,
   PageGate,
@@ -81,11 +81,11 @@ import {
 
 <!-- x-release-please-end -->
 
-`claude-artifact.js` takes React and the kit from that `pulse-ui.js`: load both from one CDN at one
-version. The widget-shell
+`pulse-ui-css.js` puts pulse-ui's stylesheet into the page, since a chat artifact loads none from a
+CDN, and `claude-artifact.js` takes React and the kit from that `pulse-ui.js`: load all three from
+one CDN at one version. The widget-shell
 [README](https://github.com/Miragon/pulse/tree/main/packages/core/widget-shell#use-in-a-page-without-a-build)
 shows the whole page, the pulse-ui
 [README](https://github.com/Miragon/pulse/tree/main/packages/core/ui#use-in-a-page-without-a-build)
 what the bundle and the stylesheet hold. A page that reads a second connector declares it beside
-the first and names it in its reads, `reader.call(tool, args, { connector })`. A page Claude writes
-in a chat has no files of its own: how it gets the stylesheet there waits for a probe in claude.ai.
+the first and names it in its reads, `reader.call(tool, args, { connector })`.

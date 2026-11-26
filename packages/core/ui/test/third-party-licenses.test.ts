@@ -15,7 +15,13 @@ import {
   licenceTexts,
   renderLicences,
 } from "../../../../scripts/third-party-licenses.mjs"
-import { buildBrowserBundle, PACKAGE, RUNTIME, STYLESHEET } from "../scripts/browser-bundle.mjs"
+import {
+  buildBrowserBundle,
+  PACKAGE,
+  RUNTIME,
+  STYLESHEET,
+  STYLESHEET_MODULE,
+} from "../scripts/browser-bundle.mjs"
 
 /**
  * THIRD_PARTY_LICENSES.txt of the npm package: what the browser bundle in dist/browser/ holds of
@@ -44,7 +50,10 @@ const isGlue = (id: string) =>
 const words = (names: readonly string[]) =>
   names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1) ?? ""}`
 
-/** The bundle's files, as the list names them: the scripts, then the stylesheet. */
+/**
+ * The bundle's files, as the list names them: the scripts, then the stylesheet and the module that
+ * holds its text.
+ */
 let bundles: string[] = []
 
 function artifacts(): Record<string, string> {
@@ -100,7 +109,7 @@ const text = (): LicenceFileText => ({
     "Miragon GmbH, are in src/primitives and dist/primitives too, under src/primitives/LICENSE.",
     "packages/core/ui/test/third-party-licenses.test.ts of https://github.com/Miragon/pulse writes",
     "this file from the metafiles of the bundle's builds and the stylesheets its Tailwind entry",
-    "inlines into dist/browser/pulse-ui.css.",
+    "inlines into dist/browser/pulse-ui.css, whose text dist/browser/pulse-ui-css.js holds too.",
   ],
   notes: [],
   artifacts: artifacts(),
@@ -116,7 +125,7 @@ describe("THIRD_PARTY_LICENSES.txt", { timeout: 120_000 }, () => {
   beforeAll(async () => {
     const bundle = await buildBrowserBundle({ minify: false })
     const scripts = Object.keys(bundle.results)
-    bundles = [...scripts, STYLESHEET]
+    bundles = [...scripts, STYLESHEET, STYLESHEET_MODULE]
     const modules = Object.fromEntries(
       scripts.map((file) => {
         const result = bundle.results[file]
@@ -129,6 +138,8 @@ describe("THIRD_PARTY_LICENSES.txt", { timeout: 120_000 }, () => {
       }),
     )
     modules[STYLESHEET] = inlinedStylesheets([bundle.stylesheet])
+    // pulse-ui-css.js holds the stylesheet's text, so it holds exactly the works the stylesheet does.
+    modules[STYLESHEET_MODULE] = modules[STYLESHEET]
     inventory = inventoryOf(modules, layout())
   }, 120_000)
 
@@ -155,6 +166,17 @@ describe("THIRD_PARTY_LICENSES.txt", { timeout: 120_000 }, () => {
       ]),
     )
     expect(inventory.thirdParty.find(({ name }) => name === "react")?.bundles).toEqual([RUNTIME])
+  })
+
+  it("names pulse-ui-css.js beside pulse-ui.css for every work the stylesheet holds", () => {
+    const inStylesheet = inventory.thirdParty.filter(({ bundles }) => bundles.includes(STYLESHEET))
+    expect(inStylesheet.map(({ name }) => name)).toEqual(
+      expect.arrayContaining(["tailwindcss", "tw-animate-css"]),
+    )
+    for (const work of inStylesheet) expect(work.bundles, work.name).toContain(STYLESHEET_MODULE)
+    expect(
+      inventory.thirdParty.filter(({ bundles }) => bundles.includes(STYLESHEET_MODULE)),
+    ).toEqual(inStylesheet)
   })
 
   it("runs again in turbo when a file it reads outside the package changes", () => {

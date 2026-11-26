@@ -1,7 +1,8 @@
 {
-  "$comment": "Gzip ceilings (bytes, zlib default level) of the browser bundle the npm package ships in dist/browser/ for a page without a build: pulse-ui.js (React, ReactDOM and the kit, what every such page loads), pulse-ui.css (the theme and every class of the kit) lucide.js (every Lucide icon, for a page that draws its own) and pulse-ui-bpmn.js (the ./bpmn entry with bpmn-js, on pulse-ui.js's React). Checked by src/browser-bundle.test.ts against a production build, which also fails a file that shrank more than 10 % below its ceiling. Set to the measured size plus 2 %. Shrink-only (scripts/check-ratchets.mjs): growth needs a Ratchet-Exception trailer that says what it buys.",
+  "$comment": "Gzip ceilings (bytes, zlib default level) of the browser bundle the npm package ships in dist/browser/ for a page without a build: pulse-ui.js (React, ReactDOM and the kit, what every such page loads), pulse-ui.css (the theme and every class of the kit), pulse-ui-css.js (the same stylesheet in a module that puts it into the page, for a page that cannot link it), lucide.js (every Lucide icon, for a page that draws its own) and pulse-ui-bpmn.js (the ./bpmn entry with bpmn-js, on pulse-ui.js's React). Checked by src/browser-bundle.test.ts against a production build, which also fails a file that shrank more than 10 % below its ceiling. Set to the measured size plus 2 %. Shrink-only (scripts/check-ratchets.mjs): growth needs a Ratchet-Exception trailer that says what it buys.",
   "pulse-ui.js": 148800,
   "pulse-ui.css": 21000,
+  "pulse-ui-css.js": 21400,
   "lucide.js": 225200,
   "pulse-ui-bpmn.js": 71600
 }

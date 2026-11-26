@@ -55,14 +55,16 @@ after the first publish.
 
 ## Without a build
 
-A page of a few panels can skip the template: one module script loads pulse-ui's browser bundle
-and widget-shell's page reads for a Claude artifact from jsDelivr, both at the version of the
-release above, never `latest`, and the page ships the package's `pulse-ui.css` as its one file:
+A page of a few panels can skip the template: one module script loads pulse-ui's browser bundle,
+its stylesheet and widget-shell's page reads for a Claude artifact from jsDelivr, all at the
+version of the release above, never `latest`, and the page ships no file of its own, in a chat and
+published alike:
 
 <!-- x-release-please-start-version -->
 
 ```js
 import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui.js"
+import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui-css.js"
 import {
   mountClaudeArtifact,
   PageGate,
@@ -76,7 +78,9 @@ import {
 Each section reads with `useSectionRead(key, (reader) => reader.call(tool, args))` and renders
 through pulse-ui's `SectionState`, `PageGate` around the sections says a refused connector once,
 and `mountClaudeArtifact(App, { connector: "<the connector's display name>" })` mounts the page,
-whose caller alone speaks to `window.claude`. Take React and the kit from that `pulse-ui.js` only.
+whose caller alone speaks to `window.claude`. `pulse-ui-css.js` puts pulse-ui's stylesheet into
+the page, since a chat artifact loads no stylesheet from a CDN, so the page links none. Take React
+and the kit from that `pulse-ui.js` only, and load all three from one CDN at one version.
 The widget-shell README shows the whole page
 (https://github.com/Miragon/pulse/tree/main/packages/core/widget-shell#use-in-a-page-without-a-build),
 the pulse-ui README what the bundle and the stylesheet hold
