@@ -444,20 +444,29 @@ describe("vitest coverage thresholds (raise-only, never removed)", () => {
     assert.match(checkRatchetFile(PKG_VITEST, base, twice)[0], /2 `coverage` blocks/)
   })
 
-  it("flags a package that stops merging sharedConfig (vitest's default is coverage off)", () => {
+  it("flags a package that stops merging sharedConfig, one that enables coverage itself too", () => {
     const standalone = base.replace("mergeConfig(sharedConfig, defineConfig(", "(defineConfig(")
     assert.match(
       checkRatchetFile(PKG_VITEST, base, standalone).join("\n"),
       /no longer merges sharedConfig/,
     )
-    const selfEnabled = vitestConfig({ thresholds: BASE_THRESHOLDS, extra: "enabled: true," })
-    assert.deepEqual(
-      checkRatchetFile(
-        PKG_VITEST,
-        base,
-        selfEnabled.replace("mergeConfig(sharedConfig, defineConfig(", "(defineConfig("),
-      ),
-      [],
+    // Coverage switched on of its own still measures, but without the floors' check
+    // (scripts/coverage-floors.mjs) that only sharedConfig hands the run.
+    const selfEnabled = vitestConfig({
+      thresholds: BASE_THRESHOLDS,
+      extra: 'enabled: true, provider: "v8",',
+    }).replace("mergeConfig(sharedConfig, defineConfig(", "(defineConfig(")
+    const violations = checkRatchetFile(PKG_VITEST, base, selfEnabled)
+    assert.equal(violations.length, 1, violations.join("\n"))
+    assert.match(
+      violations[0],
+      /^packages\/connectors\/c7\/c7-client\/vitest\.config\.ts no longer/,
+    )
+    assert.match(violations[0], /the check that its floors follow the measurement/)
+    assert.match(violations[0], /with a coverage\.enabled: true of the package's own/)
+    assert.match(
+      violations[0],
+      /Merge sharedConfig again \(export default mergeConfig\(sharedConfig,/,
     )
   })
 })
@@ -687,19 +696,25 @@ export default defineConfig({
   },
 })`
 
-  it("measures: a standalone config needs coverage.enabled: true (vitest's default is off)", () => {
-    const off = checkRatchetFile(
-      `${CLI_DIR}/vitest.config.ts`,
-      null,
-      standalone(`thresholds: { ${FLOORS} }`),
-    )
-    assert.equal(off.length, 1)
-    assert.match(off[0], /neither merges sharedConfig nor sets coverage\.enabled: true/)
+  it("measures through sharedConfig: a config of its own measures nothing or misses the floors' check", () => {
+    // Without sharedConfig vitest measures nothing (its default is off), and with
+    // coverage.enabled: true of its own it measures without the check that the floors follow the
+    // measurement (scripts/coverage-floors.mjs): a new package's config fails either way.
+    for (const coverage of [
+      `thresholds: { ${FLOORS} }`,
+      `enabled: true, thresholds: { ${FLOORS} }`,
+    ]) {
+      const violations = checkRatchetFile(`${CLI_DIR}/vitest.config.ts`, null, standalone(coverage))
+      assert.equal(violations.length, 1, coverage)
+      assert.match(violations[0], /^apps\/cli\/vitest\.config\.ts does not merge sharedConfig\./)
+      assert.match(violations[0], /the check that its floors follow the measurement/)
+      assert.match(violations[0], /Merge sharedConfig \(export default mergeConfig\(sharedConfig,/)
+    }
     assert.deepEqual(
       checkRatchetFile(
-        `${CLI_DIR}/vitest.config.ts`,
+        `${FAMILY_DIR}/vitest.config.ts`,
         null,
-        standalone(`enabled: true, thresholds: { ${FLOORS} }`),
+        vitestConfig({ thresholds: `thresholds: { ${FLOORS} },` }),
       ),
       [],
     )
@@ -711,7 +726,7 @@ export default defineConfig({
       })
       assert.match(
         checkRatchetFile(`${FAMILY_DIR}/vitest.config.ts`, null, merged).join("\n"),
-        /neither merges sharedConfig/,
+        new RegExp(`merges sharedConfig but sets coverage\\.enabled: ${enabled}`),
         enabled,
       )
     }
@@ -788,9 +803,10 @@ describe("inline test.projects (keyed by their literal name)", () => {
   // The shape of a VS Code extension's config: root coverage with global and
   // glob floors, three inline projects that inherit the root config.
   const projectsConfig = ({ projects = [UNIT, BROWSER, ENGINE], core = 98 } = {}) => `
-import { defineConfig } from "vitest/config"
+import { defineConfig, mergeConfig } from "vitest/config"
+import { sharedConfig } from "../../vitest.shared"
 const ENGINE_TEST = "test/**/*.engine.test.ts"
-export default defineConfig({
+export default mergeConfig(sharedConfig, defineConfig({
   plugins: [bpmnAsText],
   test: {
     clearMocks: true,
@@ -806,7 +822,7 @@ export default defineConfig({
     },
     ${projects === null ? "" : `projects: [${projects.join(", ")}],`}
   },
-})`
+}))`
   const base = projectsConfig()
   const check = (after, before = base) => checkRatchetFile(VSCODE, before, after)
 

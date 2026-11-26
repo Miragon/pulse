@@ -3,9 +3,9 @@
  * reporter that every package's coverage run carries through vitest.shared.ts, next to vitest's
  * own threshold check. vitest fails a floor the measurement falls below, but nothing failed a
  * floor the measurement had left far behind (engine-connector's stood unchanged from 2026-10-12,
- * up to 15 points under), so a change could drop that much coverage unseen; and a floor over a
- * scope that measured nothing passed whatever the tests did (apps/vscode measured 0 of 0
- * statements from #585 to #595, which istanbul reads as 100 %).
+ * up to 13 points under, the runtime view's webview's up to 21), so a change could drop that much
+ * coverage unseen; and a floor over a scope that measured nothing passed whatever the tests did
+ * (apps/vscode measured 0 of 0 statements from #585 to #595, which istanbul reads as 100 %).
  *
  * Over the coverage map vitest checks its thresholds against, grouped as vitest groups it (every
  * measured file under the global floors, also the files a glob key matches; under a glob key's
@@ -18,20 +18,22 @@
  *
  * The margin is 3 points. The packages write a floor in one of two ways, the measured value
  * rounded down (less than 1 point behind) or 2 points under it, rounded down (less than 3 behind),
- * and both hold; it is the most a change can lose unseen, against up to 15 before. Two full runs
- * on the same code read the same numbers in every package, so the margin is room for changes,
- * not for noise: a floor rounded down, less a point, sits 1 to 2 points under the measurement and
- * keeps at least a point either way, for a change that leaves a line uncovered as for one that
- * covers more without raising the floor.
+ * and both hold; it is the most a change can lose unseen, against up to 21 before. Full runs on
+ * the same code read the same numbers in every package but the CLI, whose property tests move its
+ * totals by hundredths of a point, so the margin is room for changes, not for noise: a floor
+ * rounded down, less a point, sits 1 to 2 points under the measurement and keeps at least a point
+ * either way, for a change that leaves a line uncovered as for one that covers more without
+ * raising the floor.
  *
  * It reads a whole `vitest run` whose tests passed, nothing else: a run narrowed to some files,
  * tests (`-t`), projects or a shard, `--changed` and watch mode measure less than the floors hold
  * (scripts/local-test-one.mjs switches coverage off for that), and after a failed test vitest
- * checks no floor either. It changes nothing vitest measures or checks. `vitest run` takes no
- * `--reporter` that could drop it: lint:package-scripts holds every package's test script to
- * exactly `vitest run`. scripts/coverage-floors.d.mts types it for vitest.shared.ts, and
- * scripts/coverage-floors.test.mjs holds it to planted floors and scopes, the last cases through
- * `vitest run` over the real vitest.shared.ts.
+ * checks no floor either. It changes nothing vitest measures or checks. No package drops it:
+ * lint:package-scripts holds every package's test script to exactly `vitest run`, which takes no
+ * `--reporter`, and its vitest.config.ts to `mergeConfig(sharedConfig, …)`, which keeps the
+ * shared reporters (scripts/vitest-wiring.mjs). scripts/coverage-floors.d.mts types it for
+ * vitest.shared.ts, and scripts/coverage-floors.test.mjs holds it to planted floors and scopes,
+ * the last cases through `vitest run` over the real vitest.shared.ts.
  */
 /**
  * Its declarations, which vitest.shared.ts reads: knip resolves that import of this module to it,
@@ -222,6 +224,19 @@ async function isWholeRun(vitest, specifications) {
   return specifications.length >= every.length
 }
 
+/** Fails the run with each finding, named by the config whose floors it is about. */
+function failRun(vitest, findings) {
+  process.exitCode = 1
+  const config = vitest.vite?.config?.configFile ?? vitest.config.root
+  const where = path.relative(REPO_ROOT, config) || config
+  for (const finding of findings)
+    vitest.logger.error(`ERROR: Coverage floors of ${where}: ${finding}.`)
+  vitest.logger.error(
+    "Floors follow the measurement (scripts/coverage-floors.mjs): a raise needs no " +
+      "Ratchet-Exception trailer, and a floor over an empty scope holds nothing.",
+  )
+}
+
 /** The reporter vitest.shared.ts hands every package's run. */
 export function coverageFloors({ margin = FLOOR_MARGIN } = {}) {
   let vitest
@@ -240,18 +255,9 @@ export function coverageFloors({ margin = FLOOR_MARGIN } = {}) {
     },
     onTestRunEnd(_modules, _errors, reason) {
       if (!vitest || !whole || reason !== "passed" || coverage === undefined) return
-      const { root } = vitest.config
-      const findings = floorFindings(coverage, vitest.config.coverage?.thresholds, root, margin)
-      if (findings.length === 0) return
-      process.exitCode = 1
-      const config = vitest.vite?.config?.configFile ?? root
-      const where = path.relative(REPO_ROOT, config) || config
-      for (const finding of findings)
-        vitest.logger.error(`ERROR: Coverage floors of ${where}: ${finding}.`)
-      vitest.logger.error(
-        "Floors follow the measurement (scripts/coverage-floors.mjs): a raise needs no " +
-          "Ratchet-Exception trailer, and a floor over an empty scope holds nothing.",
-      )
+      const { config } = vitest
+      const findings = floorFindings(coverage, config.coverage?.thresholds, config.root, margin)
+      if (findings.length > 0) failRun(vitest, findings)
     },
   }
 }
