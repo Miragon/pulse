@@ -9,7 +9,7 @@ import { describePageError, PAGE_ERROR_CODES, type PageErrorCode } from "./page-
 import { resolveUiMessages, UI_MESSAGES } from "./ui-messages.js"
 
 /**
- * The page error vocabulary: a page maps its transport's failures to one of six codes once, and
+ * The page error vocabulary: a page maps its transport's failures to one of eight codes once, and
  * the kit words each in English and German, a place or a name passed in where a transport has
  * its own (the claude.ai template passes its connector's name and where Settings keeps it).
  */
@@ -21,10 +21,12 @@ const CLAUDE_AI = {
 } as const
 
 describe("describePageError", () => {
-  it("knows the six codes, in the order of the type", () => {
+  it("knows the eight codes, in the order of the type", () => {
     expect(PAGE_ERROR_CODES).toEqual([
       "needs_reauth",
       "not_connected",
+      "selection_required",
+      "not_declared",
       "not_allowed",
       "approval_required",
       "unavailable",
@@ -61,6 +63,41 @@ describe("describePageError", () => {
     )
   })
 
+  it("tells a missing connection, one to choose and a page that declares none apart, each with its own way out", () => {
+    const words = (code: PageErrorCode, messages = en) =>
+      describePageError({ code }, { messages, connector: "Pulse", place: CLAUDE_AI.en })
+    // The viewer sets the connection up where they manage it.
+    expect(words("not_connected").hint).toBe(
+      "Set up Pulse in claude.ai, in Settings under Connectors, then try again.",
+    )
+    // The viewer has the connection, and chooses which one the page uses when asked.
+    expect(words("selection_required")).toEqual({
+      title: "This page waits for you to choose its connection to Pulse",
+      hint: "Choose the connection to Pulse the page should use when you're asked, then try again.",
+    })
+    expect(words("selection_required", de)).toEqual({
+      title: "Diese Seite wartet darauf, dass du ihre Verbindung zu Pulse wählst",
+      hint: "Wähl die Verbindung zu Pulse, die die Seite nutzen soll, wenn du gefragt wirst, und versuch es dann noch mal.",
+    })
+    // Only whoever published the page can declare its connection: no place of the viewer's, no
+    // retry.
+    expect(words("not_declared")).toEqual({
+      title: "This page isn't set up to use Pulse",
+      hint: "Only whoever published the page can set up its connection to Pulse. Ask them.",
+      permanent: true,
+    })
+    expect(words("not_declared", de)).toEqual({
+      title: "Diese Seite ist nicht dafür eingerichtet, Pulse zu nutzen",
+      hint: "Nur die Person, die die Seite veröffentlicht hat, kann ihre Verbindung zu Pulse einrichten. Frag sie.",
+      permanent: true,
+    })
+    for (const code of ["selection_required", "not_declared"] as const) {
+      for (const messages of [en, de]) {
+        expect(words(code, messages).hint, code).not.toContain("Connectors")
+      }
+    }
+  })
+
   it("sends the reader to whoever runs the connection that failed, never to a fixed server", () => {
     expect(
       describePageError({ code: "unavailable" }, { messages: en, connector: "Acme CRM" }).hint,
@@ -80,12 +117,12 @@ describe("describePageError", () => {
     const permanent = PAGE_ERROR_CODES.filter(
       (code) => describePageError({ code }, { messages: en }).permanent === true,
     )
-    expect(permanent).toEqual(["not_allowed"])
-    // Its hint names the way out, never "try again".
-    expect(describePageError({ code: "not_allowed" }, { messages: en }).hint).not.toMatch(/try/i)
-    expect(describePageError({ code: "not_allowed" }, { messages: de }).hint).not.toMatch(
-      /versuch/i,
-    )
+    expect(permanent).toEqual(["not_declared", "not_allowed"])
+    // Each one's hint names the way out, never "try again".
+    for (const code of permanent) {
+      expect(describePageError({ code }, { messages: en }).hint, code).not.toMatch(/try/i)
+      expect(describePageError({ code }, { messages: de }).hint, code).not.toMatch(/versuch/i)
+    }
   })
 
   it("puts the raw text only under Details, trimmed, and none for an empty one", () => {

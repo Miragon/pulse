@@ -63,12 +63,15 @@ export interface ClaudeRuntime {
 
 /**
  * The runtime's refusal codes, each as pulse-ui's page error code (`PageErrorCode`), which the
- * page's words name; any other code is the page's `tool_error`.
+ * page's words name; any other code is the page's `tool_error`. `server_not_connected` and
+ * `selection_required` part in their words only: the viewer sets the connector up, or chooses
+ * which of theirs the page uses. Which codes refuse the connector as a whole (`isPageWideRefusal`)
+ * rests on the probe of 2026-11-25: probe the runtime again before a code changes sides.
  */
 export const CLAUDE_RUNTIME_CODES: ReadonlyMap<string, PageErrorCode> = new Map([
   ["needs_reauth", "needs_reauth"],
   ["server_not_connected", "not_connected"],
-  ["selection_required", "not_connected"],
+  ["selection_required", "selection_required"],
   ["not_in_manifest", "not_allowed"],
   ["blocked_by_policy", "not_allowed"],
   ["approval_required", "approval_required"],
@@ -85,7 +88,9 @@ export interface ClaudeToolCallerOptions {
   readonly runtime?: ClaudeRuntime
 }
 
+/** A page outside an artifact: no connector there, which a viewer opens it in claude.ai to have. */
 const NO_RUNTIME = "window.claude.use is missing: the page runs outside a Claude artifact."
+/** A page published without its `mcp` declaration: only whoever published it can declare it. */
 const NO_CAPABILITY =
   'window.claude.use("mcp") gave no capability: the page declares no mcp capability.'
 
@@ -160,7 +165,12 @@ function cacheOf(refresh: boolean | undefined): ClaudeCacheOptions {
     : { staleTime: PAGE_READ_TTL_MS, gcTime: KEEP_MS }
 }
 
-/** The runtime's `mcp` capability; a refusal without the call's site, which its caller adds. */
+/**
+ * The runtime's `mcp` capability; a refusal without the call's site, which its caller adds. No
+ * runtime and a refused `use("mcp")` are `not_connected`, no capability (a page that declares
+ * none) is `not_declared`: whoever published the page declares it, so its words send the viewer
+ * there and offer no Try again.
+ */
 async function capabilityOf(runtime: ClaudeRuntime | undefined): Promise<ClaudeMcp> {
   const claude = runtime ?? (globalThis as { claude?: ClaudeRuntime }).claude
   if (typeof claude?.use !== "function") throw new PageCallError("not_connected", NO_RUNTIME)
@@ -170,7 +180,7 @@ async function capabilityOf(runtime: ClaudeRuntime | undefined): Promise<ClaudeM
   } catch (thrown) {
     throw refusalOf(thrown, "not_connected")
   }
-  if (mcp === null || mcp === undefined) throw new PageCallError("not_connected", NO_CAPABILITY)
+  if (mcp === null || mcp === undefined) throw new PageCallError("not_declared", NO_CAPABILITY)
   return mcp
 }
 

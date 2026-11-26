@@ -77,6 +77,13 @@ export const en: UiMessages = {
       `Reconnect to ${connector}${at(place)}, then try again.`,
     notConnected: ({ connector }) => `This page isn't connected to ${connector}`,
     notConnectedHint: ({ connector, place }) => `Set up ${connector}${at(place)}, then try again.`,
+    selectionRequired: ({ connector }) =>
+      `This page waits for you to choose its connection to ${connector}`,
+    selectionRequiredHint: ({ connector }) =>
+      `Choose the connection to ${connector} the page should use when you're asked, then try again.`,
+    notDeclared: ({ connector }) => `This page isn't set up to use ${connector}`,
+    notDeclaredHint: ({ connector }) =>
+      `Only whoever published the page can set up its connection to ${connector}. Ask them.`,
     notAllowed: () => "This page may not call the tool it needs",
     notAllowedHint: () =>
       "A setting of the page or a policy of your organization blocks the call. Ask whoever published the page.",

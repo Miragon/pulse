@@ -239,9 +239,11 @@ catalogs in English and German:
   other; `wide` spans a row.
 - `FreshnessStamp` goes into the bar's `freshness`: "As of 14:32", the instant in its title.
 - `describePageError` words a failed call by its code (`PageErrorCode`: `needs_reauth`,
-  `not_connected`, `not_allowed`, `approval_required`, `unavailable`, `tool_error`), so a page
-  maps its transport's errors once. The words name no transport: pass the connector's name and
-  where the viewer manages it (`place`), the claude.ai template passes claude.ai's.
+  `not_connected`, `selection_required`, `not_declared`, `not_allowed`, `approval_required`,
+  `unavailable`, `tool_error`), so a page maps its transport's errors once. The words name no
+  transport: pass the connector's name and where the viewer manages it (`place`), the claude.ai
+  template passes claude.ai's. `not_declared` (the page declares no connection) and `not_allowed`
+  are `permanent`: their hints send the reader to whoever published the page, never to try again.
 
 ```tsx
 function Tasks({ read }: { read: Read<Task[]> }) {

@@ -124,6 +124,44 @@ describe("describePageFailure", () => {
     )
   })
 
+  it.each([
+    [
+      "an unknown process key",
+      'No process definition with key "orders" is deployed on this engine.',
+      "This process isn't deployed on the engine",
+      ARTIFACT_PAGE_HINTS.en.unknownProcess,
+    ],
+    [
+      "no engine of several",
+      "[ENGINE_NOT_SELECTED] No engine specified and no default engine configured. Pass `engine`, one of: a, b.",
+      "No engine is selected",
+      ARTIFACT_PAGE_HINTS.en.engineNotSelected,
+    ],
+    [
+      "an engine the server lacks",
+      '[UNKNOWN_ENGINE] Unknown engine id "c". Available: a, b.',
+      "This engine isn't on this server",
+      ARTIFACT_PAGE_HINTS.en.unknownEngine,
+    ],
+  ])(
+    "words %s in an artifact for whoever published it, named and permanent, never as something that went wrong",
+    (_, text, title, hint) => {
+      const refused = new ToolResultError({ isError: true, content: [{ type: "text", text }] })
+      expect(describePageFailure(refused, "en", { pageHints: ARTIFACT_PAGE_HINTS })).toEqual({
+        title,
+        hint,
+        details: text,
+        permanent: true,
+      })
+      // The same through a refusal the caller could not resolve as the tool's answer.
+      const asRefusal = new PageCallError("tool_error", text, { connector: "Pulse" })
+      expect(describePageFailure(asRefusal, "en", { pageHints: ARTIFACT_PAGE_HINTS }).title).toBe(
+        title,
+      )
+      expect(title).not.toBe(describeError(undefined, "en").title)
+    },
+  )
+
   it("follows the host: a chat's words in a chat, a page's (the default) elsewhere", () => {
     const error = new Error("Something odd happened")
     expect(describePageFailure(error, "de", { pageHints: HINTS }).hint).toBe(PAGE_HINTS.de.unknown)

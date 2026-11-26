@@ -27,6 +27,9 @@ export interface ErrorLabels {
   signedOut: ErrorKindLabels
   unknownBoard: ErrorKindLabels
   boardRefused: ErrorKindLabels
+  engineNotSelected: ErrorKindLabels
+  unknownEngine: ErrorKindLabels
+  unknownProcess: ErrorKindLabels
   invalidArguments: ErrorKindLabels
   unreachable: ErrorKindLabels
   timeout: ErrorKindLabels
@@ -83,6 +86,19 @@ const EN: ErrorLabels = {
     title: () => "This board can't be shown: its file gives no board",
     hint: () =>
       "Its problems are under Details and in the server's log at startup. Ask whoever runs this server to fix the file.",
+  },
+  // The server's text under Details names the engines it has.
+  engineNotSelected: {
+    title: () => "No engine is selected",
+    hint: () => "This server has several engines and no default one. Pick one of them.",
+  },
+  unknownEngine: {
+    title: () => "This engine isn't on this server",
+    hint: () => "The engines it has are under Details. Pick one of them.",
+  },
+  unknownProcess: {
+    title: () => "This process isn't deployed on the engine",
+    hint: () => "Check the process, or pick another engine.",
   },
   invalidArguments: {
     title: () => "The server refused this request",
@@ -169,6 +185,18 @@ const DE: ErrorLabels = {
     title: () => "Dieses Board lässt sich nicht zeigen: seine Datei ergibt kein Board",
     hint: () =>
       "Die Probleme stehen unter Details und im Log des Servers beim Start. Bitte die Person, die den Server betreibt, die Datei zu korrigieren.",
+  },
+  engineNotSelected: {
+    title: () => "Es ist keine Engine ausgewählt",
+    hint: () => "Dieser Server hat mehrere Engines und keine voreingestellte. Wähl eine davon.",
+  },
+  unknownEngine: {
+    title: () => "Diese Engine gibt es auf diesem Server nicht",
+    hint: () => "Die Engines, die er hat, stehen unter Details. Wähl eine davon.",
+  },
+  unknownProcess: {
+    title: () => "Dieser Prozess ist auf der Engine nicht bereitgestellt",
+    hint: () => "Prüf den Prozess oder wähl eine andere Engine.",
   },
   invalidArguments: {
     title: () => "Der Server hat diese Anfrage abgelehnt",

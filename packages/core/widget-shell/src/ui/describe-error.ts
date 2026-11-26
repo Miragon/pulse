@@ -13,7 +13,10 @@ import type { FollowUp } from "./view-host.js"
  * its session gone (the web app's
  * `signed_out`), `unknownBoard` and
  * `boardRefused` a board the server does not show (UNKNOWN_BOARD) or whose file gives none
- * (BOARD_REFUSED), and `invalidArguments` a call whose arguments the tool's input schema refuses.
+ * (BOARD_REFUSED), `engineNotSelected` a call that names no engine on a server of several without
+ * a default (ENGINE_NOT_SELECTED), `unknownEngine` one that names an engine the server does not
+ * have (UNKNOWN_ENGINE), `unknownProcess` a process key no version of which is deployed on the
+ * engine read, and `invalidArguments` a call whose arguments the tool's input schema refuses.
  */
 export const ERROR_KINDS = [
   "profileRefused",
@@ -22,6 +25,9 @@ export const ERROR_KINDS = [
   "signedOut",
   "unknownBoard",
   "boardRefused",
+  "engineNotSelected",
+  "unknownEngine",
+  "unknownProcess",
   "invalidArguments",
   "unreachable",
   "timeout",
@@ -70,6 +76,16 @@ const NOT_SERVED = /^\[ENGINE_DIALECT_NOT_SERVED\]/
 /** The engine module's codes for a board it does not show, and for one whose file gives none. */
 const UNKNOWN_BOARD = /^\[UNKNOWN_BOARD\]/
 const BOARD_REFUSED = /^\[BOARD_REFUSED\]/
+/** The engine module's codes for a call that names no engine of several, and an engine it lacks. */
+const ENGINE_NOT_SELECTED = /^\[ENGINE_NOT_SELECTED\]/
+const UNKNOWN_ENGINE = /^\[UNKNOWN_ENGINE\]/
+/**
+ * The engine module's refusal of a process key no version of which is deployed on the engine
+ * (`unknownKeyError`, a model tool's: `engine_process_stats`, `engine_activity_counts`), which
+ * carries no code; anchored, so an engine's message that quotes it is none.
+ */
+const UNKNOWN_PROCESS =
+  /^No process definition with key "[^"\n]{0,200}" is deployed on this engine\./
 /**
  * The MCP SDK's refusal of arguments the tool's input schema does not take (JSON-RPC -32602), and
  * the same refusal as a client hands it on without the SDK's lead (claude.ai's artifact runtime:
@@ -175,6 +191,9 @@ const NAMED_KINDS: ReadonlyArray<readonly [RegExp, ErrorKind]> = [
   [NOT_SERVED, "notServed"],
   [UNKNOWN_BOARD, "unknownBoard"],
   [BOARD_REFUSED, "boardRefused"],
+  [ENGINE_NOT_SELECTED, "engineNotSelected"],
+  [UNKNOWN_ENGINE, "unknownEngine"],
+  [UNKNOWN_PROCESS, "unknownProcess"],
   [INVALID_ARGUMENTS, "invalidArguments"],
   [TOOL_MISSING, "notOnServer"],
   [/^\[unauthorized\]/, "unauthorized"],
@@ -218,8 +237,9 @@ export function classifyError(error: unknown): ErrorFacts {
  * refused profile fails every read and write to its engine; a read-only one fails only writes,
  * which the view's data layer never retries anyway; a call that does not read its engine's
  * dialect fails alike on every try; a page whose session ended fails every call
- * until its user signs in again; a board the server does not show, and arguments the tool does
- * not take, fail the same call alike every time.
+ * until its user signs in again; a board the server does not show, a call that names no engine of
+ * several or one the server does not have, a process no version of which is deployed there, and
+ * arguments the tool does not take, fail the same call alike every time.
  */
 const PERMANENT_KINDS: ReadonlySet<ErrorKind> = new Set([
   "profileRefused",
@@ -228,6 +248,9 @@ const PERMANENT_KINDS: ReadonlySet<ErrorKind> = new Set([
   "signedOut",
   "unknownBoard",
   "boardRefused",
+  "engineNotSelected",
+  "unknownEngine",
+  "unknownProcess",
   "invalidArguments",
 ])
 

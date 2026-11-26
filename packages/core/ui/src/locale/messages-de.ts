@@ -79,6 +79,14 @@ export const de: UiMessages = {
     notConnected: ({ connector }) => `Diese Seite ist nicht mit ${connector} verbunden`,
     notConnectedHint: ({ connector, place }) =>
       `Richte ${connector}${at(place)} ein und versuch es dann noch mal.`,
+    selectionRequired: ({ connector }) =>
+      `Diese Seite wartet darauf, dass du ihre Verbindung zu ${connector} wählst`,
+    selectionRequiredHint: ({ connector }) =>
+      `Wähl die Verbindung zu ${connector}, die die Seite nutzen soll, wenn du gefragt wirst, und versuch es dann noch mal.`,
+    notDeclared: ({ connector }) =>
+      `Diese Seite ist nicht dafür eingerichtet, ${connector} zu nutzen`,
+    notDeclaredHint: ({ connector }) =>
+      `Nur die Person, die die Seite veröffentlicht hat, kann ihre Verbindung zu ${connector} einrichten. Frag sie.`,
     notAllowed: () => "Diese Seite darf das Tool nicht aufrufen, das sie braucht",
     notAllowedHint: () =>
       "Eine Einstellung der Seite oder eine Richtlinie deiner Organisation sperrt den Aufruf. Frag die Person, die die Seite veröffentlicht hat.",
