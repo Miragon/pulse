@@ -196,11 +196,17 @@ async function stylesheet(minify) {
 
 /**
  * pulse-ui-css.js: an ES module whose import puts `css`, the text of pulse-ui.css from the same
- * build, into the page as ONE `<style data-pulse-ui="<version>">` at the end of `<head>`. That is
- * where a `<link>` at the top of the page's content stands in a page a host wraps in a skeleton
- * of its own (a Claude artifact): after the skeleton's reset, so the kit's unlayered rules (the
- * roles, `color-scheme`, the body's font) win over it as they do from the linked file, and before
- * the page's own styles, so the kit declares its layer order first and the page's own rules win.
+ * build, into the page as ONE `<style data-pulse-ui="<version>">` at the end of `<head>`, after
+ * everything there (a module script runs once the document is parsed). In a page a host wraps in
+ * a skeleton of its own (a Claude artifact), that is where a `<link>` at the top of the page's
+ * content stands: after the skeleton's reset, so the kit's unlayered rules (the roles,
+ * `color-scheme`, the body's font) win over it as they do from the linked file, and before a
+ * `<style>` in the page's content, so the kit declares its layer order first and the page's rules
+ * there win. A page's own `<style>` in `<head>` comes before the kit's instead: the kit's
+ * unlayered rules win over its rules of the same specificity, and a `@layer` it names first
+ * reorders the kit's layers (an early `utilities` puts every utility under the base's reset). No
+ * one place serves both, since first in `<head>` a skeleton's reset wins the body, so a page keeps
+ * its own styles in its content (the README says so; src/browser-chat.test.ts holds both).
  * A `<style>` behaves as the linked file does, every at-rule in document order, `@property` (on
  * whose registrations Tailwind's utilities rest) and `@layer` included; whether a constructed
  * sheet (`adoptedStyleSheets`) registers `@property` is not established. An import of another

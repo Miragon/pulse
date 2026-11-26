@@ -98,7 +98,7 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     )
   })
 
-  it("runs pulse-ui's suites for its README, whose example the browser page suite renders", () => {
+  it("runs pulse-ui's suites for its README, whose example its browser chat suite renders", () => {
     assert.deepEqual(scopes("packages/core/ui/README.md"), ["typescript"])
   })
 

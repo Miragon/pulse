@@ -100,8 +100,8 @@ export const PATH_RULES = [
 /** Package files that checks outside the package read too. */
 export const ALSO_READ_BY = [
   { pattern: /^apps\/cli\/README\.md$/, scopes: ["brand"] },
-  // pulse-ui's README: its browser page suite renders the example of "Use in a page without a
-  // build" over the bundle, so the example it shows is one that runs.
+  // pulse-ui's README: its browser chat suite (src/browser-chat.test.ts) renders the example of
+  // "Use in a page without a build" over the bundle, so the example it shows is one that runs.
   { pattern: /^packages\/core\/ui\/README\.md$/, scopes: ["typescript"] },
   // widget-shell's README: its browser page suite renders the example of "Use in a page without a
   // build" over its browser bundle in Chromium, so the example it shows is one that runs.

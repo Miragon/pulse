@@ -129,8 +129,12 @@ of its own:
   JSX; `createElement`, as `h` here, writes the same tree. Pin the version you install, as for every
   `@miragon/pulse-*` package below 1.0.
 - **`pulse-ui-css.js`** holds the text of `pulse-ui.css` (below), and its import puts it into the
-  page as one `<style data-pulse-ui>` at the end of `<head>`: where a `<link>` at the top of the
-  page's content stands, after a host's skeleton and before the page's own styles. A second
+  page as one `<style data-pulse-ui>` at the end of `<head>`, after everything there: after a
+  host's skeleton, whose reset it wins over as the linked file does, and before the page's
+  content. So a page's own styles, a brand's override ("Your own brand", below) included, stand in
+  a `<style>` in its content (`<body>`), never in its `<head>`: in `<head>` the kit's unlayered
+  rules (the roles, `color-scheme`, the body's font) would win over the page's rules of the same
+  specificity, and a `@layer` the page names first would reorder the kit's layers. A second
   import, of another copy or another version, adds nothing. A Claude artifact in a chat has no
   files of its own and loads stylesheets only inline and from Google Fonts, never from a CDN, so
   import it from the same CDN at the same version as `pulse-ui.js`. A page that ships files of its
@@ -450,8 +454,9 @@ variables only, never a `--cd-*` token, under `:root` AND the dark scopes
 (`.dark, [data-theme="dark"], [data-theme-mode="dark"], [data-cd-theme="dark"]`), or a light-only
 value shows in dark; for a page that follows the OS, also inside
 `@media (prefers-color-scheme: dark)` on
-`:root:where(:not([data-theme], [data-cd-theme], [data-theme-mode]))`.
-Measure it in a test with `@miragon/pulse-ui/testing`:
+`:root:where(:not([data-theme], [data-cd-theme], [data-theme-mode]))`. A page that imports
+`pulse-ui-css.js` writes it in a `<style>` in its `<body>`, which comes after the kit's ("Use in
+a page without a build", above). Measure it in a test with `@miragon/pulse-ui/testing`:
 `parseThemeVariables(...themeStylesheets(), brandCss)` and `contrastFindings` over
 `toneContrastPairs()` and `ROLE_CONTRAST_PAIRS`; the values for the OS's dark root are measured
 too (`os-dark`), wherever they resolve a pair apart from the dark scopes' values.

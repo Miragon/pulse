@@ -63,14 +63,14 @@ published alike:
 <!-- x-release-please-start-version -->
 
 ```js
-import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui.js"
-import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui-css.js"
+import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.33.0/dist/browser/pulse-ui.js"
+import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.33.0/dist/browser/pulse-ui-css.js"
 import {
   mountClaudeArtifact,
   PageGate,
   usePageReads,
   useSectionRead,
-} from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.32.0/dist/browser/claude-artifact.js"
+} from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.33.0/dist/browser/claude-artifact.js"
 ```
 
 <!-- x-release-please-end -->
@@ -79,8 +79,11 @@ Each section reads with `useSectionRead(key, (reader) => reader.call(tool, args)
 through pulse-ui's `SectionState`, `PageGate` around the sections says a refused connector once,
 and `mountClaudeArtifact(App, { connector: "<the connector's display name>" })` mounts the page,
 whose caller alone speaks to `window.claude`. `pulse-ui-css.js` puts pulse-ui's stylesheet into
-the page, since a chat artifact loads no stylesheet from a CDN, so the page links none. Take React
-and the kit from that `pulse-ui.js` only, and load all three from one CDN at one version.
+the page as a `<style>` at the end of `<head>`, since a chat artifact loads no stylesheet from a
+CDN, so the page links no `pulse-ui.css`, only Geist from Google Fonts as the pulse-ui README
+says. A style of the page's own (a brand's override of the roles, say) goes into its `<body>`,
+never its `<head>`, where the kit's rules would win over it. Take React and the kit from that
+`pulse-ui.js` only, and load all three from one CDN at one version.
 The widget-shell README shows the whole page
 (https://github.com/Miragon/pulse/tree/main/packages/core/widget-shell#use-in-a-page-without-a-build),
 the pulse-ui README what the bundle and the stylesheet hold

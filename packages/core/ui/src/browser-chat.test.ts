@@ -16,7 +16,8 @@ import {
  * importing pulse-ui.js and pulse-ui-css.js from a CDN's stand-in on another origin, rendered in
  * Chromium (the Playwright pin CI installs). The README's example ("Use in a page without a
  * build") runs as it stands; a page of the suite's own proves that pulse-ui-css.js applies the
- * stylesheet, its @property rules included, where a `<link>` to the CDN's pulse-ui.css is refused.
+ * stylesheet, its @property rules included, where a `<link>` to the CDN's pulse-ui.css is refused,
+ * and that a style of the page's own wins over the kit's from its content, not from its `<head>`.
  * browser-page.test.ts renders a page that links pulse-ui.css as its own file. Set
  * PULSE_UI_BROWSER_SHOTS to a folder to keep a screenshot of every case there.
  */
@@ -61,9 +62,9 @@ const SKELETON_HEAD = `
 </script>
 `
 
-/** A page's content in that skeleton. */
-const inSkeleton = (title: string, content: string) =>
-  `<!doctype html><html lang="en"><head>${SKELETON_HEAD}<title>${title}</title></head><body>${content}</body></html>`
+/** A page's content in that skeleton, and what the page puts into its `<head>`, if anything. */
+const inSkeleton = (title: string, content: string, head = "") =>
+  `<!doctype html><html lang="en"><head>${SKELETON_HEAD}<title>${title}</title>${head}</head><body>${content}</body></html>`
 
 let bundle: BrowserBundle
 let browser: Browser
@@ -140,12 +141,16 @@ const violations = (page: Page) =>
  * A page with no file of its own: a primary Button (shadow-1, whose box-shadow is only valid while
  * the stylesheet's @property rules register Tailwind's shadow variables), and an element that sets
  * a variable registered as a <length>, which only a registered one computes to px. It gets the
- * stylesheet by a `<link>` or by the module's import.
+ * stylesheet by a `<link>` or by the module's import, and `own` puts a style of its own into its
+ * `<head>` or first into its content.
  */
-const noFilesOfItsOwn = (stylesheet: { link: string } | { module: string }) =>
+const noFilesOfItsOwn = (
+  stylesheet: { link: string } | { module: string },
+  own: { head?: string; content?: string } = {},
+) =>
   inSkeleton(
     "No files",
-    `${"link" in stylesheet ? `<link rel="stylesheet" href="${stylesheet.link}" />` : ""}
+    `${own.content ?? ""}${"link" in stylesheet ? `<link rel="stylesheet" href="${stylesheet.link}" />` : ""}
 <div id="root"></div>
 <script type="module">
   import { createElement as h, createRoot, Button } from "${CDN}pulse-ui.js"
@@ -159,6 +164,7 @@ const noFilesOfItsOwn = (stylesheet: { link: string } | { module: string }) =>
     ),
   )
 </script>`,
+    own.head,
   )
 
 /** What the stylesheet decides on the page, as the browser computes it. */
@@ -217,6 +223,57 @@ describe("a page with no file of its own, under a chat's content security policy
         expect(own.filter((shadow) => shadow !== none).length).toBeGreaterThan(0)
         expect(looks.length).toBe("16px")
         expect(await violations(page)).toEqual([])
+        expect(problems).toEqual([])
+      } finally {
+        await close()
+      }
+    },
+  )
+
+  /**
+   * A page's own style: a role and the body's size on the kit's own selectors, so the order of the
+   * two `<style>` elements alone decides which wins.
+   */
+  const OWN_STYLE = "<style>:root{--primary:rgb(200, 0, 0)}body{font-size:16px}</style>"
+
+  it(
+    "lets a page's own style in its content win over the kit's, which comes before it",
+    TIMEOUT,
+    async () => {
+      const module = `${CDN}${STYLESHEET_MODULE}`
+      const { page, problems, close } = await open(
+        noFilesOfItsOwn({ module }, { content: OWN_STYLE }),
+      )
+      try {
+        expect(await applied(page)).toMatchObject({
+          size: "16px",
+          button: "rgb(200, 0, 0)",
+          styles: 1,
+        })
+        expect(await violations(page)).toEqual([])
+        expect(problems).toEqual([])
+      } finally {
+        await close()
+      }
+    },
+  )
+
+  it(
+    "puts the kit's style after a page's own in <head>, so the kit's rules win there (the README's reason for <body>)",
+    TIMEOUT,
+    async () => {
+      const module = `${CDN}${STYLESHEET_MODULE}`
+      const { page, problems, close } = await open(noFilesOfItsOwn({ module }, { head: OWN_STYLE }))
+      try {
+        const last = await page.evaluate(() =>
+          document.head.lastElementChild?.hasAttribute("data-pulse-ui"),
+        )
+        expect(last).toBe(true)
+        expect(await applied(page)).toMatchObject({
+          size: "13px",
+          button: "rgb(51, 93, 229)",
+          styles: 1,
+        })
         expect(problems).toEqual([])
       } finally {
         await close()

@@ -69,14 +69,14 @@ browser bundle, its stylesheet and widget-shell's page reads from jsDelivr at th
 <!-- x-release-please-start-version -->
 
 ```js
-import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui.js"
-import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui-css.js"
+import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.33.0/dist/browser/pulse-ui.js"
+import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.33.0/dist/browser/pulse-ui-css.js"
 import {
   mountClaudeArtifact,
   PageGate,
   usePageReads,
   useSectionRead,
-} from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.32.0/dist/browser/claude-artifact.js"
+} from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.33.0/dist/browser/claude-artifact.js"
 ```
 
 <!-- x-release-please-end -->

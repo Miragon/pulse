@@ -433,10 +433,12 @@ file of its own:
   a second React from another URL breaks every hook. Without a build there is no JSX;
   `createElement`, as `h` here, writes the same tree.
 - **The stylesheet** is pulse-ui's `pulse-ui.css`, which pulse-ui's `pulse-ui-css.js` holds and
-  puts into the page as one `<style>` when the page imports it (pulse-ui's README, "Use in a page
-  without a build"). So the page is one HTML document with no file of its own, in a chat, whose
-  content security policy loads no stylesheet from a CDN, and published alike. Its classes are the
-  only ones the page's own elements can use.
+  puts into the page as one `<style>` at the end of `<head>` when the page imports it (pulse-ui's
+  README, "Use in a page without a build"). So the page is one HTML document with no file of its
+  own, in a chat, whose content security policy loads no stylesheet from a CDN, and published
+  alike. Its classes are the only ones the page's own elements can use, and a style of the page's
+  own (a brand's override of the roles, say) stands in its `<body>`, after the kit's: in `<head>`
+  the kit's rules win over it.
 - **The rest** is a Claude artifact's (above): the page declares the `mcp` capability with the
   tools it calls, reads nothing but through `window.claude` (no fetch, XHR or WebSocket, which the
   artifact's content security policy refuses anyway), follows claude.ai's theme and speaks the
