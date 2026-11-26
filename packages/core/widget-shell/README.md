@@ -13,7 +13,7 @@ Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages toge
 
 ```sh
 npm install @miragon/pulse-widget-shell zod
-npm install react react-dom @miragon/pulse-ui lucide-react@1.73.0 @tanstack/react-query
+npm install react react-dom @miragon/pulse-ui lucide-react@1.78.0 @tanstack/react-query
 ```
 
 The second line is for the view bundle (a view that draws a BPMN diagram adds `bpmn-js@18.31.1`
@@ -545,7 +545,7 @@ A page reads its session with `readWebSession()` and hands `mountApp` (or `mount
 `@miragon/pulse-ui`, `react`/`react-dom`, `zod` and `@tanstack/react-query` are ranged peers
 (`react`/`react-dom` `^19.2.0`, `zod` `^4.4.0`, `@miragon/pulse-ui` `^<this release>`), so they
 resolve to one instance with your app's copy. **A view bundle needs a 1.x `lucide-react` that
-exports `LucideProvider`** (Pulse pins 1.73.0): a deduped 0.x copy fails the bundle build with a
+exports `LucideProvider`** (Pulse pins 1.78.0): a deduped 0.x copy fails the bundle build with a
 missing export. The BPMN viewer is pulse-ui's (`@miragon/pulse-ui/bpmn`), whose optional peer
 `bpmn-js` (`^18.31.1`) a view that draws a diagram installs.
 
