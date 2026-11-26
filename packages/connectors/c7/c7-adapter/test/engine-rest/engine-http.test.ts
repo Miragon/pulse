@@ -6,6 +6,7 @@ import { engineFailure, REST_URL } from "../support/fake-engine-rest.js"
 const MEGABYTE = new Uint8Array(1024 * 1024)
 const ROOT_HINT =
   "Check that the engine URL points at the REST API root itself, such as http://localhost:8080/engine-rest."
+const LINEAR_TIME_BOUND_MS = 10_000
 
 function httpAnswering(answer: typeof fetch, writes = false): EngineHttp {
   return new EngineHttp({
@@ -164,11 +165,15 @@ describe("the engine's HTTP connection", () => {
     expect(reached).toEqual([`${REST_URL}/version`])
   })
 
-  test("reads an engine URL with a long run of inner slashes in linear time", async () => {
-    const start = performance.now()
-    await httpAt(`${REST_URL}${"/".repeat(200_000)}x`).read("/version")
-    expect(performance.now() - start).toBeLessThan(1000)
-  })
+  test(
+    "reads an engine URL with a long run of inner slashes in linear time",
+    { timeout: 2 * LINEAR_TIME_BOUND_MS },
+    async () => {
+      const start = performance.now()
+      await httpAt(`${REST_URL}${"/".repeat(200_000)}x`).read("/version")
+      expect(performance.now() - start).toBeLessThan(LINEAR_TIME_BOUND_MS)
+    },
+  )
 
   test("refuses to write on a connection that only reads, and reads that as no missing resource", async () => {
     const http = httpAnswering(() => Promise.reject(new Error("never sent")))

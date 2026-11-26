@@ -120,14 +120,21 @@ describe("readBpmnNames: comments and CDATA are cut linearly (CodeQL js/polynomi
         t: "Prüfen",
       },
     )
-    expect(performance.now() - started).toBeLessThan(1000)
+    // Both reads take 25 ms alone, up to 30 times that while `pnpm test` runs every package's
+    // suite at once; a global attribute regex over the tag's raw text restarts at every character
+    // of the run without `=` and reads these tags for 8 to 12 s alone, so 3 s still tells the two
+    // apart.
+    expect(performance.now() - started).toBeLessThan(3000)
   })
 
   it("stays fast on many repeated openers", () => {
     const started = performance.now()
     expect(readBpmnNames(doc("<!--".repeat(100_000))).elements).toEqual({})
     expect(readBpmnNames(doc("<!-- x -->".repeat(50_000))).elements).toEqual({ t: "Prüfen" })
-    expect(performance.now() - started).toBeLessThan(1000)
+    // Both reads take 12 ms alone (19 ms with coverage), up to 30 times that while `pnpm test`
+    // runs every package's suite at once; a lazy comment and CDATA regex scans from each of the
+    // 100,000 openers to the end and takes about 15 s alone, so 3 s still tells the two apart.
+    expect(performance.now() - started).toBeLessThan(3000)
   })
 })
 

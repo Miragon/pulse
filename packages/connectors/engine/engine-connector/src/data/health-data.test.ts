@@ -224,36 +224,47 @@ describe("buildClusterDetailData search by id", () => {
   }
 
   // The term is the viewer's: a run of % before a letter no id holds made a backtracking pattern
-  // take seconds per id from eight % on, synchronously on the server's one event loop.
-  it("reads a term of many % in one pass over each id, a long one as fast as a short one", async () => {
-    mockedGetIncidents.mockResolvedValue(uuidRows(4))
-    let started = performance.now()
-    const eight = await buildClusterDetailData(client, "eng1", {
-      ...args,
-      businessKeyLike: `${"%".repeat(8)}z`,
-    })
-    expect(eight.incidents).toEqual([])
-    expect(performance.now() - started).toBeLessThan(250)
+  // take seconds per id from eight % on, synchronously on the server's one event loop. A run of %
+  // reads as one: the three reads of 100,000 % over the scan's ids take 50 to 70 ms alone, up to
+  // 30 times that while `pnpm test` runs every package's suite at once; a matcher that seeks each
+  // % on its own takes about 15 s alone on these ids, so 5 s still tells the two apart (at 10,000
+  // %, 0.9 s alone, nothing did). The case's timeout sits above the bound, so the bound fails it.
+  const PERCENTS_BOUND_MS = 5_000
 
-    const rows = uuidRows(CLUSTER_SCAN_LIMIT - 1)
-    mockedGetIncidents.mockResolvedValue(rows)
-    const percents = "%".repeat(10_000)
-    started = performance.now()
-    const none = await buildClusterDetailData(client, "eng1", {
-      ...args,
-      businessKeyLike: `${percents}z`,
-    })
-    const allPercent = await buildClusterDetailData(client, "eng1", {
-      ...args,
-      businessKeyLike: percents,
-    })
-    const tail = await buildClusterDetailData(client, "eng1", {
-      ...args,
-      businessKeyLike: `${percents}0002${percents}`,
-    })
-    expect(performance.now() - started).toBeLessThan(1_000)
-    expect(none.totalMatching).toBe(0)
-    expect(allPercent.totalMatching).toBe(0)
-    expect(tail.totalMatching).toBe(rows.length)
-  })
+  it(
+    "reads a term of many % in one pass over each id, a long one as fast as a short one",
+    { timeout: 2 * PERCENTS_BOUND_MS },
+    async () => {
+      mockedGetIncidents.mockResolvedValue(uuidRows(4))
+      let started = performance.now()
+      const eight = await buildClusterDetailData(client, "eng1", {
+        ...args,
+        businessKeyLike: `${"%".repeat(8)}z`,
+      })
+      expect(eight.incidents).toEqual([])
+      // Alone 3 to 4 ms, so 30 times that fits; the backtracking pattern takes 2 s on one id.
+      expect(performance.now() - started).toBeLessThan(250)
+
+      const rows = uuidRows(CLUSTER_SCAN_LIMIT - 1)
+      mockedGetIncidents.mockResolvedValue(rows)
+      const percents = "%".repeat(100_000)
+      started = performance.now()
+      const none = await buildClusterDetailData(client, "eng1", {
+        ...args,
+        businessKeyLike: `${percents}z`,
+      })
+      const allPercent = await buildClusterDetailData(client, "eng1", {
+        ...args,
+        businessKeyLike: percents,
+      })
+      const tail = await buildClusterDetailData(client, "eng1", {
+        ...args,
+        businessKeyLike: `${percents}0002${percents}`,
+      })
+      expect(performance.now() - started).toBeLessThan(PERCENTS_BOUND_MS)
+      expect(none.totalMatching).toBe(0)
+      expect(allPercent.totalMatching).toBe(0)
+      expect(tail.totalMatching).toBe(rows.length)
+    },
+  )
 })

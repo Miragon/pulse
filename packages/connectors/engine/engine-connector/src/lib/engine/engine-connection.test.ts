@@ -43,6 +43,17 @@ async function collectGarbageInFlight() {
   }
 }
 
+/**
+ * The garbage collection case under load. Its sleeps and three collections take 0.1 s alone and
+ * up to 3.7 s at 30 times that, the load `pnpm test` puts on the CI runner's four cores (1.2 s on
+ * one core beside 30 busy loops), so the read's deadline sits far above them; the caller's abort
+ * then ends the read within 1 ms alone and 76 ms loaded. A broken abort chain (#325) leaves the
+ * read to its deadline, 6 s or more after the abort, so the bound, counted from the abort, tells
+ * the two apart, and the test's timeout, twice the deadline, lets such a read fail on its words.
+ */
+const GC_CASE_DEADLINE_MS = 10_000
+const ABORT_BOUND_MS = 1_000
+
 /** Answers after `ms`, echoing the body: a write the caller's cancellation must not stop. */
 const slow =
   (ms: number): RawRoute =>
@@ -126,16 +137,21 @@ describe("the caller's cancellation", () => {
     expect(engine.seen).toHaveLength(before)
   })
 
-  it("still aborts a read after a garbage collection while it is in flight", async () => {
-    const controller = new AbortController()
-    const started = Date.now()
-    const pending = failure(read(withCallerSignal(client(3000), controller.signal), "hang"))
-    await collectGarbageInFlight()
-    controller.abort()
-    const e = await pending
-    expect(e.message).toBe("request to engine prod-a was cancelled by the caller")
-    expect(Date.now() - started).toBeLessThan(1500)
-  })
+  it(
+    "still aborts a read after a garbage collection while it is in flight",
+    { timeout: 2 * GC_CASE_DEADLINE_MS },
+    async () => {
+      const controller = new AbortController()
+      const cancellable = withCallerSignal(client(GC_CASE_DEADLINE_MS), controller.signal)
+      const pending = failure(read(cancellable, "hang"))
+      await collectGarbageInFlight()
+      const aborted = Date.now()
+      controller.abort()
+      const e = await pending
+      expect(e.message).toBe("request to engine prod-a was cancelled by the caller")
+      expect(Date.now() - aborted).toBeLessThan(ABORT_BOUND_MS)
+    },
+  )
 
   it("never aborts a write once started", async () => {
     const controller = new AbortController()
