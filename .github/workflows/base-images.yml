@@ -1,0 +1,28 @@
+name: Base images
+
+# Each Dockerfile pins its base image to a digest, which a rebuild of its tag (a fix in the
+# Debian or Node layer) leaves behind. Dependabot's docker entries move the pins, but once stopped
+# proposing the server's (#630 moved it by hand), and the VS Code test image sat in no entry at
+# all. Once a week this reads each pinned tag's current build and fails, naming the file, where
+# the pinned one is more than 14 days older; an image that builds reproducibly carries no date,
+# so Dependabot alone moves it (the distroless base of the CLI).
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  digests:
+    name: Every pinned base image is a recent build of its tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Compare each pin with its tag's current build
+        run: scripts/base-image-check.sh
