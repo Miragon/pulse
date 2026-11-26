@@ -3,7 +3,10 @@ name: Publish to GitHub Container Registry
 # Pushes the server image to GHCR as ghcr.io/miragon/pulse-server (file name kept:
 # release-please.yml calls it). The workflow's own GITHUB_TOKEN logs in, so no
 # registry secret exists. Called from the release train, the token holds only
-# what the calling job grants: that job must grant packages: write too.
+# what the calling job grants: that job must grant packages: write too. It runs
+# on the release alone, after its gate's approval (lint:github,
+# CHANNEL_PUBLISH_TRIGGERS): pushing an image again is a rerun of the release's
+# job, and docker-build.yml builds the image on every pull request.
 
 on:
   workflow_call:
@@ -16,22 +19,8 @@ on:
         type: string
         default: ""
         description: "Image version (e.g. release-please tag_name `v1.2.0`); falls back to apps/mcp-server/package.json"
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        type: boolean
-        default: false
-        description: "Build & verify only: do not push"
-      version:
-        type: string
-        default: ""
-        description: "Image version; falls back to apps/mcp-server/package.json"
 
-permissions:
-  contents: read
-  # No id-token: provenance and SBOM are BuildKit attestations, pushed with the
-  # image over the same registry login.
-  packages: write # push to ghcr.io with the GITHUB_TOKEN
+permissions: {}
 
 env:
   IMAGE: ghcr.io/miragon/pulse-server
@@ -40,13 +29,21 @@ jobs:
   publish:
     name: Build & push image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # No id-token: provenance and SBOM are BuildKit attestations, pushed with
+      # the image over the same registry login.
+      packages: write # push to ghcr.io with the GITHUB_TOKEN
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Resolve version tag
         id: version
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          VERSION="${{ inputs.version }}"
           VERSION="${VERSION#v}"   # release-please tag_name is `v1.2.0` → image tag `1.2.0`
           if [ -z "$VERSION" ]; then
             VERSION="$(node -p "require('./apps/mcp-server/package.json').version")"

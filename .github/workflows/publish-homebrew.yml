@@ -5,10 +5,10 @@ name: Publish the CLI Homebrew formula
 # without dependencies, installed as pulse-cli with the command pulse linked to it. Called by
 # release-please.yml after publish-cli.yml attached the binaries (not for a prerelease: the tap
 # has one formula, which follows the newest stable release); a manual run publishes an existing
-# release again, or checks it with dry-run. The formula comes from
-# apps/cli/scripts/homebrew-formula.sh of the commit this workflow runs from, not of the release.
-# It installs the licences of the archive, which an archive before 0.28.0 lacks: run it for such
-# a release from its tag (gh workflow run publish-homebrew.yml --ref v<version> ...).
+# release again after the release environment's approval, or checks it with dry-run. The formula
+# comes from apps/cli/scripts/homebrew-formula.sh of the commit this workflow runs from, not of the
+# release. It installs the licences of the archive, which an archive before 0.28.0 lacks: run it
+# for such a release from its tag (gh workflow run publish-homebrew.yml --ref v<version> ...).
 #
 # The first publish also renames the formula: it adds operate -> pulse-cli to the tap's
 # formula_renames.json and removes Formula/operate.rb in the same squash-merged pull request, so
@@ -120,10 +120,26 @@ jobs:
   # secrets.RELEASE_PLEASE_APP_PRIVATE_KEY, both organization-wide), installed on the tap with
   # Contents and Pull requests write. The files change through the contents API and the squash
   # merge is GitHub's, so the commit on main is signed, which the tap's ruleset requires.
+  # A manual run publishes without the release's gate, so it waits for the release environment's
+  # approval itself. Called by release-please.yml, whose gate approved the release, it is skipped:
+  # a called workflow's github context is its caller's, so workflow_ref names release-please.yml.
+  approval:
+    name: Wait for the release approval of a manual run
+    if: ${{ contains(github.workflow_ref, '/publish-homebrew.yml@') && !inputs.dry-run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: release
+    permissions: {}
+    steps:
+      - name: Approved
+        env:
+          VERSION: ${{ inputs.version }}
+        run: echo "A manual publish of pulse-cli ${VERSION} was approved."
+
   publish:
     name: Publish pulse-cli ${{ inputs.version }} to Miragon/homebrew-tap
-    needs: verify
-    if: ${{ !inputs.dry-run }}
+    needs: [verify, approval]
+    if: ${{ !cancelled() && !inputs.dry-run && needs.verify.result == 'success' && (needs.approval.result == 'success' || needs.approval.result == 'skipped' && !contains(github.workflow_ref, '/publish-homebrew.yml@')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions: {}
