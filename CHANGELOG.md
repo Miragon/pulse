@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.33.0](https://github.com/Miragon/pulse/compare/v0.32.0...v0.33.0) (2026-11-26)
+
+
+### Features
+
+* **vscode:** a Claude Code plugin that writes board files, and the repo skills go ([#648](https://github.com/Miragon/pulse/issues/648)) ([c3ea54b](https://github.com/Miragon/pulse/commit/c3ea54b7f0ff4f6fd8fe44a49aef55c3db30e586))
+* **widget-shell:** ADFS's audience of a Web API whose identifier is no URL ([#679](https://github.com/Miragon/pulse/issues/679)) ([75b4b99](https://github.com/Miragon/pulse/commit/75b4b99e6a1d0b5cb151572f0f079c0f56d696a6))
+
+
+### Bug Fixes
+
+* **c7-core:** incidents raised at one instant page without gaps or repeats ([#680](https://github.com/Miragon/pulse/issues/680)) ([af84fb1](https://github.com/Miragon/pulse/commit/af84fb1737d18c0ed162fcdce6c27cd755fd1fdc))
+* **templates:** the artifact template's tests follow CONNECTOR_NAME, and pnpm shot takes an installed Chrome ([#676](https://github.com/Miragon/pulse/issues/676)) ([d2f3e11](https://github.com/Miragon/pulse/commit/d2f3e1148a2148cb87e49d0c97f691f5b2d37ccd))
+
 ## [0.32.0](https://github.com/Miragon/pulse/compare/v0.31.0...v0.32.0) (2026-11-24)
 
 

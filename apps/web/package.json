@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-web",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "private": true,
   "description": "Pulse's web app: the MCP server's views as pages of the server under /app, signed in through its OAuth provider.",
   "license": "MIT",

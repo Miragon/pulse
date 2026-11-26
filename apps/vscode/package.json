@@ -1,7 +1,7 @@
 {
   "name": "pulse-cockpit",
   "private": true,
-  "version": "0.32.0",
+  "version": "0.33.0",
   "displayName": "Miragon Pulse",
   "description": "See what your process engine is running, right next to your BPMN models: definitions, instances, incidents and variables. Retry incidents and fix variables, guarded. For Operaton, CIB seven and Camunda 7, and Camunda 8 read-only.",
   "publisher": "miragon-gmbh",
