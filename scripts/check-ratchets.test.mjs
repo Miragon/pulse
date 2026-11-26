@@ -9,10 +9,12 @@ import {
   EXCEPTION_TRAILER,
   checkRatchetFile,
   compareSuppressions,
+  compareTsCheck,
   extractEslintRatchets,
   extractVitestCoverage,
   isPullRequest,
   isScannedSource,
+  isTypedScript,
   ratchetKind,
   resolveBaseRef,
   run,
@@ -2444,6 +2446,13 @@ describe("a package's baseline of budget violations (eslint-suppressions.json, s
       /eslint-suppressions\.json -> scripts\/a\.mjs: complexity 2 -> 3 suppressed/,
     )
     assert.match(checkRatchetFile(root, null, scripts)[0], /eslint-suppressions\.json is new/)
+    // Its entries are repo-relative: a file that exists is no stale entry, on a commit's tree too.
+    const exists = (file) => file === "scripts/a.mjs"
+    assert.deepEqual(checkRatchetFile(root, scripts, scripts, exists), [])
+    assert.match(
+      checkRatchetFile(root, scripts, scripts, () => false)[0],
+      /eslint-suppressions\.json -> scripts\/a\.mjs no longer exists/,
+    )
   })
 
   it("lets entries go, never come: a count beyond the base, a new rule or a new file fails", () => {
@@ -2838,6 +2847,50 @@ describe("inline suppressions (shrink-only)", () => {
       suppressionDirectives("x.tsx", tsx).map((d) => [d.directive, d.line]),
       [["eslint-disable-next-line max-lines", 3]],
     )
+  })
+})
+
+describe("a script's `// @ts-check` (the scripts not typed yet only shrink)", () => {
+  const typed = "// @ts-check\nexport const x = 1\n"
+  const untyped = "export const x = 1\n"
+
+  it("holds the scripts typecheck:scripts reads by their pragma, nothing else", () => {
+    for (const rel of [
+      "scripts/check-ratchets.mjs",
+      "scripts/a.test.mjs",
+      ".dependency-cruiser.cjs",
+    ])
+      assert.equal(isTypedScript(rel), true, rel)
+    for (const rel of [
+      "scripts/nested/a.mjs",
+      "scripts/third-party-licenses.d.mts",
+      "apps/vscode/.dependency-cruiser.cjs",
+      "eslint.config.mjs",
+    ])
+      assert.equal(isTypedScript(rel), false, rel)
+    assert.deepEqual(compareTsCheck("apps/vscode/scripts/a.mjs", typed, untyped), [])
+  })
+
+  it("fails a script that drops it and a new one without it", () => {
+    assert.match(
+      compareTsCheck("scripts/a.mjs", typed, untyped)[0],
+      /scripts\/a\.mjs no longer says `\/\/ @ts-check`/,
+    )
+    assert.match(
+      compareTsCheck("scripts/b.mjs", null, untyped)[0],
+      /scripts\/b\.mjs is new and does not say `\/\/ @ts-check`.*NOT_YET_CHECKED/,
+    )
+  })
+
+  it("lets a script keep it, gain it, go, or stay unchecked as the base had it", () => {
+    assert.deepEqual(compareTsCheck("scripts/a.mjs", typed, typed), [])
+    assert.deepEqual(compareTsCheck("scripts/a.mjs", untyped, typed), [])
+    assert.deepEqual(compareTsCheck("scripts/a.mjs", null, typed), [])
+    assert.deepEqual(compareTsCheck("scripts/a.mjs", typed, null), [])
+    assert.deepEqual(compareTsCheck("scripts/a.mjs", untyped, untyped), [])
+    // After a shebang, as tsc reads it; anywhere else it checks nothing.
+    assert.deepEqual(compareTsCheck("scripts/a.mjs", typed, `#!/usr/bin/env node\n${typed}`), [])
+    assert.equal(compareTsCheck("scripts/a.mjs", typed, `${untyped}// @ts-check\n`).length, 1)
   })
 })
 
@@ -3284,7 +3337,8 @@ export default mergeConfig(sharedConfig, defineConfig({
     assert.equal(base.code, 0, base.out)
     // A directive the base had stays; one more in a script or the dependency rules fails.
     repo.write("scripts/old.mjs", `${kept}export const more = 2\n`)
-    repo.write("scripts/new.mjs", "/* eslint-disable max-lines */\nexport const x = 1\n")
+    const typed = "// @ts-check\nexport const x = 1\n"
+    repo.write("scripts/new.mjs", `/* eslint-disable max-lines */\n${typed}`)
     repo.write(".dependency-cruiser.cjs", "// eslint-disable-next-line\nmodule.exports = {}\n")
     const disabled = await repo.check()
     assert.equal(disabled.code, 1, disabled.out)
@@ -3295,7 +3349,7 @@ export default mergeConfig(sharedConfig, defineConfig({
     )
     assert.ok(!disabled.out.includes("scripts/old.mjs"), disabled.out)
     // A budget of theirs raised in the config is a loosening of their effective config.
-    repo.write("scripts/new.mjs", "export const x = 1\n")
+    repo.write("scripts/new.mjs", typed)
     repo.write(".dependency-cruiser.cjs", "module.exports = {}\n")
     repo.write(
       "eslint.config.mjs",
@@ -3308,5 +3362,31 @@ export default mergeConfig(sharedConfig, defineConfig({
     assert.equal(loosened.code, 1, loosened.out)
     assert.match(loosened.out, /complexity 10 -> 15/)
     assert.match(loosened.out, /scripts\/new\.mjs/)
+  })
+
+  it("keeps a script's `// @ts-check`: one that drops it or a new one without it needs a trailer", async () => {
+    const typed = "// @ts-check\nexport const x = 1\n"
+    const repo = synthetic({
+      "scripts/typed.mjs": typed,
+      "scripts/untyped.mjs": "export const y = 2\n",
+    })
+    // A script the base had without it may stay so (NOT_YET_CHECKED lists it).
+    repo.write("scripts/untyped.mjs", "export const y = 3\n")
+    repo.write("scripts/typed.mjs", "export const x = 1\n")
+    repo.write("scripts/added.mjs", "export const z = 1\n")
+    const dropped = await repo.check()
+    assert.equal(dropped.code, 1, dropped.out)
+    assert.match(dropped.out, /scripts\/typed\.mjs no longer says `\/\/ @ts-check`/)
+    assert.match(dropped.out, /scripts\/added\.mjs is new and does not say `\/\/ @ts-check`/)
+    assert.ok(!dropped.out.includes("scripts/untyped.mjs"), dropped.out)
+    // Committed under a trailer, the commit that makes each is named as its maker.
+    repo.write("scripts/typed.mjs", typed)
+    const sha = repo.commit(`build: a script without types\n\n${TRAILER}`)
+    repo.write("scripts/typed.mjs", typed)
+    const waved = await repo.check()
+    assert.equal(waved.code, 0, waved.out)
+    assert.match(waved.out, /RATCHET EXCEPTION APPLIED: scripts\/added\.mjs is new/)
+    assert.ok(waved.out.includes(`waved by ${sha.slice(0, 9)}`), waved.out)
+    assert.ok(!waved.out.includes("scripts/typed.mjs"), waved.out)
   })
 })

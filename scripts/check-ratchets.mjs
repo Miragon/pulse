@@ -192,6 +192,13 @@
  *                                   apps/ and packages/ sources, the scripts
  *                                   under scripts/ and .dependency-cruiser.cjs:
  *                                   shrink-only
+ *   `// @ts-check` of a script      a script under scripts/ or the root
+ *                                   .dependency-cruiser.cjs that `pnpm
+ *                                   typecheck:scripts` checks stays checked:
+ *                                   one without the pragma that lost it or is
+ *                                   new fails, so the list of the scripts not
+ *                                   typed yet (NOT_YET_CHECKED of
+ *                                   scripts/ts-check.test.mjs) only shrinks
  *
  * The SINGLE documented escape is a trailer on the commit that makes the
  * change, and it covers that commit only:
@@ -1638,6 +1645,29 @@ export function compareSuppressions(relPath, oldText, newText) {
   return violations
 }
 
+/** `// @ts-check` as tsc reads it: the first line, or the one after a shebang. */
+export const TS_CHECK = /^(?:#![^\n]*\n)?\/\/ @ts-check\r?\n/
+
+/** The scripts `pnpm typecheck:scripts` checks by their pragma (REPO_SCRIPTS of eslint.config.mjs). */
+export const isTypedScript = (relPath) =>
+  /^(?:scripts\/[^/]+\.mjs|\.dependency-cruiser\.cjs)$/.test(relPath)
+
+/**
+ * A script that says `// @ts-check` keeps saying it, and a new one says it from its first commit
+ * (F71, #688): tsc checks only the scripts that say it, so one without it goes unchecked while
+ * `pnpm typecheck:scripts` stays green. scripts/ts-check.test.mjs lists the scripts not typed yet
+ * and fails on any other script without it; this keeps that list from growing (null text = file
+ * absent).
+ */
+export function compareTsCheck(relPath, oldText, newText) {
+  if (!isTypedScript(relPath) || typeof newText !== "string" || TS_CHECK.test(newText)) return []
+  if (typeof oldText === "string" && !TS_CHECK.test(oldText)) return []
+  const what = typeof oldText === "string" ? "no longer says" : "is new and does not say"
+  return [
+    `${relPath} ${what} \`// @ts-check\`: \`pnpm typecheck:scripts\` checks only the scripts that say it, so its types go unchecked and NOT_YET_CHECKED of scripts/ts-check.test.mjs grows. Start the file with the pragma (after a shebang) and fix what tsc reports.`,
+  ]
+}
+
 // ── Direction policies ───────────────────────────────────────────────────────
 
 /** An include list (null = absent) only grows; it never appears or vanishes. */
@@ -2148,7 +2178,8 @@ function compareEslintBaseline(relPath, oldJson, newJson, fileExists) {
   for (const [file, rules] of Object.entries(newJson ?? {})) {
     // ESLint never reports a suppression of a file it no longer lints, so a deleted or moved file
     // keeps its entries, and a new file at that path would inherit them.
-    if (!fileExists(`${dir}/${file}`)) {
+    // Joined, not concatenated: the root's entries are repo-relative already (no `./`).
+    if (!fileExists(path.posix.join(dir, file))) {
       violations.push(
         `${relPath} -> ${file} no longer exists: prune its entries (eslint --prune-suppressions in ${dir}).`,
       )
@@ -2683,6 +2714,12 @@ function suppressionViolations(repo, from, to, files, { scoped = false } = {}) {
   return violations
 }
 
+/** The scripts of `files` that `to` takes out of the type check against `from`. */
+const tsCheckViolations = (repo, from, to, files) =>
+  files
+    .filter(isTypedScript)
+    .flatMap((rel) => compareTsCheck(rel, repo.read(from, rel), repo.read(to, rel)))
+
 /**
  * The effective ESLint half's state for one run at `root`: a temporary
  * sibling file per distinct eslint.config.mjs text (same directory: same
@@ -2797,6 +2834,7 @@ async function netViolations(repo, eslint, mergeBase) {
       messages.push(...ratchetFileViolations(repo, rel, mergeBase, WORKTREE))
   }
   messages.push(...suppressionViolations(repo, mergeBase, WORKTREE, repo.listed()))
+  messages.push(...tsCheckViolations(repo, mergeBase, WORKTREE, repo.listed()))
   const violations = messages.map(plainViolation)
   violations.push(...(await effectiveEslintViolations(repo, eslint, mergeBase, WORKTREE)))
   return { violations, baseFileCount: baseFiles.size }
@@ -2836,6 +2874,7 @@ async function stepKeys(repo, eslint, from, to, { effectiveFiles, mergeBase }) {
       ratchetFileViolations(repo, rel, stepSide(repo, rel, from, to, mergeBase), to),
     )
   messages.push(...suppressionViolations(repo, from, to, changed, { scoped: true }))
+  messages.push(...tsCheckViolations(repo, from, to, changed))
   const violations = messages.map(plainViolation)
   if (effectiveFiles.length > 0 && changed.includes("eslint.config.mjs"))
     violations.push(...(await effectiveEslintViolations(repo, eslint, from, to, effectiveFiles)))

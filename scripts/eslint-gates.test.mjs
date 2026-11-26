@@ -4,9 +4,10 @@ import path from "node:path"
 import { before, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import { ESLint, Linter } from "eslint"
+import picomatch from "picomatch"
 import tseslint from "typescript-eslint"
 import { DEFAULT_PROJECT_FILES, HTTP_BROWSER_GLOBALS, REPO_SCRIPTS } from "../eslint.config.mjs"
-import { STAGED_REPO_SCRIPTS } from "../lint-staged.config.mjs"
+import lintStaged, { STAGED_REPO_SCRIPTS } from "../lint-staged.config.mjs"
 
 /**
  * Self-test of the architecture pattern gates in eslint.config.mjs (a gate
@@ -746,6 +747,24 @@ describe("the repository's scripts run the domain packages' budgets (F71, #688)"
     const globs = REPO_SCRIPTS.map((glob) => (glob.includes("*") ? `"${glob}"` : glob))
     assert.equal(rootScripts["lint:scripts"], `eslint --max-warnings 0 ${globs.join(" ")}`)
     assert.equal(STAGED_REPO_SCRIPTS, `{${REPO_SCRIPTS.join(",")}}`)
+    // lint-staged matches a glob with a slash against the path from the root, dotfiles included.
+    const staged = picomatch(STAGED_REPO_SCRIPTS, { dot: true })
+    assert.ok(staged("scripts/check-ratchets.mjs") && staged(".dependency-cruiser.cjs"))
+    assert.ok(!staged("apps/vscode/scripts/build.mjs") && !staged("scripts/nested/x.mjs"))
+  })
+
+  it("the pre-commit hook runs ESLint on a staged script from the root, warnings failing, then prettier", () => {
+    assert.ok(Object.hasOwn(lintStaged, STAGED_REPO_SCRIPTS), Object.keys(lintStaged).join(", "))
+    const files = ["scripts/check-ratchets.mjs", ".dependency-cruiser.cjs"].map((rel) =>
+      path.join(repoRoot, rel),
+    )
+    const quoted = files.map((file) => JSON.stringify(file)).join(" ")
+    const tasks = lintStaged[STAGED_REPO_SCRIPTS](files)
+    // From the root, so ESLint reads the root eslint-suppressions.json: no --dir or -C.
+    assert.deepEqual(tasks, [
+      `eslint --max-warnings 0 --fix ${quoted}`,
+      `prettier --write ${quoted}`,
+    ])
   })
 })
 

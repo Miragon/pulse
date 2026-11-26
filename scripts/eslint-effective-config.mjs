@@ -5,9 +5,12 @@
  * The AST half reads only the `ignores` lists and the imports of
  * eslint.config.mjs. This half asks ESLint itself: the merge-base config and
  * the working-tree config are both evaluated, and for every source file under
- * apps/ and packages/ (plus one sample path per `files`/`ignores` glob that
- * matches no file yet, so an exemption pre-planted for a future file is seen
- * too), the settings ESLint would apply are compared:
+ * apps/ and packages/ and every one of the repository's scripts (REPO_SCRIPTS
+ * of eslint.config.mjs: scripts/*.mjs and the root .dependency-cruiser.cjs,
+ * #688; check-ratchets.mjs's isScannedSource picks them), plus one sample path
+ * per `files`/`ignores` glob that matches no file yet, so an exemption
+ * pre-planted for a future file is seen too, the settings ESLint would apply
+ * are compared:
  *
  *   - a file linted on the base stays linted (never newly ignored);
  *   - complexity, the size budgets (max-lines, max-lines-per-function,

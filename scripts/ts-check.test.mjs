@@ -7,13 +7,16 @@ import { fileURLToPath } from "node:url"
 import picomatch from "picomatch"
 import ts from "typescript"
 import { REPO_SCRIPTS } from "../eslint.config.mjs"
+import { TS_CHECK, isTypedScript } from "./check-ratchets.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
 /**
  * The scripts tsc does not pass yet without JSDoc types written for them (F71, #688), each
- * listed until it says `// @ts-check`. The list only shrinks: an entry fails once its file says it
- * or is gone, and a script that is not listed says it, a new one from its first commit.
+ * listed until it says `// @ts-check`. The list only shrinks: an entry fails here once its file
+ * says it or is gone, a script that is not listed says it, and lint:ratchets refuses a script that
+ * drops the pragma or comes without it (`compareTsCheck`) unless a Ratchet-Exception trailer says
+ * why, so no entry joins unseen.
  */
 const NOT_YET_CHECKED = [
   "scripts/artifact-tools.test.mjs",
@@ -41,9 +44,6 @@ const NOT_YET_CHECKED = [
   "scripts/trace-secrets.test.mjs",
 ]
 
-/** `// @ts-check` as tsc reads it: the first line, or the one after a shebang. */
-const TS_CHECK = /^(?:#![^\n]*\n)?\/\/ @ts-check\r?\n/
-
 /** Every file REPO_SCRIPTS names (the root and scripts/ hold them), repo-relative. */
 function repoScripts() {
   const isScript = picomatch(REPO_SCRIPTS, { dot: true })
@@ -60,9 +60,18 @@ const saysTsCheck = (rel) => TS_CHECK.test(fs.readFileSync(path.join(repoRoot, r
 describe("every script says // @ts-check, the ones not yet typed aside (pnpm typecheck:scripts)", () => {
   const scripts = repoScripts()
 
-  it("finds the scripts and the dependency rules", () => {
+  it("finds the scripts and the dependency rules, the ones lint:ratchets holds to the pragma", () => {
     assert.ok(scripts.includes("scripts/check-ratchets.mjs"), scripts.join(", "))
     assert.ok(scripts.includes(".dependency-cruiser.cjs"), scripts.join(", "))
+    const isScript = picomatch(REPO_SCRIPTS, { dot: true })
+    const candidates = [
+      ...fs.readdirSync(repoRoot),
+      ...fs.readdirSync(path.join(repoRoot, "scripts")).map((name) => `scripts/${name}`),
+      "scripts/nested/x.mjs",
+      "apps/vscode/.dependency-cruiser.cjs",
+    ]
+    const differs = candidates.filter((rel) => isTypedScript(rel) !== isScript(rel))
+    assert.deepEqual(differs, [], "check-ratchets.mjs's isTypedScript must name REPO_SCRIPTS")
   })
 
   it("a script that does not say it is listed in NOT_YET_CHECKED", () => {
