@@ -373,7 +373,7 @@ describe("scopesFor: paths outside the packages", () => {
   })
 
   it("runs the TypeScript job for the files the playground and server env-name tests read", () => {
-    assert.deepEqual(scopes("playground/docker/docker-compose.yml"), ["typescript"])
+    assert.deepEqual(scopes("playground/docker/keycloak/realm-miragon.json"), ["typescript"])
     assert.deepEqual(scopes("playground/boards/operations.board.json"), ["typescript"])
     assert.deepEqual(scopes(".env.example"), ["typescript"])
   })
@@ -399,10 +399,16 @@ describe("scopesFor: paths outside the packages", () => {
 
   it("starts the starter's try-out engine for its compose.yaml, next to the template's checks", () => {
     assert.deepEqual(scopes("templates/composed-server/compose.yaml"), [
+      "mcp-engines",
       "starter-engine",
       "template",
       "typescript",
     ])
+  })
+
+  it("runs the Engines legs for a Compose file whose engine image they hold", () => {
+    assert.deepEqual(scopes("playground/docker/docker-compose.yml"), ["mcp-engines", "typescript"])
+    assert.ok(scopes("templates/composed-server/compose.yaml").includes("mcp-engines"))
   })
 
   it("starts no engine for the rest of the template, its README with the container recipe too", () => {

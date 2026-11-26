@@ -68,7 +68,11 @@ describe("the config the engines CI job runs by name", CONFIG_IMPORT_LIMIT, () =
 describe("the image the engine tests start", () => {
   test("is a Camunda 7 engine on each image the Engines legs of CI hand over, and without one", () => {
     const images = imagesOfTheEngineLegs()
-    expect(images).toEqual(["cibseven/cibseven:run-2.2.0", "operaton/operaton:2.1.5"])
+    expect(images).toEqual([
+      "cibseven/cibseven:run-2.2.0",
+      "cibseven/cibseven:run-3.0.0",
+      "operaton/operaton:2.1.5",
+    ])
     for (const image of [...images, DEFAULT_ENGINE_IMAGE]) {
       expect(camunda7ImageOf(image), image).toBe(true)
     }

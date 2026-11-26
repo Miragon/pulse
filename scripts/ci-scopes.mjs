@@ -75,13 +75,17 @@ export const PATH_RULES = [
   // The shared editor settings: only the always-on format check reads them.
   { pattern: /^\.vscode\//, scopes: [] },
   { pattern: /^playground\/cibseven-example\//, scopes: ["cibseven-example"] },
-  // Read by scripts/local-env.test.mjs (the Compose file, the engines of the playground's board).
+  // The playground's Compose file: scripts/local-env.test.mjs reads it, and its engine image is
+  // an Engines leg (scripts/engine-images.test.mjs), so a change runs the legs' read laws.
+  { pattern: /^playground\/docker\/docker-compose\.yml$/, scopes: ["mcp-engines", "typescript"] },
+  // Read by scripts/local-env.test.mjs (the engines of the playground's board).
   { pattern: /^playground\/(?:docker|boards)\//, scopes: ["typescript"] },
   { pattern: /^playground\//, scopes: [] },
-  // The starter's try-out engine: its own job starts it; the template's format check reads it.
+  // The starter's try-out engine: its own job starts it; the template's format check reads it;
+  // its image is an Engines leg (scripts/engine-images.test.mjs), so a change runs the legs too.
   {
     pattern: /^templates\/composed-server\/compose\.yaml$/,
-    scopes: ["starter-engine", "template", "typescript"],
+    scopes: ["mcp-engines", "starter-engine", "template", "typescript"],
   },
   // The fixture module's document: test:host renders it too (own-view-module.ts).
   {
