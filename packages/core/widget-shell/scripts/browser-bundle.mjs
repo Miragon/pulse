@@ -135,7 +135,7 @@ function sharedNames(exports) {
  */
 function sharePulseUi(runtime, names) {
   const shared = new RegExp(
-    `^(?:${SHARED_MODULES.map((id) => id.replace(/[/.]/g, "\\$&")).join("|")})$`,
+    `^(?:${SHARED_MODULES.map((id) => id.replace(/[\\^$.*+?()[\]{}|/]/g, "\\$&")).join("|")})$`,
   )
   return {
     name: "widget-shell:share-pulse-ui",
