@@ -222,14 +222,12 @@ updates:
 
   # Docker images, the server's Dockerfiles: the root one keeps its pinned base digest current;
   # the starter's (templates/composed-server) mirrors it with an unpinned node tag, so only a new
-  # Node major reaches it, outside the group like every major; the VS Code extension's test image
-  # (apps/vscode/test/docker) keeps its pinned digest current too. base-images.yml fails once a
-  # week where a pin falls more than 14 days behind its tag anyway.
+  # Node major reaches it, outside the group like every major. base-images.yml fails once a week
+  # where a pin falls more than 14 days behind its tag anyway.
   - package-ecosystem: "docker"
     directories:
       - "/"
       - "/templates/composed-server"
-      - "/apps/vscode/test/docker"
     schedule:
       interval: "weekly"
     cooldown:
@@ -239,6 +237,30 @@ updates:
       - "emaarco"
     groups:
       docker-root:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+
+  # Docker image, the VS Code extension's test image (apps/vscode/test/docker): keeps its pinned
+  # digest current on the Node line the repository runs (.nvmrc, 22); a new Node major comes with
+  # the repository's own, by hand, never as an odd release such as 25 (#708).
+  - package-ecosystem: "docker"
+    directory: "/apps/vscode/test/docker"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+    reviewers:
+      - "dominikhorn93"
+      - "emaarco"
+    ignore:
+      - dependency-name: "node"
+        update-types:
+          - "version-update:semver-major"
+    groups:
+      docker-vscode-test:
         patterns:
           - "*"
         update-types:
