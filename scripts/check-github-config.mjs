@@ -33,6 +33,9 @@
  *   it after the approval, once a release is created (checkDocsDeploy);
  * - every action of every workflow is pinned by a commit SHA with its version as a comment
  *   (checkActionPins);
+ * - Dependabot's auto-merge labels no major, no minor below 1.0 and no workflow file, withdraws
+ *   the label on a hand-made commit, and enables the merge with a token narrowed to this
+ *   repository's contents and pull requests (checkDependabotAutomerge);
  * - every job of ci.yml runs in a scope of scripts/ci-scopes.mjs, and a failed changes job
  *   fails a job instead of skipping all of them (checkCiScopes).
  *
@@ -1224,6 +1227,81 @@ export function checkVscodePublish(releaseDoc, publishDoc, packages) {
   return errors
 }
 
+// ── dependabot-automerge-eligibility.yml + dependabot-automerge.yml ──────────
+
+export const AUTOMERGE_ELIGIBILITY_WORKFLOW =
+  ".github/workflows/dependabot-automerge-eligibility.yml"
+export const AUTOMERGE_WORKFLOW = ".github/workflows/dependabot-automerge.yml"
+
+/**
+ * Dependabot's auto-merge (pure): the eligibility runs on every push to a Dependabot pull request,
+ * whoever pushed (its job gates on the pull request's author, never on github.actor, so a
+ * hand-made commit withdraws the label), reads each dependency's versions (a minor below 1.0 is a
+ * breaking step, whatever Dependabot's semver-minor says) and labels no major and no change of a
+ * workflow file; the auto-merge mints the release app's token for this repository's contents and
+ * pull requests alone, which cannot merge a workflow file either.
+ */
+export function checkDependabotAutomerge(workflows) {
+  const eligibility = workflows.get(AUTOMERGE_ELIGIBILITY_WORKFLOW)
+  const automerge = workflows.get(AUTOMERGE_WORKFLOW)
+  if (eligibility === undefined || automerge === undefined) {
+    return [
+      `${AUTOMERGE_ELIGIBILITY_WORKFLOW} and ${AUTOMERGE_WORKFLOW} decide the auto-merge together`,
+    ]
+  }
+  const errors = []
+  for (const [id, job] of jobsOf(eligibility)) {
+    const at = `${AUTOMERGE_ELIGIBILITY_WORKFLOW}: job ${id}`
+    if (String(job?.if ?? "").includes("github.actor")) {
+      errors.push(
+        `${at}'s if names github.actor: a push by anyone else skips it and keeps the label`,
+      )
+    }
+    if (!JSON.stringify(job ?? {}).includes("prevVersion")) {
+      errors.push(`${at} reads no dependency's versions: a minor below 1.0 would pass as harmless`)
+    }
+    for (const step of stepsOf(job)) {
+      for (const [name, value] of Object.entries(step?.env ?? {})) {
+        if (!name.endsWith("_AUTOMERGE_PATHS")) continue
+        if (name.startsWith("MAJOR") && value !== "") {
+          errors.push(`${at}: ${name} must be empty: a major waits for a review`)
+        }
+        if (value !== "" && new RegExp(String(value)).test(".github/workflows/ci.yml")) {
+          errors.push(
+            `${at}: ${name} lets a workflow file auto-merge: an action's update reaches the jobs ` +
+              `that hold the release app's key`,
+          )
+        }
+      }
+    }
+  }
+  for (const [id, job] of jobsOf(automerge)) {
+    const at = `${AUTOMERGE_WORKFLOW}: job ${id}`
+    for (const step of stepsOf(job).filter((s) =>
+      usesAction(s, "actions/create-github-app-token"),
+    )) {
+      const given = step.with ?? {}
+      const grants = Object.keys(given)
+        .filter((key) => key.startsWith("permission-"))
+        .sort()
+      if (
+        !isDeepStrictEqual(grants, ["permission-contents", "permission-pull-requests"]) ||
+        given["permission-contents"] !== "write" ||
+        given["permission-pull-requests"] !== "write"
+      ) {
+        errors.push(
+          `${at} mints the release app's token with ${grants.join(", ") || "every permission of the app"}; ` +
+            `narrow it to permission-contents: write and permission-pull-requests: write`,
+        )
+      }
+      if (given.repositories === undefined) {
+        errors.push(`${at} mints the token for every repository of the app; name this one`)
+      }
+    }
+  }
+  return errors
+}
+
 // ── every workflow: actions pinned by commit ────────────────────────────────
 
 /** A step's `uses:` line, with the action, its ref and what follows it on the line. */
@@ -1512,6 +1590,7 @@ export function checkRepo(root) {
     ...checkChannelPublishWorkflows(workflows),
     ...checkCredentialJobs(workflows),
     ...checkActionPins(texts),
+    ...checkDependabotAutomerge(workflows),
     ...checkVscodePublish(
       workflows.get(RELEASE_WORKFLOW),
       workflows.get(VSCODE_PUBLISH_WORKFLOW),
@@ -1540,6 +1619,7 @@ if (isMain) {
       "plugin versions and template pins in release-please's form, the versions the generic " +
       "extra-files mark, the release gate, the channels' publish workflows (the CLI, Orca, the " +
       "image, the starter's mirror), no build next to a credential, the actions' commit pins, " +
-      "the extension's release path, the docs deploy and the CI scopes hold.",
+      "Dependabot's auto-merge, the extension's release path, the docs deploy and the CI " +
+      "scopes hold.",
   )
 }

@@ -17,6 +17,8 @@ import { parse } from "yaml"
 import {
   BEFORE_THE_GATE,
   CI_WORKFLOW,
+  AUTOMERGE_ELIGIBILITY_WORKFLOW,
+  AUTOMERGE_WORKFLOW,
   CHANNEL_PUBLISH_TRIGGERS,
   CHANNEL_PUBLISH_WORKFLOWS,
   DOCS_TRIGGERS,
@@ -31,6 +33,7 @@ import {
   VSCODE_PUBLISH_WORKFLOW,
   actionRefs,
   checkActionPins,
+  checkDependabotAutomerge,
   checkCiScopes,
   checkChannelPublishWorkflows,
   checkCredentialJobs,
@@ -1519,6 +1522,64 @@ describe("checkCredentialJobs", () => {
       run: "cp starter/pnpm-lock.yaml mirror/ && rm -f mirror/yarn.lock",
     })
     assert.deepEqual(checkCredentialJobs(docs), [])
+  })
+})
+
+// ── Dependabot's auto-merge ─────────────────────────────────────────────────
+
+describe("checkDependabotAutomerge", () => {
+  const workflows = () =>
+    new Map(
+      [AUTOMERGE_ELIGIBILITY_WORKFLOW, AUTOMERGE_WORKFLOW].map((file) => [file, readDoc(file)]),
+    )
+  const decisionOf = (docs) =>
+    docs
+      .get(AUTOMERGE_ELIGIBILITY_WORKFLOW)
+      .jobs["label-eligible"].steps.find((step) => step.id === "decision")
+  const tokenOf = (docs) =>
+    docs
+      .get(AUTOMERGE_WORKFLOW)
+      .jobs["auto-merge"].steps.find((step) =>
+        String(step.uses).startsWith("actions/create-github-app-token"),
+      )
+
+  it("accepts the real workflows", () => {
+    assert.deepEqual(checkDependabotAutomerge(workflows()), [])
+  })
+
+  it("refuses the gaps main had: an actor gate, workflow files, semver-minor read literally", () => {
+    const docs = workflows()
+    const job = docs.get(AUTOMERGE_ELIGIBILITY_WORKFLOW).jobs["label-eligible"]
+    job.if =
+      "github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]'"
+    const decision = decisionOf(docs)
+    decision.env.MINOR_AUTOMERGE_PATHS = "^(package\\.json|\\.github/workflows/.+)$"
+    decision.env.MAJOR_AUTOMERGE_PATHS = "^package\\.json$"
+    decision.run = 'echo "eligible=true" >> "$GITHUB_OUTPUT"'
+    delete decision.env.UPDATED
+    const errors = checkDependabotAutomerge(docs)
+    assert.equal(errors.length, 4)
+    assert.match(errors[0], /job label-eligible's if names github\.actor/)
+    assert.match(errors[1], /job label-eligible reads no dependency's versions/)
+    assert.match(errors[2], /MINOR_AUTOMERGE_PATHS lets a workflow file auto-merge/)
+    assert.match(errors[3], /MAJOR_AUTOMERGE_PATHS must be empty/)
+  })
+
+  it("refuses the release app's token for every permission or every repository", () => {
+    const docs = workflows()
+    const token = tokenOf(docs)
+    delete token.with["permission-contents"]
+    delete token.with["permission-pull-requests"]
+    delete token.with.repositories
+    const errors = checkDependabotAutomerge(docs)
+    assert.equal(errors.length, 2)
+    assert.match(
+      errors[0],
+      /job auto-merge mints the release app's token with every permission of the app/,
+    )
+    assert.match(errors[1], /job auto-merge mints the token for every repository of the app/)
+    token.with["permission-workflows"] = "write"
+    assert.match(checkDependabotAutomerge(docs)[0], /with permission-workflows; narrow it/)
   })
 })
 
