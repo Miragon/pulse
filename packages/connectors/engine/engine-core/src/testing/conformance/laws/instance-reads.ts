@@ -61,6 +61,18 @@ export class InstanceReads {
     )
   }
 
+  static wholeEngineFiltersOverItsThreeInstancesWithAnIncident(): readonly InstanceFilter[] {
+    return [
+      { withIncident: true },
+      { withIncident: false },
+      {
+        lifecycle: "running",
+        withIncident: true,
+        activeElementId: ElementId(WORLD_ELEMENT.printShippingLabel),
+      },
+    ]
+  }
+
   static countedFilters(harness: ConformanceHarness): readonly InstanceFilter[] {
     const orderV1 = harness.world.definitionIds["order@1"]
     return [
@@ -69,6 +81,7 @@ export class InstanceReads {
       { definitionId: orderV1, lifecycle: "running", withIncident: true },
       { definitionId: orderV1, lifecycle: "ended" },
       { bpmnProcessId: ORDER, lifecycle: "running", withIncident: false },
+      ...InstanceReads.wholeEngineFiltersOverItsThreeInstancesWithAnIncident(),
       {
         bpmnProcessId: ORDER,
         lifecycle: "running",

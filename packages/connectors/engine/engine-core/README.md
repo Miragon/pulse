@@ -51,7 +51,7 @@ The kit binds every law to any `(name, fn)` runner and throws an `Error` naming 
 it found when one fails. Your harness deploys diagrams with the world's element ids into your engine and seeds the
 world's instances; the fake seeds it in memory. An engine whose reads lag behind its writes
 declares `writeVisibility`, one whose bulk work runs in the background `asyncWork`. The kit
-proves itself: 89 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
+proves itself: 93 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
 `test/`).
 
 ## What it provides
