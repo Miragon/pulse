@@ -772,7 +772,7 @@ describe("the C7 runtime over recorded engine answers", () => {
       ["sortBy", "incidentTimestamp"],
       ["sortOrder", "desc"],
       ["firstResult", "0"],
-      ["maxResults", "51"],
+      ["maxResults", "52"],
     ])
   })
 
