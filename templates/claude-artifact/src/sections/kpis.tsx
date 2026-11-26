@@ -45,72 +45,75 @@ function figure(count: Count, alarm?: { situation: Situation; label: string }): 
 
 /**
  * The tiles: what runs and what alarms now, and what started and ended in the last 24 hours, each
- * group over every version of the key (its header names the scope). One call, shared with the
- * chart and the end events: `engine_process_stats`.
+ * group over every version of the key (its header names the scope), in one region named the key
+ * figures, which a screen reader lists beside the panels. One call, shared with the chart and the
+ * end events: `engine_process_stats`.
  */
 export function KpiSection({ processKey }: { readonly processKey: string }) {
   const t = useT()
   const section = useSectionRead(["stats", processKey], (reader) => readStats(reader, processKey))
   return (
-    <SectionState
-      state={section.state}
-      onRetry={section.retry}
-      skeleton={
-        <Groups
-          now={<KpiGridSkeleton cells={5} boxed />}
-          last24h={<KpiGridSkeleton cells={2} boxed />}
-        />
-      }
-    >
-      {({ now: kpis }) => {
-        const now: KpiCell[] = [
-          { label: t("kpi.running"), value: figure(kpis.running) },
-          {
-            label: t("kpi.incidents"),
-            value: figure(kpis.incidents, {
-              situation: "openIncident",
-              label: t("kpi.incidentsWhy"),
-            }),
-          },
-          {
-            label: t("kpi.withIncident"),
-            value: figure(kpis.withIncident, {
-              situation: "openIncident",
-              label: t("kpi.withIncidentWhy"),
-            }),
-          },
-          {
-            label: t("kpi.failedJobs"),
-            value: figure(kpis.failedJobs, {
-              situation: "jobWithoutRetries",
-              label: t("kpi.failedJobsWhy"),
-            }),
-          },
-          { label: t("kpi.openTasks"), value: figure(kpis.openTasks) },
-        ]
-        const last24h: KpiCell[] = [
-          { label: t("kpi.started"), value: figure(kpis.startedLast24h) },
-          { label: t("kpi.ended"), value: figure(kpis.endedLast24h) },
-        ]
-        return (
+    <section aria-label={t("kpi.title")}>
+      <SectionState
+        state={section.state}
+        onRetry={section.retry}
+        skeleton={
           <Groups
-            now={
-              <KpiGrid
-                boxed
-                header={{ label: t("kpi.now"), badge: t("scope.allVersions") }}
-                cells={now}
-              />
-            }
-            last24h={
-              <KpiGrid
-                boxed
-                header={{ label: t("kpi.last24h"), badge: t("scope.allVersions") }}
-                cells={last24h}
-              />
-            }
+            now={<KpiGridSkeleton cells={5} boxed />}
+            last24h={<KpiGridSkeleton cells={2} boxed />}
           />
-        )
-      }}
-    </SectionState>
+        }
+      >
+        {({ now: kpis }) => {
+          const now: KpiCell[] = [
+            { label: t("kpi.running"), value: figure(kpis.running) },
+            {
+              label: t("kpi.incidents"),
+              value: figure(kpis.incidents, {
+                situation: "openIncident",
+                label: t("kpi.incidentsWhy"),
+              }),
+            },
+            {
+              label: t("kpi.withIncident"),
+              value: figure(kpis.withIncident, {
+                situation: "openIncident",
+                label: t("kpi.withIncidentWhy"),
+              }),
+            },
+            {
+              label: t("kpi.failedJobs"),
+              value: figure(kpis.failedJobs, {
+                situation: "jobWithoutRetries",
+                label: t("kpi.failedJobsWhy"),
+              }),
+            },
+            { label: t("kpi.openTasks"), value: figure(kpis.openTasks) },
+          ]
+          const last24h: KpiCell[] = [
+            { label: t("kpi.started"), value: figure(kpis.startedLast24h) },
+            { label: t("kpi.ended"), value: figure(kpis.endedLast24h) },
+          ]
+          return (
+            <Groups
+              now={
+                <KpiGrid
+                  boxed
+                  header={{ label: t("kpi.now"), badge: t("scope.allVersions") }}
+                  cells={now}
+                />
+              }
+              last24h={
+                <KpiGrid
+                  boxed
+                  header={{ label: t("kpi.last24h"), badge: t("scope.allVersions") }}
+                  cells={last24h}
+                />
+              }
+            />
+          )
+        }}
+      </SectionState>
+    </section>
   )
 }

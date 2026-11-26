@@ -43,7 +43,10 @@ function retriesByDefault(client: QueryClient, count: number, error: Error): boo
  * since sections with the same key share one read. A transient failure is retried as every view's
  * read is (`unavailable`, an engine that does not answer), a refusal and a permanent error never.
  * A later read that fails keeps the data with the failure beside it. A refusal of a connection as
- * a whole is the gate's to say where a `PageGate` above covers it, never the section's.
+ * a whole is the gate's to say where a `PageGate` above covers it, never the section's. A read
+ * stays in the cache as long as the page (`gcTime: Infinity`): the gate derives its state from the
+ * reads and unmounts their sections while a refusal stands, so TanStack's collection of reads no
+ * section observes (5 minutes) would open it by itself, read again and fail again.
  */
 export function useSectionRead<T>(
   key: readonly unknown[],
@@ -61,6 +64,7 @@ export function useSectionRead<T>(
   const query = useQuery<SectionAnswer<T>, Error>({
     queryKey,
     staleTime: PAGE_READ_TTL_MS,
+    gcTime: Infinity,
     networkMode: "always",
     retry: (count, error) => !isPageRefusal(error) && retriesByDefault(client, count, error),
     queryFn: async () => {

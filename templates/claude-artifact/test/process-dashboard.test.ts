@@ -3,6 +3,7 @@ import {
   boundOf,
   historyCutOf,
   incidentsOf,
+  outcomesEmptyOf,
   outcomesOf,
   readDiagram,
   readStats,
@@ -152,6 +153,14 @@ describe("the three calls of a load", () => {
     })
     expect((await readDiagram(reader, "p")).xml).toBeNull()
   })
+
+  it("fails the diagram loud when the answer holds no bpmn20Xml, a renamed field never read as none", async () => {
+    const { reader } = readerOver({
+      engine_activity_counts: () => COUNTS,
+      engine_get_process_definition_xml: () => ({ id: "p:2:b", xml: "<definitions/>" }),
+    })
+    await expect(readDiagram(reader, "p")).rejects.toThrow(/answered without bpmn20Xml/)
+  })
 })
 
 describe("what the sections show", () => {
@@ -182,6 +191,28 @@ describe("what the sections show", () => {
       ],
       ended: null,
     })
+  })
+
+  it("keeps an end event whose count is a lower bound, even of 0, where history was removed", () => {
+    const cut = {
+      ...STATS,
+      endEvents: [
+        { activityId: "End_A", name: "A", ended: { atLeast: 0 } },
+        { activityId: "End_B", name: "B", ended: 0 },
+      ],
+    }
+    expect(outcomesOf(cut).outcomes.map((event) => event.activityId)).toEqual(["End_A"])
+  })
+
+  it("says why no end event shows: none ended, none reached one, or no history", () => {
+    const withTotal = (ended: ProcessStats["totals"]["ended"]) => ({
+      ...STATS,
+      totals: { ...STATS.totals, ended },
+    })
+    expect(outcomesEmptyOf(withTotal(0))).toBe("none")
+    expect(outcomesEmptyOf(withTotal(4))).toBe("noEndEvent")
+    expect(outcomesEmptyOf(withTotal({ atLeast: 2 }))).toBe("noEndEvent")
+    expect(outcomesEmptyOf(withTotal(null))).toBe("noHistory")
   })
 
   it("puts the activities with own root incidents in the table, the called ones apart", () => {

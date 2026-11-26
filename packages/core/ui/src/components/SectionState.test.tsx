@@ -141,6 +141,38 @@ describe("SectionState: a failure", () => {
     expect(onRetry).toHaveBeenCalledTimes(1)
   })
 
+  it("keeps keyboard focus in the section when its Try again succeeds, the button gone", () => {
+    const { container, rerender } = render(<Section state={{ error: UNAVAILABLE }} />)
+    const button = screen.getByRole("button", { name: en.common.retry })
+    button.focus()
+    fireEvent.click(button)
+    rerender(<Section state={{ data: { open: 3 } }} />)
+    expect(screen.queryByRole("button")).toBeNull()
+    expect(document.activeElement).toBe(root(container))
+    expect(root(container).tabIndex).toBe(-1)
+  })
+
+  it("leaves focus where the reader moved it while the retry ran", () => {
+    const { rerender } = render(
+      <>
+        <Section state={{ error: UNAVAILABLE }} />
+        <input aria-label="elsewhere" />
+      </>,
+    )
+    const button = screen.getByRole("button", { name: en.common.retry })
+    button.focus()
+    fireEvent.click(button)
+    const elsewhere = screen.getByRole("textbox", { name: "elsewhere" })
+    elsewhere.focus()
+    rerender(
+      <>
+        <Section state={{ data: { open: 3 } }} />
+        <input aria-label="elsewhere" />
+      </>,
+    )
+    expect(document.activeElement).toBe(elsewhere)
+  })
+
   it("offers no Try again for a refusal no retry changes", () => {
     render(<Section state={{ error: { ...UNAVAILABLE, permanent: true } }} />)
     expect(screen.queryByRole("button")).toBeNull()

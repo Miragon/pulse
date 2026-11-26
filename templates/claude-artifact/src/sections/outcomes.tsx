@@ -7,11 +7,24 @@ import {
   TableEmptyState,
 } from "@miragon/pulse-ui"
 import { useSectionRead } from "@miragon/pulse-widget-shell/widgets"
-import { outcomesOf, readStats, type ProcessStats } from "../data/process-dashboard.ts"
+import {
+  outcomesEmptyOf,
+  outcomesOf,
+  readStats,
+  type OutcomesEmpty,
+  type ProcessStats,
+} from "../data/process-dashboard.ts"
 import { useT } from "../messages.ts"
 
 /** The rows' room while the first read runs. */
 const SKELETON_HEIGHT = 160
+
+/** What the panel says where no end event shows, by why. */
+const EMPTY_TEXT = {
+  none: "outcomes.empty",
+  noEndEvent: "outcomes.noEndEvent",
+  noHistory: "outcomes.noHistory",
+} as const satisfies Record<OutcomesEmpty, string>
 
 /**
  * The end events reached in the chart's 14 days, every version: how many of the instances that
@@ -19,7 +32,8 @@ const SKELETON_HEIGHT = 160
  * non-interrupting branch ends at its own), so the shares are each of every instance that ended
  * and may add up to more than 100 %. Where that whole is not exact (the engine may have removed
  * some of these days' history, or writes none), `MeterRows` shows no share and the page says why.
- * `engine_process_stats`, shared with the tiles and the chart.
+ * Where no end event shows, it says why too: no instance ended, they ended without reaching one,
+ * or the engine writes no history. `engine_process_stats`, shared with the tiles and the chart.
  */
 export function OutcomesSection({ processKey }: { readonly processKey: string }) {
   const t = useT()
@@ -31,7 +45,11 @@ export function OutcomesSection({ processKey }: { readonly processKey: string })
         onRetry={section.retry}
         skeleton={<Skeleton className="w-full" style={{ height: SKELETON_HEIGHT }} />}
         isEmpty={(stats: ProcessStats) => outcomesOf(stats).outcomes.length === 0}
-        empty={<TableEmptyState>{t("outcomes.empty")}</TableEmptyState>}
+        empty={
+          section.data === undefined ? undefined : (
+            <TableEmptyState>{t(EMPTY_TEXT[outcomesEmptyOf(section.data)])}</TableEmptyState>
+          )
+        }
       >
         {(stats) => {
           const data = outcomesOf(stats)

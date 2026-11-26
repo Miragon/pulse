@@ -65,7 +65,7 @@ export function TasksSection({ processKey }: { readonly processKey: string }) {
             columns={columns}
             rows={tasksOf(counts)}
             rowKey={(row) => row.activityId}
-            empty={<TableEmptyState variant="done">{t("tasks.empty")}</TableEmptyState>}
+            empty={<TableEmptyState>{t("tasks.empty")}</TableEmptyState>}
           />
         )}
       </SectionState>
