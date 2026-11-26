@@ -83,7 +83,7 @@ export function IncidentsSection({ processKey }: { readonly processKey: string }
                 columns={columns}
                 rows={own}
                 rowKey={(row) => row.activityId}
-                empty={<TableEmptyState variant="done">{t("incidents.empty")}</TableEmptyState>}
+                empty={<TableEmptyState>{t("incidents.empty")}</TableEmptyState>}
               />
               {called.map((row) => (
                 <p
