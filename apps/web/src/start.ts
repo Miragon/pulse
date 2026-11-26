@@ -8,6 +8,7 @@ import {
   type WebSessionInfo,
 } from "@miragon/pulse-widget-shell/widgets"
 import { pageApp } from "./app.js"
+import { engineLanes } from "./engine-lanes.js"
 import { PageNotices } from "./notices.js"
 import { endedFrame, unreachableFrame } from "./page-states.js"
 import { createPageRouter, type RouterEnv } from "./router/router.js"
@@ -55,9 +56,10 @@ const hereOf = ({ pathname, search }: PageLocation): string => `${pathname}${sea
  * Starts the page at its location: the signed-out page needs no session; any other page names its
  * view canonically first (an old address gives way to the view's own, in the same entry of the
  * browser's history), reads the session and shows its view in the frame, its calls posted with the
- * session's CSRF token, the page navigating itself (`createPageRouter`). A page that finds no
- * session says so and offers the sign-in back to its address, one that cannot read it offers to try
- * again; neither shows a view, so neither hands a caller. Returns the unmount.
+ * session's CSRF token, the reads across engines one at a time per engine (`engineLanes`), the page
+ * navigating itself (`createPageRouter`). A page that finds no session says so and offers the
+ * sign-in back to its address, one that cannot read it offers to try again; neither shows a view,
+ * so neither hands a caller. Returns the unmount.
  */
 export async function startPage(env: PageEnv): Promise<() => void> {
   const route = routeOf(env.location)
@@ -70,10 +72,9 @@ export async function startPage(env: PageEnv): Promise<() => void> {
   if (session === null) return mountApp(unreachableFrame(env.reload), base)
   if (session === undefined) return mountApp(endedFrame(route.url), base)
   const notices = new PageNotices()
-  const callTool = webToolCaller(session, {
-    fetch: env.fetch,
-    onSignedOut: () => notices.show("ended"),
-  })
+  const callTool = engineLanes(
+    webToolCaller(session, { fetch: env.fetch, onSignedOut: () => notices.show("ended") }),
+  )
   const router = createPageRouter(env, route)
   const page = {
     session,

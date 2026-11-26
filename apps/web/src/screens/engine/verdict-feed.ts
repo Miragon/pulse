@@ -5,7 +5,8 @@ import { healthFailureOf } from "@miragon/pulse-engine-connector/widgets"
  * The verdict feed (the engine module's `SCREEN_FEEDS`): a Camunda 7 engine's live verdict, `ok`,
  * `warning` or `critical`, c7-core's over its open root incidents by the server's thresholds,
  * an app-only read the page's forward admits (`test/page-reads.test.ts`). The page reads the
- * verdict and never decides one; the server reads it beside the engine screen's own read.
+ * verdict and never decides one; the server reads it from the engine screen's list of processes,
+ * whose read the two share.
  */
 export const ENGINE_VERDICT_FEED = "engine_screen_verdict_data"
 

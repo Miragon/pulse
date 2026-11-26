@@ -101,6 +101,11 @@ renewed before then keeps its newer token, unrevoked, for the session's hours.
   cache anything of its own.
 - A page that leaves cancels its call: the request log shows `POST /app/api/call 499`, no server
   error.
+- Serve the page over HTTP/2 where you can (browsers speak it over TLS only; the server behind
+  the proxy stays on HTTP/1.1). Over HTTP/1.1 a browser opens at most six connections to the
+  server, and the start page and the search read every engine at once, one call per engine at a
+  time: an engine that hangs holds one until the server's deadline (`ENGINE_REQUEST_TIMEOUT_MS`),
+  so six such engines hold the others' rows back. HTTP/2 carries every call over one connection.
 - Every answer under `/app` carries the page's Content Security Policy below,
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, same-origin COOP and CORP
   and, on https, HSTS for a year without `includeSubDomains`. Pass them on unchanged.

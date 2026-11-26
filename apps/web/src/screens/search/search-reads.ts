@@ -47,10 +47,10 @@ export function searchOf(engine: string, read: SearchRead | undefined): EngineSe
 
 /**
  * The search for `text` on every engine of the frame's one read of the engine list (the engines of
- * every dialect), each its own call made at once beside the others, as the landing reads each
- * engine, so each engine's failure is its own and never holds back the hits of the others; a
- * refused profile is read nothing of, its refusal the list's (after the engines). Nothing is read
- * for no text.
+ * every dialect), each its own call made at once beside the others, as the start page reads each
+ * engine, one at a time per engine (the page's `engineLanes`), so each engine's failure is its own
+ * and never holds back the hits of the others; a refused profile is read nothing of, its refusal
+ * the list's (after the engines). Nothing is read for no text.
  */
 export function useSearchReads(text: string) {
   const list = useEngineList()

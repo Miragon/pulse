@@ -175,12 +175,12 @@ describe("the start page", () => {
     expect(replace).not.toHaveBeenCalled()
   })
 
-  it("reads each Camunda 7 engine's verdict from the server, never the cluster's or the refused profile's", async () => {
+  it("reads each Camunda 7 engine's verdict once its figures answered, never a failed one's, the cluster's or the refused profile's", async () => {
     const { verdictReads } = renderStart()
     await loaded()
     await waitFor(() => expect(rowsOf("Engines")[0]?.[1]).toBe("Degraded"))
 
-    expect(verdictReads()).toEqual([{ engine: "prod-a" }, { engine: "down" }])
+    expect(verdictReads()).toEqual([{ engine: "prod-a" }])
     const state = (engine: string) =>
       screen
         .getByRole("row", { name: `Engine ${engine}` })
@@ -355,6 +355,7 @@ describe("the start page", () => {
       failureReason: failure,
       isPending: true,
       isFetching: true,
+      isPaused: false,
       dataUpdatedAt: 0,
       errorUpdatedAt: 0,
       refetch: () => Promise.resolve(),
@@ -383,8 +384,8 @@ describe("the start page", () => {
         .map(({ engine }) => engine)
         .sort(),
     ).toEqual(["c8-eu", "c8-eu", "down", "down", "prod-a", "prod-a"].sort())
-    // Each Camunda 7 engine's verdict with it.
-    await waitFor(() => expect(verdictReads()).toHaveLength(4))
+    // Each Camunda 7 engine's verdict after its figures: prod-a's again, down's once they answered.
+    await waitFor(() => expect(verdictReads()).toHaveLength(3))
     expect(lists()).toHaveLength(2)
   })
 
