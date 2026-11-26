@@ -86,11 +86,11 @@ export const de: UiMessages = {
     approvalRequiredHint: ({ connector }) =>
       `Erlaube der Seite, ${connector} zu nutzen, wenn du gefragt wirst, und versuch es dann noch mal.`,
     unavailable: ({ connector }) => `${connector} antwortet nicht`,
-    unavailableHint: () =>
-      "Versuch es gleich noch mal. Klappt es weiter nicht, frag die Person, die den Pulse-Server betreibt.",
+    unavailableHint: ({ connector }) =>
+      `Versuch es gleich noch mal. Klappt es weiter nicht, frag die Person, die ${connector} betreibt.`,
     toolError: ({ connector }) => `${connector} konnte diesen Lesezugriff nicht ausführen`,
-    toolErrorHint: () =>
-      "Versuch es noch mal. Klappt es wieder nicht, frag die Person, die den Pulse-Server betreibt.",
+    toolErrorHint: ({ connector }) =>
+      `Versuch es noch mal. Klappt es wieder nicht, frag die Person, die ${connector} betreibt.`,
   },
   bpmn: {
     zoomIn: "Vergrößern",

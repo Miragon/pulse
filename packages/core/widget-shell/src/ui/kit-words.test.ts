@@ -180,16 +180,26 @@ describe("a Claude artifact's words (ARTIFACT_PAGE_HINTS)", () => {
     },
   )
 
-  it.each(["de", "en"] as const)(
-    "%s: blame no Pulse server for a failure any server may give, only for Pulse's own codes",
-    (language) => {
+  it.each([
+    ["de", /\bEngine/],
+    ["en", /\bengine/i],
+  ] as const)(
+    "%s: blame no Pulse server and no engine for a failure any server may give, only for Pulse's own codes",
+    (language, engine) => {
       const generic = Object.entries(ARTIFACT_PAGE_HINTS[language]).filter(
         ([kind]) => kind !== "connectionPlace" && !PULSE_KINDS.has(kind),
       )
       expect(generic.map(([kind]) => kind)).toEqual(
-        expect.arrayContaining(["failed", "unknown", "invalidArguments", "notOnServer"]),
+        expect.arrayContaining([
+          "failed",
+          "unknown",
+          "invalidArguments",
+          "notOnServer",
+          "unreachable",
+        ]),
       )
       expect(generic.filter(([, hint]) => /Pulse/.test(hint ?? ""))).toEqual([])
+      expect(generic.filter(([, hint]) => engine.test(hint ?? ""))).toEqual([])
     },
   )
 

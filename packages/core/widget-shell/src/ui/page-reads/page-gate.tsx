@@ -43,15 +43,17 @@ function refusalOf(cache: QueryCache, connector: string | undefined): PageCallEr
 
 /**
  * When the numbers on screen were read: the oldest read of the sections that hold data and are
- * mounted (a section whose refresh failed keeps its older read); none while a refusal of a
- * connection stands.
+ * mounted (a section whose refresh failed keeps its older read), none of a read whose connection
+ * refuses as a whole. A gate that closes unmounts its sections, and a read outside it that shares
+ * their key (the bar's) is refused alike, so a page of one connection shows none then; a page of
+ * several keeps the time of the numbers another connection still shows.
  */
 function readAtOf(cache: QueryCache): number | undefined {
-  if (refusalOf(cache, undefined) !== undefined) return undefined
   let oldest: number | undefined
   for (const query of cache.findAll({ queryKey: SECTION_READS })) {
     const at = (query.state.data as SectionAnswer<unknown> | undefined)?.at
     if (at === undefined || query.getObserversCount() === 0) continue
+    if (isPageWideRefusal(query.state.error)) continue
     if (oldest === undefined || at < oldest) oldest = at
   }
   return oldest
@@ -90,7 +92,8 @@ export interface PageReads {
   readonly refresh: () => void
   /**
    * When the numbers on screen were read, the bar's freshness: the oldest answer's `asOf` of the
-   * mounted sections; none before the first read and while a refusal of a connection stands.
+   * mounted sections, none of a read its connection refuses as a whole; none before the first
+   * read, and none while the one connection of a page refuses.
    */
   readonly readAt: Date | undefined
   /** A read of the page runs. */

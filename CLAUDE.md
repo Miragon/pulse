@@ -360,11 +360,12 @@ for every workspace package.
      module may bring a finished HTML document (invariant 8, the module port).
 
 4. **The view bundle's `resolve.dedupe` is load-bearing: never remove or trim it.** It is
-   widget-shell's `VIEW_BUNDLE_DEDUPE`, spread whole in `apps/mcp-server/vite.config.ts` and the
-   template's `server/vite.config.ts`. Without it a widget package bundles its own React, TanStack
-   Query, pulse-ui, widget-shell or lucide-react, the React contexts no longer match, and every
-   in-widget query hangs on "Loading…" (widget-shell's `src/view-bundle.test.ts`, the app's
-   `test/view-bundle.test.ts`, test:host).
+   widget-shell's `VIEW_BUNDLE_DEDUPE`, spread whole in `apps/mcp-server/vite.config.ts`,
+   `templates/composed-server/server/vite.config.ts` and `templates/claude-artifact/vite.config.ts`.
+   Without it a widget package bundles its own React, TanStack Query, pulse-ui, widget-shell or
+   lucide-react, the React contexts no longer match, and every in-widget query hangs on
+   "Loading…" (widget-shell's `src/view-bundle.test.ts`, the app's `test/view-bundle.test.ts`,
+   test:host).
 
 5. **There are three render paths; pick deliberately:**
    - Registrar tools (`src/tools/`): plain JSON data _for the model_.

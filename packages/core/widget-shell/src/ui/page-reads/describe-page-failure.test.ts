@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { describePageError, PAGE_ERROR_CODES, resolveUiMessages } from "@miragon/pulse-ui"
 import { ToolResultError } from "../../protocol/tool-result.js"
+import { ARTIFACT_PAGE_HINTS } from "../claude-artifact/artifact-hints.js"
 import { describeError } from "../describe-error.js"
 import { PAGE_HINTS, type PageHints } from "../page-hints.js"
 import { WebApiError } from "../web-caller.js"
@@ -66,6 +67,16 @@ describe("describePageFailure", () => {
     expect(without.hint).not.toContain(PLACE.en)
   })
 
+  it("sends the reader to whoever runs the connection that does not answer, in English and German", () => {
+    const silent = new PageCallError("unavailable", "x", { connector: "Acme CRM" })
+    for (const locale of ["en", "de"]) {
+      const { title, hint } = describePageFailure(silent, locale, { pageHints: HINTS })
+      expect(title, locale).toContain("Acme CRM")
+      expect(hint, locale).toContain("Acme CRM")
+      expect(`${title} ${hint}`, locale).not.toContain("Pulse")
+    }
+  })
+
   it("classifies the server's errors by the kit's rules, the raw text only as details", () => {
     const text = "engine prod-a unreachable (ECONNREFUSED)"
     for (const error of [
@@ -96,6 +107,21 @@ describe("describePageFailure", () => {
       permanent: true,
     })
     expect(describePageFailure(new PageCallError("not_allowed", "x"), "en").permanent).toBe(true)
+  })
+
+  it("knows the server's strict-input refusal as claude.ai's artifact runtime hands it on", () => {
+    // The probe of 2026-11-25: the server's text without the SDK's lead.
+    const text = 'Invalid arguments for tool engine_activity_counts: Unknown key "n".'
+    const refused = new ToolResultError({ isError: true, content: [{ type: "text", text }] })
+    expect(describePageFailure(refused, "en", { pageHints: ARTIFACT_PAGE_HINTS })).toEqual({
+      title: "The server refused this request",
+      hint: "You'll find the reason under Details. Whoever published the page can fix the call.",
+      details: text,
+      permanent: true,
+    })
+    expect(describePageFailure(refused, "de", { pageHints: ARTIFACT_PAGE_HINTS }).hint).toBe(
+      ARTIFACT_PAGE_HINTS.de.invalidArguments,
+    )
   })
 
   it("follows the host: a chat's words in a chat, a page's (the default) elsewhere", () => {

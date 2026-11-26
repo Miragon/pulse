@@ -44,9 +44,9 @@ Read the copy's `CLAUDE.md`, then its `README.md`, before you change anything. T
 for the release the copy pins: where they differ from this skill or from what you remember of
 another version, they win.
 
-- `CLAUDE.md`: the artifact runtime's rules, the two values a copy sets, the data rules, which
-  tool feeds which section, the look, where the components are documented, and the checklist
-  from the recording to the publish.
+- `CLAUDE.md`: the artifact runtime's rules, the values a copy sets (the process, the connector
+  and the tools the page calls), the data rules, which tool feeds which section, the look, where
+  the components are documented, and the checklist from the recording to the publish.
 - `README.md`: the commands, recording your own process, how the page reads and what the tests
   hold.
 

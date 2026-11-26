@@ -237,6 +237,11 @@ describe("useSectionRead retries as every view's read does", () => {
       answer: async () => toolError("Input validation error: unknown key"),
       calls: 1,
     },
+    {
+      name: "arguments the tool does not take, as claude.ai's artifact runtime hands them on",
+      answer: async () => toolError('Invalid arguments for tool stats: Unknown key "n".'),
+      calls: 1,
+    },
   ] satisfies ReadonlyArray<{ name: string; answer: ToolCaller; calls: number }>)(
     "$name: $calls call(s) in all, each retry past the caches",
     async ({ answer, calls }) => {

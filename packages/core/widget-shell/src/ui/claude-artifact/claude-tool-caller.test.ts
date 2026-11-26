@@ -207,10 +207,14 @@ describe("claudeToolCaller", () => {
     await expect(call(2)).resolves.toEqual({ activities: [] })
     const error = await settle(call(3))
     expect(error).toMatchObject({ name: "ToolResultError", message: text })
-    // The server's text, worded by the kit as in a chat: the raw text under Details only.
-    const words = describePageFailure(error, "en", { pageHints: ARTIFACT_PAGE_HINTS })
-    expect(words.details).toBe(text)
-    expect(words.title).not.toContain(text)
+    // The server's strict-input refusal, worded by the kit with the artifact's hints: no retry
+    // changes it, and the raw text shows under Details only.
+    expect(describePageFailure(error, "en", { pageHints: ARTIFACT_PAGE_HINTS })).toEqual({
+      title: "The server refused this request",
+      hint: ARTIFACT_PAGE_HINTS.en.invalidArguments,
+      details: text,
+      permanent: true,
+    })
   })
 
   const NO_CAPABILITY =

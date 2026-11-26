@@ -452,7 +452,9 @@ describe("a page without a build in a Claude artifact", () => {
         await frame.locator('[data-tile="Accounts"]').waitFor()
         const text = await textOf(frame)
         expect(text).toContain("Engine prod-a is unreachable (HTTP 503)")
-        expect(text).toContain("Check that the engine is running and reachable, then try again.")
+        expect(text).toContain(
+          "Try again in a moment. If it stays unreachable, ask whoever runs the server.",
+        )
         expect(text).not.toContain(ENGINE_DOWN)
         await frame.getByText("Details").first().click()
         expect(await textOf(frame)).toContain(ENGINE_DOWN)

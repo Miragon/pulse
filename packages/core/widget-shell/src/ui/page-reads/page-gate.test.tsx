@@ -264,6 +264,69 @@ describe("usePageReads", () => {
     expect(textOf(container, "read-at")).toBe("none")
   })
 
+  it("dates no read a refusal of its connection holds, the bar's shared one included", async () => {
+    /** A bar that shares the stats' read, as a dashboard's header shares a section's. */
+    const SharingBar = () => {
+      useSectionRead(["stats", "a"], (reader) => reader.call("stats", { key: "a" }))
+      return <Bar />
+    }
+    const Shared = () => (
+      <>
+        <SharingBar />
+        <PageGate>
+          <Stats />
+        </PageGate>
+      </>
+    )
+    const caller = swappableCaller(played().callTool)
+    const container = await mountReads(Shared, { callTool: caller.callTool, pageHints: HINTS })
+    expect(textOf(container, "read-at")).toBe(STATS_AT)
+    caller.answer(played(["needs_reauth"]).callTool)
+    await click(container, "Refresh")
+    expect(headings(container)).toHaveLength(1)
+    // The bar still holds the shared read's data, which the refusal leaves undated.
+    expect(textOf(container, "read-at")).toBe("none")
+  })
+
+  it("keeps the time of one connection's numbers while another connection refuses", async () => {
+    const shopRefuses: ToolCaller = async (tool, args, options) => {
+      if (options?.connector === "Shop") {
+        throw new PageCallError("not_connected", "no shop", { tool, connector: "Shop" })
+      }
+      return played().callTool(tool, args, options)
+    }
+    for (const shopGate of [false, true]) {
+      const accounts = shopGate ? (
+        <PageGate connector="Shop">
+          <Accounts />
+        </PageGate>
+      ) : (
+        <Accounts />
+      )
+      const TwoConnections = () => (
+        <>
+          <Bar />
+          <main>
+            <PageGate connector="Pulse">
+              <Stats />
+            </PageGate>
+            <SectionStateGroup>{accounts}</SectionStateGroup>
+          </main>
+        </>
+      )
+      const container = await mountReads(TwoConnections, {
+        callTool: shopRefuses,
+        pageHints: HINTS,
+      })
+      expect(phaseOf(container, "stats")).toBe("ready")
+      if (shopGate) expect(headings(container)).toHaveLength(1)
+      else expect(phaseOf(container, "accounts")).toBe("error")
+      expect(container.textContent).toContain(`Shop ${PLACE}`)
+      expect(textOf(container, "read-at"), `Shop's gate: ${shopGate}`).toBe(STATS_AT)
+      unmountReads()
+    }
+  })
+
   it("counts only the sections on screen", async () => {
     const Toggled = () => {
       const [counts, setCounts] = useState(true)

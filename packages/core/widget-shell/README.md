@@ -296,7 +296,8 @@ The rules the reads hold, in the page's one query client:
   without `refresh`, opens a refused gate and reads every section on screen again.
 - `readAt` is the oldest `asOf` of the answers the mounted sections show (a section whose refresh
   failed keeps its older read; one whose answers name none counts from when it finished, by the
-  page's clock); none while a refusal of a connection stands.
+  page's clock), never of a read its connection refuses as a whole: none while a page's one
+  connection refuses, the time of the numbers still on screen while one of several does.
 - A refusal is a `PageCallError` the page's caller rejects with (its `code` one of pulse-ui's
   `PageErrorCode`, its `connector` the connection that refused), worded by `describePageFailure`:
   the refusals by pulse-ui's `describePageError` with the connection's name and the page's

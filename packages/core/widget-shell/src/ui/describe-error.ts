@@ -70,8 +70,13 @@ const NOT_SERVED = /^\[ENGINE_DIALECT_NOT_SERVED\]/
 /** The engine module's codes for a board it does not show, and for one whose file gives none. */
 const UNKNOWN_BOARD = /^\[UNKNOWN_BOARD\]/
 const BOARD_REFUSED = /^\[BOARD_REFUSED\]/
-/** The MCP SDK's refusal of arguments the tool's input schema does not take (JSON-RPC -32602). */
-const INVALID_ARGUMENTS = /^(?:MCP error -32602: )?Input validation error: /
+/**
+ * The MCP SDK's refusal of arguments the tool's input schema does not take (JSON-RPC -32602), and
+ * the same refusal as a client hands it on without the SDK's lead (claude.ai's artifact runtime:
+ * "Invalid arguments for tool engine_activity_counts: Unknown key "n".").
+ */
+const INVALID_ARGUMENTS =
+  /^(?:MCP error -32602: )?(?:Input validation error: |Invalid arguments for tool [\w./-]+: )/
 const TOOL_MISSING = /\btool\b[^\n]*\bnot found\b|\bunknown tool\b|-32601\b|\bmethod not found\b/i
 const TIMEOUT = /\(timeout\)|\btimed? ?out\b|-32001\b|did not respond within/i
 const UNREACHABLE =

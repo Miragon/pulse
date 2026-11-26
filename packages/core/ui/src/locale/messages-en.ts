@@ -84,10 +84,11 @@ export const en: UiMessages = {
     approvalRequiredHint: ({ connector }) =>
       `Allow the page to use ${connector} when you're asked, then try again.`,
     unavailable: ({ connector }) => `${connector} doesn't answer`,
-    unavailableHint: () =>
-      "Try again in a moment. If it keeps failing, ask whoever runs the Pulse server.",
+    unavailableHint: ({ connector }) =>
+      `Try again in a moment. If it keeps failing, ask whoever runs ${connector}.`,
     toolError: ({ connector }) => `${connector} couldn't complete this read`,
-    toolErrorHint: () => "Try again. If it fails again, ask whoever runs the Pulse server.",
+    toolErrorHint: ({ connector }) =>
+      `Try again. If it fails again, ask whoever runs ${connector}.`,
   },
   bpmn: {
     zoomIn: "Zoom in",
