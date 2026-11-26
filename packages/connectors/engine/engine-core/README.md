@@ -106,6 +106,14 @@ never with a flag that can disagree with what the engine does:
   incidents from the instances that hold one of their own: a dialect's own tests pin that it counts
   incidents. The field is required, a breaking change for an implementation outside this
   repository (2026-11-21).
+- **Camunda 7 keeps the incidents' order across pages within a bound.** `GET /incident` sorts by
+  the time alone, so the dialect reads every run of incidents raised in the same millisecond whole
+  and orders it by id, up to 500 incident rows in a run: every row the filter matches at that
+  instant counts, the copies in calling instances and the rows the search drops included, not the
+  root incidents alone. Of a longer run, which no request holds whole, incidents may repeat and
+  about as many be missed, even within one page, wherever the database orders the run anew between
+  requests; the incidents raised before or after it keep their order. The laws' world never
+  reaches such a run (c7-core's README).
 - **A question an engine cannot answer** fails as `RuntimeError` `unsupported`, never as
   `rejected` (a refused change) or `misconfigured` (a connection to fix). So does a command on a
   connection that only reads: it fails before the write leaves, never as a missing item.

@@ -13,8 +13,8 @@
  * as it is. Pure.
  */
 
+import { PAGE_SIZE } from "../port.js"
 import { compareText, compareTime } from "../records.js"
-import { PAGE_SIZE } from "./read-all.js"
 
 /**
  * The most instance ids one request to the history's instances carries: as many as readAll's page

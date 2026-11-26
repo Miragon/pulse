@@ -1,9 +1,10 @@
 /**
  * Test helpers of @miragon/pulse-c7-core: the verified workflow fixture, the status fixture,
- * wait states of every kind, a recording fake port and a fake clock; the seed of the Camunda 7
- * conformance world and a board's answers recorded from it, with the board they give, and the
- * answers of the shared screens' reads, with the screens they give; and the
- * seams tests reach below the entry's API: the pure rules behind inspect and status, the paging
+ * wait states of every kind, a recording fake port, a list whose tied rows turn on every request
+ * and a fake clock; the seed of the Camunda 7 conformance world and a board's answers recorded
+ * from it, with the board they give, and the answers of the shared screens' reads, with the
+ * screens they give; and the seams tests reach below the entry's API: the pure rules behind
+ * inspect and status, the paging
  * rule of the port, and the operations each composite and the runtime send (a port adapter's test
  * holds its table equal to them).
  */
@@ -20,6 +21,8 @@ export {
   type FakePort,
   fakePort,
   type Route,
+  turningTies,
+  turnTies,
 } from "./fake-port.js"
 export { seedC7CommandWorld, seedC7World } from "./seed-world.js"
 export { C7_BOARD_ENGINE, type C7BoardEngine, type C7RecordedAnswer } from "./board-engine.js"

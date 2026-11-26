@@ -175,11 +175,12 @@ missing.
   variable map stands in for when they cannot be read, then the version of each called instance one
   of its root incidents was raised in; each value as `JSON.stringify` writes it, so an integer the
   wire kept as raw JSON keeps its digits), `IncidentSearch` (the root incidents newest first, then by
-  id, across pages too, since incidents raised at one instant are read whole, with the version each
-  was raised in, the element of the diagram, a multi-instance body's incident on its activity, and
-  the job or external task `incidentRecovery` names; an incident outside any process, a failed job
-  of a batch or of the history cleanup, which names no element and no instance, is none of them
-  and never fails the search),
+  id, across pages too, since up to 500 incident rows raised at one instant are read whole, copies
+  and the other rows it drops counted, with the version each was raised in, the element of the
+  diagram, a multi-instance body's incident on its activity, and the job or external task
+  `incidentRecovery` names; an incident outside any process, a failed job of a batch or of the
+  history cleanup, which names no element and no instance, is none of them and never fails the
+  search),
   `IncidentDetailsReader` (the stack trace or error details `CAUSE_OPERATIONS` names, else the
   incident's message, with the root cause by engine-core's `RootCauses`), `BulkOperationReader` (a
   batch that cancels or migrates instances from its statistics while the runtime holds it, else from
@@ -200,11 +201,27 @@ missing.
   after the tenth window it is the first row not read, so a page where nearly every row drops (deep
   call chains, a backlog mostly with incidents) may be short, even empty, but no kept row is
   skipped. The instances without an incident ask the flags of every running row of each window (an
-  ended instance holds no open incident; at limit 50 one request more, for the 51st). The cut is in
-  the engine's order, and only the page returned is sorted: `GET /incident` sorts by the time alone,
-  so of two kept incidents raised in the same millisecond at a page's boundary one may repeat or be
-  skipped if the database orders them differently between two reads. The readers stay inside the
-  entry; beside `C7Runtime` it exports the reads a surface's commands check before they write:
+  ended instance holds no open incident; at limit 50 one request more, for the 51st), and their cut
+  is in the engine's order. `GET /incident` sorts by the time alone, so a page of incidents reads
+  every run of up to 500 raised in the same millisecond whole and orders it by id (`TiedPages`,
+  `packages/connectors/c7/c7-core/src/tied-pages.ts`): its first window holds the page and two rows
+  more, a full window's last run is read again at the next one's start, and its cursor names where a
+  run starts and how many of its incidents came before (`<offset>.<skip>`). A run counts every
+  incident row the filter matches at that instant, the copies in calling instances and the other
+  rows the search drops included, not the root incidents alone. No request asks for more than 500
+  rows: a run that fills a window of 500 is told from a longer one by the one row after it, so a run
+  of exactly 500 is still read whole. That row counts as one of the 10 windows, so a page asks
+  `GET /incident` at most 10 times; where none is left for it, the page ends before that run and the
+  next page reads it again. A run of more than 500 is never read whole: its incidents keep the
+  engine's order at plain offsets, as the instances do, a cursor into it says so (`<offset>~`), and
+  the next page reads on from there with the page and two rows more. A page that stops at the bound
+  of 10 requests inside such a run ends at a bare offset instead, and the next page reads the rest
+  of the run from there as a run of its own: a rest of more than 500 rows it tells by the one row
+  after a window of 500 and pages at plain offsets, a rest of 500 rows or fewer it reads whole and
+  orders by id. Where the database orders such a run anew between two requests, its incidents may
+  repeat and about as many be missed, even within one page, up to most of the run; the incidents
+  raised before or after it never. The readers stay inside the entry; beside `C7Runtime` it exports
+  the reads a surface's commands check before they write:
   `findActivityTree` (the activity instance tree of a running instance, its scopes and transition
   instances, a move's token among them; none for an instance that does not run or an id no engine
   assigns, without a request), `readHistoricInstances` (the history's instances a query finds, newest
@@ -302,10 +319,13 @@ package.
 
 `@miragon/pulse-c7-core/testing` exports the verified workflow fixture, the status fixture, wait
 states of every kind, `fakePort` (a recording port over canned answers that refuses any operation
-without a route) and `fakeClock`. It also exports the rules behind the entry's functions that
-tests reach directly, and `INSPECT_OPERATIONS`, `STATUS_OPERATIONS`, `WITH_INCIDENT_OPERATIONS`
-and `RUNTIME_OPERATIONS`, the operations each composite and the runtime's readers send: a port that
-maps operations one by one holds its table equal to them in a test.
+without a route), `turningTies` (a route that answers a list's window over rows in the engine's
+order, every run of rows its one sort key cannot tell apart turned one place further on each
+request, as a database may order them anew; `turnTies` turns them once) and `fakeClock`. It also
+exports the rules behind the entry's functions that tests reach directly, and `INSPECT_OPERATIONS`,
+`STATUS_OPERATIONS`, `WITH_INCIDENT_OPERATIONS` and `RUNTIME_OPERATIONS`, the operations each
+composite and the runtime's readers send: a port that maps operations one by one holds its table
+equal to them in a test.
 
 `seedC7World` and `seedC7CommandWorld` seed the conformance world of
 `@miragon/pulse-engine-core/testing` into a Camunda 7 engine of the family over its REST API: they

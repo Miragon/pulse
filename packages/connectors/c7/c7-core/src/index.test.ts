@@ -207,6 +207,8 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "seedC7World",
       "statistics",
       "topicStatus",
+      "turnTies",
+      "turningTies",
       "unknownKeys",
       "waitSignalStage",
     ])
