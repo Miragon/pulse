@@ -10,8 +10,8 @@ import { REPO_ROOT } from "./source-scan.mjs"
  * VS Code sandbox's is the image of an Engines leg of ci.yml, where the read laws, the adapter's
  * conformance and the CLI's suites run on it. Dependabot moves the Compose files' images on its
  * own, so a bump that reaches one of them fails here until its leg joins the matrix in the same
- * change (owner decision of 2026-11-26: CIB seven 2.2 and 3.0 are both tested, 2.2 while customers
- * run it). Images of other repositories (Keycloak) are no engines and pass.
+ * change (owner decision of 2026-11-26: CIB seven is tested on 3.0, the version the starter and
+ * the playground run). Images of other repositories (Keycloak) are no engines and pass.
  */
 
 const CI_WORKFLOW = ".github/workflows/ci.yml"

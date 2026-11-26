@@ -26,7 +26,7 @@ flowchart LR
   subgraph family [Same REST API]
     camunda7[Camunda 7.24]
     operaton[Operaton 2.1]
-    cibseven[CIB seven 2.2]
+    cibseven[CIB seven 3.0]
   end
   wire -- HTTP /engine-rest --> family
 ```
@@ -350,7 +350,7 @@ dialect it implements.
 - **Web UI.** `C7Adapter.webUi` returns a `CockpitWebUi` ("Cockpit") when the target's
   `cockpitUrl` names one, chosen by its path (the app root cannot be told from the REST
   endpoint: `/camunda`, `/operaton`, a context path, or no webapps at all):
-  - `…/app/cockpit/{engine}/`: the classic Cockpit of Camunda 7, Operaton and CIB seven,
+  - `…/app/cockpit/{engine}/`: the classic Cockpit of Camunda 7, Operaton and CIB seven before 3.0,
     `#/dashboard` for the engine overview, `#/process-instance/{id}/runtime`
     (`?detailsTab=incidents-tab` when the instance has an incident) and
     `#/process-definition/{id}/runtime`;
@@ -417,7 +417,7 @@ routes and so run every class above.
 ## Consequences
 
 - The conformance kit passes all laws against `operaton/operaton:2.1.5` and
-  `cibseven/cibseven:run-2.2.0` (and passed against Camunda 7.24.0 until its image left Docker Hub)
+  `cibseven/cibseven:run-3.0.0` (and passed against Camunda 7.24.0 until its image left Docker Hub)
   (`PULSE_ENGINE_IMAGE=… pnpm --filter @miragon/pulse-c7-adapter run test:engines`; its suites
   skip on a `camunda/camunda` image, which the C8 suites run, and fail on an image of neither).
   Its harness seeds the kit's world with c7-core's `seedC7World` and `seedC7CommandWorld`

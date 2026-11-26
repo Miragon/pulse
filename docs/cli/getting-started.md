@@ -12,7 +12,7 @@ configuration. Give it a few seconds to start before the first command.
 ```sh
 npm install -g @miragon/pulse-cli
 docker run -d --name engine -p 8080:8080 operaton/operaton:2.1.5
-# or cibseven/cibseven:run-2.2.0
+# or cibseven/cibseven:run-3.0.0
 pulse ping
 pulse status
 ```

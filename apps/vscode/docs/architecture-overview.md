@@ -202,7 +202,7 @@ flowchart LR
   subgraph family [Same REST API]
     camunda7[Camunda 7.24]
     operaton[Operaton 2.1]
-    cibseven[CIB seven 2.2]
+    cibseven[CIB seven 3.0]
   end
   plug --> core
   plug --> rest
@@ -213,7 +213,7 @@ flowchart LR
 
 | Question                             | Answer                                                                                                                                                                                                              |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Does the C7 adapter cover all three? | Yes: all 55 read laws and 15 command laws pass on Operaton 2.1.5 and CIB seven 2.2.0; Camunda 7.24.0 passed until its image left Docker Hub                                                                         |
+| Does the C7 adapter cover all three? | Yes: all 55 read laws and 15 command laws pass on Operaton 2.1.5 and CIB seven 3.0.0; Camunda 7.24.0 passed until its image left Docker Hub                                                                         |
 | Do we need an adapter per fork?      | No, only per API family                                                                                                                                                                                             |
 | What does a new dialect family need? | A package `packages/connectors/<family>/<family>-adapter` with an `EngineAdapter` and its `BpmnDialect`, its conformance test, one entry in each composition root                                                   |
 | Where does Camunda 8 stand?          | In the C8 adapter, read-only, from 8.9 on; the 51 read laws of 2026-11-17 pass on a local cluster (8.9 and 8.10, H2 and Elasticsearch, none, Basic and OIDC), all 55 on 8.10 with H2 and none; no CI job until #531 |

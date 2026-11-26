@@ -5,11 +5,11 @@ has its own adapter in the CLI, so a difference of one engine stays in one place
 
 ## Compatibility
 
-| Engine    | `flavor`   | Tested in CI with                                            |
-| --------- | ---------- | ------------------------------------------------------------ |
-| Operaton  | `operaton` | `operaton/operaton:2.1.5`                                    |
-| CIB seven | `cibseven` | `cibseven/cibseven:run-2.2.0`, `cibseven/cibseven:run-3.0.0` |
-| Camunda 7 | `camunda7` | 7.24.0 until its image left Docker Hub (November 2026)       |
+| Engine    | `flavor`   | Tested in CI with                                      |
+| --------- | ---------- | ------------------------------------------------------ |
+| Operaton  | `operaton` | `operaton/operaton:2.1.5`                              |
+| CIB seven | `cibseven` | `cibseven/cibseven:run-3.0.0`                          |
+| Camunda 7 | `camunda7` | 7.24.0 until its image left Docker Hub (November 2026) |
 
 CIB seven 3.0 serves only its web app under `/webapp` (2.2 also served the classic one under
 `/camunda/app`): a profile's `cockpitUrl` for a 3.0 engine names `http://<host>/webapp/`. An

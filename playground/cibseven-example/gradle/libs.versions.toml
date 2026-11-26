@@ -1,24 +1,21 @@
 [versions]
 # Language / platform
 kotlin = "2.4.21"
-# Spring Boot 4.1.0 (latest). CIB seven 2.2.0's matrix officially lists 4.0.x, but
-# 4.1.0 boots and serves cleanly here (engine, REST and the Cockpit/Tasklist
-# webapp were all verified by actually running the cibseven-example app) once the
-# stray Spring Boot 3.5 webclient is excluded (see build.gradle.kts: it calls a
-# Spring MVC method removed in Spring Framework 7). Fallback is 4.0.7 (top of the
-# officially supported 4.0.x line). Consume the `-4` starters below.
+# Spring Boot 4.2.0. CIB seven 3.0.0 is built on Spring Boot 4.1; 4.2.0 boots and
+# serves here (engine, REST and the web app under /webapp, verified by running the
+# cibseven-example app). Fallback is the 4.1.x line CIB seven builds on.
 spring-boot = "4.2.0"
 spring-dependency-management = "1.1.7"
 
 # Engine SDKs
-cibseven = "2.2.0"
+cibseven = "3.0.0"
 
 [libraries]
-# CIB seven Spring Boot starters: the `-4` artifacts are the Spring Boot 4 build
-# (Jakarta EE 11 / Spring Framework 7). The suffix-less coordinates are the
-# Spring Boot 3.5 build; do not mix them with a Spring Boot 4 BOM.
-cibseven-starter-rest = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-rest-4", version.ref = "cibseven" }
-cibseven-starter-webapp = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-webapp-4", version.ref = "cibseven" }
+# CIB seven Spring Boot starters: since 3.0.0 the suffix-less coordinates are the
+# Spring Boot 4 build (Jakarta EE 11 / Spring Framework 7); the `-4` artifacts
+# only relocate to them, and the starter no longer ships the legacy webapps.
+cibseven-starter-rest = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-rest", version.ref = "cibseven" }
+cibseven-starter-webapp = { module = "org.cibseven.bpm.springboot:cibseven-bpm-spring-boot-starter-webapp", version.ref = "cibseven" }
 cibseven-bpm-junit5 = { module = "org.cibseven.bpm:cibseven-bpm-junit5", version.ref = "cibseven" }
 cibseven-bpm-assert = { module = "org.cibseven.bpm:cibseven-bpm-assert", version.ref = "cibseven" }
 

@@ -181,7 +181,7 @@ for any workspace, and the conformance kit does not cover them
   too, and a board threshold at or above a lower bound reads "stopped counting", never calm.
 - **History level NONE.** The C7 family's instance search and its count read the engine's history,
   which an engine at history level NONE does not keep, while its runtime still runs the instances.
-  On the kit's world, on Operaton 2.1.5 and CIB seven 2.2.0, a suite of the C7 adapter pins every
+  On the kit's world, on Operaton 2.1.5 and CIB seven 3.0.0, a suite of the C7 adapter pins every
   answer this item names (`packages/connectors/c7/c7-adapter/test/c7-history-none.engine.test.ts`).
   `searchInstances` finds no instance in any scope (the engine's, a process's, a version's;
   running, ended, with an incident or without one; by business key or by id) and fails nowhere.
