@@ -10,6 +10,7 @@ import {
 } from "../engines.js"
 import {
   collectErrors,
+  engineReadsOf,
   expectNoAxeFinding,
   navEntry,
   recordCalls,
@@ -56,13 +57,19 @@ function feedAnswers(page: Page): Map<string, EngineScreenAnswer> {
   page.on("response", async (response) => {
     if (new URL(response.url()).pathname !== "/app/api/call") return
     if ((response.request().postDataJSON() as { name?: string }).name !== FEED) return
-    const { result } = (await response.json()) as {
-      result?: {
-        isError?: boolean
-        content?: Array<{ text: string }>
-        structuredContent?: EngineScreenAnswer
-      }
-    }
+    // The page reads the down engine again after a second; that answer can arrive as the test
+    // ends, when Playwright refuses to read a body ("Test ended") and fails the passed test. No
+    // test waits for such an answer, and one that `answerOf` waits for and cannot read fails there.
+    const body = (await response.json().catch(() => undefined)) as
+      | {
+          result?: {
+            isError?: boolean
+            content?: Array<{ text: string }>
+            structuredContent?: EngineScreenAnswer
+          }
+        }
+      | undefined
+    const result = body?.result
     if (result === undefined || result.isError === true) return
     const text = result.content?.[0]?.text
     const screen =
@@ -167,21 +174,17 @@ test.describe("the start page", () => {
         .getByRole("table", { name: "Boards" })
         .getByRole("row", { name: "Board Invoice operations" }),
     ).toHaveAttribute("data-href", `/app/boards/${INVOICES_BOARD}`)
-    // One read per engine, no view, nothing written, nothing handed to a chat.
+    // One read per engine, no view, nothing written, nothing handed to a chat. A 503 is no refusal,
+    // so the query client reads the down engine again a second after its strip showed: the healthy
+    // engine is read once, the down one at least once.
     expect(calls.map((call) => call.name)).not.toContain("engine_open_cockpit")
-    expect(
-      calls
-        .filter((call) => call.name === FEED)
-        .map((call) => call.arguments?.engine)
-        .sort(),
-    ).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
-    // Each Camunda 7 engine's verdict, read once beside its engine screen.
-    expect(
-      calls
-        .filter((call) => call.name === VERDICT_FEED)
-        .map((call) => call.arguments?.engine)
-        .sort(),
-    ).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
+    const engineReads = engineReadsOf(calls, FEED)
+    expect(engineReads.filter((engine) => engine === HEALTHY_ENGINE)).toHaveLength(1)
+    expect([...new Set(engineReads)].sort()).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
+    // Each Camunda 7 engine's verdict, read beside its engine screen, the healthy one's once.
+    const verdictReads = engineReadsOf(calls, VERDICT_FEED)
+    expect(verdictReads.filter((engine) => engine === HEALTHY_ENGINE)).toHaveLength(1)
+    expect([...new Set(verdictReads)].sort()).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
     await expect(page.getByText(/\bchat\b/i)).toHaveCount(0)
     await rendered(page)
     expect(errors).toEqual([])
