@@ -7,6 +7,7 @@ import {
   BUNDLE,
   type BrowserBundle,
   buildBrowserBundle,
+  LUCIDE_CONTEXT,
   PACKAGE,
   RUNTIME,
   SHARED_MODULES,
@@ -16,8 +17,9 @@ import {
 /**
  * The browser bundle (scripts/browser-bundle.mjs) as the npm package ships it in dist/browser/:
  * the names claude-artifact.js exports, its one import (pulse-ui.js beside it on a CDN, by this
- * release's version), that it holds neither React nor the kit, nothing of a chat's runtime, an MCP
- * client or a recording, and its gzip ceiling (test/__golden__/bundle-budget.json).
+ * release's version), that it holds neither React nor lucide-react's context nor the kit, nothing
+ * of a chat's runtime, an MCP client or a recording, and its gzip ceiling
+ * (test/__golden__/bundle-budget.json).
  * browser-page.test.ts renders a page over it.
  */
 
@@ -43,9 +45,9 @@ const inputs = () =>
     .filter(([, input]) => input.bytesInOutput > 0)
     .map(([path]) => path)
 
-/** React's, ReactDOM's and the kit's own modules, wherever pnpm keeps them. */
+/** React's, ReactDOM's, lucide-react's context's and the kit's own modules, wherever pnpm keeps them. */
 const SHARED_CODE =
-  /(?:node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?(?:react|react-dom|scheduler|@miragon\/pulse-ui)\/|packages\/core\/ui\/)/
+  /(?:node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?(?:react|react-dom|scheduler|@miragon\/pulse-ui)\/|packages\/core\/ui\/|node_modules\/lucide-react\/dist\/esm\/context\.mjs$)/
 
 const readVersion = (dir: string) =>
   (JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as { version: string }).version
@@ -86,15 +88,16 @@ describe("claude-artifact.js", () => {
     }
   })
 
-  it("holds no React, no ReactDOM and no copy of the kit: each comes as pulse-ui.js's", () => {
+  it("holds no React, no ReactDOM, no icon context and no copy of the kit: each comes as pulse-ui.js's", () => {
     expect(inputs().filter((input) => SHARED_CODE.test(input))).toEqual([])
-    // What it imports of React and the kit, each through a module that stands for pulse-ui.js.
+    // What it imports of React, lucide-react's context (which the view root's provider sets) and
+    // the kit, each through a module that stands for pulse-ui.js.
     const shared = inputs()
       .filter((input) => input.startsWith(`${SHARED_NAMESPACE}:`))
       .map((input) => input.slice(SHARED_NAMESPACE.length + 1))
     expect(shared.filter((id) => !SHARED_MODULES.includes(id))).toEqual([])
     expect(shared).toEqual(
-      expect.arrayContaining(["react", "react/jsx-runtime", "@miragon/pulse-ui"]),
+      expect.arrayContaining(["react", "react/jsx-runtime", LUCIDE_CONTEXT, "@miragon/pulse-ui"]),
     )
     // React's internals and a slot only the kit renders.
     expect(text()).not.toContain("__CLIENT_INTERNALS_DO_NOT_USE")
@@ -134,6 +137,27 @@ describe("claude-artifact.js", () => {
       rmSync(dir, { recursive: true, force: true })
     }
   })
+
+  it(
+    "takes lucide-react's context only: a module of another package named context.mjs stays its own",
+    BUILD,
+    async () => {
+      const dir = mkdtempSync(join(tmpdir(), "widget-shell-browser-bundle-"))
+      try {
+        writeFileSync(join(dir, "context.mjs"), "export const own = 1\n")
+        const planted = join(dir, "planted.ts")
+        writeFileSync(planted, 'export { own } from "./context.mjs"\n')
+        const { result } = await buildBrowserBundle({ entries: [planted] })
+        const held = Object.values(result.metafile.outputs).flatMap((meta) =>
+          Object.keys(meta.inputs),
+        )
+        expect(held.filter((input) => input.endsWith("/context.mjs"))).toHaveLength(1)
+        expect(held.filter((input) => input.startsWith(`${SHARED_NAMESPACE}:`))).toEqual([])
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    },
+  )
 })
 
 describe("the bundle's size (test/__golden__/bundle-budget.json)", () => {

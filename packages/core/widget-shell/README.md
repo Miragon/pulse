@@ -435,10 +435,12 @@ file of its own:
 - **`claude-artifact.js`** holds the page reads (`useSectionRead`, `usePageReads`, `PageGate`,
   `PageCallError`, `describePageFailure`, `createPageReader`) and the Claude artifact's entry
   (`mountClaudeArtifact`, `claudeToolCaller`, `CLAUDE_RUNTIME_CODES`, `ARTIFACT_PAGE_HINTS`), with
-  TanStack Query and the part of the view runtime `mountApp` mounts. It holds no React and no
-  kit: it imports both from pulse-ui's `pulse-ui.js` of the same version beside it on the CDN
-  (`../../../pulse-ui@<version>/dist/browser/pulse-ui.js`), so the page and the module run on one
-  React and one copy of the kit's contexts (its locale, its toasts, `SectionStateGroup`). Load
+  TanStack Query and the part of the view runtime `mountApp` mounts. It holds no React, no kit and
+  no icon context: it imports them from pulse-ui's `pulse-ui.js` of the same version beside it on
+  the CDN (`../../../pulse-ui@<version>/dist/browser/pulse-ui.js`), so the page and the module run
+  on one React and one copy of the kit's contexts (its locale, its toasts, `SectionStateGroup`),
+  and the stroke the view root sets (`ICON_STROKE`) reaches the kit's icons and the page's own
+  from pulse-ui's `lucide.js`. Load
   all three modules from one CDN, jsDelivr or unpkg, at one version, pinned as every
   `@miragon/pulse-*` package below 1.0, and take React and the kit from that `pulse-ui.js` only:
   a second React from another URL breaks every hook. Without a build there is no JSX;

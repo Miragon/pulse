@@ -5,14 +5,16 @@
  * - pulse-ui.js: ONE ES module with React, ReactDOM and the kit: the root entry's names
  *   (`export *`, so whatever the root exports lands here too), React's and ReactDOM's public names
  *   (hooks, `createElement`, `Fragment`, `createRoot`, `createPortal`, …, without their internals),
- *   the JSX runtime's `jsx` and `jsxs`, and `React` and `ReactDOM` themselves. React is in it once.
+ *   the JSX runtime's `jsx` and `jsxs`, `React` and `ReactDOM` themselves, and lucide-react's
+ *   context (`LucideProvider`, `useLucideContext`). React and that context are in it once.
  * - pulse-ui.css: the stylesheet scripts/browser-bundle.css compiles: Tailwind's base, the theme,
  *   every class the kit renders and a set of layout utilities.
  * - pulse-ui-css.js: an ES module whose import puts that same text into the page, for a page
  *   that cannot link a stylesheet of its own (`stylesheetModule` below).
- * - Every entry of BROWSER_ENTRIES beside them: a module that imports React, ReactDOM and every
- *   module of the kit pulse-ui.js holds from ./pulse-ui.js (one React, one locale and toast
- *   context) and bundles the rest. lucide.js is every Lucide icon, named as lucide-react names it.
+ * - Every entry of BROWSER_ENTRIES beside them: a module that imports React, ReactDOM, lucide-react's
+ *   context and every module of the kit pulse-ui.js holds from ./pulse-ui.js (one React, one
+ *   locale, toast and icon context) and bundles the rest. lucide.js is every Lucide icon, named as
+ *   lucide-react names it.
  *
  *   node scripts/browser-bundle.mjs [outdir]    (default dist/browser)
  *
@@ -22,7 +24,9 @@
  * @import * as Declarations from "./browser-bundle.d.mts"
  */
 import { execFileSync } from "node:child_process"
+import { realpathSync } from "node:fs"
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
+import { createRequire } from "node:module"
 import { basename, dirname, join, relative, resolve, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 import { compile, optimize } from "@tailwindcss/node"
@@ -46,7 +50,8 @@ export const STYLESHEET_MARK = "data-pulse-ui"
  * The entries beside pulse-ui.js: the file each writes, and the module it bundles (a package's
  * name, or a path in this package from `./`, as `"pulse-ui-bpmn.js": "./src/bpmn/index.ts"`).
  * Adding one is one line here, a line in the bundle budget and its name in the licence list's
- * bundles; it imports React, ReactDOM and the kit's modules pulse-ui.js holds from it.
+ * bundles; it imports React, ReactDOM, lucide-react's context and the kit's modules pulse-ui.js
+ * holds from it.
  */
 export const BROWSER_ENTRIES = {
   "lucide.js": "lucide-react",
@@ -54,10 +59,25 @@ export const BROWSER_ENTRIES = {
 }
 
 /**
+ * lucide-react's context, the one module of it pulse-ui.js shares: every Lucide icon reads its
+ * stroke, size and colour there, so a `LucideProvider` from any file of the bundle (a page's own
+ * from lucide.js, widget-shell's view root with the kit's `ICON_STROKE`) reaches every icon, the
+ * kit's in pulse-ui.js included. lucide-react's icons import it by a path of their own
+ * (`./context.mjs`), which an entry beside pulse-ui.js resolves to ./pulse-ui.js's.
+ */
+export const LUCIDE_CONTEXT = "lucide-react/dist/esm/context.mjs"
+
+/**
  * The modules pulse-ui.js shares with every other entry, each by its public names; `React` and
  * `ReactDOM` are the two default exports.
  */
-export const SHARED_MODULES = ["react", "react/jsx-runtime", "react-dom", "react-dom/client"]
+export const SHARED_MODULES = [
+  "react",
+  "react/jsx-runtime",
+  "react-dom",
+  "react-dom/client",
+  LUCIDE_CONTEXT,
+]
 const DEFAULT_EXPORTS = { react: "React", "react-dom": "ReactDOM" }
 
 /** A module's internals (`__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE`). */
@@ -121,24 +141,42 @@ const isWithin = (dir, path) => !relative(dir, path).startsWith("..")
 /** Marks the plugin's own call of esbuild's resolver. */
 const OWN = Symbol("pulse-ui:own-resolve")
 
+/** A module id as a regular expression's source, matched as it is. */
+const literal = (id) => id.replace(/[\\^$.*+?()[\]{}|/]/g, "\\$&")
+
 /**
- * The plugin of a later entry: a shared module, and a module of the kit that pulse-ui.js holds,
- * become a module that re-exports pulse-ui.js's names from ./pulse-ui.js, so the entry bundles no
- * second React and no second copy of a kit module (its contexts). A name pulse-ui.js lacks fails
- * the build ("No matching export").
+ * The file lucide-react's context is, as esbuild resolves it (symlinks followed): what its icons'
+ * `./context.mjs` resolves to. Fails where lucide-react moved it, so its icons never get a context
+ * of their own unnoticed.
+ */
+function lucideContextFile() {
+  return realpathSync(createRequire(join(PACKAGE, "package.json")).resolve(LUCIDE_CONTEXT))
+}
+
+/**
+ * The plugin of a later entry: a shared module (lucide-react's context by its icons' own path
+ * too), and a module of the kit that pulse-ui.js holds, become a module that re-exports
+ * pulse-ui.js's names from ./pulse-ui.js, so the entry bundles no second React, no second icon
+ * context and no second copy of a kit module (its contexts). A name pulse-ui.js lacks fails the
+ * build ("No matching export").
  */
 function shareRuntime(runtime) {
   const exports = runtime.exports
   const held = new Set(runtime.inputs.map((input) => resolve(PACKAGE, input)))
+  const context = lucideContextFile()
   const shim = (names, as) =>
     `export { ${[...(as === undefined ? [] : [`${as} as default`]), ...names].join(", ")} } from "./${RUNTIME}"\n`
   return {
     name: "pulse-ui:share-runtime",
     setup(b) {
-      const shared = new RegExp(
-        `^(?:${SHARED_MODULES.map((id) => id.replace("/", "\\/")).join("|")})$`,
-      )
+      const shared = new RegExp(`^(?:${SHARED_MODULES.map(literal).join("|")})$`)
       b.onResolve({ filter: shared }, ({ path }) => ({ path, namespace: "pulse-ui-shared" }))
+      // lucide-react's root and icons import its context by a relative path of their own.
+      b.onResolve({ filter: /(?:^|\/)context\.mjs$/ }, ({ path, resolveDir }) =>
+        resolve(resolveDir, path) === context
+          ? { path: LUCIDE_CONTEXT, namespace: "pulse-ui-shared" }
+          : undefined,
+      )
       b.onResolve({ filter: new RegExp(`^\\./${RUNTIME.replace(".", "\\.")}$`) }, ({ path }) => ({
         path,
         external: true,

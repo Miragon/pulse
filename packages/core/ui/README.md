@@ -124,8 +124,9 @@ of its own:
 
 - **`pulse-ui.js`** holds React, ReactDOM and the kit, React once: every name of the root entry,
   React's and ReactDOM's public names (`createElement`, `Fragment`, the hooks, `createRoot`,
-  `createPortal`, …), the JSX runtime's `jsx` and `jsxs`, and `React` and `ReactDOM`. Take React
-  from it only: a second React from another URL breaks every hook. Without a build there is no
+  `createPortal`, …), the JSX runtime's `jsx` and `jsxs`, `React` and `ReactDOM`, and
+  lucide-react's context (`LucideProvider`, `useLucideContext`), which every file beside it shares.
+  Take React from it only: a second React from another URL breaks every hook. Without a build there is no
   JSX; `createElement`, as `h` here, writes the same tree. Pin the version you install, as for every
   `@miragon/pulse-*` package below 1.0.
 - **`pulse-ui-css.js`** holds the text of `pulse-ui.css` (below), and its import puts it into the
@@ -140,9 +141,12 @@ of its own:
   import it from the same CDN at the same version as `pulse-ui.js`. A page that ships files of its
   own, one with a build such as the Claude artifact template, links `pulse-ui.css` as one of them
   instead.
-- **`lucide.js`** beside it holds every Lucide icon under lucide-react's names, on the same React,
-  for a page that draws icons of its own (`import { Activity } from ".../dist/browser/lucide.js"`);
-  `pulse-ui.js` holds only the icons the kit draws.
+- **`lucide.js`** beside it holds every Lucide icon under lucide-react's names, on the same React
+  and the same icon context, for a page that draws icons of its own
+  (`import { Activity } from ".../dist/browser/lucide.js"`); `pulse-ui.js` holds only the icons
+  the kit draws. A `LucideProvider` from either file sets the stroke and size of both, so
+  `<LucideProvider strokeWidth={ICON_STROKE}>` gives the kit's icons and the page's own the kit's
+  stroke.
 - **`pulse-ui-bpmn.js`** beside it holds the BPMN diagram of `./bpmn` (below) with bpmn-js, on the
   same React and the kit's contexts, for a page that draws a process
   (`import { BpmnDiagram } from ".../dist/browser/pulse-ui-bpmn.js"`); it injects its own

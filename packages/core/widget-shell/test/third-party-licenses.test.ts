@@ -21,10 +21,10 @@ import {
 
 /**
  * THIRD_PARTY_LICENSES.txt of the npm package: what the browser bundle in dist/browser/ holds of
- * works that are not Pulse's own (TanStack Query, lucide-react's provider), read from the metafile
- * of its build. The package's own modules (dist/, src/) import those works and bundle none, and
- * the bundle imports React, ReactDOM and the kit from pulse-ui's browser bundle, whose list names
- * them, so the list names the bundle's one file.
+ * works that are not Pulse's own (TanStack Query), read from the metafile of its build. The
+ * package's own modules (dist/, src/) import those works and bundle none, and the bundle imports
+ * React, ReactDOM, lucide-react's context and the kit from pulse-ui's browser bundle, whose list
+ * names them, so the list names the bundle's one file.
  * `pnpm --fail-if-no-match --filter @miragon/pulse-widget-shell third-party-licenses` writes it.
  */
 
@@ -62,8 +62,9 @@ const text: LicenceFileText = {
     "The package holds its own code, under the MIT licence in LICENSE, and, in its browser bundle",
     "for a page without a build (dist/browser/claude-artifact.js), the works listed here, each",
     "under its own licence, which esbuild bundles into it. Its other modules import those works",
-    "and hold none of them. The bundle holds neither React nor @miragon/pulse-ui: it imports both",
-    "from pulse-ui's browser bundle, whose THIRD_PARTY_LICENSES.txt lists what that one holds.",
+    "and hold none of them. The bundle holds neither React, lucide-react nor @miragon/pulse-ui: it",
+    "imports them from pulse-ui's browser bundle, whose THIRD_PARTY_LICENSES.txt lists what that",
+    "one holds.",
     "packages/core/widget-shell/test/third-party-licenses.test.ts of https://github.com/Miragon/pulse",
     "writes this file from the metafile of the bundle's build.",
   ],
@@ -92,12 +93,12 @@ describe("THIRD_PARTY_LICENSES.txt", { timeout: 120_000 }, () => {
     expect(licenceFindings(readFileSync(LICENCES_FILE, "utf8"), inventory, text)).toEqual([])
   })
 
-  it("reads TanStack Query and lucide-react, and neither React nor the kit", () => {
+  it("reads TanStack Query, and neither React, lucide-react's context nor the kit", () => {
     const names = inventory.thirdParty.map(({ name }) => name)
-    expect(names).toEqual(
-      expect.arrayContaining(["@tanstack/query-core", "@tanstack/react-query", "lucide-react"]),
-    )
-    for (const held of ["react", "react-dom", "scheduler"]) expect(names).not.toContain(held)
+    expect(names).toEqual(expect.arrayContaining(["@tanstack/query-core", "@tanstack/react-query"]))
+    for (const held of ["react", "react-dom", "scheduler", "lucide-react"]) {
+      expect(names).not.toContain(held)
+    }
     expect(inventory.own).not.toContain("@miragon/pulse-ui")
   })
 

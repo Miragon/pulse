@@ -5,12 +5,14 @@
  *
  * - claude-artifact.js: ONE ES module with every name of the page reads (src/ui/page-reads, part of
  *   `./widgets`) and of the Claude artifact's entry (`./claude-artifact`), with TanStack Query and
- *   the part of the view runtime `mountApp` mounts. It holds no React and no kit: React, ReactDOM,
- *   the JSX runtime and @miragon/pulse-ui come from pulse-ui's browser bundle of the same version,
- *   by its one import `../../../pulse-ui@<version>/dist/browser/pulse-ui.js`. On a CDN that serves
- *   npm packages by name and version (jsDelivr's and unpkg's `/npm/@miragon/<name>@<version>/…`)
- *   that lands beside this package, so the page and this module run on one React and one copy of
- *   the kit's contexts (locale, toasts, `SectionStateGroup`). The version is pulse-ui's installed
+ *   the part of the view runtime `mountApp` mounts. It holds no React, no kit and no icon context:
+ *   React, ReactDOM, the JSX runtime, lucide-react's context and @miragon/pulse-ui come from
+ *   pulse-ui's browser bundle of the same version, by its one import
+ *   `../../../pulse-ui@<version>/dist/browser/pulse-ui.js`. On a CDN that serves npm packages by
+ *   name and version (jsDelivr's and unpkg's `/npm/@miragon/<name>@<version>/…`) that lands beside
+ *   this package, so the page and this module run on one React and one copy of the kit's contexts
+ *   (locale, toasts, `SectionStateGroup`), and the view root's `LucideProvider` (the kit's
+ *   `ICON_STROKE`) reaches the kit's icons and a page's own from pulse-ui's lucide.js. The version is pulse-ui's installed
  *   one, which must be this package's (one release train). Each module the import stands for
  *   names its own names of pulse-ui.js, so a name pulse-ui.js lacks fails the build ("No
  *   matching export"), never a page.
@@ -23,7 +25,7 @@
  * Its declarations, which the suites' TypeScript reads:
  * @import * as Declarations from "./browser-bundle.d.mts"
  */
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, realpathSync } from "node:fs"
 import { mkdir, rm, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import { dirname, join, relative, resolve, sep } from "node:path"
@@ -44,14 +46,24 @@ export const BUNDLE = "claude-artifact.js"
 export const ENTRIES = ["./src/ui/page-reads/index.ts", "./src/ui/claude-artifact/index.ts"]
 
 /**
+ * lucide-react's context, which pulse-ui.js shares (pulse-ui's scripts/browser-bundle.mjs): the
+ * view root's `LucideProvider` sets the stroke there that every Lucide icon reads. lucide-react's
+ * root imports it by a path of its own (`./context.mjs`), which the bundle resolves to
+ * pulse-ui.js's.
+ */
+export const LUCIDE_CONTEXT = "lucide-react/dist/esm/context.mjs"
+
+/**
  * The modules pulse-ui.js provides, React's first: `React` and `ReactDOM` are the two default
- * exports, and the kit (@miragon/pulse-ui) is every name pulse-ui.js exports that is not React's.
+ * exports, lucide-react's context its two names, and the kit (@miragon/pulse-ui) every name
+ * pulse-ui.js exports that is not one of theirs.
  */
 export const SHARED_MODULES = [
   "react",
   "react/jsx-runtime",
   "react-dom",
   "react-dom/client",
+  LUCIDE_CONTEXT,
   "@miragon/pulse-ui",
 ]
 const KIT = "@miragon/pulse-ui"
@@ -111,36 +123,44 @@ async function runtimeNames(dir) {
 }
 
 /**
- * The names each shared module takes from pulse-ui.js: React's modules their public names
- * pulse-ui.js exports (React's production build is in it, so a name only the development build
- * exports, `act`, is none), the kit every other name but `React` and `ReactDOM`. Each module names
- * its own, so the bundle imports a name from pulse-ui.js once.
+ * The names each shared module takes from pulse-ui.js: React's modules and lucide-react's context
+ * their public names pulse-ui.js exports (React's production build is in it, so a name only the
+ * development build exports, `act`, is none), the kit every other name but `React` and
+ * `ReactDOM`. Each module names its own, so the bundle imports a name from pulse-ui.js once.
  */
 function sharedNames(exports) {
   const offered = new Set(exports)
   const names = {}
-  const react = new Set(Object.values(DEFAULT_EXPORTS))
+  const notKit = new Set(Object.values(DEFAULT_EXPORTS))
   for (const id of SHARED_MODULES.filter((each) => each !== KIT)) {
     names[id] = Object.keys(requireHere(id)).filter((name) => offered.has(name))
-    for (const name of names[id]) react.add(name)
+    for (const name of names[id]) notKit.add(name)
   }
-  names[KIT] = exports.filter((name) => !react.has(name))
+  names[KIT] = exports.filter((name) => !notKit.has(name))
   return names
 }
 
 /**
- * The plugin that makes React, ReactDOM, the JSX runtime and the kit pulse-ui.js's: each becomes a
- * module that re-exports its names of pulse-ui.js from the import beside this package, which stays
- * external.
+ * The plugin that makes React, ReactDOM, the JSX runtime, lucide-react's context (by its own path
+ * inside lucide-react too) and the kit pulse-ui.js's: each becomes a module that re-exports its
+ * names of pulse-ui.js from the import beside this package, which stays external.
  */
 function sharePulseUi(runtime, names) {
   const shared = new RegExp(
     `^(?:${SHARED_MODULES.map((id) => id.replace(/[\\^$.*+?()[\]{}|/]/g, "\\$&")).join("|")})$`,
   )
+  // Fails where lucide-react moved its context, so its icons never get one of their own unnoticed.
+  const context = realpathSync(requireHere.resolve(LUCIDE_CONTEXT))
   return {
     name: "widget-shell:share-pulse-ui",
     setup(b) {
       b.onResolve({ filter: shared }, ({ path }) => ({ path, namespace: SHARED_NAMESPACE }))
+      // lucide-react's root imports its context by a relative path of its own.
+      b.onResolve({ filter: /(?:^|\/)context\.mjs$/ }, ({ path, resolveDir }) =>
+        resolve(resolveDir, path) === context
+          ? { path: LUCIDE_CONTEXT, namespace: SHARED_NAMESPACE }
+          : undefined,
+      )
       b.onResolve({ filter: /^\.\.\/\.\.\/\.\.\/pulse-ui@/ }, ({ path }) =>
         path === runtime.specifier ? { path, external: true } : undefined,
       )

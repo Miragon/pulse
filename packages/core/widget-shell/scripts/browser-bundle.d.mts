@@ -5,6 +5,8 @@ export declare const PACKAGE: string
 export declare const BUNDLE: "claude-artifact.js"
 export declare const ENTRIES: readonly string[]
 export declare const SHARED_MODULES: readonly string[]
+/** lucide-react's context module, which the bundle takes from pulse-ui.js. */
+export declare const LUCIDE_CONTEXT: "lucide-react/dist/esm/context.mjs"
 export declare const SHARED_NAMESPACE: "widget-shell-shared"
 export declare const RUNTIME: "pulse-ui.js"
 

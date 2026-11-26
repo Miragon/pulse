@@ -199,6 +199,7 @@ beforeAll(async () => {
   cdn = {
     ...pulseUi(RUNTIME),
     ...pulseUi(STYLESHEET_MODULE),
+    ...pulseUi("lucide.js"),
     [`@miragon/pulse-widget-shell@${version}/dist/browser/${BUNDLE}`]: bundle.files[BUNDLE] ?? "",
   }
 }, 60_000)
@@ -251,6 +252,12 @@ async function open(page: Case) {
 
 /** The calls the runtime's stand-in recorded. */
 const callsOf = (frame: Frame) => frame.evaluate(() => (window as unknown as Stubbed).stub.calls)
+
+/** The stroke of each Lucide icon the page shows, as `selector` finds them. */
+const strokesOf = (frame: Frame, selector: string) =>
+  frame
+    .locator(selector)
+    .evaluateAll((icons) => icons.map((icon) => icon.getAttribute("stroke-width")))
 
 /** The page's text, as a reader sees it. */
 const textOf = (frame: Frame) => frame.locator("body").innerText()
@@ -306,6 +313,7 @@ const TWO_CONNECTORS = `
 <script type="module">
   import * as ui from "${NPM}@miragon/pulse-ui@VERSION/dist/browser/pulse-ui.js"
   import "${NPM}@miragon/pulse-ui@VERSION/dist/browser/pulse-ui-css.js"
+  import { Activity } from "${NPM}@miragon/pulse-ui@VERSION/dist/browser/lucide.js"
   import { mountClaudeArtifact, PageGate, useSectionRead } from "${NPM}@miragon/pulse-widget-shell@VERSION/dist/browser/claude-artifact.js"
 
   const h = ui.createElement
@@ -320,7 +328,7 @@ const TWO_CONNECTORS = `
 
   function App() {
     return h("main", { className: "flex flex-col gap-section p-gutter" },
-      h("h1", null, "Orders and accounts"),
+      h("h1", null, h(Activity, { "aria-hidden": true, "data-slot": "page-icon" }), "Orders and accounts"),
       h(ui.SectionStateGroup, null,
         h(PageGate, { connector: "Pulse" },
           h(Tile, { name: "Running", readKey: ["stats", "orders"], read: stats, value: (data) => data.now.running }),
@@ -405,6 +413,9 @@ describe("a page without a build in a Claude artifact", () => {
         expect(await frame.locator('[data-slot="section-state"]').count()).toBe(0)
         expect(await frame.locator('[data-slot="freshness-stamp"]').count()).toBe(0)
         expect(await callsOf(frame)).toHaveLength(1)
+        // The kit's glyph in pulse-ui.js sets no stroke of its own: the view root's provider in
+        // claude-artifact.js sets the kit's (ICON_STROKE) on the one context they share.
+        expect(await strokesOf(frame, "button svg.lucide")).toEqual(["2.5"])
         await page.shot("needs-reauth")
 
         await frame.evaluate(() => {
@@ -472,6 +483,9 @@ describe("a page without a build in a Claude artifact", () => {
         ])
         expect(calls.find(({ server }) => server === "Acme CRM")?.args).toEqual({})
         expect(await frame.locator("[data-tile]").allInnerTexts()).toEqual(["1,284", "1,284"])
+        // A page's own icon from lucide.js takes the view root's stroke too, as the kit's do.
+        expect(await strokesOf(frame, '[data-slot="page-icon"]')).toEqual(["2.5"])
+        expect(await strokesOf(frame, "button svg.lucide")).toEqual(["2.5"])
         expect(await textOf(frame)).toContain(
           "Set up Acme CRM in claude.ai, in Settings under Connectors, then try again.",
         )

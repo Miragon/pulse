@@ -10,6 +10,8 @@ export declare const STYLESHEET_MODULE: "pulse-ui-css.js"
 export declare const STYLESHEET_MARK: "data-pulse-ui"
 export declare const BROWSER_ENTRIES: Readonly<Record<string, string>>
 export declare const SHARED_MODULES: readonly string[]
+/** lucide-react's context module, which pulse-ui.js shares with every entry beside it. */
+export declare const LUCIDE_CONTEXT: "lucide-react/dist/esm/context.mjs"
 
 /** The Tailwind entry the stylesheet compiles, with the files Tailwind read for it. */
 export interface InlinedStylesheetPlugin {
