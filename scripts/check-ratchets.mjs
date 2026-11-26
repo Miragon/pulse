@@ -133,6 +133,9 @@
  *                                   scripts/published-imports.test.mjs reads
  *                                   it); each file's $comment says what it
  *                                   measures
+ *   <pkg>/eslint-suppressions.json  a package's baseline of budget violations
+ *                                   (#688): no file, rule or count beyond the
+ *                                   base; a new one needs a Ratchet-Exception
  *   package.json (root)             no gate drops out of `lint`/`test`, and the
  *                                   chains only gain plain `pnpm <script>`
  *                                   gates; every chained gate script and the
@@ -313,6 +316,7 @@ export function ratchetKind(relPath) {
   if (/^apps\/[^/]+\/test\/__golden__\/char-budgets\.json$/.test(relPath)) return "char-budgets"
   if (new RegExp(`^${PKG}/test/__golden__/bundle-budget\\.json$`).test(relPath))
     return "bundle-budget"
+  if (new RegExp(`^${PKG}/eslint-suppressions\\.json$`).test(relPath)) return "eslint-baseline"
   if (relPath === "package.json") return "root-scripts"
   if (new RegExp(`^${PKG}/package\\.json$`).test(relPath)) return "package-scripts"
   // The docs workspace and the starter's manifests pin no gate script; only
@@ -1397,8 +1401,20 @@ const isDynamicImport = (node) =>
   (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
     (ts.isIdentifier(node.expression) && node.expression.text === "require"))
 
-/** The rules the architecture and budget gates set, never relaxed per file. */
-const GATE_RULES = ["complexity", "max-lines", "no-restricted-syntax"]
+/**
+ * The rules the architecture and budget gates set, never relaxed per file: complexity, every size
+ * budget (#688) and the pattern gates, as eslint-effective-config.mjs's GATE_RULES.
+ */
+const GATE_RULES = [
+  "complexity",
+  "max-lines",
+  "max-lines-per-function",
+  "max-statements",
+  "max-depth",
+  "max-params",
+  "max-nested-callbacks",
+  "no-restricted-syntax",
+]
 
 /**
  * What the source of eslint.config.mjs shows that the effective-config
@@ -2092,6 +2108,32 @@ const BUDGET_GROWTH = {
     `${relPath} -> "${name}": ${from} -> ${to} bytes (what the file's $comment says it measures). A shipped bundle's ceiling is shrink-only: every view resource inlines the widget bundle, every first load of the web app downloads its page, the extension ships its webview, every page without a build loads pulse-ui's and widget-shell's browser bundles, every npm install of the CLI downloads its dist. Shrink the bundle, or justify the growth with a Ratchet-Exception trailer.`,
 }
 
+/** A package's baseline of budget violations that appears: it freezes them instead of a fix. */
+const BASELINE_INTRODUCED = (relPath) =>
+  `${relPath} is new: a baseline of ESLint suppressions freezes a budget's violations instead of fixing them. It comes only with the budget it eases (#688), under a Ratchet-Exception trailer that says why.`
+
+/**
+ * A package's baseline of budget violations (`eslint-suppressions.json`, #688), shrink-only: no
+ * file, rule or count beyond the base. ESLint drops what was fixed (it fails on a suppression no
+ * longer needed until it is pruned), so the file only loses entries; one that gains them froze a
+ * new violation (`--suppress-rule`, `--suppress-all`) where the code should have been split.
+ */
+function compareEslintBaseline(relPath, oldJson, newJson) {
+  const violations = []
+  for (const [file, rules] of Object.entries(newJson ?? {})) {
+    for (const [rule, entry] of Object.entries(rules ?? {})) {
+      const before = oldJson?.[file]?.[rule]?.count ?? 0
+      const after = entry?.count ?? 0
+      if (after > before) {
+        violations.push(
+          `${relPath} -> ${file}: ${rule} ${before} -> ${after} suppressed. The baseline only shrinks: split the code that broke the budget instead (a file that moved carries its entries under a Ratchet-Exception trailer).`,
+        )
+      }
+    }
+  }
+  return violations
+}
+
 function compareBudgets(kind, relPath, oldJson, newJson) {
   const violations = []
   for (const [name, oldValue] of Object.entries(oldJson ?? {})) {
@@ -2305,6 +2347,7 @@ const invalidJson = (relPath) => [
  */
 function introducedViolations(kind, relPath, newText) {
   if (newText === null || newText === undefined) return []
+  if (kind === "eslint-baseline") return [BASELINE_INTRODUCED(relPath)]
   if (kind === "vitest") return introducedVitest(relPath, newText)
   if (kind === "eslint") return introducedEslint(relPath, newText)
   if (!MANIFEST_KINDS.has(kind)) return []
@@ -2366,6 +2409,7 @@ export function checkRatchetFile(
   if (kind === "char-budgets" || kind === "bundle-budget") {
     return compareBudgets(kind, relPath, oldJson, newJson)
   }
+  if (kind === "eslint-baseline") return compareEslintBaseline(relPath, oldJson, newJson)
   if (kind === "root-scripts")
     return [
       ...compareRootScripts(relPath, oldJson, newJson),

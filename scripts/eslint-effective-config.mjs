@@ -9,9 +9,11 @@
  * too), the settings ESLint would apply are compared:
  *
  *   - a file linted on the base stays linted (never newly ignored);
- *   - complexity / max-lines / no-restricted-syntax at "error" stay "error";
- *   - complexity and max-lines never rise, and max-lines' skip options never
- *     relax;
+ *   - complexity, the size budgets (max-lines, max-lines-per-function,
+ *     max-statements, max-depth, max-params, max-nested-callbacks) and
+ *     no-restricted-syntax at "error" stay "error";
+ *   - complexity and the size budgets never rise, and the line budgets' skip
+ *     options never relax;
  *   - no-restricted-syntax never drops, for one file, a selector the new
  *     config still applies to others (a per-file carve-out or an override
  *     block that REPLACES a gate's selectors: flat config never merges one
@@ -28,11 +30,29 @@ import { pathToFileURL } from "node:url"
 import { ESLint } from "eslint"
 import picomatch from "picomatch"
 
-const GATE_RULES = ["complexity", "max-lines", "no-restricted-syntax"]
+// check-ratchets.mjs's inline-suppression scan names the same rules (its GATE_RULES).
+const GATE_RULES = [
+  "complexity",
+  "max-lines",
+  "max-lines-per-function",
+  "max-statements",
+  "max-depth",
+  "max-params",
+  "max-nested-callbacks",
+  "no-restricted-syntax",
+]
 
 // ESLint's own defaults when a rule is enabled without options.
 const DEFAULT_COMPLEXITY = 20
 const DEFAULT_MAX_LINES = 300
+const DEFAULT_MAX_LINES_PER_FUNCTION = 50
+/** The budgets of one number, each with ESLint's default. */
+const NUMERIC_DEFAULTS = {
+  "max-statements": 10,
+  "max-depth": 4,
+  "max-params": 3,
+  "max-nested-callbacks": 10,
+}
 
 const severity = (setting) => {
   const level = Array.isArray(setting) ? setting[0] : setting
@@ -49,11 +69,17 @@ function complexityMax(setting) {
   return option?.max ?? option?.maximum ?? DEFAULT_COMPLEXITY
 }
 
-function maxLinesOptions(setting) {
+/** A budget of one number: its option as a number or as `max` (`maximum`), else the default. */
+function numericMax(setting, fallback) {
+  const option = firstOption(setting)
+  if (typeof option === "number") return option
+  return option?.max ?? option?.maximum ?? fallback
+}
+function maxLinesOptions(setting, defaultMax = DEFAULT_MAX_LINES) {
   const option = firstOption(setting)
   if (typeof option === "number") return { max: option, skipBlankLines: false, skipComments: false }
   return {
-    max: option?.max ?? DEFAULT_MAX_LINES,
+    max: option?.max ?? defaultMax,
     skipBlankLines: Boolean(option?.skipBlankLines),
     skipComments: Boolean(option?.skipComments),
   }
@@ -88,12 +114,18 @@ export function loosenings(base, cur, { stillApplied = new Set(), peers = null }
     }
     if (rule === "complexity" && complexityMax(after) > complexityMax(before))
       reasons.push(`complexity ${complexityMax(before)} -> ${complexityMax(after)}`)
-    if (rule === "max-lines") {
-      const was = maxLinesOptions(before)
-      const now = maxLinesOptions(after)
-      if (now.max > was.max) reasons.push(`max-lines ${was.max} -> ${now.max}`)
+    if (rule === "max-lines" || rule === "max-lines-per-function") {
+      const fallback = rule === "max-lines" ? DEFAULT_MAX_LINES : DEFAULT_MAX_LINES_PER_FUNCTION
+      const was = maxLinesOptions(before, fallback)
+      const now = maxLinesOptions(after, fallback)
+      if (now.max > was.max) reasons.push(`${rule} ${was.max} -> ${now.max}`)
       for (const skip of ["skipBlankLines", "skipComments"])
-        if (now[skip] && !was[skip]) reasons.push(`max-lines now sets ${skip}`)
+        if (now[skip] && !was[skip]) reasons.push(`${rule} now sets ${skip}`)
+    }
+    if (Object.hasOwn(NUMERIC_DEFAULTS, rule)) {
+      const was = numericMax(before, NUMERIC_DEFAULTS[rule])
+      const now = numericMax(after, NUMERIC_DEFAULTS[rule])
+      if (now > was) reasons.push(`${rule} ${was} -> ${now}`)
     }
     if (rule === "no-restricted-syntax") {
       const was = selectors(before)

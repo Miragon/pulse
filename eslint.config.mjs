@@ -698,6 +698,58 @@ export default tseslint.config(
       "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
     },
   },
+  // engine-connector, widget-shell, pulse-ui and the web app, where most code grows, run the
+  // domain packages' budgets (owner decision 2026-11-26, #688): complexity 10, depth 3, four
+  // parameters, 300 lines a file and 60 a function, 20 statements, three nested callbacks;
+  // comments do not count, since JSDoc is these packages' house style (the editor trees, which
+  // count them, allow none). Their tests get 400 lines a file and no per-function budget, as the
+  // CLI's: a colocated test keeps the global complexity 15, a test folder gets the length budget
+  // it lacked. What broke a budget on that day sits in each package's eslint-suppressions.json:
+  // ESLint fails on a violation beyond it and on a suppression no longer needed until it is
+  // pruned, and lint:ratchets lets the file only shrink. A package lints from its own folder (its
+  // lint script, lint-staged.config.mjs), since ESLint reads the file's paths relative to it.
+  {
+    files: [
+      "packages/connectors/engine/engine-connector/src/**/*.{ts,tsx}",
+      "packages/core/widget-shell/src/**/*.{ts,tsx}",
+      "packages/core/ui/src/**/*.{ts,tsx}",
+      "apps/web/src/**/*.{ts,tsx}",
+    ],
+    rules: {
+      complexity: ["error", 10],
+      "max-depth": ["error", 3],
+      "max-params": ["error", 4],
+      "max-nested-callbacks": ["error", 3],
+      "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["error", { max: 60, skipBlankLines: true, skipComments: true }],
+      "max-statements": ["error", 20],
+    },
+  },
+  {
+    files: [
+      "packages/connectors/engine/engine-connector/src/**/*.{test,test-support}.{ts,tsx}",
+      "packages/core/widget-shell/src/**/*.{test,test-support}.{ts,tsx}",
+      "packages/core/ui/src/**/*.{test,test-support}.{ts,tsx}",
+      "apps/web/src/**/*.{test,test-support}.{ts,tsx}",
+    ],
+    rules: {
+      complexity: ["error", 15],
+      "max-depth": "off",
+      "max-params": "off",
+      "max-nested-callbacks": "off",
+      "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": "off",
+      "max-statements": "off",
+    },
+  },
+  {
+    files: [
+      "packages/core/widget-shell/test/**/*.{ts,tsx}",
+      "packages/core/ui/test/**/*.{ts,tsx}",
+      "apps/web/test/**/*.{ts,tsx}",
+    ],
+    rules: { "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }] },
+  },
   // i18n message catalogs are data, not code: no length budget.
   {
     files: ["packages/connectors/*/*/src/messages/*.sweep.ts"],

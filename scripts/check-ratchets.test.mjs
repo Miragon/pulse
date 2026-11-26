@@ -2393,6 +2393,52 @@ describe("bundle budget (shrink-only)", () => {
   })
 })
 
+describe("a package's baseline of budget violations (eslint-suppressions.json, shrink-only)", () => {
+  const rel = "packages/core/ui/eslint-suppressions.json"
+  const base = JSON.stringify({
+    "src/a.tsx": { complexity: { count: 2 }, "max-lines": { count: 1 } },
+    "src/b.ts": { "max-statements": { count: 1 } },
+  })
+
+  it("is a ratchet file of every package, never of the root", () => {
+    assert.equal(ratchetKind(rel), "eslint-baseline")
+    assert.equal(ratchetKind("apps/web/eslint-suppressions.json"), "eslint-baseline")
+    assert.equal(
+      ratchetKind("packages/connectors/engine/engine-connector/eslint-suppressions.json"),
+      "eslint-baseline",
+    )
+    assert.equal(ratchetKind("eslint-suppressions.json"), null)
+  })
+
+  it("lets entries go, never come: a count beyond the base, a new rule or a new file fails", () => {
+    const pruned = JSON.stringify({ "src/a.tsx": { complexity: { count: 1 } } })
+    assert.deepEqual(checkRatchetFile(rel, base, pruned), [])
+    assert.deepEqual(checkRatchetFile(rel, base, null), [])
+    const grown = JSON.stringify({
+      "src/a.tsx": {
+        complexity: { count: 3 },
+        "max-lines": { count: 1 },
+        "max-depth": { count: 1 },
+      },
+      "src/c.ts": { "max-params": { count: 1 } },
+    })
+    const violations = checkRatchetFile(rel, base, grown)
+    assert.equal(violations.length, 3)
+    assert.match(
+      violations[0],
+      /src\/a\.tsx: complexity 2 -> 3 suppressed\. The baseline only shrinks/,
+    )
+    assert.match(violations[1], /src\/a\.tsx: max-depth 0 -> 1 suppressed/)
+    assert.match(violations[2], /src\/c\.ts: max-params 0 -> 1 suppressed/)
+  })
+
+  it("asks for a trailer where a baseline appears, since it freezes violations", () => {
+    const [violation] = checkRatchetFile(rel, null, base)
+    assert.match(violation, /eslint-suppressions\.json is new: a baseline of ESLint suppressions/)
+    assert.match(violation, /Ratchet-Exception trailer/)
+  })
+})
+
 describe("the CLI's bundle budget (shrink-only, raw bytes)", () => {
   const rel = "apps/cli/test/__golden__/bundle-budget.json"
   const base = JSON.stringify({ $comment: "x", dist: 2342912 })
@@ -2679,6 +2725,9 @@ describe("inline suppressions (shrink-only)", () => {
       "/* eslint-disable complexity, max-lines */",
       "/* eslint-disable */",
       "// eslint-disable-line max-lines -- legacy file",
+      "// eslint-disable-next-line max-lines-per-function",
+      "/* eslint-disable max-statements, max-depth */",
+      "// eslint-disable-next-line max-params, max-nested-callbacks",
       '/* eslint complexity: ["error", 99] */',
       "/* eslint no-restricted-syntax: off */",
       "/* v8 ignore next */",

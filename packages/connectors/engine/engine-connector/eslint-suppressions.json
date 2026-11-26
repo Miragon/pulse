@@ -1,0 +1,444 @@
+{
+  "src/data/activity-counts-data.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/data/board-facts.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/data/cluster-detail-data.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/data/cockpit-data.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/data/definition-info.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/data/incident-detail-data.ts": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/data/incidents-dashboard-data.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/data/instance-detail-data.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/data/process-incidents-data.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/data/process-stats-data.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/data/stats-buckets.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/engine-profiles.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/lib/bpmn/bpmn-parse.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/lib/engine/engine-error.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/lib/engine/test-support/c8-platform.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/lib/mcp/failure-text.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/tools/external-tasks.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/tools/history.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/tools/incident-issue.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/tools/jobs.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/tools/process-instances.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/tools/tasks.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/tools/test-support/stats-world.ts": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "src/view-models.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/widgets/cluster-detail.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "src/widgets/cockpit-app/app.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/widgets/cockpit-app/cockpit-state.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/widgets/cockpit-app/engine-bars.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/cockpit-app/engine-status.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/widgets/cockpit-app/fleet-landscape.tsx": {
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/cockpit-app/head.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/cockpit-app/landing.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/cockpit-app/place.ts": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "src/widgets/cockpit-app/routes.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/cockpit-dashboard/definitions-table.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/detail-page.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/engine-health-clusters.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/engine-health.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/group-summary-row.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/history-timeline.tsx": {
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/incident-detail.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/incident-detail/header.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/widgets/incidents-dashboard/process-list.tsx": {
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "src/widgets/instance-detail.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/instance-detail/header.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/instance-detail/use-instance-actions.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/instance-sections.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/job-panel.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/lib/engine-action.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/lib/more-actions.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/nav-core.ts": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "src/widgets/process-definitions-table-view.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-incidents/flow.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-incidents/header.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-incidents/heat/heat-diagram.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-incidents/heat/heat-utils.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-incidents/incident-table.tsx": {
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 3
+    }
+  },
+  "src/widgets/process-incidents/kpi.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-incidents/list.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-incidents/running-flow.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-incidents/throughput-flow.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-incidents/use-incident-recovery.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-instances/instance-row.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/process-instances/list.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/widgets/task-complete-form.tsx": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    },
+    "max-statements": {
+      "count": 1
+    }
+  }
+}

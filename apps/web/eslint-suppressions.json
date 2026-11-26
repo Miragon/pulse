@@ -1,0 +1,153 @@
+{
+  "src/app.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/router/router.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/router/routes.ts": {
+    "complexity": {
+      "count": 3
+    },
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/router/screen-queries.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/screens/engine/engine-screen.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/screens/instance/incident-cards.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/screens/instance/instance-body.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/screens/instance/instance-details.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/screens/instance/instance-diagram.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/screens/instance/instance-head.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/screens/instance/instance-screen.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/screens/process/process-body.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/screens/process/process-diagram.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/screens/process/process-screen.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/screens/search/search-screen.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/screens/split-pane.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/screens/start/start-screen.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "test/engine-screen.test.tsx": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "test/frame.test.tsx": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "test/instance-screen.test.tsx": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "test/page.test.tsx": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "test/process-screen.test.tsx": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "test/router.test.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "test/routes.test.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "test/search-screen.test.tsx": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "test/start-screen.test.tsx": {
+    "max-lines": {
+      "count": 1
+    }
+  }
+}
