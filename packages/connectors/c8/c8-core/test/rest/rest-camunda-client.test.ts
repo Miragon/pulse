@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest"
 import {
   clientWith,
   FailedRequest,
+  matchingIn,
   page,
   pagedByCursor,
   pagedByOffset,
@@ -43,6 +44,40 @@ describe("the REST client of a cluster", () => {
       { filter: { isLatestVersion: true }, page: { limit: 500 } },
       { filter: { isLatestVersion: true }, page: { limit: 500, after: "500" } },
     ])
+  })
+
+  test("reads the latest versions of the named processes alone, 1,000 ids a search at most", async () => {
+    const ids = Array.from({ length: 1_001 }, (_, index) => `p${String(index)}`)
+    const { camunda, client } = clientWith([
+      {
+        route: "POST /process-definitions/search",
+        answer: matchingIn([definition("1", "p0", 2), definition("2", "p1000", 1)]),
+      },
+    ])
+
+    const latest = await client.latestOf(ids)
+
+    expect(latest.map((row) => [row.key, row.bpmnProcessId, row.version])).toEqual([
+      ["1", "p0", 2],
+      ["2", "p1000", 1],
+    ])
+    expect(camunda.bodiesOf("POST /process-definitions/search")).toEqual([
+      {
+        filter: { processDefinitionId: { $in: ids.slice(0, 1_000) }, isLatestVersion: true },
+        page: { limit: 500 },
+      },
+      {
+        filter: { processDefinitionId: { $in: ["p1000"] }, isLatestVersion: true },
+        page: { limit: 500 },
+      },
+    ])
+  })
+
+  test("asks nothing for no process, since the cluster reads an empty $in as every process", async () => {
+    const { camunda, client } = clientWith([])
+
+    expect(await client.latestOf([])).toEqual([])
+    expect(camunda.requests).toEqual([])
   })
 
   test("reads the versions of a process newest first", async () => {

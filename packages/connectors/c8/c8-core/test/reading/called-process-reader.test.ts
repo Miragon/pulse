@@ -84,11 +84,75 @@ describe("the called processes", () => {
       ["DeploymentTagged", "label", undefined],
       ["Unknown", "nothing", undefined],
     ])
-    expect(
-      camunda
-        .bodiesOf("POST /process-definitions/search")
-        .filter((body) => JSON.stringify(body).includes("processDefinitionId")),
-    ).toHaveLength(1)
+    expect(camunda.bodiesOf("POST /process-definitions/search")).toEqual([
+      {
+        filter: { processDefinitionId: { $in: ["label", "nothing"] }, isLatestVersion: true },
+        page: { limit: 500 },
+      },
+      {
+        filter: { processDefinitionId: "label" },
+        sort: [{ field: "version", order: "DESC" }],
+        page: { limit: 500 },
+      },
+    ])
+  })
+
+  test("ask for the latest version of each process a call names once, never of every process", async () => {
+    const { camunda, reader } = readerWith([
+      {
+        route: "GET /process-definitions/100/xml",
+        answer: `<bpmn:definitions xmlns:zeebe="z">
+          <bpmn:callActivity id="First"><bpmn:extensionElements>
+            <zeebe:calledElement processId="label" bindingType="latest" />
+          </bpmn:extensionElements></bpmn:callActivity>
+          <bpmn:callActivity id="Second"><bpmn:extensionElements>
+            <zeebe:calledElement processId="label" />
+          </bpmn:extensionElements></bpmn:callActivity>
+        </bpmn:definitions>`,
+      },
+      {
+        route: "POST /process-definitions/search",
+        answer: page([definition("30", "label", 3)]),
+      },
+    ])
+
+    const calls = await reader.read(DefinitionId("100"))
+
+    expect(calls.map((call) => [call.elementId, call.definition?.id])).toEqual([
+      ["First", "30"],
+      ["Second", "30"],
+    ])
+    expect(camunda.bodiesOf("POST /process-definitions/search")).toEqual([
+      {
+        filter: { processDefinitionId: { $in: ["label"] }, isLatestVersion: true },
+        page: { limit: 500 },
+      },
+    ])
+  })
+
+  test("read no latest version where no call is bound to it", async () => {
+    const { camunda, reader } = readerWith([
+      {
+        route: "GET /process-definitions/100/xml",
+        answer: `<bpmn:definitions xmlns:zeebe="z">
+          <bpmn:callActivity id="Deployment"><bpmn:extensionElements>
+            <zeebe:calledElement processId="label" bindingType="deployment" />
+          </bpmn:extensionElements></bpmn:callActivity>
+          <bpmn:callActivity id="Feel"><bpmn:extensionElements>
+            <zeebe:calledElement processId="= target" />
+          </bpmn:extensionElements></bpmn:callActivity>
+        </bpmn:definitions>`,
+      },
+    ])
+
+    const calls = await reader.read(DefinitionId("100"))
+
+    expect(calls.map((call) => [call.elementId, call.definition])).toEqual([
+      ["Deployment", undefined],
+    ])
+    expect(camunda.requests.map((request) => request.route)).toEqual([
+      "GET /process-definitions/100/xml",
+    ])
   })
 
   test("are none for a diagram without calls and for an unknown definition", async () => {

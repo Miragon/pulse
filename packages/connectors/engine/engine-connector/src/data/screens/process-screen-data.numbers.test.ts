@@ -44,7 +44,8 @@ interface Recorded {
   /**
    * Whether the engine's answer is one the processes a version calls are read from, and what the
    * screen of pulse-dispatch names unread without it: on Camunda 7 the version's diagram, which
-   * its call activities are read from too; on Camunda 8 the latest versions of every process.
+   * its call activities are read from too; on Camunda 8 the latest versions of the processes its
+   * call activities name, read by their ids, never every process of the cluster.
    */
   readonly calls: (answer: RecordedAnswer) => boolean
   readonly callsUnread: readonly string[]
@@ -97,7 +98,10 @@ const RECORDED_C8: Recorded = {
   profile: (origin) => ({ url: `${origin}/v2`, flavor: "camunda8" }),
   webApp: () => null,
   versions: "/v2/process-definitions/statistics/process-instances-by-version",
-  calls: (answer) => JSON.stringify(answer.body ?? null).includes('"isLatestVersion":true'),
+  calls: (answer) => {
+    const filter = (answer.body as { filter?: Record<string, unknown> } | undefined)?.filter
+    return filter?.isLatestVersion === true && filter.processDefinitionId !== undefined
+  },
   callsUnread: ["calledProcesses"],
   withoutCalls: (answers) => answers.filter((answer) => !RECORDED_C8.calls(answer)),
 }
@@ -274,5 +278,25 @@ describe.each([
     await call(ENGINE_SCREEN_INSTANCES_DATA, args)
 
     expect(engine.seen).toHaveLength(seen)
+  })
+})
+
+/** The filters of the process definition searches a Camunda 8 cluster saw, in code unit order. */
+const definitionSearches = (engine: RecordedEngine) =>
+  engine.seen
+    .filter(({ target }) => target === "/v2/process-definitions/search")
+    .map(({ body }) => JSON.stringify((JSON.parse(body) as { filter: unknown }).filter))
+    .sort()
+
+describe("the process screen's feeds over c8-core's recorded screen engine", () => {
+  it("read the latest versions of the processes a version calls by their ids, never every process", async () => {
+    const { engine, call } = await boot(RECORDED_C8)
+
+    await call(ENGINE_SCREEN_PROCESS_DATA, argsOf(RECORDED_C8, "callingProcess"))
+
+    expect(definitionSearches(engine)).toEqual([
+      '{"processDefinitionId":"pulse-dispatch"}',
+      '{"processDefinitionId":{"$in":["pulse-label"]},"isLatestVersion":true}',
+    ])
   })
 })
