@@ -153,20 +153,6 @@
       "count": 2
     }
   },
-  "src/widgets/cockpit-app/app.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
-      "count": 1
-    }
-  },
   "src/widgets/cockpit-app/cockpit-state.ts": {
     "complexity": {
       "count": 1
