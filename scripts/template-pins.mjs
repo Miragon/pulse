@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * Template pin gate: every package.json of each template (TEMPLATES: the starter
  * templates/composed-server with its server, modules and root, and the Claude artifact

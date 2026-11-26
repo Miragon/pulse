@@ -12,6 +12,7 @@ import {
   extractEslintRatchets,
   extractVitestCoverage,
   isPullRequest,
+  isScannedSource,
   ratchetKind,
   resolveBaseRef,
   run,
@@ -2416,14 +2417,33 @@ describe("a package's baseline of budget violations (eslint-suppressions.json, s
     "src/b.ts": { "max-statements": { count: 1 } },
   })
 
-  it("is a ratchet file of every package, never of the root", () => {
+  it("is a ratchet file of every package and of the root, the repository scripts' baseline", () => {
     assert.equal(ratchetKind(rel), "eslint-baseline")
     assert.equal(ratchetKind("apps/web/eslint-suppressions.json"), "eslint-baseline")
     assert.equal(
       ratchetKind("packages/connectors/engine/engine-connector/eslint-suppressions.json"),
       "eslint-baseline",
     )
-    assert.equal(ratchetKind("eslint-suppressions.json"), null)
+    // `pnpm lint:scripts` lints scripts/ and .dependency-cruiser.cjs from the root, which reads it.
+    assert.equal(ratchetKind("eslint-suppressions.json"), "eslint-baseline")
+    // No ESLint run reads one from a folder that is no package's.
+    assert.equal(ratchetKind("scripts/eslint-suppressions.json"), null)
+    assert.equal(ratchetKind("docs/eslint-suppressions.json"), null)
+  })
+
+  it("holds the root's as a package's: shrink-only, and a new one asks for a trailer", () => {
+    const root = "eslint-suppressions.json"
+    const scripts = JSON.stringify({ "scripts/a.mjs": { complexity: { count: 2 } } })
+    assert.deepEqual(checkRatchetFile(root, scripts, JSON.stringify({ "scripts/a.mjs": {} })), [])
+    assert.match(
+      checkRatchetFile(
+        root,
+        scripts,
+        JSON.stringify({ "scripts/a.mjs": { complexity: { count: 3 } } }),
+      )[0],
+      /eslint-suppressions\.json -> scripts\/a\.mjs: complexity 2 -> 3 suppressed/,
+    )
+    assert.match(checkRatchetFile(root, null, scripts)[0], /eslint-suppressions\.json is new/)
   })
 
   it("lets entries go, never come: a count beyond the base, a new rule or a new file fails", () => {
@@ -2784,6 +2804,27 @@ describe("inline suppressions (shrink-only)", () => {
     }
     const kept = `// eslint-disable-next-line complexity\n${code}`
     assert.deepEqual(compareSuppressions(rel, kept, `${code}${kept}`), [])
+  })
+
+  it("scans the sources of apps/ and packages/, the repository's scripts and the dependency rules", () => {
+    for (const rel of [
+      "apps/cli/src/main.ts",
+      "packages/core/ui/src/index.tsx",
+      "apps/vscode/scripts/build.mjs",
+      "scripts/check-ratchets.mjs",
+      "scripts/check-ratchets.test.mjs",
+      ".dependency-cruiser.cjs",
+    ])
+      assert.equal(isScannedSource(rel), true, rel)
+    for (const rel of [
+      "apps/cli/node_modules/x/index.js",
+      "scripts/base-image-check.sh",
+      "scripts/third-party-licenses.d.mts",
+      "scripts/nested/x.mjs",
+      "templates/composed-server/server/src/index.ts",
+      "eslint.config.mjs",
+    ])
+      assert.equal(isScannedSource(rel), false, rel)
   })
 
   it("reads comments in .tsx (not JSX text) and before a closing brace", () => {
@@ -3227,5 +3268,45 @@ export default mergeConfig(sharedConfig, defineConfig({
     assert.equal(code, 0, out)
     assert.match(out, /complexity is no longer an error for 2 file\(s\)/)
     assert.ok(out.includes(`waved by ${a.slice(0, 9)}`), out)
+  })
+
+  it("holds the repository's scripts and the dependency rules to their budgets (#688)", async () => {
+    const kept = "// eslint-disable-next-line complexity\nexport const kept = 1\n"
+    const repo = synthetic({
+      "eslint.config.mjs": `export default [
+  { files: ["scripts/*.mjs", ".dependency-cruiser.cjs"], rules: { complexity: ["error", 10] } },
+]
+`,
+      "scripts/old.mjs": kept,
+      ".dependency-cruiser.cjs": "module.exports = {}\n",
+    })
+    const base = await repo.check()
+    assert.equal(base.code, 0, base.out)
+    // A directive the base had stays; one more in a script or the dependency rules fails.
+    repo.write("scripts/old.mjs", `${kept}export const more = 2\n`)
+    repo.write("scripts/new.mjs", "/* eslint-disable max-lines */\nexport const x = 1\n")
+    repo.write(".dependency-cruiser.cjs", "// eslint-disable-next-line\nmodule.exports = {}\n")
+    const disabled = await repo.check()
+    assert.equal(disabled.code, 1, disabled.out)
+    assert.match(disabled.out, /scripts\/new\.mjs:1 -> new inline `eslint-disable max-lines`/)
+    assert.match(
+      disabled.out,
+      /\.dependency-cruiser\.cjs:1 -> new inline `eslint-disable-next-line/,
+    )
+    assert.ok(!disabled.out.includes("scripts/old.mjs"), disabled.out)
+    // A budget of theirs raised in the config is a loosening of their effective config.
+    repo.write("scripts/new.mjs", "export const x = 1\n")
+    repo.write(".dependency-cruiser.cjs", "module.exports = {}\n")
+    repo.write(
+      "eslint.config.mjs",
+      `export default [
+  { files: ["scripts/*.mjs", ".dependency-cruiser.cjs"], rules: { complexity: ["error", 15] } },
+]
+`,
+    )
+    const loosened = await repo.check()
+    assert.equal(loosened.code, 1, loosened.out)
+    assert.match(loosened.out, /complexity 10 -> 15/)
+    assert.match(loosened.out, /scripts\/new\.mjs/)
   })
 })

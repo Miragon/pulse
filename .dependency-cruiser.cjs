@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Architecture fitness functions: the dependency half of the CLAUDE.md
  * "Architecture invariants" made executable. Runs as `pnpm lint:architecture`

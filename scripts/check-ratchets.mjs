@@ -142,8 +142,10 @@
  *                                   it); each file's $comment says what it
  *                                   measures
  *   <pkg>/eslint-suppressions.json  a package's baseline of budget violations
- *                                   (#688): no file, rule or count beyond the
- *                                   base; a new one needs a Ratchet-Exception
+ *   eslint-suppressions.json        (#688), and the root's, which holds the
+ *                                   repository's scripts (`pnpm lint:scripts`):
+ *                                   no file, rule or count beyond the base; a
+ *                                   new one needs a Ratchet-Exception
  *   package.json (root)             no gate drops out of `lint`/`test`, and the
  *                                   chains only gain plain `pnpm <script>`
  *                                   gates; every chained gate script and the
@@ -187,7 +189,9 @@
  *   inline suppressions             `eslint-disable` of a gate rule (or of every
  *                                   rule), inline gate-rule config, `v8|c8|
  *                                   istanbul ignore`, `Stryker disable` in
- *                                   apps/ and packages/ sources: shrink-only
+ *                                   apps/ and packages/ sources, the scripts
+ *                                   under scripts/ and .dependency-cruiser.cjs:
+ *                                   shrink-only
  *
  * The SINGLE documented escape is a trailer on the commit that makes the
  * change, and it covers that commit only:
@@ -324,7 +328,8 @@ export function ratchetKind(relPath) {
   if (/^apps\/[^/]+\/test\/__golden__\/char-budgets\.json$/.test(relPath)) return "char-budgets"
   if (new RegExp(`^${PKG}/test/__golden__/bundle-budget\\.json$`).test(relPath))
     return "bundle-budget"
-  if (new RegExp(`^${PKG}/eslint-suppressions\\.json$`).test(relPath)) return "eslint-baseline"
+  // A package's, and the root's: `pnpm lint:scripts` lints the repository's scripts from the root.
+  if (new RegExp(`^(?:${PKG}/)?eslint-suppressions\\.json$`).test(relPath)) return "eslint-baseline"
   if (relPath === "package.json") return "root-scripts"
   if (new RegExp(`^${PKG}/package\\.json$`).test(relPath)) return "package-scripts"
   // The docs workspace and the starter's manifests pin no gate script; only
@@ -2526,8 +2531,17 @@ function attributeViolations(violations, steps) {
 
 // ── CLI ──────────────────────────────────────────────────────────────────────
 
-/** Sources the inline-suppression scan and the effective ESLint config cover. */
-const SOURCE_FILE = /^(?:apps|packages)\/(?!(?:.*\/)?node_modules\/).*\.(?:[cm]?[jt]s|[jt]sx)$/
+/**
+ * Sources the inline-suppression scan and the effective ESLint config cover: every source under
+ * apps/ and packages/, and the repository's scripts and dependency rules (REPO_SCRIPTS of
+ * eslint.config.mjs, under their budgets since #688). SOURCE_PATHSPECS are where they live.
+ */
+const SOURCE_FILE =
+  /^(?:(?:apps|packages)\/(?!(?:.*\/)?node_modules\/).*\.(?:[cm]?[jt]s|[jt]sx)|scripts\/[^/]+\.mjs|\.dependency-cruiser\.cjs)$/
+const SOURCE_PATHSPECS = ["apps", "packages", "scripts", ".dependency-cruiser.cjs"]
+
+/** Whether the inline-suppression scan and the effective ESLint config cover `relPath`. */
+export const isScannedSource = (relPath) => SOURCE_FILE.test(relPath)
 
 /** The side that is no commit: the working tree, uncommitted changes included. */
 const WORKTREE = "<working tree>"
@@ -2631,7 +2645,7 @@ function openRepo(root) {
           return [] // exit 1: no such file mentions a suppression
         }
       }
-      if (!paths) return once(`grep:${rev}`, () => new Set(grep(["apps", "packages"])))
+      if (!paths) return once(`grep:${rev}`, () => new Set(grep(SOURCE_PATHSPECS)))
       const found = new Set()
       for (let i = 0; i < paths.length; i += 500)
         for (const rel of grep(paths.slice(i, i + 500).map((p) => `:(literal)${p}`))) found.add(rel)

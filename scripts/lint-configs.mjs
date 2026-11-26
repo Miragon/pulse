@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * ESLint over the standalone config files typescript-eslint's default project types
  * (DEFAULT_PROJECT_FILES in eslint.config.mjs). Every package lints its source dirs, so nothing else

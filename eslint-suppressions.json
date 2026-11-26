@@ -1,0 +1,248 @@
+{
+  ".dependency-cruiser.cjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/artifact-tools.test.mjs": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/check-github-config.mjs": {
+    "complexity": {
+      "count": 13
+    },
+    "max-depth": {
+      "count": 13
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 4
+    },
+    "max-statements": {
+      "count": 7
+    }
+  },
+  "scripts/check-github-config.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/check-package-naming.mjs": {
+    "complexity": {
+      "count": 4
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 2
+    }
+  },
+  "scripts/check-package-naming.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/check-package-scripts.mjs": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 4
+    },
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/check-package-scripts.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/check-ratchets.mjs": {
+    "complexity": {
+      "count": 24
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 4
+    },
+    "max-params": {
+      "count": 7
+    },
+    "max-statements": {
+      "count": 7
+    }
+  },
+  "scripts/check-ratchets.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/ci-scopes.mjs": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "scripts/ci-scopes.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/dependency-cruiser-gates.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/docs-refs.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/editor-projects.mjs": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "scripts/entry-lists.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/eslint-effective-config.mjs": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "scripts/eslint-gates.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/fitness-report.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "scripts/gha-test-reporter.mjs": {
+    "complexity": {
+      "count": 2
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "scripts/hand-off-refs.mjs": {
+    "complexity": {
+      "count": 4
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "scripts/local-args.mjs": {
+    "complexity": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "scripts/local-env.mjs": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "scripts/local-env.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/local.mjs": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 3
+    }
+  },
+  "scripts/pack-contents.mjs": {
+    "complexity": {
+      "count": 2
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "scripts/published-imports.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/template-pins.mjs": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 8
+    },
+    "max-statements": {
+      "count": 2
+    }
+  },
+  "scripts/third-party-licenses.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "scripts/third-party-licenses.test.mjs": {
+    "max-lines": {
+      "count": 1
+    }
+  }
+}

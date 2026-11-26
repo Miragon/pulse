@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Editor-project gate: an editor (tsserver) and typescript-eslint's project service open a file
  * in the project of the NEAREST tsconfig.json that includes it, walking further up past one that

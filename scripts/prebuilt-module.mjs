@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * The two manual steps of the prebuilt module's path (the add-widget skill's "A finished HTML
  * view"), for scripts/test-template.sh:

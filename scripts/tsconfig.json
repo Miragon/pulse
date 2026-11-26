@@ -1,0 +1,28 @@
+{
+  // The type check of the repository's scripts (`pnpm typecheck:scripts`, chained into `pnpm
+  // lint`; F71, #688): tsc reads every script and the dependency rules, and checks each file that
+  // says `// @ts-check` (checkJs stays off, so a file without it is only read for the types it
+  // gives the others; scripts/ts-check.test.mjs lists the ones not typed yet). Strict but for two
+  // options plain JavaScript cannot meet without a cast: noImplicitAny, which would ask a JSDoc
+  // type of every parameter (one without stays `any`), and useUnknownInCatchVariables, since a
+  // catch binding takes no type (it stays `any`, as in JavaScript). A declaration file beside a
+  // script (third-party-licenses.d.mts) stays out of `include`: tsc would read it instead of the
+  // script, which then went unchecked. Nothing is emitted; the scripts run as written on the Node
+  // of the root package.json's engines.
+  "compilerOptions": {
+    "target": "ES2024",
+    "lib": ["ES2024"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "include": ["*.mjs", "../.dependency-cruiser.cjs"]
+}

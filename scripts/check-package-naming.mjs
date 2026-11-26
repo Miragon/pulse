@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * Layout + naming gate (CLAUDE.md invariant 8). The dependency-cruiser rules,
  * check-ratchets and the ESLint budgets key on WHERE a package

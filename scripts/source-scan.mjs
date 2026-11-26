@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * The non-test sources of every package and every MCP server app: what the cross-module source
  * guards (tool-name refs, hand-off refs, server env names) read. An interface app (a CLI, an

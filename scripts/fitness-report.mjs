@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * `pnpm fitness`: the repo's fitness-function dashboard. Aggregates what the
  * gates already measure into one report: architecture graph (dependency-

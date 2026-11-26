@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * Which workspace packages npm receives, and which of them are libraries: the one predicate the
  * release gate (check-github-config.mjs), the published-imports scan, the template drift gate

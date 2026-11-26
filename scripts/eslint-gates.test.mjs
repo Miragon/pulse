@@ -5,7 +5,8 @@ import { before, describe, it } from "node:test"
 import { fileURLToPath } from "node:url"
 import { ESLint, Linter } from "eslint"
 import tseslint from "typescript-eslint"
-import { DEFAULT_PROJECT_FILES, HTTP_BROWSER_GLOBALS } from "../eslint.config.mjs"
+import { DEFAULT_PROJECT_FILES, HTTP_BROWSER_GLOBALS, REPO_SCRIPTS } from "../eslint.config.mjs"
+import { STAGED_REPO_SCRIPTS } from "../lint-staged.config.mjs"
 
 /**
  * Self-test of the architecture pattern gates in eslint.config.mjs (a gate
@@ -697,6 +698,54 @@ describe("c7-core keeps the CLI's budgets (the CLI block of eslint.config.mjs)",
     const rel = `${C7_CORE}/__probe__.test.ts`
     assert.equal((await budget(rel, "max-lines"))?.max, 400)
     assert.equal(await ruleOptionsFor(rel, "max-lines-per-function"), null)
+  })
+})
+
+describe("the repository's scripts run the domain packages' budgets (F71, #688)", () => {
+  const budget = async (rel, rule) => (await ruleOptionsFor(rel, rule))?.slice(1)[0] ?? null
+  const rootScripts = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"),
+  ).scripts
+
+  it("holds every script and the dependency rules to complexity 10, 300 lines, 60 per function, 20 statements, depth 3, 4 parameters, 3 nested callbacks", async () => {
+    for (const rel of ["scripts/check-ratchets.mjs", ".dependency-cruiser.cjs"]) {
+      assert.equal(await budget(rel, "complexity"), 10, rel)
+      assert.equal((await budget(rel, "max-lines"))?.max, 300, rel)
+      assert.equal((await budget(rel, "max-lines-per-function"))?.max, 60, rel)
+      assert.equal(await budget(rel, "max-statements"), 20, rel)
+      assert.equal(await budget(rel, "max-depth"), 3, rel)
+      assert.equal(await budget(rel, "max-params"), 4, rel)
+      assert.equal(await budget(rel, "max-nested-callbacks"), 3, rel)
+    }
+  })
+
+  it("gives their tests complexity 15, 400 lines and no per-function budget", async () => {
+    const rel = "scripts/check-ratchets.test.mjs"
+    assert.equal(await budget(rel, "complexity"), 15)
+    assert.equal((await budget(rel, "max-lines"))?.max, 400)
+    for (const rule of ["max-lines-per-function", "max-statements", "max-depth", "max-params"])
+      assert.equal(await ruleOptionsFor(rel, rule), null, rule)
+  })
+
+  it("reads them without types (tsc checks each that says // @ts-check), as Node code", async () => {
+    for (const rel of ["scripts/check-ratchets.mjs", ".dependency-cruiser.cjs"]) {
+      const config = await eslint.calculateConfigForFile(path.join(repoRoot, rel))
+      assert.equal(config.languageOptions.parserOptions.projectService, false, rel)
+      assert.ok(Object.hasOwn(config.languageOptions.globals, "process"), rel)
+      assert.equal(await ruleOptionsFor(rel, "@typescript-eslint/no-unsafe-call"), null, rel)
+    }
+    const config = await eslint.calculateConfigForFile(
+      path.join(repoRoot, ".dependency-cruiser.cjs"),
+    )
+    assert.equal(config.languageOptions.sourceType, "commonjs")
+  })
+
+  it("`pnpm lint` lints exactly REPO_SCRIPTS from the root, and the pre-commit hook the staged ones", () => {
+    assert.ok(rootScripts.lint.split(" && ").includes("pnpm lint:scripts"), rootScripts.lint)
+    // ESLint expands a quoted glob itself; a warning (a file it ignores) fails the gate.
+    const globs = REPO_SCRIPTS.map((glob) => (glob.includes("*") ? `"${glob}"` : glob))
+    assert.equal(rootScripts["lint:scripts"], `eslint --max-warnings 0 ${globs.join(" ")}`)
+    assert.equal(STAGED_REPO_SCRIPTS, `{${REPO_SCRIPTS.join(",")}}`)
   })
 })
 

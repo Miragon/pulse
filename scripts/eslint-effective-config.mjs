@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * The effective-config half of the ESLint ratchet (scripts/check-ratchets.mjs).
  *

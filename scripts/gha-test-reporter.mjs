@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * A node:test reporter for GitHub Actions: `.github/workflows/ci.yml` runs it next to the spec
  * reporter through NODE_OPTIONS, so the pinned `pnpm test:scripts` stays as it is. It prints one
@@ -41,6 +42,10 @@ function messageOf(error, output) {
 /**
  * A `test:fail` event's failure; `ancestors` are the names of the suites around it, `output` what
  * its test file printed since its last result (read only when the file itself failed).
+ *
+ * @param {{ name: string, file?: string, line?: number, details?: any }} event the event's data
+ * @param {string[]} [ancestors]
+ * @param {{ cwd?: string, output?: string }} [options]
  */
 export function failureOf(
   { name, file, line, details },
@@ -55,7 +60,11 @@ export function failureOf(
   }
 }
 
-/** The workflow command of a failure, on one line as the runner reads it. */
+/**
+ * The workflow command of a failure, on one line as the runner reads it.
+ *
+ * @param {{ title: string, file?: string, line?: number, message: string }} failure
+ */
 export function annotation({ title, file, line, message }) {
   const where = [file && `file=${escapeProperty(file)}`, line && `line=${line}`]
     .filter(Boolean)
@@ -99,6 +108,9 @@ const frame = (name) => ({ name, reported: false, cancelled: [] })
  * (`subtestsFailed`) and a subtest cancelled because its parent failed on its own (a hook, a
  * timeout). A subtest its parent ended without awaiting is the cause of the parent's failure, so
  * it is reported in the parent's place. A red test never goes without a word.
+ *
+ * @param {AsyncIterable<any>} source node:test's events
+ * @param {{ summaryFile?: string, cwd?: string }} [options]
  */
 export async function* reportFailures(source, { summaryFile, cwd = process.cwd() } = {}) {
   const files = new Map()

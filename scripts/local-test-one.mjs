@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * The plan of `pnpm test:one <file...>`, the inner loop's focused run (pure but for
  * `realpathOnDisk`, which local.mjs hands in; scripts/local-test-one.test.mjs). vitest checks a
@@ -41,6 +42,8 @@ const isInside = (dir, file) => {
 /**
  * Where `file` is, through any symlink, or the paths it was looked for at. A relative path is
  * read from where pnpm ran, then from the root: `pnpm -C <root>` keeps the shell's directory.
+ *
+ * @returns {{ real: string, tried?: undefined } | { real?: undefined, tried: string[] }}
  */
 function locate(file, { cwd, root, realpath }) {
   const candidates = path.isAbsolute(file)

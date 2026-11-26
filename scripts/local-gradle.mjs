@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Gradle without a local JDK: when the playground engine jar needs a build, and how a Gradle
  * build runs, on a local JDK 21 or in a JDK 21 container (pure; scripts/local-gradle.test.mjs).

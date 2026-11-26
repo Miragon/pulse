@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * The one switch that pauses mutation testing. True pauses it:
  * - lint:ratchets skips the Stryker policies (check-ratchets.mjs),

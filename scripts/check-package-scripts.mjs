@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * Package-scripts gate: `pnpm lint`, `pnpm typecheck` and `pnpm test` are
  * `turbo run <task>`, and turbo silently SKIPS a workspace package that does
@@ -153,6 +154,10 @@ const normalizedCommand = (command) =>
 /**
  * Violations for one package.json's `scripts` block (pure; unit-tested).
  * `tsconfigs`: the package's extra `tsconfig.<x>.json` files.
+ *
+ * @param {string} dir
+ * @param {Record<string, unknown> | undefined} scripts
+ * @param {{ tsconfigs?: string[] }} [options]
  */
 export function checkPackageScripts(dir, scripts, { tsconfigs = [] } = {}) {
   const errors = []
