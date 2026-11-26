@@ -12,7 +12,7 @@ Works of others in the bundles:
 
   @fontsource-variable/geist 5.3.0               OFL-1.1                  the webview
   @fontsource-variable/geist-mono 5.3.0          OFL-1.1                  the webview
-  @miragon/modeler-shell 0.12.0                  MIT                      the webview
+  @miragon/modeler-shell 0.14.2                  MIT                      the webview
   @radix-ui/primitive 1.1.7                      MIT                      the webview
   @radix-ui/react-checkbox 1.3.11                MIT                      the webview
   @radix-ui/react-collection 1.1.15              MIT                      the webview
@@ -282,7 +282,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ================================================================================
-@miragon/modeler-shell 0.12.0
+@miragon/modeler-shell 0.14.2
 Licence: MIT
 In: the webview
 Source: https://github.com/Miragon/modeler-suite
