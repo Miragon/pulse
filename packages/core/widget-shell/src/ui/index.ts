@@ -39,6 +39,32 @@ export {
   type PageFrame,
 } from "./page-root.js"
 export type { BrowserHostOptions, ToolCaller } from "./browser-view-host.js"
+// A page's reads outside a chat (an artifact): its sections, its gate, its Refresh and freshness,
+// the words of its failures; and the recording a page replays in its dev build and tests.
+export {
+  createPageReader,
+  describePageFailure,
+  PageCallError,
+  PageGate,
+  usePageReads,
+  useSectionRead,
+  type DescribePageFailureOptions,
+  type PageCallSite,
+  type PageGateProps,
+  type PageReader,
+  type PageReaderOptions,
+  type PageReads,
+  type SectionRead,
+} from "./page-reads/index.js"
+export {
+  playRecording,
+  recordToolCalls,
+  type PlayedCall,
+  type PlayedRecording,
+  type PlayRecordingOptions,
+  type RecordedToolCall,
+  type ToolRecording,
+} from "./recording.js"
 export { ViewStack, type ViewComponent, type ViewMap, type ViewProps } from "./views.js"
 export { ViewErrorBoundary } from "./view-error-boundary.js"
 export {
@@ -54,6 +80,7 @@ export {
   type HostChrome,
   type ViewHost,
   type ViewLocation,
+  type ToolCallOptions,
   type ViewPlace,
 } from "./view-host.js"
 export {

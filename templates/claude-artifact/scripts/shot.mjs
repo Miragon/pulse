@@ -16,7 +16,7 @@ import { extname, join } from "node:path"
 import { parseArgs } from "node:util"
 import { chromium } from "playwright"
 import { build } from "vite"
-import { pageProcessKey } from "./process-key.ts"
+import { PROCESS_KEY } from "../src/page.config.ts"
 
 const ROOT = new URL("..", import.meta.url).pathname
 const SITE = join(ROOT, "shots/dist")
@@ -53,7 +53,7 @@ const TYPES = { ".js": "text/javascript", ".css": "text/css" }
  * reads them, so the chart's days are the recorded ones and its labels name them.
  */
 const { asOf, timeZone } = JSON.parse(
-  readFileSync(join(ROOT, `fixtures/${pageProcessKey()}.json`), "utf8"),
+  readFileSync(join(ROOT, `fixtures/${PROCESS_KEY}.json`), "utf8"),
 )
 
 /**

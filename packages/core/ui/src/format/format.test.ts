@@ -14,6 +14,7 @@ import {
   formatTime,
   formatTimestamp,
   getFormatLocale,
+  getFormatTimeZone,
   setFormatLocale,
   shortId,
   subscribeFormatLocale,
@@ -47,6 +48,18 @@ describe("the published format locale (set by the shell's LocaleGate)", () => {
   it("keeps the browser's zone when none is published", () => {
     setFormatLocale({ language: "en", locale: "en-GB" })
     expect(formatTimestamp(iso)).toBe(new Date(iso).toLocaleString("en-GB"))
+  })
+
+  it("names the zone the dates render in: the published one, else the runtime's own", () => {
+    const runtime = new Date(iso).toLocaleString("en", { timeZoneName: "long" })
+    expect(getFormatTimeZone()).not.toBe("")
+    expect(
+      new Date(iso).toLocaleString("en", { timeZone: getFormatTimeZone(), timeZoneName: "long" }),
+    ).toBe(runtime)
+    setFormatLocale({ language: "en", locale: "en-GB" })
+    expect(getFormatTimeZone()).toBe(new Intl.DateTimeFormat().resolvedOptions().timeZone)
+    setFormatLocale({ language: "de", locale: "de", timeZone: "Asia/Tokyo" })
+    expect(getFormatTimeZone()).toBe("Asia/Tokyo")
   })
 
   it("notifies subscribers on a real change only, and stops after unsubscribe", () => {

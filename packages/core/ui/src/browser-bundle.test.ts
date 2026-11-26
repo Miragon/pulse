@@ -1,10 +1,21 @@
 /// <reference types="node" />
-import { appendFileSync, readFileSync } from "node:fs"
+import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { pathToFileURL } from "node:url"
 import { gzipSync } from "node:zlib"
+import { Window } from "happy-dom"
 import * as lucide from "lucide-react"
-import { beforeAll, describe, expect, it } from "vitest"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import type { BrowserBundle } from "../scripts/browser-bundle.mjs"
-import { compileStylesheet, RUNTIME, sharedNames, STYLESHEET } from "../scripts/browser-bundle.mjs"
+import {
+  compileStylesheet,
+  RUNTIME,
+  sharedNames,
+  STYLESHEET,
+  STYLESHEET_MARK,
+  STYLESHEET_MODULE,
+} from "../scripts/browser-bundle.mjs"
 import {
   BUDGET,
   importsOf,
@@ -21,8 +32,9 @@ import { stylesheetShapeFindings } from "./testing/index.js"
 /**
  * The browser bundle (scripts/browser-bundle.mjs) as the npm package ships it in dist/browser/:
  * what pulse-ui.js exports, that React is in it once and every other entry takes React and the
- * kit's modules from it, the stylesheet's shape, and each file's gzip ceiling
- * (test/__golden__/bundle-budget.json). browser-page.test.ts renders a page over it.
+ * kit's modules from it, the stylesheet's shape, that pulse-ui-css.js puts that stylesheet into a
+ * page once, and each file's gzip ceiling (test/__golden__/bundle-budget.json).
+ * browser-page.test.ts and browser-chat.test.ts render pages over it in Chromium.
  */
 
 const BUILD = { timeout: 60_000 }
@@ -163,6 +175,80 @@ describe("pulse-ui.css", () => {
     expect(css).not.toMatch(/\.(?:bg|text|border)-(?:red|blue|green|zinc|slate|gray)-\d/)
     // The OS's dark mode, the theme's rule: a page needs no script for it.
     expect(css).toContain("@media (prefers-color-scheme:dark)")
+  })
+})
+
+describe("pulse-ui-css.js", () => {
+  const MANIFEST = new URL("../package.json", import.meta.url)
+  const { version } = JSON.parse(readFileSync(MANIFEST, "utf8")) as { version: string }
+  let dir: string
+  let copies = 0
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), "pulse-ui-css-"))
+    writeFileSync(join(dir, STYLESHEET_MODULE), bundle.files[STYLESHEET_MODULE] ?? "")
+  })
+
+  afterAll(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  /** Imports a fresh copy of the module, each from a URL of its own, as another page's import. */
+  const importCopy = async () => {
+    copies += 1
+    const url = `${pathToFileURL(join(dir, STYLESHEET_MODULE)).href}?copy=${String(copies)}`
+    return (await import(/* @vite-ignore */ url)) as Record<string, unknown>
+  }
+
+  /** Imports copies of the module into `document`, a page's document, as a page's script does. */
+  async function inPage(document: Document, imports: number) {
+    const global = globalThis as { document?: Document }
+    global.document = document
+    try {
+      for (let i = 0; i < imports; i += 1) await importCopy()
+    } finally {
+      delete global.document
+    }
+  }
+
+  /** A page as a host wraps it: a skeleton's head with its own reset, the page's content after. */
+  const page = () => {
+    const window = new Window({ url: "https://frame.test/" })
+    window.document.write(
+      '<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0}</style></head>' +
+        '<body><div id="root"></div></body></html>',
+    )
+    return window.document as unknown as Document
+  }
+
+  it("holds pulse-ui.css's text byte for byte, as one module that imports and exports nothing", async () => {
+    const document = page()
+    await inPage(document, 1)
+    const style = document.querySelector(`style[${STYLESHEET_MARK}]`)
+    expect(style?.textContent).toBe(bundle.files[STYLESHEET])
+    expect(bundle.files[STYLESHEET_MODULE]).not.toMatch(/^\s*(?:import|export)\b/m)
+  })
+
+  it("puts it into the page once, as one <style> at the end of <head>: after the skeleton's reset, before the page's content", async () => {
+    const document = page()
+    const looked = vi.spyOn(document, "querySelector")
+    // A second import, of another copy from another URL (another version, say), runs, finds the
+    // first one's <style> and inserts nothing.
+    await inPage(document, 2)
+    expect(looked).toHaveBeenCalledTimes(2)
+    const styles = [...document.querySelectorAll("style")]
+    expect(styles).toHaveLength(2)
+    const [reset, kit] = styles
+    expect(reset?.textContent).toBe("body{margin:0}")
+    expect(kit?.getAttribute(STYLESHEET_MARK)).toBe(version)
+    expect(kit?.textContent).toBe(bundle.files[STYLESHEET])
+    expect(document.head.lastElementChild).toBe(kit)
+    expect(document.body.querySelectorAll("style")).toHaveLength(0)
+  })
+
+  it("does nothing where there is no document (Node), and throws nothing", async () => {
+    expect("document" in globalThis).toBe(false)
+    expect(Object.keys(await importCopy())).toEqual([])
   })
 })
 

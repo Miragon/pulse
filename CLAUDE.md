@@ -56,7 +56,10 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   diagram for any page (`/bpmn`, bpmn-js its optional peer), framework-free `/format` and
   `/tones`, the brand gates in `/testing`, and its browser bundle for a page without a build
   (`dist/browser`, `packages/core/ui/scripts/browser-bundle.mjs`)
-- `packages/core/widget-shell/`: the view runtime (`/widgets`), the registrar
+- `packages/core/widget-shell/`: the view runtime (`/widgets`) with a page's section reads
+  (`src/ui/page-reads`), a Claude artifact's caller and mount (`/claude-artifact`) and their
+  browser bundle for a page without a build (`dist/browser`,
+  `packages/core/widget-shell/scripts/browser-bundle.mjs`), the registrar
   (`createToolRegistrar`), the boot (`/server`) with the web app's sign-in (`src/web`), a module's
   test server (`/testing`)
 - `packages/core/runtime-view/`: the runtime view both editor hosts compose (private): ports,
@@ -73,7 +76,8 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   docs site
 - `templates/composed-server/`: the starter for a server of your own (mirrored to
   Miragon/pulse-starter); `templates/claude-artifact/`: the template of a Claude artifact on Pulse,
-  a page in claude.ai reading the engine through the server as the viewer's connector
+  a page in claude.ai reading the engine through the server as the viewer's connector, its
+  sections and reads on widget-shell's page reads
 - `apps/mcp-server/skills/pulse-artifact/`: the Claude Code plugin `pulse-artifact`, listed in
   `.claude-plugin/marketplace.json` next to the CLI's, whose skill builds such a page from the
   template
@@ -356,11 +360,12 @@ for every workspace package.
      module may bring a finished HTML document (invariant 8, the module port).
 
 4. **The view bundle's `resolve.dedupe` is load-bearing: never remove or trim it.** It is
-   widget-shell's `VIEW_BUNDLE_DEDUPE`, spread whole in `apps/mcp-server/vite.config.ts` and the
-   template's `server/vite.config.ts`. Without it a widget package bundles its own React, TanStack
-   Query, pulse-ui, widget-shell or lucide-react, the React contexts no longer match, and every
-   in-widget query hangs on "Loading…" (widget-shell's `src/view-bundle.test.ts`, the app's
-   `test/view-bundle.test.ts`, test:host).
+   widget-shell's `VIEW_BUNDLE_DEDUPE`, spread whole in `apps/mcp-server/vite.config.ts`,
+   `templates/composed-server/server/vite.config.ts` and `templates/claude-artifact/vite.config.ts`.
+   Without it a widget package bundles its own React, TanStack Query, pulse-ui, widget-shell or
+   lucide-react, the React contexts no longer match, and every in-widget query hangs on
+   "Loading…" (widget-shell's `src/view-bundle.test.ts`, the app's `test/view-bundle.test.ts`,
+   test:host).
 
 5. **There are three render paths; pick deliberately:**
    - Registrar tools (`src/tools/`): plain JSON data _for the model_.
@@ -400,8 +405,8 @@ for every workspace package.
      next to the control it marks `aria-invalid` (`Field`), never clamps it silently.
    - **The view runtime is widget-shell's.** In a chat its host adapter (`ExtAppsViewHost`) is the
      ONE place that speaks to the host; a page mounts through `mountApp`, `PageView` and
-     `mountPage` over `BrowserViewHost` (the web app, `apps/web/CLAUDE.md`), which tree-shake out
-     of the MCP bundle. Both mount the same host-agnostic contexts, as `TestViewHost` does in
+     `mountPage` over `BrowserViewHost` (the web app, `apps/web/CLAUDE.md`), a Claude artifact
+     through `mountClaudeArtifact`, all of which tree-shake out of the MCP bundle. Both mount the same host-agnostic contexts, as `TestViewHost` does in
      tests. Widgets reach the host only through `useViewHost`/`HostModelContext` and the query
      hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`) and never import
      ext-apps' runtime (ESLint `no-restricted-imports`). What a view offers follows its host:
@@ -421,9 +426,13 @@ for every workspace package.
      `ConfirmDialog`; nothing to show is `TableEmptyState`. A skeleton shows only after 400 ms
      (`SKELETON_DELAY_MS`), a refresh keeps the content with its region `aria-busy`, and a view's
      guard keeps its bar and title, so the page keeps its one `h1`. A page outside a host (an
-     artifact) holds the same rules with pulse-ui's `SectionState` under one `SectionStateGroup`
-     and words its transport's refusals once with `describePageError` (#664); the server's error
-     texts stay `describeError`'s.
+     artifact) holds the same rules through widget-shell's page reads: each section reads with
+     `useSectionRead` and renders through pulse-ui's `SectionState` under one
+     `SectionStateGroup`, a refusal of the page's connection is `PageGate`'s one state, and
+     `describePageFailure` words every failure, the transport's refusals by `describePageError`
+     and the server's texts by `describeError` (#664); a Claude artifact mounts with
+     `mountClaudeArtifact` (`@miragon/pulse-widget-shell/claude-artifact`), whose caller alone
+     speaks to the artifact runtime.
    - **Inline is a card, not a page** (#396): a list under a host shows the rows that fit the
      host's height, measured (`InlineFitBox`), never estimated; a paged list registers ONE list
      (`PagedRows` + `paged.fit`). An id in a table cell takes one line (`NamedId`, `IdText`), so a
@@ -575,9 +584,10 @@ for every workspace package.
      and the transport; the formats and the transport are leaves; the CLI imports only what it
      bundles, the editor hosts only the runtime view and the adapters, the web app only the page
      half (`web-is-a-page`); widget-shell's view half stays browser code and its server half
-     headless; a connector's widgets import only browser code, and its `src/data` and lib folders
-     never import its tools, widgets or root; no cross-package deep imports, no shipped code
-     imports `./testing`. Each rule has planted violations in
+     headless, and only a page in claude.ai imports its Claude artifact entry
+     (`widget-shell-claude-artifact-alone`); a connector's widgets import only browser code, and
+     its `src/data` and lib folders never import its tools, widgets or root; no cross-package deep
+     imports, no shipped code imports `./testing`. Each rule has planted violations in
      `scripts/dependency-cruiser-gates.test.mjs`; a new app adds its npm name to `APP_PACKAGES`.
    - **The module port.** Each module exports its definition in `src/module.ts` (config schema,
      `configFromEnv`, `knownEnvVars`, `toolsets`, `instructions`, plugin factory), structurally a
@@ -653,18 +663,19 @@ for every workspace package.
   equal by `scripts/error-path-goldens.test.mjs`. Each package updates its goldens through its
   `golden:update`, never by hand.
 - **Bundles have shrink-only budgets**: the widget bundle (`test/__golden__/bundle-budget.json`,
-  every view resource inlines it), the web app's page, the VS Code webview, pulse-ui's browser
-  bundle and the CLI's npm dist, each in its package's `test/__golden__/bundle-budget.json`; growth
-  needs a `Ratchet-Exception:` trailer that says why.
+  every view resource inlines it), the web app's page, the VS Code webview, the browser bundles of
+  pulse-ui and widget-shell and the CLI's npm dist, each in its package's
+  `test/__golden__/bundle-budget.json`; growth needs a `Ratchet-Exception:` trailer that says why.
 - **Federation happens in an external MCP gateway IN FRONT of this server** (dropped
   deliberately in #162: no upstream/proxy mechanics). A gateway that terminates auth is invisible
   to the server, which then boots read-only without a caller, so such a deployment names its
   toolsets in `MCP_ACTIVE_MODULES`.
 - **An artifact ships the licences of the works of others it holds** (owner decision
   2026-11-12): a generated `THIRD_PARTY_LICENSES.txt` beside its `LICENSE` (the CLI, the c7
-  client, the server image, the web app, the .vsix, the Orca plugin, pulse-ui for its browser
-  bundle), written from what its bundler really holds by `scripts/third-party-licenses.mjs`; each
-  artifact's drift test fails while the file misses a work or lists one no longer held.
+  client, the server image, the web app, the .vsix, the Orca plugin, pulse-ui and widget-shell for
+  their browser bundles), written from what its bundler really holds by
+  `scripts/third-party-licenses.mjs`; each artifact's drift test fails while the file misses a
+  work or lists one no longer held.
 - **The server reads no `PULSE_*` variable.** PulseAudio owns `PULSE_*` and `PULSE_CLI_*` is the
   CLI's; a server setting goes into `ENGINE_*`, `ENGINES_*` or `MCP_*`
   (`scripts/server-env-names.test.mjs`).
@@ -676,9 +687,10 @@ The release workflows hold the publish credentials and no pull request runs them
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
   Release PR bumps every package, app, manifest, template pin and User-Agent in lockstep
-  (`extra-files` in `release-please-config.json`), and the pulse-ui version a page without a build
-  loads from jsDelivr in the artifact docs (a generic file's marked versions, held to the release
-  by `pnpm lint:github`). Merging it creates the release; every publish job waits for approval of
+  (`extra-files` in `release-please-config.json`), the release tag the artifact docs clone
+  `templates/claude-artifact` from and the pulse-ui and widget-shell version a page without a
+  build loads from jsDelivr (a generic file's marked versions, held to the release by
+  `pnpm lint:github`). Merging it creates the release; every publish job waits for approval of
   the `release` environment.
 - **npm:** the twelve libraries and `@miragon/pulse-cli` publish with OIDC trusted publishing (no
   token, provenance attached), packed by `pnpm pack`. A package new to npm is published once by
@@ -718,7 +730,8 @@ The release workflows hold the publish credentials and no pull request runs them
   templates against them, `templates/composed-server` once more with the fixture module and
   `templates/claude-artifact` down to the three files of its `dist/`. ESLint, knip and
   dependency-cruiser skip `templates/`: their code rules are review knowledge, and
-  `scripts/artifact-tools.test.mjs` holds the tools the artifact calls.
+  `scripts/artifact-tools.test.mjs` holds the tools the artifact calls, each recorded answer to
+  its tool's output golden by shape and each call's arguments to its input schema.
 - **Engines** (CI `Engines (<flavor>)`): CIB seven and Operaton in Testcontainers running
   `test:engines`; the Camunda 8 suites run locally only until #531.
 - **CI scopes**: `scripts/ci-scopes.mjs` runs each job only for the files that concern it. A new
@@ -741,7 +754,8 @@ trailer on every commit that makes the violation; never weaken the checker inste
 
 **Mutation testing** runs nightly (`.github/workflows/mutation-nightly.yml`, never on a pull
 request) over the rules that run on every surface: c7-core, the transport, engine-core's rules,
-the profile format, the board and the screens, widget-shell's web and OAuth rules and c8-core's
-rules, each package's files in its `stryker.config.json`. A package joins only by an owner
-decision, as an entry in `MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`). Locally:
+the profile format, the board and the screens, widget-shell's web and OAuth rules, a page's
+calls and a Claude artifact's caller, and c8-core's rules, each package's files in its
+`stryker.config.json`. A package joins only by an owner decision, as an entry in
+`MUTATED_PACKAGES` (`scripts/check-package-scripts.mjs`). Locally:
 `pnpm --fail-if-no-match --filter <package> exec stryker run`.

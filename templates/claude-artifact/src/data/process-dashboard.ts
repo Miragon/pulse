@@ -1,14 +1,20 @@
 import type { Count } from "@miragon/pulse-ui/format"
-import type { Engine } from "../engine/engine.ts"
+import type { PageReader } from "@miragon/pulse-widget-shell/widgets"
+import type { ToolName } from "../page.config.ts"
 
 /**
- * Every read of the process dashboard, over the page's `Engine`: three calls a load, each answer
- * the server's numbers ready to show, so the page adds nothing up itself. Framework-free, so the
- * recorder (`scripts/record.ts`, in Node) runs the very same reads and the fixtures hold exactly
- * the calls the page makes. The numbers are the cockpit's process detail's, read by the same
+ * Every read of the process dashboard, over widget-shell's `PageReader`: three calls a load, each
+ * answer the server's numbers ready to show, so the page adds nothing up itself. Framework-free,
+ * so the recorder (`scripts/record.ts`, in Node, through `createPageReader`) runs the very same
+ * reads and the fixtures hold exactly the calls the page makes. The reads name no engine, so the
+ * server reads its default one; on a server with several and no default, a copy names `engine` in
+ * each read's arguments. The numbers are the cockpit's process detail's, read by the same
  * builders on the server: every version of the key, open ROOT incidents, "With incident" from the
  * runtime, the running tokens per activity as the cockpit counts them.
  */
+
+/** The reader of the page's calls: a call names only a tool of `PAGE_TOOLS`. */
+type Reader = PageReader<ToolName>
 
 // The answers, the fields the page reads (the tools answer more).
 
@@ -115,23 +121,23 @@ export interface DiagramData {
  * The process's numbers now and per day over the last 14 days in the viewer's time zone (the
  * server's default range): the tiles, the chart, the durations and the end events reached.
  */
-export function readStats(engine: Engine, key: string): Promise<ProcessStats> {
-  return engine.call<ProcessStats>("engine_process_stats", {
+export function readStats(reader: Reader, key: string): Promise<ProcessStats> {
+  return reader.call<ProcessStats>("engine_process_stats", {
     processDefinitionKey: key,
     bucket: "day",
-    timeZone: engine.timeZone,
+    timeZone: reader.timeZone,
   })
 }
 
 /** The process's counts per activity, every version summed onto the latest version's diagram. */
-export function readActivities(engine: Engine, key: string): Promise<ActivityCounts> {
-  return engine.call<ActivityCounts>("engine_activity_counts", { processDefinitionKey: key })
+export function readActivities(reader: Reader, key: string): Promise<ActivityCounts> {
+  return reader.call<ActivityCounts>("engine_activity_counts", { processDefinitionKey: key })
 }
 
 /** The counts and the XML of the diagram they name, the latest version's. */
-export async function readDiagram(engine: Engine, key: string): Promise<DiagramData> {
-  const counts = await readActivities(engine, key)
-  const answer = await engine.call<{ bpmn20Xml?: string | null }>(
+export async function readDiagram(reader: Reader, key: string): Promise<DiagramData> {
+  const counts = await readActivities(reader, key)
+  const answer = await reader.call<{ bpmn20Xml?: string | null }>(
     "engine_get_process_definition_xml",
     { processDefinitionId: counts.definitionId },
   )
@@ -147,10 +153,6 @@ export const DASHBOARD_READS = {
   activities: readActivities,
   diagram: readDiagram,
 } as const
-
-export async function readDashboard(engine: Engine, key: string): Promise<void> {
-  await Promise.all(Object.values(DASHBOARD_READS).map((read) => read(engine, key)))
-}
 
 // What the sections show, from the answers: pure, so the tests hold them apart from the page.
 

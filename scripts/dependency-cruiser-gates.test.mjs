@@ -137,6 +137,7 @@ const UI_FOUNDATION = "ui-foundation-entries-import-nothing"
 const SHELL_VIEWS = "widget-shell-views-browser-only"
 const SHELL_HEADLESS = "widget-shell-server-headless"
 const SHELL_PROTOCOL = "widget-shell-protocol-is-a-leaf"
+const SHELL_CLAUDE = "widget-shell-claude-artifact-alone"
 const EXT_APPS = "ext-apps-runtime-in-the-adapter"
 const WIDGETS_BROWSER = "connector-widgets-are-browser-code"
 const WIDGETS_SHARED_LIB = "connector-widgets-only-shared-lib"
@@ -338,6 +339,9 @@ const LEAVES = [
   `${SHELL}/src/tool-registrar.ts`,
   `${SHELL}/src/ui/lib.ts`,
   `${SHELL}/src/ui/target.ts`,
+  `${SHELL}/src/ui/claude-artifact/target.ts`,
+  `${SHELL}/src/ui/claude-artifacts.ts`,
+  `${SHELL}/dist/ui/claude-artifact/index.js`,
   `${SHELL}/src/protocol/tool-result.ts`,
   `${SHELL}/src/protocol/view-name.ts`,
   `${ENGINE_CONNECTOR}/src/tools/target.ts`,
@@ -2482,6 +2486,63 @@ const SUITES = [
       [`${SHELL}/src/protocol/tool-result-reader.ts`, "./view-name.ts", []],
       // Its tests run in Node: exempt.
       [`${SHELL}/src/protocol/tool-result.test.ts`, "node:fs", []],
+    ],
+  },
+  {
+    rule: SHELL_CLAUDE,
+    title: "nothing outside widget-shell's Claude artifact entry imports it, in any shape",
+    cases: [
+      // The rest of widget-shell: the view half (the page reads too), at runtime or for a type,
+      // the server half and the protocol.
+      [`${SHELL}/src/ui/to-claude.ts`, "./claude-artifact/target.ts", [SHELL_CLAUDE]],
+      [`${SHELL}/src/ui/to-claude-type.ts`, "./claude-artifact/target.ts", [SHELL_CLAUDE], "type"],
+      [`${SHELL}/src/ui/page-reads/to-claude.ts`, "../claude-artifact/target.ts", [SHELL_CLAUDE]],
+      [
+        `${SHELL}/src/to-claude.ts`,
+        "./ui/claude-artifact/target.ts",
+        [SHELL_HEADLESS, SHELL_CLAUDE],
+      ],
+      [
+        `${SHELL}/src/protocol/to-claude.ts`,
+        "../ui/claude-artifact/target.ts",
+        [SHELL_PROTOCOL, SHELL_CLAUDE],
+      ],
+      // A connector's widgets, the web app and the MCP server's view bundle, by its entry (shape 3).
+      [
+        `${ENGINE_CONNECTOR}/src/widgets/claude.tsx`,
+        "@miragon/pulse-widget-shell/claude-artifact",
+        [WIDGETS_BROWSER, SHELL_CLAUDE],
+      ],
+      [WEB_SRC, "@miragon/pulse-widget-shell/claude-artifact", [WEB_PAGE, SHELL_CLAUDE]],
+      [`${SERVER}/src/ui/claude.ts`, "@miragon/pulse-widget-shell/claude-artifact", [SHELL_CLAUDE]],
+      // By its tree (shape 1), and deep through the importer's node_modules into its src or its
+      // build (shape 2), which no other rule sees.
+      [
+        `${WEB}/src/escape-claude.ts`,
+        "../../../packages/core/widget-shell/src/ui/claude-artifact/target.ts",
+        [DEEP, WEB_PAGE, SHELL_CLAUDE],
+      ],
+      [
+        `${SERVER}/src/ui/deep-claude.ts`,
+        "@miragon/pulse-widget-shell/src/ui/claude-artifact/target.ts",
+        [SHELL_CLAUDE],
+      ],
+      [
+        `${SERVER}/src/ui/deep-claude-build.ts`,
+        "@miragon/pulse-widget-shell/dist/ui/claude-artifact/index.js",
+        [SHELL_CLAUDE],
+      ],
+      // Allowed: the entry's own modules, and what it builds on.
+      [`${SHELL}/src/ui/claude-artifact/caller.ts`, "./target.ts", []],
+      [`${SHELL}/src/ui/claude-artifact/caller.ts`, "../lib.ts", []],
+      [`${SHELL}/src/ui/claude-artifact/caller.ts`, "../../protocol/tool-result.ts", [], "type"],
+      // Tests and test-support run the entry: exempt.
+      [`${SHELL}/src/ui/kit-words.test.ts`, "./claude-artifact/target.ts", []],
+      [`${SHELL}/src/ui/page.test-support.tsx`, "./claude-artifact/target.ts", []],
+      [`${WEB}/src/page.test.tsx`, "@miragon/pulse-widget-shell/claude-artifact", []],
+      // Anchored: a look-alike of its folder or its entry is none of it.
+      [`${SHELL}/src/ui/look-alike.ts`, "./claude-artifacts.ts", []],
+      [`${WEB}/src/look-alike.ts`, "@miragon/pulse-widget-shell/claude-artifacts", [WEB_PAGE]],
     ],
   },
   {

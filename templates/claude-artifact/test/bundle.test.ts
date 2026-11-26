@@ -2,19 +2,20 @@ import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { Script } from "node:vm"
 import { describe, expect, it } from "vitest"
-import { pageProcessKey } from "../scripts/process-key.ts"
+import { PROCESS_KEY } from "../src/page.config.ts"
 import { STYLESHEET } from "../vite.config.ts"
 
 /**
  * What `pnpm build` writes, the three files a Claude artifact publishes (`pnpm test` builds
  * first): the page content without a document around it, one classic script, and pulse-ui's
- * stylesheet as it ships. The script holds the page and its kit, never the MCP client, ext-apps'
- * runtime, React Query (they only resolve widget-shell's barrel), the fixtures or the mock.
+ * stylesheet as it ships (what it holds is pulse-ui's to test). The script holds the page, its kit
+ * and widget-shell's page reads with React Query under them, never the MCP client, ext-apps'
+ * runtime, the fixtures or their replay.
  */
 
 const DIST = join(import.meta.dirname, "../dist")
-/** The recording of the page's own process (`PROCESS_KEY` of src/app.tsx), whatever it is. */
-const FIXTURE = join(import.meta.dirname, `../fixtures/${pageProcessKey()}.json`)
+/** The recording of the page's own process, whatever it is. */
+const FIXTURE = join(import.meta.dirname, `../fixtures/${PROCESS_KEY}.json`)
 
 /**
  * Strings a bundled MCP client or ext-apps runtime holds after minification (protocol methods, a
@@ -34,6 +35,8 @@ const kb = (name: string) => Math.round(statSync(join(DIST, name)).size / 1024)
 
 describe("dist/", () => {
   it("holds exactly index.html, app.js and pulse-ui.css", () => {
+    // Any other entry (a split chunk, a hashed name, a source map, a folder of assets) is a file
+    // the page loads but nobody publishes, or one published for nothing.
     expect(readdirSync(DIST).sort()).toEqual(["app.js", "index.html", "pulse-ui.css"])
     console.info(
       `dist/: index.html ${String(kb("index.html"))} KB, app.js ${String(kb("app.js"))} KB, pulse-ui.css ${String(kb("pulse-ui.css"))} KB`,
@@ -70,13 +73,12 @@ describe("dist/", () => {
     }
   })
 
-  it("app.js holds no MCP client, no ext-apps runtime, no React Query, no fixtures and no mock", () => {
+  it("app.js holds no MCP client, no ext-apps runtime, no fixtures and no replay of them", () => {
     const js = read("app.js")
     for (const literal of MCP_RUNTIME_LITERALS) expect(js, literal).not.toContain(literal)
     expect(js).not.toContain("@modelcontextprotocol")
-    expect(js).not.toContain("No QueryClient set")
     expect(js).not.toContain("No recorded answer")
-    expect(js).not.toContain("The fixture fails")
+    expect(js).not.toContain("The recording fails")
     const fixture = JSON.parse(readFileSync(FIXTURE, "utf8")) as { asOf: string }
     expect(js).not.toContain(fixture.asOf)
   })
@@ -92,17 +94,13 @@ describe("dist/", () => {
     }
   })
 
-  it("pulse-ui.css is pulse-ui's stylesheet as it ships: the theme following the OS, no font, no other host", () => {
+  it("pulse-ui.css is pulse-ui's stylesheet as it ships, loading nothing from a host the artifact's CSP refuses", () => {
     const css = read("pulse-ui.css")
     expect(css).toBe(readFileSync(STYLESHEET, "utf8"))
-    expect(css).toContain("--background")
-    expect(css).toContain("prefers-color-scheme:dark")
-    expect(css).not.toContain("@font-face")
     expect(css).not.toMatch(/@import|url\(\s*["']?https?:/)
   })
 
-  it("stays small enough to load fast (the fixtures alone would pass 1 MB)", () => {
+  it("app.js stays small enough to load fast (the fixtures alone would pass 1 MB)", () => {
     expect(kb("app.js")).toBeLessThan(900)
-    expect(kb("pulse-ui.css")).toBeLessThan(200)
   })
 })

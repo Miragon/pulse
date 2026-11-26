@@ -27,10 +27,11 @@ import { HostContexts, type RequestDisplayMode } from "./host-contexts.js"
 import { PAGE_HINTS } from "./page-hints.js"
 import type { ShellHost } from "./shell-host.js"
 import { createViewQueryClient } from "./tool-query.js"
-import type { FollowUp, HostChrome, ViewHost, ViewLocation } from "./view-host.js"
+import type { FollowUp, HostChrome, ToolCallOptions, ViewHost, ViewLocation } from "./view-host.js"
 
+/** What a widget asked the host; a call's `options` only where it named some. */
 export type HostAction =
-  | { type: "callTool"; name: string; args: Record<string, unknown> }
+  | { type: "callTool"; name: string; args: Record<string, unknown>; options?: ToolCallOptions }
   | { type: "sendFollowUp"; prompt: string }
   | { type: "openExternal"; url: string }
   | { type: "requestDisplayMode"; mode: string }
@@ -43,7 +44,10 @@ export interface TestViewHostProps {
    * tool rejects with `[TestViewHost] no fake for tool "<name>"`.
    */
   tools?: Readonly<Record<string, unknown>>
-  /** Every tool call, follow-up, link and display-mode request, in order. */
+  /**
+   * Every tool call (with the options a page's read named: `refresh`, `connector`), follow-up,
+   * link and display-mode request, in order.
+   */
   onHostAction?: (action: HostAction) => void
   /** Each mounted `HostModelContext` reports its content (last writer wins). */
   onModelContext?: (text: string) => void
@@ -135,9 +139,14 @@ function createFakeHost(
   }: FakeHostOptions,
 ): ViewHost {
   return {
-    callTool: async (name, args = {}) => {
+    callTool: async (name, args = {}, options) => {
       const callArgs = args as Record<string, unknown>
-      record({ type: "callTool", name, args: callArgs })
+      record({
+        type: "callTool",
+        name,
+        args: callArgs,
+        ...(options === undefined ? {} : { options }),
+      })
       if (!Object.hasOwn(tools, name)) throw new Error(`[TestViewHost] no fake for tool "${name}"`)
       const fake = tools[name]
       const value: unknown =

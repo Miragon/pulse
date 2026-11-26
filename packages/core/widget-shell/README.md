@@ -5,7 +5,8 @@
 [![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](LICENSE)
 
 The server boot and the view runtime your own MCP server, its modules and its widgets build on,
-as the Pulse connectors and the [pulse-starter](https://github.com/Miragon/pulse-starter) do.
+as the Pulse connectors and the [pulse-starter](https://github.com/Miragon/pulse-starter) do. A
+page outside a chat reads through it as well, a Claude artifact included.
 Below 1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
 
 ## Install
@@ -60,17 +61,19 @@ OS.
 
 ## What it provides
 
-| Part           | Entry            | What you get                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| -------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server boot    | `./server`       | `createComposedServer` and `runComposedServer`: module selection (`MCP_ACTIVE_MODULES`, `module:toolset`), OAuth from `MCP_OAUTH_*`, the web app under `/app` (`MCP_WEB_*`), the Host/Origin guard, `/mcp`, `/health/*`, `/metrics`, the served fonts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Module port    | `./server`       | `ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer` (the official SDK's `registerTool`/`registerPrompt`/`registerResource`), `createToolsetVocabulary` for toolsets that fail closed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Tool authoring | `./server`       | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `forViews`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| Server helpers | `./server`       | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| Bundle build   | `./server`       | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| View runtime   | `./widgets`      | `mountViews`, `mountApp`, `PageView` and `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Host-bound UI  | `./widgets`      | `WidgetShell` and `ListTable` (each with `fill`: on a page's screen it takes the height its flex column leaves it and scrolls in its own region; a chat's view never fills), `PagedRows` with `ListRow` (a row that opens on a click or Enter and copies its id, or what `copyLabel` names, which `ListTable`'s `copyHint` tells a screen reader; on a page a link to what it opens, `href`, a new tab with Ctrl or Cmd or a middle click), `IdCell`/`IdText`, `TextBlock` (engine text to scroll by keyboard and copy whole), `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and `useDiagramMaxHeight` (a chat card's budget for pulse-ui's BPMN diagram) |
-| Module tests   | `./testing`      | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| Sign-in tests  | `./testing/oidc` | `startFakeOidc`: a fake OpenID Connect provider with Keycloak's paths, ADFS's (`flavor: "adfs"`) or an Entra ID tenant's (`flavor: "entra"`), on a loopback port (discovery, its signing key, a login page per user, the code grant with PKCE, refresh, revocation, the end of a session), for a server's sign-in tests; Node only                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Part            | Entry               | What you get                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server boot     | `./server`          | `createComposedServer` and `runComposedServer`: module selection (`MCP_ACTIVE_MODULES`, `module:toolset`), OAuth from `MCP_OAUTH_*`, the web app under `/app` (`MCP_WEB_*`), the Host/Origin guard, `/mcp`, `/health/*`, `/metrics`, the served fonts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Module port     | `./server`          | `ComposableModule`, `ModulePlugin`, `ModuleEntry`, `ModuleServer` (the official SDK's `registerTool`/`registerPrompt`/`registerResource`), `createToolsetVocabulary` for toolsets that fail closed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Tool authoring  | `./server`          | The registrar (`createToolRegistrar`, `withToolErrors`), `showToolBinding`, `OwnViewBinding`, `AppResourceCsp`, `appOnly`, `forViews`, `strictToolInput`, `buildViewResult`, `buildDataFeedResult`, `decodeToolResult`, `createTranslator`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Server helpers  | `./server`          | The BPMN-name readers (`readBpmnNames`, `parseBpmnNames`), the per-caller request info (`callerCacheKey`, `getMcpRequestInfo`, `runWithMcpRequestInfo`), `composedEnvVars`, `viewResourceUri`, `viewPrelude`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Bundle build    | `./server`          | `VIEW_BUNDLE_DEDUPE`, `viewBundleWatchPlugin`, and the served fonts (`installFontAssets`, `fontAssetsCsp`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| View runtime    | `./widgets`         | `mountViews`, `mountApp`, `PageView` and `mountPage` for a page outside a chat, the view host (`useViewHost`, `HostModelContext`), the query hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`), `TestViewHost` for tests, a page's reads (`useSectionRead`, `usePageReads`, `PageGate`, `describePageFailure`, `createPageReader`) and its recordings (`playRecording`, `recordToolCalls`)                                                                                                                                                                                                                                                                                                                           |
+| Host-bound UI   | `./widgets`         | `WidgetShell` and `ListTable` (each with `fill`: on a page's screen it takes the height its flex column leaves it and scrolls in its own region; a chat's view never fills), `PagedRows` with `ListRow` (a row that opens on a click or Enter and copies its id, or what `copyLabel` names, which `ListTable`'s `copyHint` tells a screen reader; on a page a link to what it opens, `href`, a new tab with Ctrl or Cmd or a middle click), `IdCell`/`IdText`, `TextBlock` (engine text to scroll by keyboard and copy whole), `describeError`, `useActionFeedback`, `ConfirmDialog`, the hand-offs (`HAND_OFF_ACTIONS`, `AskAiButton` for one it does not list) and `useDiagramMaxHeight` (a chat card's budget for pulse-ui's BPMN diagram) |
+| Claude artifact | `./claude-artifact` | `mountClaudeArtifact` for a page in claude.ai, its caller over the artifact runtime (`claudeToolCaller`, `CLAUDE_RUNTIME_CODES`) and its words of what to do there (`ARTIFACT_PAGE_HINTS`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Browser bundle  | `dist/browser/`     | `claude-artifact.js`: a page's reads and the Claude artifact's entry as one ES module for a page without a build, on pulse-ui's browser bundle beside it on a CDN (below, Use in a page without a build)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Module tests    | `./testing`         | `recordingModuleServer` and `testServerContext` for a module's tools, prompts and resources                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Sign-in tests   | `./testing/oidc`    | `startFakeOidc`: a fake OpenID Connect provider with Keycloak's paths, ADFS's (`flavor: "adfs"`) or an Entra ID tenant's (`flavor: "entra"`), on a loopback port (discovery, its signing key, a login page per user, the code grant with PKCE, refresh, revocation, the end of a session), for a server's sign-in tests; Node only                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 `WidgetShell` is a view's card and pads nothing itself: its `header` (the kit's `WidgetHeader`,
 the `StatusStrip`s under it and a list's filter `Toolbar` right under the bar) runs from edge to
@@ -171,6 +174,21 @@ arguments start it anew (as does another React `key`), and it gives the view its
 `mountPage` is one `PageView` in a `frame` on `mountApp`. Pulse's web app (`apps/web`) is such an
 app.
 
+A page elsewhere (an artifact in claude.ai, say) brings what its place needs through the same
+options. `pageHints` are its words of what to do after a failure (default `PAGE_HINTS`, which lead
+to Pulse's start page), with `connectionPlace`, where its viewer manages the page's connection.
+`timeZone` is the zone its dates and days are in (default, and for a zone the browser does not
+know: the browser's). `documentTheme: true` is for a document that states its theme itself on
+`<html>`'s `data-theme`, as claude.ai stamps it for an explicit choice and leaves it off to follow
+the system: the view reads it and writes no theme onto the document, so the kit's stylesheet
+follows that attribute, else the OS. `now` is the page's clock where its numbers are not read now
+(a recording's `asOf`), which a widget reads as `useViewHost().now`. `mountApp` and `mountPage`
+also take `client`, the page's one query client, where a test hands in `createTestQueryClient()`
+so a failing call fails at once. A view's call hands the page's caller a third argument where it
+names one (`ToolCallOptions`): `refresh` asks past every cache under the caller, `connector` names
+another connection than the caller's own. A caller that reaches one server refuses a call that
+names another, as `webToolCaller` does, so a page never reads the wrong server unseen.
+
 ```ts
 import { mountPage } from "@miragon/pulse-widget-shell/widgets"
 import { engineViews } from "@miragon/pulse-engine-connector/widgets"
@@ -187,6 +205,246 @@ mountPage(engineViews, {
 
 The MCP bundle never carries them: tree-shaking leaves `mountApp`, `PageView` and `mountPage` out
 of a bundle that mounts with `mountViews`.
+
+## A page's reads
+
+A page of its own outside a chat (a dashboard as an artifact, say) reads its sections through the
+page reads of `./widgets` under `mountApp`, so each section loads, shows and fails on its own and
+the page holds the same rules as a view. `useSectionRead(key, read)` is one section's read: `read`
+makes its calls through a `PageReader` (`reader.call(tool, args)`, `reader.timeZone`,
+`reader.now()`) and its result goes straight to pulse-ui's `SectionState` (`state`, `retry` as its
+`onRetry`). `key` names everything `read` depends on besides the reader, since sections with the
+same key share one read. `usePageReads()` gives the bar its `refresh`, its `readAt` (pulse-ui's
+`FreshnessStamp`), `reading` and the page's clock `now`. `PageGate` around the sections is the
+page's ONE state while a refusal of a connection as a whole stands (no sign-in, no connection, no
+approval): none of its sections mounts, and its Try again is the page's Refresh.
+
+```tsx
+import {
+  Button,
+  FreshnessStamp,
+  SectionState,
+  SectionStateGroup,
+  WidgetHeader,
+} from "@miragon/pulse-ui"
+import {
+  mountApp,
+  PageGate,
+  usePageReads,
+  useSectionRead,
+} from "@miragon/pulse-widget-shell/widgets"
+
+function Running({ processKey }: { processKey: string }) {
+  const section = useSectionRead(["stats", processKey], (reader) =>
+    reader.call<{ now: { running: number } }>("engine_process_stats", {
+      processDefinitionKey: processKey,
+      bucket: "day",
+      timeZone: reader.timeZone,
+    }),
+  )
+  return (
+    <SectionState state={section.state} onRetry={section.retry}>
+      {(stats) => <p>{stats.now.running}</p>}
+    </SectionState>
+  )
+}
+
+function App() {
+  const { readAt, refresh, reading } = usePageReads()
+  const action = (
+    <Button
+      variant="toolbar"
+      size="sm"
+      aria-disabled={reading || undefined}
+      onClick={reading ? undefined : refresh}
+    >
+      Refresh
+    </Button>
+  )
+  return (
+    <>
+      <WidgetHeader
+        title="Orders"
+        actions={action}
+        freshness={readAt && <FreshnessStamp at={readAt} />}
+      />
+      <main>
+        <PageGate>
+          <SectionStateGroup>
+            <Running processKey="orders" />
+          </SectionStateGroup>
+        </PageGate>
+      </main>
+    </>
+  )
+}
+
+mountApp(App, { callTool: (name, args, options) => callServerTool(name, args, options) })
+```
+
+The rules the reads hold, in the page's one query client:
+
+- A call is kept 30 s by connection, tool and arguments (their keys in any order) and shared while
+  it runs, so sections that need the same answer make one call; a failure is never kept. A call
+  asks past every cache under the caller (`refresh`) once the page was refreshed, or where the
+  same call settled before (Try again after a failure, an answer older than 30 s): only a key's
+  first read may come from a cache of the caller's own.
+- A section retries a transient failure as every view's read does (a connection that does not
+  answer, an engine 503), never a refusal and never a permanent error; a call is never retried
+  inside it. A later read that fails keeps the data on screen with the failure beside it.
+- Refresh asks every call fresh from then on, cancels a read that runs, so none joins a call sent
+  without `refresh`, opens a refused gate and reads every section on screen again.
+- `readAt` is the oldest `asOf` of the answers the mounted sections show (a section whose refresh
+  failed keeps its older read; one whose answers name none counts from when it finished, by the
+  page's clock), never of a read its connection refuses as a whole: none while a page's one
+  connection refuses, the time of the numbers still on screen while one of several does.
+- A refusal is a `PageCallError` the page's caller rejects with (its `code` one of pulse-ui's
+  `PageErrorCode`, its `connector` the connection that refused), worded by `describePageFailure`:
+  the refusals by pulse-ui's `describePageError` with the connection's name and the page's
+  `connectionPlace`, a server's errors by `describeError` with the page's `pageHints`, the raw text
+  under "Details" only. A refusal of one tool (`not_allowed`) stays in its sections, said once
+  under a `SectionStateGroup`, with no Try again.
+- A read that calls a second connection names it (`reader.call(tool, args, { connector })`), and a
+  page of several connections puts one `<PageGate connector="…">` around each connection's
+  sections; a refusal of a connection no gate covers stays in its sections.
+
+`createPageReader(callTool, options)` is the same reader without React, for a recorder or a test in
+Node. `recordToolCalls(callTool)` records the calls a run answers, kept small (a `ToolRecording`
+holds them with its `asOf` and zone), and `playRecording(recording, options)` replays one: spread
+it into `mountApp`'s options (its caller, its clock and its zone), where `fail` fails a tool
+(`engine_process_stats`), refuses every call with a code (`needs_reauth`) or one tool with one
+(`engine_process_stats:unavailable`), `tools` refuses an undeclared tool `not_allowed` and `delayMs`
+shows the skeletons. A call it holds no answer for answers a tool error that names it.
+
+## A Claude artifact
+
+`@miragon/pulse-widget-shell/claude-artifact` mounts a page of its own as a Claude artifact, a page
+in claude.ai that reads an MCP server through the viewer's own connector to it.
+`mountClaudeArtifact(App, { connector })` is `mountApp` with the artifact runtime's caller on the
+connector the runtime knows by that name (`claudeToolCaller`), the theme claude.ai stamps on the
+document read and never written (`documentTheme`), no hand-off, the artifact's words of what to do
+(`ARTIFACT_PAGE_HINTS`, with claude.ai's settings as the place of a connector) and the browser's
+language, since the artifact's frame names none of the viewer's. Every other option of `mountApp`
+passes through (`locale`, `timeZone`, `pageHints`, `now`, `client`, `container`), and `callTool`
+replaces the runtime's caller where a dev build or a test replays a recording (`playRecording`).
+
+```tsx
+import { mountClaudeArtifact } from "@miragon/pulse-widget-shell/claude-artifact"
+
+// App: the page's sections on useSectionRead, behind its PageGate (A page's reads).
+mountClaudeArtifact(App, { connector: "Pulse" })
+```
+
+The artifact publishes with the `mcp` capability, one entry per connector it calls with exactly the
+tools it calls, `{ "mcp": { "servers": [{ "server": "Pulse", "tools": [<tools>] }] } }`; the
+runtime refuses a call to a tool it does not name. The caller follows the runtime's contract as a
+probe artifact verified it on 2026-11-25 (contract 0.2.99,
+`packages/core/widget-shell/src/ui/claude-artifact/claude-tool-caller.ts`):
+`window.claude.use("mcp")` gives the capability, read at the first call, and its
+`callTool(server, tool, args, { cache })` takes positional arguments and resolves the tool's
+result with `payload`, its JSON, which the caller resolves as the result's data. A call keeps its
+answer in the runtime's cache 30 seconds and asks past it (`{ cache: { refresh: true } }`) where
+the page asks fresh. Every other outcome rejects with a plain object `{ code, message, server }`:
+a tool's own error (`tool_error`) the caller resolves as the `isError` answer it is, so
+`describeError` words the server's text as in a chat, and a refusal of the runtime rejects as a
+`PageCallError` in pulse-ui's codes, its raw code and message under "Details":
+
+| The runtime's code                           | The page's code     | What the viewer is told                                            |
+| -------------------------------------------- | ------------------- | ------------------------------------------------------------------ |
+| `needs_reauth`                               | `needs_reauth`      | Reconnect the connector in claude.ai, in Settings under Connectors |
+| `server_not_connected`, `selection_required` | `not_connected`     | Set up the connector in claude.ai, in Settings under Connectors    |
+| `not_in_manifest`, `blocked_by_policy`       | `not_allowed`       | Ask whoever published the page: it may not call the tool           |
+| `approval_required`                          | `approval_required` | Allow the page to use the connector when claude.ai asks            |
+| `server_unavailable`                         | `unavailable`       | Try again: the connector does not answer                           |
+| any other code, or none                      | `tool_error`        | The message, worded by `describeError` as a server's text          |
+
+A page outside an artifact (no `window.claude`), a declaration without the `mcp` capability and a
+refused `use("mcp")` are `not_connected`. A refusal forgets the capability, so the next try asks the
+runtime anew and a connector set up meanwhile answers it. A page that reads a second connector
+declares it beside the first and names it in its reads,
+`reader.call(tool, args, { connector: "Acme CRM" })`, which the caller passes on as the runtime's
+`server`; each refusal names the connector that refused, and one `<PageGate connector="…">` around
+each connector's sections says it once.
+
+## Use in a page without a build
+
+A page with no bundler (a Claude artifact written as one HTML page, say) loads the page reads and
+the Claude artifact's entry as one ES module from the package's `dist/browser/`, beside
+pulse-ui's browser bundle and its stylesheet on the same CDN at the same version, and ships no
+file of its own:
+
+```html
+<div id="root"></div>
+<script type="module">
+  import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@<version>/dist/browser/pulse-ui.js"
+  import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@<version>/dist/browser/pulse-ui-css.js"
+  import {
+    mountClaudeArtifact,
+    PageGate,
+    usePageReads,
+    useSectionRead,
+  } from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@<version>/dist/browser/claude-artifact.js"
+
+  const h = ui.createElement
+  const stats = (reader) =>
+    reader.call("engine_process_stats", {
+      processDefinitionKey: "orders",
+      bucket: "day",
+      timeZone: reader.timeZone,
+    })
+
+  function Running() {
+    const section = useSectionRead(["stats", "orders"], stats)
+    return h(ui.SectionState, { state: section.state, onRetry: section.retry }, (data) =>
+      h(ui.KpiGrid, { cells: [{ label: "Running", value: ui.formatCount(data.now.running) }] }),
+    )
+  }
+
+  function App() {
+    const { readAt, refresh, reading } = usePageReads()
+    const busy = { "aria-disabled": reading || undefined, onClick: reading ? undefined : refresh }
+    const action = h(ui.Button, { variant: "toolbar", size: "sm", ...busy }, "Refresh")
+    const freshness = readAt && h(ui.FreshnessStamp, { at: readAt })
+    return h(
+      "div",
+      { className: "bg-background text-foreground" },
+      h(ui.WidgetHeader, { title: "Orders", actions: action, freshness }),
+      h(
+        "main",
+        { className: "flex flex-col gap-section p-gutter" },
+        h(PageGate, null, h(ui.SectionStateGroup, null, h(Running))),
+      ),
+    )
+  }
+
+  mountClaudeArtifact(App, { connector: "Pulse" })
+</script>
+```
+
+- **`claude-artifact.js`** holds the page reads (`useSectionRead`, `usePageReads`, `PageGate`,
+  `PageCallError`, `describePageFailure`, `createPageReader`) and the Claude artifact's entry
+  (`mountClaudeArtifact`, `claudeToolCaller`, `CLAUDE_RUNTIME_CODES`, `ARTIFACT_PAGE_HINTS`), with
+  TanStack Query and the part of the view runtime `mountApp` mounts. It holds no React and no
+  kit: it imports both from pulse-ui's `pulse-ui.js` of the same version beside it on the CDN
+  (`../../../pulse-ui@<version>/dist/browser/pulse-ui.js`), so the page and the module run on one
+  React and one copy of the kit's contexts (its locale, its toasts, `SectionStateGroup`). Load
+  all three modules from one CDN, jsDelivr or unpkg, at one version, pinned as every
+  `@miragon/pulse-*` package below 1.0, and take React and the kit from that `pulse-ui.js` only:
+  a second React from another URL breaks every hook. Without a build there is no JSX;
+  `createElement`, as `h` here, writes the same tree.
+- **The stylesheet** is pulse-ui's `pulse-ui.css`, which pulse-ui's `pulse-ui-css.js` holds and
+  puts into the page as one `<style>` at the end of `<head>` when the page imports it (pulse-ui's
+  README, "Use in a page without a build"). So the page is one HTML document with no file of its
+  own, in a chat, whose content security policy loads no stylesheet from a CDN, and published
+  alike. Its classes are the only ones the page's own elements can use, and a style of the page's
+  own (a brand's override of the roles, say) stands in its `<body>`, after the kit's: in `<head>`
+  the kit's rules win over it.
+- **The rest** is a Claude artifact's (above): the page declares the `mcp` capability with the
+  tools it calls, reads nothing but through `window.claude` (no fetch, XHR or WebSocket, which the
+  artifact's content security policy refuses anyway), follows claude.ai's theme and speaks the
+  browser's language. `packages/core/widget-shell/test/browser-page.test.ts` renders this example
+  in Chromium, in a chat's frame and in a published artifact's sandboxed frame, each under its
+  content security policy.
 
 ## The web app
 

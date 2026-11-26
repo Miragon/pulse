@@ -5,8 +5,8 @@ import {
   type DiagramCountKind,
   type DiagramElement,
 } from "@miragon/pulse-ui/bpmn"
+import { useSectionRead } from "@miragon/pulse-widget-shell/widgets"
 import { readDiagram } from "../data/process-dashboard.ts"
-import { useSection } from "../engine/use-engine.tsx"
 import { useT } from "../messages.ts"
 import { goTo, rowAnchor } from "./anchors.ts"
 
@@ -40,10 +40,8 @@ export function countTargets(element: DiagramElement, kind: DiagramCountKind): r
  */
 export function DiagramSection({ processKey }: { readonly processKey: string }) {
   const t = useT()
-  const section = useSection(
-    (engine) => readDiagram(engine, processKey),
-    [processKey],
-    (diagram) => diagram.counts.asOf,
+  const section = useSectionRead(["diagram", processKey], (reader) =>
+    readDiagram(reader, processKey),
   )
   const version = section.data?.counts.version
   return (

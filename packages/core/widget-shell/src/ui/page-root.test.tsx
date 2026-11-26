@@ -6,6 +6,7 @@ import { askAiPrompt } from "./ask-ai-prompt.js"
 import type { ToolResult } from "../protocol/tool-result.js"
 import type { ToolCaller } from "./browser-view-host.js"
 import { HandOffButton } from "./hand-off-button.js"
+import { createTestQueryClient } from "./test-view-host.js"
 import { useToolQuery } from "./tool-query.js"
 import { useViewHost } from "./view-host.js"
 import { mountPage, type MountPageOptions } from "./page-root.js"
@@ -99,6 +100,14 @@ describe("mountPage", () => {
     ])
     // A page owns its viewport: no fullscreen switch, no "Reloaded at" stamp.
     expect(container.querySelector('[data-slot="view-toolbar"]')).toBeNull()
+  })
+
+  it("reads the view's data into the query client the page hands in", async () => {
+    const client = createTestQueryClient()
+    const container = await mount({ callTool: stubCaller(ROWS_TOOLS), client, locale: "en" })
+    await settled()
+    expect(container.querySelector("output")?.textContent).toBe("en|fullscreen|a,b|2")
+    expect(client.getQueryData(["demo", {}])).toBeDefined()
   })
 
   it("hides the view's hand-offs unless the page copies them", async () => {

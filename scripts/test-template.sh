@@ -9,9 +9,9 @@ set -euo pipefail
 # compiles against the packages we are about to release" before the release
 # train publishes to npm, and a file the bar writes that the template's own
 # .gitignore misses. Runs a prebuilt module with its own HTML view through the
-# starter's copy, then builds the Claude artifact and holds its dist/ to the
-# three files a page publishes (below). Run from anywhere; leaves the working
-# tree untouched.
+# starter's copy, then the Claude artifact's bar, whose tests hold its dist/ to
+# the three files a page publishes. Run from anywhere; leaves the working tree
+# untouched.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE="$ROOT/templates/composed-server"
@@ -164,8 +164,10 @@ pnpm test
 # The Claude artifact (templates/claude-artifact): a page, not a server, a single package with
 # its own pnpm-workspace.yaml (packages: ["."]) and no overrides of its own, so the overrides
 # append to it as to the starter's. Its bar needs no browser, no engine and no MCP server: the
-# tests read the recorded fixtures, and `pnpm shot` (Playwright) stays out of it. The root's
-# Prettier formats it in this repository; it ships no formatter of its own to check here.
+# tests read the recorded fixtures, and `pnpm shot` (Playwright) stays out of it. Its `pnpm test`
+# builds first (`vite build && vitest run`), and test/bundle.test.ts holds dist/ to exactly the
+# three files a person publishes. The root's Prettier formats it in this repository; it ships no
+# formatter of its own to check here.
 ARTIFACT="$ROOT/templates/claude-artifact"
 scratch_dir
 ARTIFACT_WORK="$REPLY/claude-artifact"
@@ -178,22 +180,9 @@ git_artifact add -A
 (
   cd "$ARTIFACT_WORK"
   pnpm install --no-frozen-lockfile
-  pnpm build
   pnpm typecheck
   pnpm test
 )
-
-# What a person publishes as the artifact: exactly these three files (the page, its one script,
-# its one stylesheet, pulse-ui's own as the packed package ships it). Any other file (a split
-# chunk, a hashed name, a source map, a copied asset) is either one the page loads but nobody
-# publishes, or one published for nothing.
-DIST="$(cd "$ARTIFACT_WORK/dist" && find . -type f | sed 's|^\./||' | LC_ALL=C sort)"
-EXPECTED=$'app.js\nindex.html\npulse-ui.css'
-if [[ "$DIST" != "$EXPECTED" ]]; then
-  echo "test-template: templates/claude-artifact's pnpm build wrote other files than dist/index.html, dist/app.js and dist/pulse-ui.css, the three an artifact publishes:" >&2
-  echo "$DIST" >&2
-  exit 1
-fi
 
 # A copy commits no lockfile: its .gitignore ignores pnpm-lock.yaml with the rest of what
 # install, build and test write, so any untracked file git lists here is one too many.

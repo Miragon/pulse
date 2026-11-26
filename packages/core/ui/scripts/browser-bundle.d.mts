@@ -4,6 +4,10 @@ import type { BuildResult } from "esbuild"
 export declare const PACKAGE: string
 export declare const RUNTIME: "pulse-ui.js"
 export declare const STYLESHEET: "pulse-ui.css"
+/** The module whose import puts the stylesheet into the page as one `<style>`. */
+export declare const STYLESHEET_MODULE: "pulse-ui-css.js"
+/** The attribute that marks that `<style>`; its value is the package's version. */
+export declare const STYLESHEET_MARK: "data-pulse-ui"
 export declare const BROWSER_ENTRIES: Readonly<Record<string, string>>
 export declare const SHARED_MODULES: readonly string[]
 
@@ -14,7 +18,10 @@ export interface InlinedStylesheetPlugin {
 }
 
 export interface BrowserBundle {
-  /** Each file's name and text: pulse-ui.js, every entry of `entries`, pulse-ui.css. */
+  /**
+   * Each file's name and text: pulse-ui.js, every entry of `entries`, pulse-ui.css and
+   * pulse-ui-css.js.
+   */
   readonly files: Readonly<Record<string, string>>
   /** Each script's esbuild result (`metafile`, `outputFiles`), keyed by its file name. */
   readonly results: Readonly<Record<string, BuildResult<{ metafile: true; write: false }>>>

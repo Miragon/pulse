@@ -1,20 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { translate } from "../src/messages.ts"
+import { countOf } from "../src/messages.ts"
 
-describe("the page's words for a count", () => {
-  it("say the incidents in called instances as incidents: the count is of the copies at the call", () => {
-    // One called instance with two open incidents leaves two copies at its call activity.
-    expect(translate("en", "incidents.called", { activity: "Assess", count: "2" })).toBe(
-      "Assess: 2 incidents in called instances, counted in the called process.",
-    )
-    expect(translate("en", "incidents.called", { activity: "Assess", count: "1" })).toBe(
-      "Assess: 1 incident in called instances, counted in the called process.",
-    )
-    expect(translate("de", "incidents.called", { activity: "Prüfen", count: "2" })).toBe(
-      "Prüfen: 2 Incidents in aufgerufenen Instanzen, gezählt im aufgerufenen Prozess.",
-    )
-    expect(translate("de", "incidents.called", { activity: "Prüfen", count: "1" })).toBe(
-      "Prüfen: 1 Incident in aufgerufenen Instanzen, gezählt im aufgerufenen Prozess.",
-    )
+describe("the page's plural rule", () => {
+  it("puts a count's noun in the singular for exactly 1, read on the formatted count", () => {
+    expect(countOf("1", "incident", "incidents")).toBe("1 incident")
+    for (const count of ["0", "2", "1,000", "1.000"]) {
+      expect(countOf(count, "incident", "incidents")).toBe(`${count} incidents`)
+    }
   })
 })

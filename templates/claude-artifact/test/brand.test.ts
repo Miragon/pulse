@@ -3,29 +3,22 @@ import { join } from "node:path"
 import { BARE_PAUSE_RULE_EN, glossaryFindings, PRODUCT_GLOSSARY } from "@miragon/pulse-ui/glossary"
 import {
   catalogTextFindings,
-  contrastFindings,
-  LIGHT_STATUS_EXEMPTION,
-  parseThemeVariables,
-  ROLE_CONTRAST_PAIRS,
   scanColors,
   scanGlyphs,
   scanIconSizes,
   scanOutlines,
   scanTypeScale,
-  themeStylesheets,
-  toneContrastPairs,
 } from "@miragon/pulse-ui/testing"
 import { describe, expect, it } from "vitest"
-import { ERROR_CATALOGS } from "../src/engine/errors.ts"
 import { DE, EN } from "../src/messages.ts"
 import { STYLESHEET } from "../vite.config.ts"
 
 /**
  * pulse-ui's brand gates over the page (ESLint's gates do not reach a template, so these hold it):
  * colours by role only, Lucide icons at 16 or 24 px, the type scale, no hidden outline at rest,
- * the voice rules and the product's words in English and German, and the stylesheet the page
- * ships: pulse-ui's own, holding every class the page's elements name, every role pair readable in
- * light and dark.
+ * the voice rules and the product's words in English and German, and no stylesheet of the page's
+ * own: pulse-ui's holds every class the page's elements name. The theme's contrast is pulse-ui's
+ * to hold (its tone-contrast test), since a page cannot change it.
  */
 
 const SRC = join(import.meta.dirname, "../src")
@@ -134,23 +127,14 @@ describe("the page's words", () => {
     expect(Object.keys(DE).sort()).toEqual(Object.keys(EN).sort())
   })
 
+  // The words of a refused or failed read are widget-shell's and the kit's, held by their gates.
   it.each([
-    ["en", EN, ERROR_CATALOGS.en],
-    ["de", DE, ERROR_CATALOGS.de],
-  ] as const)("follow the voice rules and the glossary (%s)", (language, page, errors) => {
+    ["en", EN],
+    ["de", DE],
+  ] as const)("follow the voice rules and the glossary (%s)", (language, catalog) => {
     const rules =
       language === "en" ? [...PRODUCT_GLOSSARY.en, BARE_PAUSE_RULE_EN] : PRODUCT_GLOSSARY.de
-    for (const catalog of [page, errors]) {
-      expect(catalogTextFindings(catalog, { language })).toEqual([])
-      expect(glossaryFindings(catalog, rules)).toEqual([])
-    }
-  })
-})
-
-describe("the stylesheet", () => {
-  it("keeps every tone pair and every role pair readable in light and dark", () => {
-    const theme = parseThemeVariables(...themeStylesheets())
-    expect(contrastFindings(theme, toneContrastPairs()).sort()).toEqual(LIGHT_STATUS_EXEMPTION)
-    expect(contrastFindings(theme, ROLE_CONTRAST_PAIRS)).toEqual([])
+    expect(catalogTextFindings(catalog, { language })).toEqual([])
+    expect(glossaryFindings(catalog, rules)).toEqual([])
   })
 })

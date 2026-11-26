@@ -21,7 +21,9 @@
     "src/oauth-jwt.ts",
     "src/oauth-discovery.ts",
     "src/oauth-oidc.ts",
-    "src/oauth-entra.ts"
+    "src/oauth-entra.ts",
+    "src/ui/page-reads/page-reader.ts",
+    "src/ui/claude-artifact/claude-tool-caller.ts"
   ],
   "inPlace": true,
   "incremental": true,

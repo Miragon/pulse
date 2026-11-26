@@ -9,8 +9,8 @@ import {
   TableEmptyState,
   type DataTableColumn,
 } from "@miragon/pulse-ui"
+import { usePageReads, useSectionRead } from "@miragon/pulse-widget-shell/widgets"
 import { readActivities, tasksOf, type ActivityRow } from "../data/process-dashboard.ts"
-import { useEngine, useSection } from "../engine/use-engine.tsx"
 import { useT } from "../messages.ts"
 import { rowAnchor } from "./anchors.ts"
 
@@ -20,13 +20,11 @@ import { rowAnchor } from "./anchors.ts"
  */
 export function TasksSection({ processKey }: { readonly processKey: string }) {
   const t = useT()
-  const { engine } = useEngine()
-  const section = useSection(
-    (engine) => readActivities(engine, processKey),
-    [processKey],
-    (counts) => counts.asOf,
+  const page = usePageReads()
+  const section = useSectionRead(["activities", processKey], (reader) =>
+    readActivities(reader, processKey),
   )
-  const now = engine.now()
+  const now = page.now()
   const columns: DataTableColumn<ActivityRow>[] = [
     {
       key: "task",

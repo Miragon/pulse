@@ -1,13 +1,14 @@
 // @vitest-environment happy-dom
-import { act, useState, type ReactNode } from "react"
+import { act, useEffect, useState, type ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { useLocale } from "@miragon/pulse-ui"
+import { getFormatLocale, useLocale } from "@miragon/pulse-ui"
 import type { ToolResult } from "../protocol/tool-result.js"
 import { mountApp } from "./app-root.js"
 import type { ToolCaller } from "./browser-view-host.js"
 import { mountPage } from "./page-root.js"
 import { PageView } from "./page-view.js"
-import { useToolQuery } from "./tool-query.js"
+import { createTestQueryClient } from "./test-view-host.js"
+import { useQueryClient, useToolQuery, type QueryClient } from "./tool-query.js"
 import {
   useHostChrome,
   useHostLocation,
@@ -89,9 +90,18 @@ afterEach(async () => {
   unmount = undefined
   document.documentElement.lang = ""
   document.documentElement.removeAttribute("class")
+  document.documentElement.removeAttribute("data-theme")
+  document.documentElement.removeAttribute("style")
   document.body.innerHTML = ""
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
+
+/** The OS prefers dark: a page that writes its theme would write dark. */
+function stubDarkOs(): void {
+  const query = { matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue(query))
+}
 
 describe("mountApp", () => {
   it("renders the page's app under the view's providers and calls no tool itself", async () => {
@@ -118,6 +128,67 @@ describe("mountApp", () => {
       unmount = mountApp(() => <p>in the root</p>)
     })
     expect(document.getElementById("root")?.textContent).toBe("in the root")
+  })
+
+  it("gives the page the query client it hands in, its reads in that client's cache", async () => {
+    const client = createTestQueryClient()
+    const seen: QueryClient[] = []
+    const App = () => {
+      const own = useQueryClient()
+      useEffect(() => {
+        seen.push(own)
+      }, [own])
+      const feed = useToolQuery<{ total: number }>(["demo"], "demo_rows_data", {})
+      return <p data-testid="app">{String(feed.data?.total)}</p>
+    }
+    const container = await mount(App, { callTool: stubCaller(), client, locale: "en" })
+    expect(new Set(seen)).toEqual(new Set([client]))
+    expect(container.querySelector('[data-testid="app"]')?.textContent).toBe("2")
+    expect(client.getQueryCache().getAll()).toHaveLength(1)
+  })
+
+  it("keeps a document's own theme: a stamped data-theme stays, an unstamped root stays bare", async () => {
+    stubDarkOs()
+    const root = document.documentElement
+    const changed: Array<string | null> = []
+    const observer = new MutationObserver((records) => {
+      changed.push(...records.map((record) => record.attributeName))
+    })
+    /** Every attribute written to the root since the last ask. */
+    const writes = () => {
+      const seen = [...changed, ...observer.takeRecords().map((record) => record.attributeName)]
+      changed.length = 0
+      return seen
+    }
+    root.setAttribute("data-theme", "light")
+    // The page's fill writes the root's height; its theme is data-theme, the class and color-scheme.
+    observer.observe(root, { attributes: true, attributeFilter: ["data-theme", "class"] })
+    const App = () => <p data-testid="app">themed</p>
+    const container = await mount(App, { documentTheme: true, locale: "en" })
+    expect(container.querySelector('[data-testid="app"]')?.textContent).toBe("themed")
+    expect(root.getAttribute("data-theme")).toBe("light")
+    expect(root.classList.contains("dark")).toBe(false)
+    expect(root.style.getPropertyValue("color-scheme")).toBe("")
+    // The host switches to dark: followed, still unwritten.
+    await act(async () => root.setAttribute("data-theme", "dark"))
+    expect(root.classList.contains("dark")).toBe(false)
+    expect(writes()).toEqual(["data-theme"])
+    await act(async () => unmount?.())
+
+    root.removeAttribute("data-theme")
+    await mount(App, { documentTheme: true, locale: "en" })
+    expect(root.hasAttribute("data-theme")).toBe(false)
+    expect(writes()).toEqual(["data-theme"])
+    observer.disconnect()
+  })
+
+  it("renders the page's dates in the time zone it names, the browser's for one it does not know", async () => {
+    const App = () => <p data-testid="app">{getFormatLocale()?.timeZone ?? "own"}</p>
+    const container = await mount(App, { timeZone: "Asia/Tokyo", locale: "en" })
+    expect(container.querySelector('[data-testid="app"]')?.textContent).toBe("Asia/Tokyo")
+    await act(async () => unmount?.())
+    const unknown = await mount(App, { timeZone: "Mars/Olympus", locale: "en" })
+    expect(unknown.querySelector('[data-testid="app"]')?.textContent).toBe("own")
   })
 })
 

@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest"
 import {
   boundOf,
-  DASHBOARD_READS,
   historyCutOf,
   incidentsOf,
   outcomesOf,
-  readActivities,
   readDiagram,
   readStats,
   tasksOf,
@@ -13,9 +11,8 @@ import {
   type ActivityRow,
   type ProcessStats,
 } from "../src/data/process-dashboard.ts"
-import { createEngine } from "../src/engine/engine.ts"
-import type { ToolName } from "../src/engine/tools.ts"
-import { fakeConnector } from "./fake.ts"
+import type { PageReader } from "@miragon/pulse-widget-shell/widgets"
+import type { ToolName } from "../src/page.config.ts"
 
 const NOW = new Date("2026-11-24T12:00:00.000Z")
 
@@ -100,23 +97,32 @@ const STATS: ProcessStats = {
   durations: { from: "2026-11-10T23:00:00.000Z", ended: 363, medianMs: 27947, p90Ms: 300058 },
 }
 
-function engineOver(
+/**
+ * A page reader over `answers`, one per tool, that records each call: the reads' own calls, apart
+ * from the reader's cache and decoding, which widget-shell's suites hold.
+ */
+function readerOver(
   answers: Partial<Record<ToolName, (args: Record<string, unknown>) => unknown>>,
 ) {
-  const connector = fakeConnector((name, args) => {
-    const answer = answers[name]
-    if (answer === undefined) throw new Error(`unexpected call ${name}`)
-    return answer(args)
-  })
-  const engine = createEngine(connector, { now: () => NOW, timeZone: "Europe/Berlin" })
-  return { connector, engine }
+  const calls: { name: ToolName; args: Record<string, unknown> }[] = []
+  const reader: PageReader<ToolName> = {
+    async call<T>(name: ToolName, args: Record<string, unknown> = {}): Promise<T> {
+      calls.push({ name, args })
+      const answer = answers[name]
+      if (answer === undefined) throw new Error(`unexpected call ${name}`)
+      return (await answer(args)) as T
+    },
+    timeZone: "Europe/Berlin",
+    now: () => NOW,
+  }
+  return { calls, reader }
 }
 
 describe("the three calls of a load", () => {
   it("reads the process's numbers per day in the viewer's time zone, the server's range", async () => {
-    const { connector, engine } = engineOver({ engine_process_stats: () => STATS })
-    expect(await readStats(engine, "p")).toBe(STATS)
-    expect(connector.calls.map((call) => [call.name, call.args])).toEqual([
+    const { calls, reader } = readerOver({ engine_process_stats: () => STATS })
+    expect(await readStats(reader, "p")).toBe(STATS)
+    expect(calls.map((call) => [call.name, call.args])).toEqual([
       [
         "engine_process_stats",
         { processDefinitionKey: "p", bucket: "day", timeZone: "Europe/Berlin" },
@@ -125,43 +131,26 @@ describe("the three calls of a load", () => {
   })
 
   it("reads the counts per activity, then the XML of the version they are drawn on", async () => {
-    const { connector, engine } = engineOver({
+    const { calls, reader } = readerOver({
       engine_activity_counts: () => COUNTS,
       engine_get_process_definition_xml: (args) => ({
         id: args.processDefinitionId,
         bpmn20Xml: "<x/>",
       }),
     })
-    expect(await readDiagram(engine, "p")).toEqual({ counts: COUNTS, xml: "<x/>" })
-    expect(connector.calls.map((call) => [call.name, call.args])).toEqual([
+    expect(await readDiagram(reader, "p")).toEqual({ counts: COUNTS, xml: "<x/>" })
+    expect(calls.map((call) => [call.name, call.args])).toEqual([
       ["engine_activity_counts", { processDefinitionKey: "p" }],
       ["engine_get_process_definition_xml", { processDefinitionId: "p:2:b" }],
     ])
   })
 
   it("reads a diagram without XML as none", async () => {
-    const { engine } = engineOver({
+    const { reader } = readerOver({
       engine_activity_counts: () => COUNTS,
       engine_get_process_definition_xml: () => ({ id: "p:2:b", bpmn20Xml: null }),
     })
-    expect((await readDiagram(engine, "p")).xml).toBeNull()
-  })
-
-  it("makes three calls for every read of the page together, each once", async () => {
-    const { connector, engine } = engineOver({
-      engine_process_stats: () => STATS,
-      engine_activity_counts: () => COUNTS,
-      engine_get_process_definition_xml: () => ({ id: "p:2:b", bpmn20Xml: "<x/>" }),
-    })
-    await Promise.all(
-      Object.values(DASHBOARD_READS).flatMap((read) => [read(engine, "p"), read(engine, "p")]),
-    )
-    await readActivities(engine, "p")
-    expect(connector.calls.map((call) => call.name).sort()).toEqual([
-      "engine_activity_counts",
-      "engine_get_process_definition_xml",
-      "engine_process_stats",
-    ])
+    expect((await readDiagram(reader, "p")).xml).toBeNull()
   })
 })
 

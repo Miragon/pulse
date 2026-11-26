@@ -6,9 +6,11 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { BrowserViewHost, type BrowserHostOptions } from "./browser-view-host.js"
 import { useDisplayModeControl } from "./display-mode-toggle.js"
 import { NO_INLINE_BUDGET, useInlineBudget } from "./inline-budget.js"
+import { PAGE_HINTS, type PageHints } from "./page-hints.js"
 import { useShellHost } from "./shell-host.js"
 import {
   HostModelContext,
+  useErrorWords,
   useHostLocation,
   useHostWrites,
   useStartPage,
@@ -65,6 +67,7 @@ afterEach(async () => {
   reactRoot = undefined
   for (const key of Object.keys(seen)) delete seen[key as keyof typeof seen]
   document.documentElement.removeAttribute("data-cd-theme")
+  document.documentElement.removeAttribute("data-theme")
   document.documentElement.lang = ""
   document.body.innerHTML = ""
   vi.restoreAllMocks()
@@ -98,6 +101,37 @@ describe("BrowserViewHost: the page as the host", () => {
     expect(seen.shell?.theme).toBe("light")
     await act(async () => document.documentElement.setAttribute("data-cd-theme", "night"))
     expect(seen.shell?.theme).toBeUndefined()
+  })
+
+  it("reads a document's own theme on data-theme where the document states it, never data-cd-theme", async () => {
+    document.documentElement.setAttribute("data-cd-theme", "dark")
+    await render({ documentTheme: true })
+    expect(seen.shell).toMatchObject({ documentTheme: true })
+    expect(seen.shell?.theme).toBeUndefined()
+    await act(async () => document.documentElement.setAttribute("data-theme", "light"))
+    expect(seen.shell?.theme).toBe("light")
+    await act(async () => document.documentElement.setAttribute("data-theme", "dark"))
+    expect(seen.shell?.theme).toBe("dark")
+    // Left off again (claude.ai's "system"): the OS decides.
+    await act(async () => document.documentElement.removeAttribute("data-theme"))
+    expect(seen.shell?.theme).toBeUndefined()
+    await act(async () => document.documentElement.setAttribute("data-cd-theme", "light"))
+    expect(seen.shell?.theme).toBeUndefined()
+  })
+
+  it("keeps the page's theme switch where the document states no theme of its own", async () => {
+    document.documentElement.setAttribute("data-theme", "dark")
+    await render()
+    expect(seen.shell).toMatchObject({ documentTheme: false })
+    expect(seen.shell?.theme).toBeUndefined()
+  })
+
+  it("names the page's time zone, and none where the page names none", async () => {
+    await render({ timeZone: "Europe/Berlin" })
+    expect(seen.shell?.timeZone).toBe("Europe/Berlin")
+    await act(async () => reactRoot?.unmount())
+    await render()
+    expect(seen.shell?.timeZone).toBeUndefined()
   })
 
   it("takes the page's locale: the option, else the document's lang, else the browser's", async () => {
@@ -143,6 +177,51 @@ describe("BrowserViewHost: what a widget asks the page", () => {
     expect(await seen.host?.callTool("b_data")).toBe(result)
     expect(callTool).toHaveBeenLastCalledWith("b_data", {})
     await expect(seen.host?.callTool("broken")).rejects.toThrow("connection lost")
+  })
+
+  it("hands a call's options to the page's caller only where the view names them", async () => {
+    const callTool = vi.fn(() => Promise.resolve({ content: [] }))
+    await render({ callTool })
+    await seen.host?.callTool("a_data", { id: "x" }, { refresh: true, connector: "Shop" })
+    expect(callTool).toHaveBeenLastCalledWith(
+      "a_data",
+      { id: "x" },
+      {
+        refresh: true,
+        connector: "Shop",
+      },
+    )
+    await seen.host?.callTool("a_data", { id: "x" })
+    expect(callTool.mock.calls.at(-1)).toEqual(["a_data", { id: "x" }])
+  })
+
+  it("brings the page's words of a failure: Pulse's by default, the page's own where it has some", async () => {
+    const words: Array<ReturnType<typeof useErrorWords>> = []
+    function WordsProbe() {
+      const seenWords = useErrorWords()
+      useEffect(() => {
+        words.push(seenWords)
+      })
+      return null
+    }
+    await render({}, <WordsProbe />)
+    expect(words.at(-1)?.pageHints).toBe(PAGE_HINTS)
+    await act(async () => reactRoot?.unmount())
+    const own: PageHints = {
+      en: { failed: "Ask the shop.", connectionPlace: "in the shop's settings" },
+      de: { failed: "Frag den Shop.", connectionPlace: "in den Einstellungen des Shops" },
+    }
+    await render({ pageHints: own }, <WordsProbe />)
+    expect(words.at(-1)).toEqual({ followUp: "none", pageHints: own })
+  })
+
+  it("keeps the page's clock where it brings one, and none where it reads live", async () => {
+    await render()
+    expect(seen.host?.now).toBeUndefined()
+    await act(async () => reactRoot?.unmount())
+    const asOf = new Date("2026-11-25T09:00:00Z")
+    await render({ now: () => asOf })
+    expect(seen.host?.now?.()).toBe(asOf)
   })
 
   it("opens a link in a new tab, without an opener", async () => {

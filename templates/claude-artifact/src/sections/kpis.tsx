@@ -9,8 +9,8 @@ import {
 } from "@miragon/pulse-ui"
 import type { Count } from "@miragon/pulse-ui/format"
 import type { Situation } from "@miragon/pulse-ui/tones"
+import { useSectionRead } from "@miragon/pulse-widget-shell/widgets"
 import { readStats } from "../data/process-dashboard.ts"
-import { useSection } from "../engine/use-engine.tsx"
 import { useT } from "../messages.ts"
 
 /** The two groups side by side from `lg`: what holds now in five tiles, the last 24 hours in two. */
@@ -50,11 +50,7 @@ function figure(count: Count, alarm?: { situation: Situation; label: string }): 
  */
 export function KpiSection({ processKey }: { readonly processKey: string }) {
   const t = useT()
-  const section = useSection(
-    (engine) => readStats(engine, processKey),
-    [processKey],
-    (stats) => stats.asOf,
-  )
+  const section = useSectionRead(["stats", processKey], (reader) => readStats(reader, processKey))
   return (
     <SectionState
       state={section.state}

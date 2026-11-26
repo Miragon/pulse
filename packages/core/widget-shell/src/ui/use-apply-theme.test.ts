@@ -109,6 +109,33 @@ describe("useApplyTheme", () => {
     expect(query.removeEventListener).toHaveBeenCalledWith("change", onChange)
   })
 
+  it("writes nothing where the document states its theme itself, and still resolves it", () => {
+    stubOsPreference(true)
+    // An explicit light choice on a dark OS (claude.ai's root): it stays as stamped.
+    root.setAttribute("data-theme", "light")
+    const observer = new MutationObserver(() => undefined)
+    observer.observe(root, { attributes: true })
+    const styleVariables = { "--color-background-primary": "#1f1e1d" }
+    const { result } = renderHook(() => useApplyTheme(), {
+      wrapper: inHost({ theme: "light", documentTheme: true, styleVariables }),
+    })
+    expect(result.current).toBe("light")
+    expect(documentTheme()).toEqual({ dark: false, dataTheme: "light", colorScheme: "" })
+    expect(root.style.getPropertyValue("--card")).toBe("")
+
+    cleanup()
+    // Left off ("system"): the OS decides what code reads, and the root stays unstamped.
+    root.removeAttribute("data-theme")
+    const unstamped = renderHook(() => useApplyTheme(), {
+      wrapper: inHost({ documentTheme: true }),
+    })
+    expect(unstamped.result.current).toBe("dark")
+    expect(documentTheme()).toEqual({ dark: false, dataTheme: null, colorScheme: "" })
+    // The one write is the test's own removal.
+    expect(observer.takeRecords().map((record) => record.attributeName)).toEqual(["data-theme"])
+    observer.disconnect()
+  })
+
   it("resolves light without a matchMedia (no OS signal is no dark signal)", () => {
     vi.stubGlobal("matchMedia", undefined)
     const { result } = renderHook(() => useApplyTheme())

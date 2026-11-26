@@ -61,6 +61,21 @@ describe("describePageError", () => {
     )
   })
 
+  it("sends the reader to whoever runs the connection that failed, never to a fixed server", () => {
+    expect(
+      describePageError({ code: "unavailable" }, { messages: en, connector: "Acme CRM" }).hint,
+    ).toBe("Try again in a moment. If it keeps failing, ask whoever runs Acme CRM.")
+    expect(
+      describePageError({ code: "tool_error" }, { messages: de, connector: "Acme CRM" }).hint,
+    ).toBe("Versuch es noch mal. Klappt es wieder nicht, frag die Person, die Acme CRM betreibt.")
+    for (const messages of [en, de]) {
+      for (const code of PAGE_ERROR_CODES) {
+        const { title, hint } = describePageError({ code }, { messages, connector: "Acme CRM" })
+        expect(`${title} ${hint}`, code).not.toContain("Pulse")
+      }
+    }
+  })
+
   it("marks only a refusal no retry changes as permanent", () => {
     const permanent = PAGE_ERROR_CODES.filter(
       (code) => describePageError({ code }, { messages: en }).permanent === true,

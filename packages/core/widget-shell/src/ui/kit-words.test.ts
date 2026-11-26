@@ -6,6 +6,7 @@ import {
   PRODUCT_GLOSSARY,
 } from "@miragon/pulse-ui/testing"
 import { ASK_AI_PROMPT_LABELS } from "./ask-ai-prompt.js"
+import { ARTIFACT_PAGE_HINTS } from "./claude-artifact/artifact-hints.js"
 import { ERROR_KINDS } from "./describe-error.js"
 import { ERROR_LABELS, type ErrorLabels, type ErrorSource } from "./error-labels.js"
 import { KIT_LABELS } from "./kit-labels.js"
@@ -54,6 +55,12 @@ const ERROR_WORDS = {
   en: renderedErrorWords(ERROR_LABELS.en, PAGE_HINTS.en),
 }
 
+/** What a Claude artifact shows: the same words with its own hints and claude.ai's place. */
+const ARTIFACT_WORDS = {
+  de: renderedErrorWords(ERROR_LABELS.de, ARTIFACT_PAGE_HINTS.de),
+  en: renderedErrorWords(ERROR_LABELS.en, ARTIFACT_PAGE_HINTS.en),
+}
+
 describe("the error words are rendered branch by branch", () => {
   it.each(["de", "en"] as const)("%s: the engine and fallback branches differ", (l) => {
     const words = ERROR_WORDS[l]
@@ -74,6 +81,8 @@ describe("kit copy follows the voice rules", () => {
     ["hand-off fence (en)", ASK_AI_PROMPT_LABELS.en, "en"],
     ["error words (de)", ERROR_WORDS.de, "de"],
     ["error words (en)", ERROR_WORDS.en, "en"],
+    ["an artifact's error words (de)", ARTIFACT_WORDS.de, "de"],
+    ["an artifact's error words (en)", ARTIFACT_WORDS.en, "en"],
   ] as const)("%s", (_, catalog, language) => {
     expect(catalogTextFindings(catalog, { language })).toEqual([])
   })
@@ -91,12 +100,14 @@ describe("the frame's words for a page", () => {
   })
 
   it.each([
-    ["de", /Chat/],
-    ["en", /chat/i],
+    ["de", "PAGE_HINTS", ERROR_WORDS, /Chat/],
+    ["en", "PAGE_HINTS", ERROR_WORDS, /chat/i],
+    ["de", "ARTIFACT_PAGE_HINTS", ARTIFACT_WORDS, /Chat/],
+    ["en", "ARTIFACT_PAGE_HINTS", ARTIFACT_WORDS, /chat/i],
   ] as const)(
-    "%s: the error words for a page never send the reader to a chat",
-    (language, chat) => {
-      const words: Readonly<Record<string, string | undefined>> = ERROR_WORDS[language]
+    "%s: the error words for a page with %s never send the reader to a chat",
+    (language, _, catalog, chat) => {
+      const words: Readonly<Record<string, string | undefined>> = catalog[language]
       // What a page shows: its host's hint where it brings one, else the kind's one hint.
       for (const kind of ERROR_KINDS) {
         for (const source of ["engine", "unknown"]) {
@@ -135,5 +146,64 @@ describe("kit copy uses the product glossary", () => {
 
   it.each(["de", "en"] as const)("error words (%s)", (language) => {
     expect(glossaryFindings(ERROR_WORDS[language], rules[language])).toEqual([])
+  })
+
+  it.each(["de", "en"] as const)("an artifact's error words (%s)", (language) => {
+    expect(glossaryFindings(ARTIFACT_WORDS[language], rules[language])).toEqual([])
+  })
+})
+
+/**
+ * The kinds of the Pulse server's own codes (`[ENGINE_PROFILE_REFUSED]`, `[ENGINE_READ_ONLY]`,
+ * `[ENGINE_DIALECT_NOT_SERVED]`, `[UNKNOWN_BOARD]`, `[BOARD_REFUSED]`): only their words may name
+ * Pulse, since any other kind is a failure any MCP server's tool may give.
+ */
+const PULSE_KINDS: ReadonlySet<string> = new Set([
+  "profileRefused",
+  "readOnly",
+  "notServed",
+  "unknownBoard",
+  "boardRefused",
+])
+
+describe("a Claude artifact's words (ARTIFACT_PAGE_HINTS)", () => {
+  it("hold the same keys in English and German", () => {
+    expect(Object.keys(ARTIFACT_PAGE_HINTS.de).sort()).toEqual(
+      Object.keys(ARTIFACT_PAGE_HINTS.en).sort(),
+    )
+  })
+
+  it.each(["de", "en"] as const)(
+    "%s: name claude.ai's settings as the place of the page's connectors",
+    (language) => {
+      expect(ARTIFACT_PAGE_HINTS[language].connectionPlace).toMatch(/^in claude\.ai\b.*Connectors$/)
+    },
+  )
+
+  it.each([
+    ["de", /\bEngine/],
+    ["en", /\bengine/i],
+  ] as const)(
+    "%s: blame no Pulse server and no engine for a failure any server may give, only for Pulse's own codes",
+    (language, engine) => {
+      const generic = Object.entries(ARTIFACT_PAGE_HINTS[language]).filter(
+        ([kind]) => kind !== "connectionPlace" && !PULSE_KINDS.has(kind),
+      )
+      expect(generic.map(([kind]) => kind)).toEqual(
+        expect.arrayContaining([
+          "failed",
+          "unknown",
+          "invalidArguments",
+          "notOnServer",
+          "unreachable",
+        ]),
+      )
+      expect(generic.filter(([, hint]) => /Pulse/.test(hint ?? ""))).toEqual([])
+      expect(generic.filter(([, hint]) => engine.test(hint ?? ""))).toEqual([])
+    },
+  )
+
+  it("know the kinds of Pulse's own codes by the kit's names", () => {
+    expect(ERROR_KINDS).toEqual(expect.arrayContaining([...PULSE_KINDS]))
   })
 })

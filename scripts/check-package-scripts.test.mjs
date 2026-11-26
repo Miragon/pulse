@@ -442,8 +442,14 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
         "(src/oauth-discovery.ts) where the sign-in sends its secrets and which key set the gate " +
         "trusts, the generic OpenID Connect provider (src/oauth-oidc.ts) which settings the gate " +
         "refuses, and Microsoft Entra ID (src/oauth-entra.ts) which tenant, version and scope its " +
-        "tokens carry, so a surviving mutant there is a security hole; only those sixteen files " +
-        "are mutated, not the boot, the view runtime or the other routes",
+        "tokens carry, so a surviving mutant there is a security hole; owner decision " +
+        "2026-11-25: a page's calls (src/ui/page-reads/page-reader.ts) decide when an artifact " +
+        "asks past every cache, what it keeps and that a call never retries inside its " +
+        "section's retries, and a Claude artifact's caller " +
+        "(src/ui/claude-artifact/claude-tool-caller.ts) which of the runtime's answers is " +
+        "data, a tool's error or a refusal, so a surviving mutant there shows old numbers or " +
+        "wrong words or multiplies the calls on every artifact; only those eighteen files are " +
+        "mutated, not the boot, the view runtime or the other routes",
     )
     assert.equal(
       MUTATED_PACKAGES[c8Core],
@@ -495,7 +501,7 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
     ])
   })
 
-  it("widget-shell's config mutates exactly the web app's twelve rule files, the JWT verifier, the discovery, the generic provider and Entra ID, as its reason says", () => {
+  it("widget-shell's config mutates exactly the web app's twelve rule files, the JWT verifier, the discovery, the generic provider, Entra ID, a page's calls and a Claude artifact's caller, as its reason says", () => {
     const config = JSON.parse(
       readFileSync(path.join(repoRoot, "packages/core/widget-shell/stryker.config.json"), "utf8"),
     )
@@ -516,6 +522,8 @@ describe("checkMutatedPackages: MUTATED_PACKAGES cannot outlive its reason", () 
       "src/oauth-discovery.ts",
       "src/oauth-oidc.ts",
       "src/oauth-entra.ts",
+      "src/ui/page-reads/page-reader.ts",
+      "src/ui/claude-artifact/claude-tool-caller.ts",
     ])
   })
 

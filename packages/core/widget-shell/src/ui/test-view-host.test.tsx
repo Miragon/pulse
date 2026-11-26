@@ -106,6 +106,22 @@ describe("TestViewHost: what the widget asked the host", () => {
     ])
   })
 
+  it("logs a call's options where a page's read names them, and none where it names none", async () => {
+    const actions: HostAction[] = []
+    const host = hostWith({ tools: { t: {} }, onHostAction: (a) => actions.push(a) })
+    await host.callTool("t", { id: 1 }, { refresh: true, connector: "Shop" })
+    await host.callTool("t", { id: 2 })
+    expect(actions).toStrictEqual([
+      {
+        type: "callTool",
+        name: "t",
+        args: { id: 1 },
+        options: { refresh: true, connector: "Shop" },
+      },
+      { type: "callTool", name: "t", args: { id: 2 } },
+    ])
+  })
+
   it("posts a hand-off as a chat host does unless a test names another follow-up", () => {
     expect(hostWith().followUp).toBe("chat")
     expect(hostWith({ followUp: "copy" }).followUp).toBe("copy")

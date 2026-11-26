@@ -54,8 +54,8 @@ export const PATH_RULES = [
   { pattern: /^docs\/mcp\/developer\.md$/, scopes: ["brand", "typescript"] },
   // Generated from @miragon/pulse-ui/glossary, whose page test (pulse-ui) holds it to the data.
   { pattern: /^docs\/glossary\.md$/, scopes: ["brand", "typescript"] },
-  // A generic extra-file of release-please: lint:github holds the pulse-ui version it marks for a
-  // page without a build to the release's.
+  // A generic extra-file of release-please: lint:github holds the version it marks (the release
+  // tag a copy of the template is cloned from) to the release's.
   { pattern: /^docs\/mcp\/claude-artifacts\.md$/, scopes: ["brand", "typescript"] },
   { pattern: /^docs\//, scopes: ["brand"] },
   // Read by scripts/server-env-names.test.mjs.
@@ -88,6 +88,10 @@ export const PATH_RULES = [
     pattern: /^templates\/fixtures\/prebuilt-module\/src\/board\.html$/,
     scopes: ["mcp", "template", "typescript"],
   },
+  // The Claude artifact's agent file and README: the MCP server's plugin test reads the tools the
+  // agent file names, and lint:github holds the release tag the README marks (a generic
+  // extra-file of release-please); docs-refs reads both in its always-on job.
+  { pattern: /^templates\/claude-artifact\/(?:CLAUDE|README)\.md$/, scopes: ["typescript"] },
   { pattern: /^templates\/.*\.(?:md|png|jpe?g|gif|webp)$/, scopes: [] },
   // The token drift scan (pulse-ui) reads them; the template's own job tests them.
   { pattern: /^templates\//, scopes: ["template", "typescript"] },
@@ -96,14 +100,17 @@ export const PATH_RULES = [
 /** Package files that checks outside the package read too. */
 export const ALSO_READ_BY = [
   { pattern: /^apps\/cli\/README\.md$/, scopes: ["brand"] },
-  // pulse-ui's README: its browser page suite renders the example of "Use in a page without a
-  // build" over the bundle, so the example it shows is one that runs.
+  // pulse-ui's README: its browser chat suite (src/browser-chat.test.ts) renders the example of
+  // "Use in a page without a build" over the bundle, so the example it shows is one that runs.
   { pattern: /^packages\/core\/ui\/README\.md$/, scopes: ["typescript"] },
+  // widget-shell's README: its browser page suite renders the example of "Use in a page without a
+  // build" over its browser bundle in Chromium, so the example it shows is one that runs.
+  { pattern: /^packages\/core\/widget-shell\/README\.md$/, scopes: ["typescript"] },
   // The Claude Code plugins the apps ship (apps/<app>/skills/<plugin>, each listed in
   // .claude-plugin/marketplace.json): the plugins job validates each and holds its version to its
   // app's manifest (PLUGIN_APPS). The MCP server's own tests read its plugin, prose included (the
-  // plugin test, the component cheat sheet's golden): the TypeScript job runs them, while the
-  // package rules leave its prose to none. The CLI's prose is code by the package rules.
+  // plugin test): the TypeScript job runs them, while the package rules leave its prose to none.
+  // The CLI's prose is code by the package rules.
   { pattern: /^apps\/mcp-server\/skills\//, scopes: ["plugins", "typescript"] },
   {
     pattern: new RegExp(`^apps/(?:${PLUGIN_APPS.join("|")})/(?:skills/|package\\.json$)`),

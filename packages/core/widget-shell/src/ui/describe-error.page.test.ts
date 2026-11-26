@@ -112,6 +112,10 @@ describe("the refusals no retry changes", () => {
   it("arguments the tool does not take, as the SDK words them, with or without its code", () => {
     expect(classifyError(INVALID_VIEW).kind).toBe("invalidArguments")
     expect(classifyError(`MCP error -32602: ${INVALID_VIEW}`).kind).toBe("invalidArguments")
+    // As claude.ai's artifact runtime hands it on, without the SDK's lead (the probe of 2026-11-25).
+    const bare = 'Invalid arguments for tool engine_activity_counts: Unknown key "n".'
+    expect(classifyError(bare).kind).toBe("invalidArguments")
+    expect(isPermanentError(bare)).toBe(true)
     expect(describeError(INVALID_VIEW, "en", PAGE)).toMatchObject({
       title: "The server refused this request",
       hint: "You'll find the reason under Details. Open the view from Pulse's start page instead.",
@@ -174,6 +178,7 @@ describe("the refusals no retry changes", () => {
       "[BOARD_REFUSED]",
       "[ENGINE_DIALECT_NOT_SERVED]",
       "Input validation error: ",
+      "Invalid arguments for tool x: ",
     ]) {
       const quoted = `[500 ProcessEngineException] Script failed on "${code}x" (engine prod)`
       expect(classifyError(quoted).kind).toBe("failed")
