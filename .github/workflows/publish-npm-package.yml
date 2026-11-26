@@ -45,14 +45,14 @@ jobs:
     outputs:
       artifact: ${{ steps.pkg.outputs.artifact }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6.1.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
       # No dependency cache in a release job: a restored store would end up in the tarball.
-      - uses: actions/setup-node@v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           package-manager-cache: false
@@ -101,7 +101,7 @@ jobs:
         run: pnpm pack --pack-destination "$RUNNER_TEMP/package"
 
       # One artifact per matrix call: they all share the caller's run, where a name exists once.
-      - uses: actions/upload-artifact@v7.0.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ steps.pkg.outputs.artifact }}
           path: ${{ runner.temp }}/package/*.tgz
@@ -118,7 +118,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/setup-node@v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
@@ -132,7 +132,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/download-artifact@v8.0.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.pack.outputs.artifact }}
           path: ${{ runner.temp }}/package

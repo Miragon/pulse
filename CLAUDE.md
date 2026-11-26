@@ -683,7 +683,9 @@ for every workspace package.
 ## Releases
 
 The release workflows hold the publish credentials and no pull request runs them;
-`pnpm lint:github` (`scripts/check-github-config.mjs`) pins their security shape.
+`pnpm lint:github` (`scripts/check-github-config.mjs`) pins their security shape. Every action of
+every workflow is pinned by its commit SHA with the version as a comment, which Dependabot moves:
+a tag follows whoever controls the action's repository (`checkActionPins`).
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
   Release PR bumps every package, app, manifest, template pin and User-Agent in lockstep
