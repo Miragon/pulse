@@ -61,9 +61,12 @@ reads through c7-core's reads of `./runtime` over the port of the read connectio
 
 CI runs all conformance laws on real Operaton 2.1.5 and CIB seven 3.0.0, the read laws a second
 time on each at history level AUDIT, where the history keeps no incident: "with incident" is the
-runtime's open incidents, c7-core's rule, on every history level. Camunda 7.24.0 ran there until its
-image left Docker Hub in November 2026. The reads are c7-core's `C7Runtime`, which the same read
-laws also run over a second wire, the MCP server's generated SDK, on both images
+runtime's open incidents, c7-core's rule, on every history level. The instance laws run once more
+with two instance ids per request to the history (`historyIdChunk`), fewer than the world's three
+with an incident, so the reads that send a longer list in chunks, summing their counts and merging
+their pages, meet the laws too. Camunda 7.24.0 ran there until its image left Docker Hub in
+November 2026. The reads are c7-core's `C7Runtime`, which the same read laws also run over a
+second wire, the MCP server's generated SDK, on both images
 (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`):
 one implementation, proven on both C7 wires.
 

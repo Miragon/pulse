@@ -6,8 +6,11 @@
  * when it knows the whole filter. A search without drops the rows the runtime flags and fills its
  * page from further windows (`filling-pages.ts`), flagging every running row of each window; its
  * count is the history's count of the filter minus the history's count of the runtime's ids with
- * one, so it counts what the search lists, never below 0 (`withoutIncidentCount`). An instance id
- * no engine assigns is dropped before anything is sent (`engineIdsOnly`), as Camunda 8's keys are.
+ * one, so it counts what the search lists, never below 0 (`withoutIncidentCount`). However many
+ * ids the runtime holds an incident for in the scope, no request to the history carries more than
+ * `chunk` of them (`history-chunks.ts`): a count sums the chunks' counts, a page merges their rows.
+ * An instance id no engine assigns is dropped before anything is sent (`engineIdsOnly`), as
+ * Camunda 8's keys are.
  */
 
 import {
@@ -21,6 +24,7 @@ import type { EnginePort } from "../port.js"
 import { isEngineId } from "./engine-ids.js"
 import { countWithIncident, instancesWithIncident, withIncidentAmong } from "../with-incident.js"
 import { FillingPages } from "./filling-pages.js"
+import { HISTORY_ID_CHUNK } from "./history-chunks.js"
 import {
   countHistoricInstances,
   type HistoricInstanceRow,
@@ -53,9 +57,15 @@ function runningIdsOf(rows: readonly HistoricInstanceRow[]): string[] {
   return rows.filter((row) => row.endTime === undefined).map((row) => row.id)
 }
 
-/** Searches and counts the instances of an engine over its port. */
+/**
+ * Searches and counts the instances of an engine over its port, at most `chunk` instance ids per
+ * request to the history.
+ */
 export class InstanceSearch {
-  constructor(private readonly port: EnginePort) {}
+  constructor(
+    private readonly port: EnginePort,
+    private readonly chunk = HISTORY_ID_CHUNK,
+  ) {}
 
   /** A page of the instances `filter` finds, newest first. */
   async search(wanted: InstanceFilter, page: PageRequest): Promise<Page<InstanceSummary>> {
@@ -72,6 +82,7 @@ export class InstanceSearch {
       this.port,
       historicQueryOf(scoped),
       cappedFor(paging.window(), scoped),
+      this.chunk,
     )
     const withOpenIncident = await this.idsWithOpenIncident(rows.slice(0, page.limit), filter)
     return paging.pageOf(rows, (pageRows) =>
@@ -114,7 +125,7 @@ export class InstanceSearch {
   private historyCount(filter: InstanceFilter): Promise<number> {
     return filter.instanceIds?.length === 0
       ? Promise.resolve(0)
-      : countHistoricInstances(this.port, historicQueryOf(filter))
+      : countHistoricInstances(this.port, historicQueryOf(filter), this.chunk)
   }
 
   private async scopedToIncidents(filter: InstanceFilter): Promise<InstanceFilter> {
@@ -142,7 +153,12 @@ export class InstanceSearch {
   ): Promise<Page<InstanceSummary>> {
     const query = historicQueryOf(filter)
     return new FillingPages(page).pageOf(async (window) => {
-      const rows = await readHistoricInstances(this.port, query, cappedFor(window, filter))
+      const rows = await readHistoricInstances(
+        this.port,
+        query,
+        cappedFor(window, filter),
+        this.chunk,
+      )
       const failing = await withIncidentAmong(this.port, runningIdsOf(rows))
       return rows.map((row) => (failing.has(row.id) ? undefined : instanceSummaryOf(row, false)))
     })

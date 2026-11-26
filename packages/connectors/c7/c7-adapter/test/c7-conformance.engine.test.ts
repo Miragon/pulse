@@ -1,5 +1,12 @@
+import { createEnginePort } from "@miragon/pulse-c7-core"
+import { C7Runtime } from "@miragon/pulse-c7-core/runtime"
 import { C7_BOARD_ENGINE, C7_SCREEN_ENGINE } from "@miragon/pulse-c7-core/testing"
-import { BpmnProcessId, DefinitionId, InstanceId } from "@miragon/pulse-engine-core"
+import {
+  BpmnProcessId,
+  DefinitionId,
+  InstanceId,
+  type ProcessRuntime,
+} from "@miragon/pulse-engine-core"
 import {
   ConformanceKit,
   FakeEngine,
@@ -26,6 +33,8 @@ import {
 import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
+import { EngineHttp, HttpEngineTransport } from "../src/engine-rest/index.js"
+import { ErrorTranslation } from "../src/errors/error-translation.js"
 import { RecordedBoard } from "./support/recorded-board.js"
 import {
   ENGINE_IMAGE,
@@ -41,8 +50,34 @@ const BATCHES_RUN_WITHIN = {
   wait: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
 }
 
+const IDS_PER_HISTORY_REQUEST_BELOW_THE_THREE_WITH_AN_INCIDENT = 2
+
 function connectionTo(endpoint: string) {
   return { endpoint, credentials: { kind: "none" } } as const
+}
+
+const idListsSentToTheHistory: (readonly unknown[])[] = []
+
+const fetchRecordingHistoryIds: typeof fetch = (input, init) => {
+  const url = input instanceof Request ? input.url : String(input)
+  if (url.includes("/history/process-instance") && typeof init?.body === "string") {
+    const body = JSON.parse(init.body) as { readonly processInstanceIds?: readonly unknown[] }
+    if (body.processInstanceIds !== undefined) idListsSentToTheHistory.push(body.processInstanceIds)
+  }
+  return fetch(input, init)
+}
+
+function runtimeSendingHistoryIdsInChunks(url: string): ProcessRuntime {
+  const http = new EngineHttp({
+    url,
+    credentials: { kind: "none" },
+    writes: false,
+    send: fetchRecordingHistoryIds,
+  })
+  return C7Runtime.over(createEnginePort(HttpEngineTransport.over(http)), {
+    failureOf: (error) => ErrorTranslation.runtimeError(error),
+    historyIdChunk: IDS_PER_HISTORY_REQUEST_BELOW_THE_THREE_WITH_AN_INCIDENT,
+  })
 }
 
 describe.skipIf(!RUNS_ON_CAMUNDA_7)(`the C7 adapter against ${ENGINE_IMAGE}`, () => {
@@ -70,6 +105,24 @@ describe.skipIf(!RUNS_ON_CAMUNDA_7)(`the C7 adapter against ${ENGINE_IMAGE}`, ()
       return Promise.reject(new Error("the engine did not start"))
     }
     return Promise.resolve(harness)
+  })
+
+  const chunk = IDS_PER_HISTORY_REQUEST_BELOW_THE_THREE_WITH_AN_INCIDENT
+
+  describe(`with ${String(chunk)} instance ids per request to the history`, () => {
+    new ConformanceKit(test).registerRuntimeLaws(() => {
+      if (engine === undefined || harness === undefined) {
+        return Promise.reject(new Error("the engine did not start"))
+      }
+      return Promise.resolve({ ...harness, runtime: runtimeSendingHistoryIdsInChunks(engine.url) })
+    }, ConformanceKit.instanceLaws())
+
+    test("the laws' longer id lists went to the history in chunks, none longer", () => {
+      const lengths = idListsSentToTheHistory.map((ids) => ids.length)
+
+      expect(lengths.length).toBeGreaterThan(0)
+      expect(Math.max(...lengths)).toBe(chunk)
+    })
   })
 
   test("board: c7-core's recorded board over the seeded world has the numbers of the kit's world", async () => {

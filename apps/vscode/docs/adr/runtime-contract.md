@@ -387,8 +387,8 @@ holds 55 read laws and 15 command laws as executable cases, modelled on
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
 bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails;
 `registerRuntimeLaws(prepare, ConformanceKit.instanceLaws())` binds the instance, page and
-variable laws alone, for a suite that runs them once more on another configuration of its
-runtime. Command laws run on
+variable laws alone, which the C7 adapter's engine suite runs once more with two instance ids per
+request to the history, so its chunked reads meet them. Command laws run on
 their own instances (`CMD-*`, seeded after the read laws) so that writes never change
 what the read laws see: a retry closes exactly that incident; an unknown or already
 closed incident is rejected; a changed variable reads back with its value, kind and
