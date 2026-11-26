@@ -7,8 +7,9 @@ export default mergeConfig(
     test: {
       include: ["src/**/*.test.{ts,tsx}", "test/**/*.test.ts"],
       coverage: {
-        // Ratchet: frozen 2 points under the baseline. Raise when you push
-        // coverage up; never lower. Re-baselined UP 2026-08-17: the Postgres
+        // Ratchet: frozen under the baseline, never more than 3 points
+        // (scripts/coverage-floors.mjs). Raise when you push coverage up;
+        // never lower. Re-baselined UP 2026-08-17: the Postgres
         // adapters left the measurement (shared `coverage.exclude`: they are
         // only executable under `pnpm test:pg`), so the numbers now describe
         // the code this run actually exercises; measured statements 85.35 /
@@ -32,7 +33,10 @@ export default mergeConfig(
         // 95.14 / 94.82 / 97.06 / 96.05. Raised again with the kit layout
         // (describeError's mapping table, ListTable's region and column rules,
         // the BPMN token module, the heat ramp and the type-scale gate, each
-        // with its suite): measured 97.33 / 95.32 / 97.44 / 98.45.
+        // with its suite): measured 97.33 / 95.32 / 97.44 / 98.45. Raised
+        // 2026-11-26, when the floors came to follow the measurement (#688):
+        // measured 98.5 / 96.36 / 98.42 / 99, each floor that value rounded
+        // down less a point.
         // The web app's server half (src/web: the sign-in's settings, seal, cookies, return path
         // and CSRF check as they landed on 2026-11-16, then its routes, the forward of a page's
         // call, the renewal, the served build, the security headers, the sessions signed out and
@@ -42,10 +46,10 @@ export default mergeConfig(
         // the generic OpenID Connect provider and Microsoft Entra ID landed with it the same day
         // (measured 100 each).
         thresholds: {
-          statements: 95,
-          branches: 93,
-          functions: 95,
-          lines: 96,
+          statements: 97,
+          branches: 95,
+          functions: 97,
+          lines: 98,
           "src/web/**": { statements: 100, branches: 100, functions: 100, lines: 100 },
           "src/oauth-discovery.ts": { statements: 100, branches: 100, functions: 100, lines: 100 },
           "src/oauth-oidc.ts": { statements: 100, branches: 100, functions: 100, lines: 100 },

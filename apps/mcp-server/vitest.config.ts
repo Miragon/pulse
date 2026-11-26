@@ -15,8 +15,9 @@ export default mergeConfig(
       testTimeout: 30_000,
       hookTimeout: 30_000,
       coverage: {
-        // Ratchet: frozen 2 points under the baseline. Raise when you push
-        // coverage up; never lower. Documented re-baseline 2026-08-13: the
+        // Ratchet: frozen under the baseline, never more than 3 points
+        // (scripts/coverage-floors.mjs). Raise when you push coverage up;
+        // never lower. Documented re-baseline 2026-08-13: the
         // composition-root machinery (module selection, env warner, boot
         // warnings; the app's best-tested surface) moved to
         // @miragon/pulse-widget-shell, where the SAME code is covered by
@@ -36,8 +37,10 @@ export default mergeConfig(
         // headroom for src/: measured 90.09 / 84.67 / 94.73 / 90.52. Raised
         // 2026-10-09 (#322 compat cleanup: the failed-migration close in
         // initRuntime has its recording-client suite): measured 96.62 / 92.46 /
-        // 97.29 / 97.9.
-        thresholds: { statements: 94, branches: 90, functions: 95, lines: 95 },
+        // 97.29 / 97.9. Raised 2026-11-26, when the floors came to follow the
+        // measurement (#688): measured 99.16 / 90.87 / 99.36 / 99.07, each
+        // floor that value rounded down less a point (branches keep 90).
+        thresholds: { statements: 98, branches: 90, functions: 98, lines: 98 },
       },
     },
   }),

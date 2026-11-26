@@ -1,6 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["tsconfig.base.json", "eslint.config.mjs", "vitest.shared.ts"],
+  "globalDependencies": [
+    "tsconfig.base.json",
+    "eslint.config.mjs",
+    "vitest.shared.ts",
+    "scripts/coverage-floors.mjs"
+  ],
   "tasks": {
     "generate": {
       "outputs": ["src/generated/**"],
