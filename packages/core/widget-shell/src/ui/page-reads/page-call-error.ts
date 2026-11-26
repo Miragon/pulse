@@ -31,10 +31,15 @@ export class PageCallError extends Error {
   }
 }
 
-/** The refusals of a connection as a whole: no sign-in, no connection, no approval. */
+/**
+ * The refusals of a connection as a whole: no sign-in, no connection, none chosen, none declared,
+ * no approval.
+ */
 const PAGE_WIDE: ReadonlySet<PageErrorCode> = new Set([
   "needs_reauth",
   "not_connected",
+  "selection_required",
+  "not_declared",
   "approval_required",
 ])
 

@@ -242,6 +242,35 @@ describe("useSectionRead retries as every view's read does", () => {
       answer: async () => toolError('Invalid arguments for tool stats: Unknown key "n".'),
       calls: 1,
     },
+    {
+      name: "a process key no version of which is deployed",
+      answer: async () =>
+        toolError('No process definition with key "orders" is deployed on this engine.'),
+      calls: 1,
+    },
+    {
+      name: "a call that names no engine of several",
+      answer: async () =>
+        toolError(
+          "[ENGINE_NOT_SELECTED] No engine specified and no default engine configured. Pass `engine`, one of: a, b.",
+        ),
+      calls: 1,
+    },
+    {
+      name: "an engine the server does not have",
+      answer: async () => toolError('[UNKNOWN_ENGINE] Unknown engine id "c". Available: a, b.'),
+      calls: 1,
+    },
+    {
+      name: "a connector the viewer has to choose",
+      answer: async () => Promise.reject(new PageCallError("selection_required", "choose")),
+      calls: 1,
+    },
+    {
+      name: "a page that declares no connector",
+      answer: async () => Promise.reject(new PageCallError("not_declared", "none declared")),
+      calls: 1,
+    },
   ] satisfies ReadonlyArray<{ name: string; answer: ToolCaller; calls: number }>)(
     "$name: $calls call(s) in all, each retry past the caches",
     async ({ answer, calls }) => {

@@ -349,18 +349,29 @@ a tool's own error (`tool_error`) the caller resolves as the `isError` answer it
 `describeError` words the server's text as in a chat, and a refusal of the runtime rejects as a
 `PageCallError` in pulse-ui's codes, its raw code and message under "Details":
 
-| The runtime's code                           | The page's code     | What the viewer is told                                            |
-| -------------------------------------------- | ------------------- | ------------------------------------------------------------------ |
-| `needs_reauth`                               | `needs_reauth`      | Reconnect the connector in claude.ai, in Settings under Connectors |
-| `server_not_connected`, `selection_required` | `not_connected`     | Set up the connector in claude.ai, in Settings under Connectors    |
-| `not_in_manifest`, `blocked_by_policy`       | `not_allowed`       | Ask whoever published the page: it may not call the tool           |
-| `approval_required`                          | `approval_required` | Allow the page to use the connector when claude.ai asks            |
-| `server_unavailable`                         | `unavailable`       | Try again: the connector does not answer                           |
-| any other code, or none                      | `tool_error`        | The message, worded by `describeError` as a server's text          |
+| The runtime's code                     | The page's code      | What the viewer is told                                            |
+| -------------------------------------- | -------------------- | ------------------------------------------------------------------ |
+| `needs_reauth`                         | `needs_reauth`       | Reconnect the connector in claude.ai, in Settings under Connectors |
+| `server_not_connected`                 | `not_connected`      | Set up the connector in claude.ai, in Settings under Connectors    |
+| `selection_required`                   | `selection_required` | Choose the connection the page uses when claude.ai asks            |
+| `not_in_manifest`, `blocked_by_policy` | `not_allowed`        | Ask whoever published the page: it may not call the tool           |
+| `approval_required`                    | `approval_required`  | Allow the page to use the connector when claude.ai asks            |
+| `server_unavailable`                   | `unavailable`        | Try again: the connector does not answer                           |
+| any other code, or none                | `tool_error`         | The message, worded by `describeError` as a server's text          |
 
-A page outside an artifact (no `window.claude`), a declaration without the `mcp` capability and a
-refused `use("mcp")` are `not_connected`. A refusal forgets the capability, so the next try asks the
-runtime anew and a connector set up meanwhile answers it. A page that reads a second connector
+A page outside an artifact (no `window.claude`) and a refused `use("mcp")` are `not_connected`; a
+page published without the `mcp` capability (`use("mcp")` gives none) is `not_declared`, whose
+words send the viewer to whoever published the page, with no Try again. Each of these, and
+`needs_reauth`, `selection_required` and `approval_required`, refuses the connector as a whole
+(`PageGate`); which runtime codes do rests on the probe of 2026-11-25, so probe the runtime again
+before a code changes sides. A refusal forgets the capability, so the next try asks the runtime
+anew and a connector set up meanwhile answers it.
+
+A server's refusal no retry changes is said at once, with no Try again, its hint for whoever
+published the page (`ARTIFACT_PAGE_HINTS`): arguments the tool does not take, a read that names
+no engine on a Pulse server of several without a default (`ENGINE_NOT_SELECTED`), one that names
+an engine the server does not have (`UNKNOWN_ENGINE`), and a process key no version of which is
+deployed on the engine read. A page that reads a second connector
 declares it beside the first and names it in its reads,
 `reader.call(tool, args, { connector: "Acme CRM" })`, which the caller passes on as the runtime's
 `server`; each refusal names the connector that refused, and one `<PageGate connector="…">` around
@@ -424,10 +435,12 @@ file of its own:
 - **`claude-artifact.js`** holds the page reads (`useSectionRead`, `usePageReads`, `PageGate`,
   `PageCallError`, `describePageFailure`, `createPageReader`) and the Claude artifact's entry
   (`mountClaudeArtifact`, `claudeToolCaller`, `CLAUDE_RUNTIME_CODES`, `ARTIFACT_PAGE_HINTS`), with
-  TanStack Query and the part of the view runtime `mountApp` mounts. It holds no React and no
-  kit: it imports both from pulse-ui's `pulse-ui.js` of the same version beside it on the CDN
-  (`../../../pulse-ui@<version>/dist/browser/pulse-ui.js`), so the page and the module run on one
-  React and one copy of the kit's contexts (its locale, its toasts, `SectionStateGroup`). Load
+  TanStack Query and the part of the view runtime `mountApp` mounts. It holds no React, no kit and
+  no icon context: it imports them from pulse-ui's `pulse-ui.js` of the same version beside it on
+  the CDN (`../../../pulse-ui@<version>/dist/browser/pulse-ui.js`), so the page and the module run
+  on one React and one copy of the kit's contexts (its locale, its toasts, `SectionStateGroup`),
+  and the stroke the view root sets (`ICON_STROKE`) reaches the kit's icons and the page's own
+  from pulse-ui's `lucide.js`. Load
   all three modules from one CDN, jsDelivr or unpkg, at one version, pinned as every
   `@miragon/pulse-*` package below 1.0, and take React and the kit from that `pulse-ui.js` only:
   a second React from another URL breaks every hook. Without a build there is no JSX;

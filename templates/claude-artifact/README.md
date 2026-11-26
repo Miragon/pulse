@@ -102,16 +102,18 @@ answer 30 seconds per caller. The reads are Camunda 7's (CIB seven, Operaton, Ca
 The runtime's refusals reach the page as pulse-ui's page error codes, which `?fail=` takes too;
 what the viewer is told for each is widget-shell's (its README's "A Claude artifact"):
 
-| The runtime's code                           | The page's code     |
-| -------------------------------------------- | ------------------- |
-| `needs_reauth`                               | `needs_reauth`      |
-| `server_not_connected`, `selection_required` | `not_connected`     |
-| `not_in_manifest`, `blocked_by_policy`       | `not_allowed`       |
-| `approval_required`                          | `approval_required` |
-| `server_unavailable`                         | `unavailable`       |
+| The runtime's code                     | The page's code      |
+| -------------------------------------- | -------------------- |
+| `needs_reauth`                         | `needs_reauth`       |
+| `server_not_connected`                 | `not_connected`      |
+| `selection_required`                   | `selection_required` |
+| `not_in_manifest`, `blocked_by_policy` | `not_allowed`        |
+| `approval_required`                    | `approval_required`  |
+| `server_unavailable`                   | `unavailable`        |
 
-A tool's own error and any other code reach the page as the server's error, which widget-shell's
-`describeError` words; `?fail=<tool>` fails a tool so.
+A page published without the `mcp` capability is `not_declared`, a page outside an artifact
+`not_connected`. A tool's own error and any other code reach the page as the server's error,
+which widget-shell's `describeError` words; `?fail=<tool>` fails a tool so.
 
 ## Rules the tests hold
 

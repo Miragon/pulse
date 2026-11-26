@@ -110,8 +110,14 @@ afterEach(() => {
 })
 
 describe("PageGate", () => {
-  it.each(["needs_reauth", "not_connected", "approval_required"])(
-    "%s: one state for the page, naming the connection and its place, never a section's own",
+  it.each([
+    "needs_reauth",
+    "not_connected",
+    "selection_required",
+    "not_declared",
+    "approval_required",
+  ])(
+    "%s: one state for the page, naming the connection (and its place where the viewer acts there), never a section's own",
     async (code) => {
       const container = await mountReads(Page, {
         callTool: played([code]).callTool,
@@ -120,7 +126,11 @@ describe("PageGate", () => {
       expect(headings(container)).toHaveLength(1)
       expect(container.querySelector('[data-testid="stats"]')).toBeNull()
       expect(container.textContent).toContain("Pulse")
-      if (code !== "approval_required") expect(container.textContent).toContain(PLACE)
+      if (code === "needs_reauth" || code === "not_connected") {
+        expect(container.textContent).toContain(PLACE)
+      } else {
+        expect(container.textContent).not.toContain(PLACE)
+      }
       expect(container.textContent).toContain(`The recording refuses every call (${code}).`)
       expect([...shown.values()].flat().filter(Boolean)).toEqual([])
       expect(textOf(container, "read-at")).toBe("none")
@@ -163,6 +173,18 @@ describe("PageGate", () => {
     expect(phaseOf(container, "counts")).toBe("ready")
     expect(caller.refreshes("stats")).toEqual([false, true])
     expect(caller.refreshes("counts").at(-1)).toBe(true)
+  })
+
+  it("offers no Try again for a page that declares no connection, and the bar's Refresh still reads it again", async () => {
+    const caller = swappableCaller(played(["not_declared"]).callTool)
+    const container = await mountReads(Page, { callTool: caller.callTool, pageHints: HINTS })
+    expect(headings(container)).toEqual(["This page isn't set up to use Pulse"])
+    expect([...container.querySelectorAll("button")].map((b) => b.textContent)).toEqual(["Refresh"])
+    // Whoever published the page declared it meanwhile: the page's Refresh opens the gate.
+    caller.answer(played().callTool)
+    await click(container, "Refresh")
+    expect(headings(container)).toEqual([])
+    expect(phaseOf(container, "stats")).toBe("ready")
   })
 
   it("leaves a refusal of one tool to its sections, said once, with no Try again", async () => {

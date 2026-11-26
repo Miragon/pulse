@@ -155,8 +155,9 @@ describe("kit copy uses the product glossary", () => {
 
 /**
  * The kinds of the Pulse server's own codes (`[ENGINE_PROFILE_REFUSED]`, `[ENGINE_READ_ONLY]`,
- * `[ENGINE_DIALECT_NOT_SERVED]`, `[UNKNOWN_BOARD]`, `[BOARD_REFUSED]`): only their words may name
- * Pulse, since any other kind is a failure any MCP server's tool may give.
+ * `[ENGINE_DIALECT_NOT_SERVED]`, `[UNKNOWN_BOARD]`, `[BOARD_REFUSED]`, `[ENGINE_NOT_SELECTED]`,
+ * `[UNKNOWN_ENGINE]`) and texts (a process key not deployed): only their words may name Pulse,
+ * since any other kind is a failure any MCP server's tool may give.
  */
 const PULSE_KINDS: ReadonlySet<string> = new Set([
   "profileRefused",
@@ -164,6 +165,9 @@ const PULSE_KINDS: ReadonlySet<string> = new Set([
   "notServed",
   "unknownBoard",
   "boardRefused",
+  "engineNotSelected",
+  "unknownEngine",
+  "unknownProcess",
 ])
 
 describe("a Claude artifact's words (ARTIFACT_PAGE_HINTS)", () => {
@@ -206,4 +210,18 @@ describe("a Claude artifact's words (ARTIFACT_PAGE_HINTS)", () => {
   it("know the kinds of Pulse's own codes by the kit's names", () => {
     expect(ERROR_KINDS).toEqual(expect.arrayContaining([...PULSE_KINDS]))
   })
+
+  it.each([
+    ["de", /^Wer die Seite veröffentlicht hat\b/, /versuch/i],
+    ["en", /^Whoever published the page\b/, /\btry\b/i],
+  ] as const)(
+    "%s: send the reader to whoever published the page for the engine and the process its reads name, never to try again",
+    (language, publisher, retry) => {
+      for (const kind of ["engineNotSelected", "unknownEngine", "unknownProcess"] as const) {
+        const hint = ARTIFACT_PAGE_HINTS[language][kind]
+        expect(hint, kind).toMatch(publisher)
+        expect(hint, kind).not.toMatch(retry)
+      }
+    },
+  )
 })

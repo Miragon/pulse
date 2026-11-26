@@ -149,11 +149,13 @@ function firstSectionAfter(marker: HTMLElement | null): HTMLElement | null {
 
 /**
  * The page's sections, or its ONE state while a refusal of a connection as a whole stands (no
- * sign-in, no connection, no approval): every section would fail alike, so none mounts, and the
- * sections below it never say such a refusal as their own. Its Try again is the page's Refresh,
- * which opens it and reads every section again; the first section then takes the keyboard focus
- * its gone Try again held (WCAG 2.4.3), found from a hidden marker before the sections. A refusal
- * of a connection no gate covers stays in its sections, said once under a `SectionStateGroup`.
+ * sign-in, no connection, none chosen, none declared, no approval): every section would fail
+ * alike, so none mounts, and the sections below it never say such a refusal as their own. Its Try
+ * again is the page's Refresh, which opens it and reads every section again; the first section
+ * then takes the keyboard focus its gone Try again held (WCAG 2.4.3), found from a hidden marker
+ * before the sections. A refusal no retry changes (a page that declares no connection, which only
+ * whoever published it can declare) offers none: its words send the viewer there. A refusal of a
+ * connection no gate covers stays in its sections, said once under a `SectionStateGroup`.
  */
 export function PageGate({ connector, children }: PageGateProps) {
   const refused = useCacheValue((cache) => refusalOf(cache, connector))
@@ -183,7 +185,8 @@ export function PageGate({ connector, children }: PageGateProps) {
       </PageGateContext.Provider>
     )
   }
-  // None of these refusals is permanent: a reconnect, a choice or an approval ends each.
+  // A reconnect, a set-up connection, a choice or an approval ends one, so Try again reads anew;
+  // a page that declares no connection stays refused until whoever published it declares one.
   const failure = describePageFailure(refused, locale, words)
   return (
     <ErrorState
@@ -191,7 +194,7 @@ export function PageGate({ connector, children }: PageGateProps) {
       title={failure.title}
       description={failure.hint}
       details={failure.details}
-      onRetry={retry}
+      onRetry={failure.permanent === true ? undefined : retry}
     />
   )
 }

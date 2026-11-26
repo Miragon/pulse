@@ -254,9 +254,15 @@ export interface PageErrorMessages {
   /** `needs_reauth`: the sign-in of the page's connection ran out. */
   needsReauth: (params: PageErrorParams) => string
   needsReauthHint: (params: PageErrorParams) => string
-  /** `not_connected`: the viewer has no connection of that name, or has to pick one. */
+  /** `not_connected`: the viewer has no connection of that name. */
   notConnected: (params: PageErrorParams) => string
   notConnectedHint: (params: PageErrorParams) => string
+  /** `selection_required`: the viewer has to choose the connection the page uses for that name. */
+  selectionRequired: (params: PageErrorParams) => string
+  selectionRequiredHint: (params: PageErrorParams) => string
+  /** `not_declared`: the page declares no connection; only whoever published it can change that. */
+  notDeclared: (params: PageErrorParams) => string
+  notDeclaredHint: (params: PageErrorParams) => string
   /** `not_allowed`: the page may not call the tool it needs; no retry changes that. */
   notAllowed: (params: PageErrorParams) => string
   notAllowedHint: (params: PageErrorParams) => string

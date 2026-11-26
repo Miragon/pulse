@@ -58,7 +58,19 @@ const TABLE: Array<[raw: string, kind: ErrorKind, status: number | undefined, so
   ["[400 InvalidRequestException] Invalid variable value", "failed", 400, "unknown"],
   [
     "[ENGINE_NOT_SELECTED] No engine specified and no default engine configured. Pass `engine`, one of: prod-a, prod-b.",
-    "unknown",
+    "engineNotSelected",
+    undefined,
+    "engine",
+  ],
+  [
+    '[UNKNOWN_ENGINE] Unknown engine id "prod-c". Available: prod-a, prod-b.',
+    "unknownEngine",
+    undefined,
+    "engine",
+  ],
+  [
+    'No process definition with key "orders" is deployed on this engine.',
+    "unknownProcess",
     undefined,
     "engine",
   ],

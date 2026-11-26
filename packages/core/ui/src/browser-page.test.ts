@@ -33,8 +33,9 @@ const SHOTS = process.env.PULSE_UI_BROWSER_SHOTS
 /** The page's module: what the README's example does, with every component the issue names. */
 const PAGE_JS = `
 import {
-  createElement as h, createRoot, CountFigure, formatCount, KpiGrid, LocaleProvider, Section,
-  StatusStrip, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, WidgetHeader,
+  createElement as h, createRoot, CountFigure, DrillButton, formatCount, ICON_STROKE, KpiGrid,
+  LocaleProvider, Section, StatusStrip, Table, TableBody, TableCell, TableHead, TableHeader,
+  TableRow, WidgetHeader,
 } from "./pulse-ui.js"
 import { Activity, LucideProvider } from "./lucide.js"
 import { BrowserProbe } from "./probe.js"
@@ -65,7 +66,9 @@ function Page() {
       ),
     ),
     h("div", { className: "flex items-center gap-2" },
-      h(LucideProvider, { size: 16 }, h(Activity, { "aria-hidden": true, "data-slot": "page-icon" })),
+      h(LucideProvider, { size: 16, strokeWidth: ICON_STROKE },
+        h(Activity, { "aria-hidden": true, "data-slot": "page-icon" }),
+        h("span", { "data-slot": "kit-drill" }, h(DrillButton, { onDrill: () => {} }, "Open"))),
       h(LocaleProvider, { locale: "de" }, h(BrowserProbe)),
     ),
   )
@@ -272,8 +275,13 @@ describe("a plain index.html over the browser bundle", () => {
         .locator('[data-slot="page-grid"]')
         .evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length)
       expect(grid).toBe(2)
-      // lucide.js and the probe run on pulse-ui.js's React and the kit's own locale context.
+      // lucide.js and the probe run on pulse-ui.js's React and the kit's own locale context, and
+      // lucide.js's provider on pulse-ui.js's icon context: its stroke reaches the kit's arrow,
+      // which sets none of its own, as it reaches the page's icon.
       expect(await page.locator('[data-slot="page-icon"]').getAttribute("width")).toBe("16")
+      for (const icon of ['[data-slot="page-icon"]', '[data-slot="kit-drill"] svg.lucide']) {
+        expect(await page.locator(icon).getAttribute("stroke-width"), icon).toBe("2.5")
+      }
       const probe = page.locator('[data-slot="browser-probe"]')
       expect(await probe.textContent()).toBe("de 0")
       await probe.click()

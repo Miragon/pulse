@@ -5,8 +5,10 @@ import type { PageHints } from "../page-hints.js"
  * the kit's would send the reader to a chat, to Pulse's start page, to another engine or back to
  * a list: a page in claude.ai has none of them. The kinds any MCP server's failure may be name
  * the server and whoever runs it, never Pulse or an engine, which such a server may not have;
- * only the kinds of the Pulse server's own codes (a refused profile, an engine its tool does not
- * read, a board it does not show) name Pulse.
+ * only the kinds of the Pulse server's own codes and texts (a refused profile, an engine its tool
+ * does not read, a board it does not show, no engine named of several, an engine it lacks, a
+ * process no version of which is deployed) name Pulse. A page has no engine picker: the reads
+ * name the engine and the process, so whoever published the page fixes them.
  * `connectionPlace` is where the viewer manages the page's connectors, claude.ai's settings, which
  * the words of a refused connector name after it ("Reconnect to Pulse in claude.ai, in Settings
  * under Connectors, then try again.").
@@ -21,6 +23,11 @@ export const ARTIFACT_PAGE_HINTS: PageHints = {
     notServed:
       "This Pulse server doesn't read this engine with the tool the page calls. Ask whoever runs the server.",
     unknownBoard: "Ask whoever runs the Pulse server which boards it shows.",
+    engineNotSelected:
+      "Whoever published the page can name one of the engines listed under Details in its reads.",
+    unknownEngine:
+      "Whoever published the page can name one of the engines listed under Details instead.",
+    unknownProcess: "Whoever published the page can fix the process its reads name.",
     invalidArguments:
       "You'll find the reason under Details. Whoever published the page can fix the call.",
     notOnServer: "This server doesn't offer the tool the page calls. Ask whoever runs the server.",
@@ -38,6 +45,12 @@ export const ARTIFACT_PAGE_HINTS: PageHints = {
     notServed:
       "Dieser Pulse-Server liest diese Engine nicht mit dem Tool, das die Seite aufruft. Frag die Person, die den Server betreibt.",
     unknownBoard: "Frag die Person, die den Pulse-Server betreibt, welche Boards er zeigt.",
+    engineNotSelected:
+      "Wer die Seite veröffentlicht hat, kann in ihren Lesezugriffen eine der Engines angeben, die unter Details stehen.",
+    unknownEngine:
+      "Wer die Seite veröffentlicht hat, kann stattdessen eine der Engines angeben, die unter Details stehen.",
+    unknownProcess:
+      "Wer die Seite veröffentlicht hat, kann den Prozess korrigieren, den ihre Lesezugriffe nennen.",
     invalidArguments:
       "Den Grund findest du unter Details. Wer die Seite veröffentlicht hat, kann den Aufruf korrigieren.",
     notOnServer:

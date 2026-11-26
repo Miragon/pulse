@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { PageErrorCode } from "@miragon/pulse-ui"
-import { PageCallError } from "../page-reads/page-call-error.js"
+import { isPageWideRefusal, PageCallError } from "../page-reads/page-call-error.js"
 import { describePageFailure } from "../page-reads/describe-page-failure.js"
 import { createPageReader, PAGE_READ_TTL_MS } from "../page-reads/page-reader.js"
 import { ARTIFACT_PAGE_HINTS } from "./artifact-hints.js"
@@ -108,7 +108,7 @@ describe("claudeToolCaller", () => {
     expect(Object.fromEntries(CLAUDE_RUNTIME_CODES)).toEqual({
       needs_reauth: "needs_reauth",
       server_not_connected: "not_connected",
-      selection_required: "not_connected",
+      selection_required: "selection_required",
       not_in_manifest: "not_allowed",
       blocked_by_policy: "not_allowed",
       approval_required: "approval_required",
@@ -222,8 +222,6 @@ describe("claudeToolCaller", () => {
 
   it.each([
     ["no use", {}, "window.claude.use is missing: the page runs outside a Claude artifact."],
-    ["no capability (null)", { use: () => Promise.resolve(null) }, NO_CAPABILITY],
-    ["no capability (undefined)", { use: () => Promise.resolve(undefined) }, NO_CAPABILITY],
     ["a use that rejects", { use: () => rejectWith(new Error("no mcp here")) }, "no mcp here"],
     ["a use that rejects with a code of its own", { use: () => rejectWith({ code: "x" }) }, "x"],
   ] as [string, ClaudeRuntime, string][])(
@@ -241,6 +239,58 @@ describe("claudeToolCaller", () => {
       })
     },
   )
+
+  it.each([
+    ["null", { use: () => Promise.resolve(null) }],
+    ["undefined", { use: () => Promise.resolve(undefined) }],
+  ] as [string, ClaudeRuntime][])(
+    "rejects no capability (%s) as a page that declares none, which only its publisher can change",
+    async (_, runtime) => {
+      const error = await settle(
+        claudeToolCaller({ connector: CONNECTOR, runtime })("engine_process_stats", {}),
+      )
+      expect(error).toBeInstanceOf(PageCallError)
+      expect(error).toMatchObject({
+        code: "not_declared",
+        tool: "engine_process_stats",
+        connector: CONNECTOR,
+        detail: NO_CAPABILITY,
+      })
+      // Still the page's one state (as before), now worded for whoever published the page, with
+      // no Try again.
+      expect(isPageWideRefusal(error)).toBe(true)
+      expect(describePageFailure(error, "en", { pageHints: ARTIFACT_PAGE_HINTS })).toEqual({
+        title: "This page isn't set up to use Pulse",
+        hint: "Only whoever published the page can set up its connection to Pulse. Ask them.",
+        details: NO_CAPABILITY,
+        permanent: true,
+      })
+    },
+  )
+
+  it("words a connector to set up, one to choose and a page without a declaration apart, each page-wide as before", async () => {
+    const wordsOf = async (runtime: ClaudeRuntime) => {
+      const error = await settle(
+        claudeToolCaller({ connector: CONNECTOR, runtime })("engine_process_stats", {}),
+      )
+      expect(isPageWideRefusal(error)).toBe(true)
+      return describePageFailure(error, "de", { pageHints: ARTIFACT_PAGE_HINTS })
+    }
+    const missing = await wordsOf(runtimeOf(() => refusal("server_not_connected", "x")).runtime)
+    const choose = await wordsOf(runtimeOf(() => refusal("selection_required", "x")).runtime)
+    const undeclared = await wordsOf({ use: () => Promise.resolve(null) })
+    expect(missing.hint).toBe(
+      "Richte Pulse in claude.ai in den Einstellungen unter Connectors ein und versuch es dann noch mal.",
+    )
+    expect(choose).toEqual({
+      title: "Diese Seite wartet darauf, dass du ihre Verbindung zu Pulse wählst",
+      hint: "Wähl die Verbindung zu Pulse, die die Seite nutzen soll, wenn du gefragt wirst, und versuch es dann noch mal.",
+      details: "[selection_required] x",
+    })
+    expect(undeclared.title).toBe("Diese Seite ist nicht dafür eingerichtet, Pulse zu nutzen")
+    expect(undeclared.permanent).toBe(true)
+    expect(new Set([missing.title, choose.title, undeclared.title]).size).toBe(3)
+  })
 
   it("rejects a use that the runtime refuses with its code, as the runtime's refusal", async () => {
     const runtime: ClaudeRuntime = { use: () => refusal("approval_required", "allow it") }
@@ -289,7 +339,7 @@ describe("claudeToolCaller", () => {
     const { runtime, uses } = runtimeOf(() => next())
     const callTool = claudeToolCaller({ connector: CONNECTOR, runtime })
     await expect(callTool("engine_process_stats", {})).rejects.toMatchObject({
-      code: "not_connected",
+      code: "selection_required",
     })
     expect(uses()).toBe(1)
     next = () => refusal(undefined, "[503] down")

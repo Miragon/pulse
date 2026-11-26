@@ -6,7 +6,11 @@ import type { PageErrorMessages, PageErrorParams, UiMessages } from "./message-t
  * refusals, a page of your own its fetch) and the kit words them the same everywhere.
  *
  * - `needs_reauth`: the sign-in of the page's connection ran out, the viewer has to reconnect
- * - `not_connected`: the viewer has no connection of the name the page calls, or has to pick one
+ * - `not_connected`: the viewer has no connection of the name the page calls
+ * - `selection_required`: the viewer has to choose which of their connections the page uses for
+ *   the name it calls
+ * - `not_declared`: the page declares no connection to call (a Claude artifact published without
+ *   its `mcp` capability); only whoever published it can change that, no retry does
  * - `not_allowed`: the page may not call the tool it needs (its declared tools leave it out, or
  *   a policy of the viewer's organization blocks it); no retry changes that
  * - `approval_required`: the viewer has not approved the page's access yet
@@ -18,6 +22,8 @@ import type { PageErrorMessages, PageErrorParams, UiMessages } from "./message-t
 export type PageErrorCode =
   | "needs_reauth"
   | "not_connected"
+  | "selection_required"
+  | "not_declared"
   | "not_allowed"
   | "approval_required"
   | "unavailable"
@@ -27,6 +33,8 @@ export type PageErrorCode =
 export const PAGE_ERROR_CODES: readonly PageErrorCode[] = [
   "needs_reauth",
   "not_connected",
+  "selection_required",
+  "not_declared",
   "not_allowed",
   "approval_required",
   "unavailable",
@@ -80,14 +88,19 @@ const WORDS: Readonly<
 > = {
   needs_reauth: ["needsReauth", "needsReauthHint"],
   not_connected: ["notConnected", "notConnectedHint"],
+  selection_required: ["selectionRequired", "selectionRequiredHint"],
+  not_declared: ["notDeclared", "notDeclaredHint"],
   not_allowed: ["notAllowed", "notAllowedHint"],
   approval_required: ["approvalRequired", "approvalRequiredHint"],
   unavailable: ["unavailable", "unavailableHint"],
   tool_error: ["toolError", "toolErrorHint"],
 }
 
-/** The codes no retry changes: the page's declared tools or a policy decide, not the moment. */
-const PERMANENT: ReadonlySet<PageErrorCode> = new Set(["not_allowed"])
+/**
+ * The codes no retry changes: the page's declaration (its tools, its connections) or a policy
+ * decide, not the moment.
+ */
+const PERMANENT: ReadonlySet<PageErrorCode> = new Set(["not_declared", "not_allowed"])
 
 /**
  * A page's failed call in the kit's words: what happened and what you can do per code, the raw

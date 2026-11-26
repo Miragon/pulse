@@ -9,7 +9,9 @@ import * as lucide from "lucide-react"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import type { BrowserBundle } from "../scripts/browser-bundle.mjs"
 import {
+  buildBrowserBundle,
   compileStylesheet,
+  LUCIDE_CONTEXT,
   RUNTIME,
   sharedNames,
   STYLESHEET,
@@ -31,10 +33,11 @@ import { stylesheetShapeFindings } from "./testing/index.js"
 
 /**
  * The browser bundle (scripts/browser-bundle.mjs) as the npm package ships it in dist/browser/:
- * what pulse-ui.js exports, that React is in it once and every other entry takes React and the
- * kit's modules from it, the stylesheet's shape, that pulse-ui-css.js puts that stylesheet into a
- * page once, and each file's gzip ceiling (test/__golden__/bundle-budget.json).
- * browser-page.test.ts and browser-chat.test.ts render pages over it in Chromium.
+ * what pulse-ui.js exports, that React and lucide-react's context are in it once and every other
+ * entry takes them and the kit's modules from it, the stylesheet's shape, that pulse-ui-css.js
+ * puts that stylesheet into a page once, and each file's gzip ceiling
+ * (test/__golden__/bundle-budget.json). browser-page.test.ts and browser-chat.test.ts render
+ * pages over it in Chromium.
  */
 
 const BUILD = { timeout: 60_000 }
@@ -47,49 +50,67 @@ beforeAll(async () => {
 /** React and ReactDOM's own modules, wherever pnpm keeps them. */
 const REACT_CODE = /node_modules\/(?:\.pnpm\/[^/]+\/node_modules\/)?(?:react|react-dom|scheduler)\//
 
+/** lucide-react's context, its own file, wherever pnpm keeps it; a shim of it is none. */
+const LUCIDE_CONTEXT_CODE = /(?:^|\/)node_modules\/lucide-react\/dist\/esm\/context\.mjs$/
+
 const SOURCE = "scripts/browser-bundle.css"
 const sourceCss = readFileSync(new URL(`../${SOURCE}`, import.meta.url), "utf8")
 
 describe("pulse-ui.js", () => {
   it(
-    "exports the root entry's names, React's and ReactDOM's public names and React and ReactDOM",
+    "exports the root entry's names, React's and ReactDOM's public names, lucide-react's context and React and ReactDOM",
     BUILD,
     () => {
       const shared = Object.values(sharedNames()).flat()
       const expected = [...new Set([...Object.keys(ui), ...shared, "React", "ReactDOM"])].sort()
       expect([...bundle.runtimeExports].sort()).toEqual(expected)
-      // A kit name equal to a React name would be shadowed by it: none is.
+      // A kit name equal to a React or Lucide name would be shadowed by it: none is.
       expect(Object.keys(ui).filter((name) => shared.includes(name))).toEqual([])
       expect(shared).toEqual(
         expect.arrayContaining(["createElement", "createRoot", "jsx", "useState"]),
       )
       expect(shared.filter((name) => name.startsWith("__"))).toEqual([])
+      // lucide-react's context by its names, as lucide-react exports them.
+      expect(sharedNames()[LUCIDE_CONTEXT]).toEqual(["LucideProvider", "useLucideContext"])
+      expect(Object.keys(lucide)).toEqual(
+        expect.arrayContaining(["LucideProvider", "useLucideContext"]),
+      )
     },
   )
 
-  it("holds React once and imports nothing: one ES module", BUILD, () => {
-    const inputs = inputsOf(bundle, RUNTIME)
-    expect(inputs.filter((input) => /react\/cjs\/react\.production\.js$/.test(input))).toHaveLength(
-      1,
-    )
-    expect(inputs.some((input) => input.includes("react.development"))).toBe(false)
-    expect(importsOf(bundle, RUNTIME)).toEqual([])
-    expect(bundle.files[RUNTIME]).not.toMatch(/\brequire\(/)
-  })
+  it(
+    "holds React and lucide-react's context once and imports nothing: one ES module",
+    BUILD,
+    () => {
+      const inputs = inputsOf(bundle, RUNTIME)
+      expect(
+        inputs.filter((input) => /react\/cjs\/react\.production\.js$/.test(input)),
+      ).toHaveLength(1)
+      // The context the kit's icons read, the one an entry beside it shares.
+      expect(inputs.filter((input) => LUCIDE_CONTEXT_CODE.test(input))).toHaveLength(1)
+      expect(inputs.some((input) => input.includes("react.development"))).toBe(false)
+      expect(importsOf(bundle, RUNTIME)).toEqual([])
+      expect(bundle.files[RUNTIME]).not.toMatch(/\brequire\(/)
+    },
+  )
 })
 
 describe("the entries beside pulse-ui.js", () => {
   it(
-    "take React, ReactDOM and the kit's modules from ./pulse-ui.js and bundle no copy",
+    "take React, ReactDOM, lucide-react's context and the kit's modules from ./pulse-ui.js and bundle no copy",
     BUILD,
     () => {
       for (const file of Object.keys(bundle.results).filter((name) => name !== RUNTIME)) {
         const inputs = inputsOf(bundle, file)
         expect(
-          inputs.filter((input) => REACT_CODE.test(input)),
+          inputs.filter((input) => REACT_CODE.test(input) || LUCIDE_CONTEXT_CODE.test(input)),
           file,
         ).toEqual([])
         expect(importsOf(bundle, file), file).toEqual([`./${RUNTIME}`])
+      }
+      // Every entry that draws a Lucide icon reads pulse-ui.js's context, by its icons' own path.
+      for (const file of ["lucide.js", "pulse-ui-bpmn.js"]) {
+        expect(inputsOf(bundle, file), file).toContain(`pulse-ui-shared:${LUCIDE_CONTEXT}`)
       }
     },
   )
@@ -105,6 +126,27 @@ describe("the entries beside pulse-ui.js", () => {
         .sort(),
     )
   })
+
+  it(
+    "share lucide-react's context only: a module of another package named context.mjs stays its own",
+    BUILD,
+    async () => {
+      const dir = mkdtempSync(join(tmpdir(), "pulse-ui-browser-bundle-"))
+      try {
+        writeFileSync(join(dir, "context.mjs"), "export const own = 1\n")
+        writeFileSync(join(dir, "planted.mjs"), 'export { own } from "./context.mjs"\n')
+        const planted = await buildBrowserBundle({
+          entries: { "planted.js": join(dir, "planted.mjs") },
+        })
+        const inputs = inputsOf(planted, "planted.js")
+        expect(inputs.filter((input) => input.endsWith("/context.mjs"))).toHaveLength(1)
+        expect(inputs.filter((input) => input.startsWith("pulse-ui-shared:"))).toEqual([])
+        expect(importsOf(planted, "planted.js")).toEqual([])
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    },
+  )
 
   it(
     "an entry of the package takes the kit's modules it imports by path from pulse-ui.js",
