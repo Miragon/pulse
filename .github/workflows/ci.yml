@@ -97,9 +97,15 @@ jobs:
       - run: pnpm typecheck
 
       # Runs on a red typecheck too. node:test reports as spec plus one annotation per failure.
+      # turbo runs up to ten suites at once, and each vitest starts a worker per core but one:
+      # about 30 workers on the runner's four cores, where a case takes 10 to 30 times as long as
+      # alone and a wait or a test timeout runs out (#632, #675). So each suite runs in one worker
+      # here (vitest reads VITEST_MAX_WORKERS, turbo.json passes it to the test tasks); a local run
+      # keeps vitest's default.
       - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         env:
           NODE_OPTIONS: --test-reporter=spec --test-reporter-destination=stdout --test-reporter=${{ github.workspace }}/scripts/gha-test-reporter.mjs --test-reporter-destination=stdout
+          VITEST_MAX_WORKERS: 1
         run: pnpm test
 
   # Playwright host simulation of the built widget bundle (test-host/README.md).

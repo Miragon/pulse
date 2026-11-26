@@ -14,7 +14,8 @@
       "dependsOn": ["^build", "generate"]
     },
     "test": {
-      "dependsOn": ["^build", "generate"]
+      "dependsOn": ["^build", "generate"],
+      "passThroughEnv": ["VITEST_MAX_WORKERS"]
     },
     "lint": {
       "dependsOn": ["^build", "generate"]

@@ -22,6 +22,7 @@ import { ProcessScreen } from "../src/screens/process/process-screen.js"
 import { READ_AGAIN_AFTER_MS } from "../src/screens/read-on-return.js"
 import { WIDE } from "../src/screens/use-wide.js"
 import { drawn, reset } from "./bpmn-viewer.test-support.js"
+import { onEveryClock } from "./time-zones.test-support.js"
 
 /**
  * The web app's process screen over the kit world's process screens and instance list
@@ -539,32 +540,34 @@ describe("the process screen's instance list", () => {
     expect(screen.getByRole("radio", { name: /^Running/ }).textContent).toContain("10k+")
   })
 
-  it("asks for the list by its filter: an element, the exact key, a condition, a date as its instant", async () => {
-    const at = "2026-03-15T10:00"
-    const { reads } = renderScreen({
-      filter: {
+  onEveryClock(() => {
+    it("asks for the list by its filter: an element, the exact key, a condition, a date as its instant", async () => {
+      const at = "2026-03-15T10:00"
+      const { reads } = renderScreen({
+        filter: {
+          scope: "all",
+          elementId: "Task_A",
+          businessKey: "ORD-1",
+          variables: [
+            { name: "dueAt", operator: "lessThan", value: at, as: "date" },
+            { name: "sentAt", operator: "equals", value: "2026-03-15T10:00Z", as: "date" },
+            { name: "route", operator: "equals", value: "review" },
+          ],
+        },
+      })
+      await rowKeys()
+      expect(reads(INSTANCES_FEED).at(-1)?.args).toEqual({
+        engine: "prod-a",
+        definitionId: "pulse-order:2",
         scope: "all",
-        elementId: "Task_A",
+        element: "Task_A",
         businessKey: "ORD-1",
         variables: [
-          { name: "dueAt", operator: "lessThan", value: at, as: "date" },
+          { name: "dueAt", operator: "lessThan", value: new Date(at).toISOString(), as: "date" },
           { name: "sentAt", operator: "equals", value: "2026-03-15T10:00Z", as: "date" },
           { name: "route", operator: "equals", value: "review" },
         ],
-      },
-    })
-    await rowKeys()
-    expect(reads(INSTANCES_FEED).at(-1)?.args).toEqual({
-      engine: "prod-a",
-      definitionId: "pulse-order:2",
-      scope: "all",
-      element: "Task_A",
-      businessKey: "ORD-1",
-      variables: [
-        { name: "dueAt", operator: "lessThan", value: new Date(at).toISOString(), as: "date" },
-        { name: "sentAt", operator: "equals", value: "2026-03-15T10:00Z", as: "date" },
-        { name: "route", operator: "equals", value: "review" },
-      ],
+      })
     })
   })
 

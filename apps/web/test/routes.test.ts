@@ -13,6 +13,7 @@ import {
   type ViewRoute,
 } from "../src/router/routes.js"
 import { cockpitProperties } from "./cockpit-tool.js"
+import { onEveryClock } from "./time-zones.test-support.js"
 
 /**
  * The page's addresses (the plan's address scheme): every place of the cockpit has its canonical
@@ -552,6 +553,13 @@ describe("the page's process screen at a place", () => {
     return viewRouteOf({ pathname, search })
   }
   const RUNNING = { scope: "running" } as const
+  const carriedBothWays = (url: string, state: Record<string, unknown>) => {
+    const shown = route(url)
+    expect(shown.screen, url).toEqual({ kind: "process", engine: E, process: "invoice", ...state })
+    expect(shown.url, url).toBe(url)
+    expect(shown.place).toMatchObject({ view: "process-detail", processDefinitionKey: "invoice" })
+    expect(screenUrlOf(shown.screen!)).toBe(url)
+  }
 
   it("is the process screen at a process's view, with its incidents in focus, and at its instances", () => {
     expect(
@@ -599,7 +607,13 @@ describe("the page's process screen at a place", () => {
           filter: { scope: "all", elementId: "Task_Review", businessKey: "ORD 1/2" },
         },
       ],
-      [
+    ]
+    for (const [url, state] of cases) carriedBothWays(url, state)
+  })
+
+  onEveryClock(() => {
+    it("carries variable conditions, a date among them as the instant it names here, both ways", () => {
+      carriedBothWays(
         `/app/engines/prod-a/processes/invoice?var=amount%7EgreaterThan%7E100&var=dueAt%7ElessThan.date%7E${encodeURIComponent(new Date("2026-03-15T10:00").toISOString())}&var=a%257Eb%7Eequals%7Ex%7Ey`,
         {
           filter: {
@@ -611,48 +625,36 @@ describe("the page's process screen at a place", () => {
             ],
           },
         },
-      ],
-    ]
-    for (const [url, state] of cases) {
-      const shown = route(url)
-      expect(shown.screen, url).toEqual({
-        kind: "process",
-        engine: E,
-        process: "invoice",
-        ...state,
-      })
-      expect(shown.url, url).toBe(url)
-      expect(shown.place).toMatchObject({ view: "process-detail", processDefinitionKey: "invoice" })
-      expect(screenUrlOf(shown.screen!)).toBe(url)
-    }
-  })
+      )
+    })
 
-  it("carries a date as the instant it names here and reads it on this browser's clock, an old wall clock replaced", () => {
-    const path = "/app/engines/prod-a/processes/invoice"
-    const due = (value: string) =>
-      `${path}?${new URLSearchParams([["var", `due~lessThan.date~${value}`]]).toString()}`
-    const dueOf = (url: string) => {
-      const shown = route(url).screen
-      return shown?.kind === "process" ? shown.filter.variables?.[0]?.value : undefined
-    }
-    const instant = new Date("2026-03-15T10:00:30").toISOString()
+    it("carries a date as the instant it names here and reads it on this browser's clock, an old wall clock replaced", () => {
+      const path = "/app/engines/prod-a/processes/invoice"
+      const due = (value: string) =>
+        `${path}?${new URLSearchParams([["var", `due~lessThan.date~${value}`]]).toString()}`
+      const dueOf = (url: string) => {
+        const shown = route(url).screen
+        return shown?.kind === "process" ? shown.filter.variables?.[0]?.value : undefined
+      }
+      const instant = new Date("2026-03-15T10:00:30").toISOString()
 
-    // An old address's wall clock: read as it is, its entry named by the instant.
-    expect(dueOf(due("2026-03-15T10:00:30"))).toBe("2026-03-15T10:00:30")
-    expect(route(due("2026-03-15T10:00:30")).url).toBe(due(instant))
-    // An instant with its offset: on this browser's clock, its seconds where it has some.
-    expect(dueOf(due(instant))).toBe("2026-03-15T10:00:30")
-    expect(dueOf(due(new Date("2026-03-15T10:00").toISOString()))).toBe("2026-03-15T10:00")
-    expect(new Date(dueOf(due("2026-03-15T09:00:00+00:00")) ?? "").toISOString()).toBe(
-      "2026-03-15T09:00:00.000Z",
-    )
-    // What names no time it can read stays as it is, for the server to refuse.
-    expect(dueOf(due("2026-13-45T10:00"))).toBe("2026-13-45T10:00")
-    expect(dueOf(due("2026-13-45T10:00Z"))).toBe("2026-13-45T10:00Z")
-    expect(dueOf(due("soon"))).toBe("soon")
-    // Another type keeps its value.
-    const other = `${path}?${new URLSearchParams([["var", "at~equals~2026-03-15T10:00"]]).toString()}`
-    expect(route(other).url).toBe(other)
+      // An old address's wall clock: read as it is, its entry named by the instant.
+      expect(dueOf(due("2026-03-15T10:00:30"))).toBe("2026-03-15T10:00:30")
+      expect(route(due("2026-03-15T10:00:30")).url).toBe(due(instant))
+      // An instant with its offset: on this browser's clock, its seconds where it has some.
+      expect(dueOf(due(instant))).toBe("2026-03-15T10:00:30")
+      expect(dueOf(due(new Date("2026-03-15T10:00").toISOString()))).toBe("2026-03-15T10:00")
+      expect(new Date(dueOf(due("2026-03-15T09:00:00+00:00")) ?? "").toISOString()).toBe(
+        "2026-03-15T09:00:00.000Z",
+      )
+      // What names no time it can read stays as it is, for the server to refuse.
+      expect(dueOf(due("2026-13-45T10:00"))).toBe("2026-13-45T10:00")
+      expect(dueOf(due("2026-13-45T10:00Z"))).toBe("2026-13-45T10:00Z")
+      expect(dueOf(due("soon"))).toBe("soon")
+      // Another type keeps its value.
+      const other = `${path}?${new URLSearchParams([["var", "at~equals~2026-03-15T10:00"]]).toString()}`
+      expect(route(other).url).toBe(other)
+    })
   })
 
   it("leaves out what it does not read: a version that is no number, a scope, an empty key, a broken condition", () => {

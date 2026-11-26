@@ -6,6 +6,6 @@
     "jsx": null,
     "jsxImportSource": null
   },
-  "include": ["vitest.config.ts", "test/architecture"],
+  "include": ["vitest.config.ts", "test/architecture", "test/webview/provided-context.d.ts"],
   "exclude": []
 }
