@@ -9,7 +9,7 @@ import { appOnlyFeeds, fullSurface } from "./tool-surface.mjs"
 /**
  * The tools a Claude artifact on Pulse calls (templates/claude-artifact). A published artifact
  * declares its `mcp` capability with exactly the names of PAGE_TOOLS
- * (templates/claude-artifact/src/engine/tools.ts), and a call to a tool it did not declare fails.
+ * (templates/claude-artifact/src/page.config.ts), and a call to a tool it did not declare fails.
  * So each name is a tool the server registers (the admin golden, scripts/tool-surface.mjs), a
  * model tool (an app-only `*_data` feed serves the server's own views, never a page), on the
  * read-only floor (what the server runs without OAuth and every toolset holds) and no view tool
@@ -23,7 +23,7 @@ import { appOnlyFeeds, fullSurface } from "./tool-surface.mjs"
  */
 
 const TEMPLATE = "templates/claude-artifact"
-const TOOLS_FILE = `${TEMPLATE}/src/engine/tools.ts`
+const TOOLS_FILE = `${TEMPLATE}/src/page.config.ts`
 const FIXTURES = `${TEMPLATE}/fixtures`
 const READ_ONLY_GOLDEN = "apps/mcp-server/test/__golden__/tools-read-only.json"
 

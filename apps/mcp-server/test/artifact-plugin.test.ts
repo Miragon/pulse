@@ -64,11 +64,14 @@ const READ_ONLY_FLOOR = JSON.parse(
   read("apps/mcp-server/test/__golden__/tools-read-only.json"),
 ) as WireTool[]
 
+/** The template's file that declares `PAGE_TOOLS`, beside the other values a copy sets. */
+const PAGE_CONFIG = `${TEMPLATE}/src/page.config.ts`
+
 /** The string literals of the template's `PAGE_TOOLS`: every tool its page calls. */
 function pageTools(): string[] {
-  const source = read(`${TEMPLATE}/src/engine/tools.ts`)
+  const source = read(PAGE_CONFIG)
   const list = /export const PAGE_TOOLS = \[([^\]]*)\]/.exec(source)?.[1]
-  if (list === undefined) throw new Error(`${TEMPLATE}/src/engine/tools.ts declares no PAGE_TOOLS`)
+  if (list === undefined) throw new Error(`${PAGE_CONFIG} declares no PAGE_TOOLS`)
   return [...list.matchAll(/"([a-z0-9_]+)"/g)].map((match) => match[1] ?? "")
 }
 

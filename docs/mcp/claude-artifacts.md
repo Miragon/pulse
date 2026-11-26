@@ -36,8 +36,11 @@ the artifact declares the `mcp` capability with the tools the page calls. The te
 `CLAUDE.md` holds the rules an AI agent follows on a copy: the artifact runtime, the data rules,
 the look and the checklist up to the publish.
 
-The page reads the process numbers of the Camunda 7 REST API (CIB seven, Operaton, Camunda 7): a
-Camunda 8 engine refuses them.
+The page reads through widget-shell's page reads (`useSectionRead`, `PageGate`) and mounts with
+its Claude artifact entry (`mountClaudeArtifact`), whose caller alone speaks to the artifact
+runtime, so a copy keeps only its sections, its reads, its tests and its scripts. It reads the
+process numbers of the Camunda 7 REST API (CIB seven, Operaton, Camunda 7): a Camunda 8 engine
+refuses them.
 
 ## The Claude Code plugin
 
@@ -60,7 +63,29 @@ a release, run `claude plugin marketplace update pulse`, then
 
 ## Without a build
 
-A page of a few panels needs no template: it loads pulse-ui's browser bundle from jsDelivr at the
-release's version and ships the package's `pulse-ui.css` as its one file. The pulse-ui
+A page of a few panels needs no template: one module script loads pulse-ui's browser bundle and
+widget-shell's page reads for a Claude artifact from jsDelivr, both at the release's version, and
+the page ships the package's `pulse-ui.css` as its one file:
+
+<!-- x-release-please-start-version -->
+
+```js
+import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui.js"
+import {
+  mountClaudeArtifact,
+  PageGate,
+  usePageReads,
+  useSectionRead,
+} from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.32.0/dist/browser/claude-artifact.js"
+```
+
+<!-- x-release-please-end -->
+
+`claude-artifact.js` takes React and the kit from that `pulse-ui.js`: load both from one CDN at one
+version. The widget-shell
+[README](https://github.com/Miragon/pulse/tree/main/packages/core/widget-shell#use-in-a-page-without-a-build)
+shows the whole page, the pulse-ui
 [README](https://github.com/Miragon/pulse/tree/main/packages/core/ui#use-in-a-page-without-a-build)
-shows how and lists what the bundle and the stylesheet hold.
+what the bundle and the stylesheet hold. A page that reads a second connector declares it beside
+the first and names it in its reads, `reader.call(tool, args, { connector })`. A page Claude writes
+in a chat has no files of its own: how it gets the stylesheet there waits for a probe in claude.ai.

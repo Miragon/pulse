@@ -35,8 +35,8 @@ pnpm dev        # the example dashboard on the recorded fixtures, no server need
 
 The example is a dashboard of the playground's `miraveloLeasing` process, read in three calls:
 `engine_process_stats`, `engine_activity_counts` and `engine_get_process_definition_xml`. A page
-of another process, or of another kind, starts from it too and keeps its engine layer, its tests
-and its scripts; a tool it calls beyond these joins `PAGE_TOOLS` first.
+of another process, or of another kind, starts from it too and keeps its sections, reads, tests
+and scripts, on widget-shell's page reads; a tool it calls beyond these joins `PAGE_TOOLS` first.
 
 ## Then read the copy
 
@@ -55,21 +55,32 @@ after the first publish.
 
 ## Without a build
 
-A page of a few panels can skip the template: one module script imports pulse-ui's browser bundle
-(`dist/browser/pulse-ui.js`) from jsDelivr at the version of the release above, never `latest`, and
-the page ships the package's `pulse-ui.css` as its one file. The pulse-ui README shows how
-(https://github.com/Miragon/pulse/tree/main/packages/core/ui#use-in-a-page-without-a-build). The
-page reads the engine with the template's one call:
+A page of a few panels can skip the template: one module script loads pulse-ui's browser bundle
+and widget-shell's page reads for a Claude artifact from jsDelivr, both at the version of the
+release above, never `latest`, and the page ships the package's `pulse-ui.css` as its one file:
+
+<!-- x-release-please-start-version -->
 
 ```js
-const mcp = await window.claude.use("mcp")
-const cache = { staleTime: 30000, gcTime: 600000 }
-const { payload } = await mcp.callTool("<the connector's display name>", tool, args, { cache })
+import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui.js"
+import {
+  mountClaudeArtifact,
+  PageGate,
+  usePageReads,
+  useSectionRead,
+} from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.32.0/dist/browser/claude-artifact.js"
 ```
 
-The answer is the tool's JSON in `payload`. A refusal rejects with the runtime's `code`:
-`RUNTIME_CODES` in `templates/claude-artifact/src/engine/claude-connector.ts` maps it onto
-pulse-ui's page errors, which `describePageError` words, and any other code is the server's error.
-After the first publish, declare `mcp` for that connector with exactly the tools the page calls,
-and load the `artifact-capabilities` skill before you declare. The template's data rules and its
-look hold here too; its three files and its classic script do not.
+<!-- x-release-please-end -->
+
+Each section reads with `useSectionRead(key, (reader) => reader.call(tool, args))` and renders
+through pulse-ui's `SectionState`, `PageGate` around the sections says a refused connector once,
+and `mountClaudeArtifact(App, { connector: "<the connector's display name>" })` mounts the page,
+whose caller alone speaks to `window.claude`. Take React and the kit from that `pulse-ui.js` only.
+The widget-shell README shows the whole page
+(https://github.com/Miragon/pulse/tree/main/packages/core/widget-shell#use-in-a-page-without-a-build),
+the pulse-ui README what the bundle and the stylesheet hold
+(https://github.com/Miragon/pulse/tree/main/packages/core/ui#use-in-a-page-without-a-build). After
+the first publish, declare `mcp` for that connector with exactly the tools the page calls, and load
+the `artifact-capabilities` skill before you declare. The template's data rules and its look hold
+here too; its three files and its classic script do not.

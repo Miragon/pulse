@@ -29,10 +29,12 @@ pnpm dev
 
 <!-- x-release-please-end -->
 
-`pnpm dev` serves the page on the recorded answers in `fixtures/`, through a stand-in for the
-artifact's connector (`fixtures/mock-claude.ts`), so it needs no engine and no server. `?lang=de`
-shows it in German, `?fail=engine_process_stats` fails that tool, `?fail=needs_reauth` refuses
-every call with that code of the runtime's, and `?delay=800` shows the loading states.
+`pnpm dev` serves the page on the recorded answers in `fixtures/`, replayed in place of the
+artifact's connector (`fixtures/dev.tsx`), so it needs no engine and no server. `?lang=de` shows
+it in German, `?fail=engine_process_stats` fails that tool with a server's error,
+`?fail=needs_reauth` refuses every call with that code, `?fail=engine_process_stats:unavailable`
+refuses one tool, and `?delay=800` shows the loading states. The codes are the page's (the table
+under [Publish](#publish) maps the runtime's onto them).
 
 | Command                       | What it does                                                                          |
 | ----------------------------- | ------------------------------------------------------------------------------------- |
@@ -70,15 +72,19 @@ every call with that code of the runtime's, and `?delay=800` shows the loading s
 
 ## How the page reads
 
-`src/engine/` is the page's one way to the engine. `claude-connector.ts` alone knows the artifact
-runtime: it calls a tool on the viewer's connector named `CONNECTOR_NAME`. `engine.ts` keeps each
-answer 30 seconds and shares a call among the sections that show it, `errors.ts` words each failure
-in English and German, `use-engine.tsx` gives each section a read of its own, and `tools.ts` lists
-`PAGE_TOOLS`, every tool the page calls.
+The page reads through widget-shell's page reads, which its README describes ("A page's reads"
+and "A Claude artifact" in `node_modules/@miragon/pulse-widget-shell/README.md`).
+`src/artifact.tsx` mounts the page with `mountClaudeArtifact`, whose caller alone knows the
+artifact runtime: it calls a tool on the viewer's connector named `CONNECTOR_NAME`. Each section
+reads with `useSectionRead`, its key naming what it reads, so sections with one key share one read;
+a call is kept 30 seconds and shared among the sections that show it, and a failure is worded in
+English and German. `PageGate` says a refusal of the connector once for the page, and
+`usePageReads` gives the bar its Refresh and freshness. `src/page.config.ts` lists `PAGE_TOOLS`,
+every tool the page calls, and `src/data/process-dashboard.ts` the three reads.
 
 `engine_process_stats` counts the last 14 days of the viewer's time zone, a bucket a day. The page
-names no engine, so the server reads its default one; on a server with several and no default,
-`engineId` of `createEngine` names it. The server reads with the cockpit's builders and keeps each
+names no engine, so the server reads its default one; on a server with several and no default, name
+`engine` in each read's arguments. The server reads with the cockpit's builders and keeps each
 answer 30 seconds per caller. The reads are Camunda 7's (CIB seven, Operaton, Camunda 7): a Camunda
 8 engine refuses them.
 
@@ -90,19 +96,22 @@ answer 30 seconds per caller. The reads are Camunda 7's (CIB seven, Operaton, Ca
    `dist/pulse-ui.css` as its files.
 3. After the first publish, declare the `mcp` capability as
    `{ "mcp": { "servers": [{ "server": "<CONNECTOR_NAME>", "tools": [<PAGE_TOOLS>] }] } }`, with
-   exactly the tools of `PAGE_TOOLS` in `src/engine/tools.ts`. The runtime refuses a call to a
+   exactly the tools of `PAGE_TOOLS` in `src/page.config.ts`. The runtime refuses a call to a
    tool it does not name.
 
-What a viewer is told when the runtime refuses a call, by its code:
+The runtime's refusals reach the page as pulse-ui's page error codes, which `?fail=` takes too;
+what the viewer is told for each is widget-shell's (its README's "A Claude artifact"):
 
-| Code                                         | What the viewer can do                                                                    |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `needs_reauth`                               | Reconnect the connector in claude.ai under Settings, Connectors                           |
-| `server_not_connected`, `selection_required` | Add the connector in claude.ai under Settings, Connectors, or pick it when claude.ai asks |
-| `not_in_manifest`, `blocked_by_policy`       | Ask whoever published the page: it may not read the connector for them                    |
-| `approval_required`                          | Allow the access when claude.ai asks, then try again                                      |
-| `server_unavailable`                         | Try again: the Pulse MCP server does not answer                                           |
-| any other code, and a tool's own error       | Read the server's error, worded by widget-shell's `describeError`                         |
+| The runtime's code                           | The page's code     |
+| -------------------------------------------- | ------------------- |
+| `needs_reauth`                               | `needs_reauth`      |
+| `server_not_connected`, `selection_required` | `not_connected`     |
+| `not_in_manifest`, `blocked_by_policy`       | `not_allowed`       |
+| `approval_required`                          | `approval_required` |
+| `server_unavailable`                         | `unavailable`       |
+
+A tool's own error and any other code reach the page as the server's error, which widget-shell's
+`describeError` words; `?fail=<tool>` fails a tool so.
 
 ## Rules the tests hold
 
@@ -110,5 +119,7 @@ ESLint does not reach a template, so `test/brand.test.ts` runs pulse-ui's brand 
 `src/`: colours by role only, Lucide icons at 16 or 24 px, the type scale, the voice rules and the
 product's words in both catalogs, and no class beyond `pulse-ui.css`. The theme's contrast in
 light and dark is pulse-ui's to hold, since a page cannot change it.
-`test/app.test.tsx` holds a load to three calls, `test/bundle.test.ts` `dist/app.js` to one classic
-script without the MCP client or the fixtures. `CLAUDE.md` names the rules a test cannot hold.
+`test/app.test.tsx` mounts the page as the artifact does on the fixtures and holds a load to three
+calls, `test/bundle.test.ts` `dist/app.js` to one classic script without the MCP client or the
+fixtures. How a section reads, the gate, the Refresh and the runtime's caller are widget-shell's,
+held by its own tests. `CLAUDE.md` names the rules a test cannot hold.

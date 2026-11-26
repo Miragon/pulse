@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
+import { VIEW_BUNDLE_DEDUPE } from "@miragon/pulse-widget-shell/server"
 import react from "@vitejs/plugin-react"
 import { defineConfig, type Plugin } from "vite"
 
@@ -14,7 +15,10 @@ import { defineConfig, type Plugin } from "vite"
  * OS, every class the kit renders and its documented layout utilities, which are the only classes
  * the page's own elements use (test/brand.test.ts holds them to it). `vite build --mode fixtures`
  * builds the same page on the fixtures into shots/dist for `pnpm shot`; `pnpm dev` serves it on
- * the fixtures as a module, as Vite's dev server does.
+ * the fixtures as a module, as Vite's dev server does. `resolve.dedupe` is widget-shell's
+ * `VIEW_BUNDLE_DEDUPE`, whole: the page's React, React Query, pulse-ui and widget-shell must be ONE
+ * copy each, or the sections read contexts widget-shell's mount never provided (no query client,
+ * the kit's English words).
  */
 
 const PAGE = new URL("./src/page.html", import.meta.url)
@@ -64,6 +68,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), artifactPage()],
     publicDir: false,
+    resolve: { dedupe: [...VIEW_BUNDLE_DEDUPE] },
     build: {
       outDir: fixtures ? "shots/dist" : "dist",
       emptyOutDir: true,

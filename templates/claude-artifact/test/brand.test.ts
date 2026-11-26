@@ -10,7 +10,6 @@ import {
   scanTypeScale,
 } from "@miragon/pulse-ui/testing"
 import { describe, expect, it } from "vitest"
-import { ERROR_CATALOGS } from "../src/engine/errors.ts"
 import { DE, EN } from "../src/messages.ts"
 import { STYLESHEET } from "../vite.config.ts"
 
@@ -128,15 +127,14 @@ describe("the page's words", () => {
     expect(Object.keys(DE).sort()).toEqual(Object.keys(EN).sort())
   })
 
+  // The words of a refused or failed read are widget-shell's and the kit's, held by their gates.
   it.each([
-    ["en", EN, ERROR_CATALOGS.en],
-    ["de", DE, ERROR_CATALOGS.de],
-  ] as const)("follow the voice rules and the glossary (%s)", (language, page, errors) => {
+    ["en", EN],
+    ["de", DE],
+  ] as const)("follow the voice rules and the glossary (%s)", (language, catalog) => {
     const rules =
       language === "en" ? [...PRODUCT_GLOSSARY.en, BARE_PAUSE_RULE_EN] : PRODUCT_GLOSSARY.de
-    for (const catalog of [page, errors]) {
-      expect(catalogTextFindings(catalog, { language })).toEqual([])
-      expect(glossaryFindings(catalog, rules)).toEqual([])
-    }
+    expect(catalogTextFindings(catalog, { language })).toEqual([])
+    expect(glossaryFindings(catalog, rules)).toEqual([])
   })
 })

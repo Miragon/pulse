@@ -6,8 +6,8 @@ import {
   Skeleton,
   TableEmptyState,
 } from "@miragon/pulse-ui"
+import { useSectionRead } from "@miragon/pulse-widget-shell/widgets"
 import { outcomesOf, readStats, type ProcessStats } from "../data/process-dashboard.ts"
-import { useSection } from "../engine/use-engine.tsx"
 import { useT } from "../messages.ts"
 
 /** The rows' room while the first read runs. */
@@ -23,11 +23,7 @@ const SKELETON_HEIGHT = 160
  */
 export function OutcomesSection({ processKey }: { readonly processKey: string }) {
   const t = useT()
-  const section = useSection(
-    (engine) => readStats(engine, processKey),
-    [processKey],
-    (stats) => stats.asOf,
-  )
+  const section = useSectionRead(["stats", processKey], (reader) => readStats(reader, processKey))
   return (
     <Panel title={t("outcomes.title")} hint={`${t("outcomes.scope")}, ${t("scope.allVersions")}`}>
       <SectionState

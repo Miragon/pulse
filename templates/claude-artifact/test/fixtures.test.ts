@@ -1,11 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs"
+import { createPageReader, playRecording } from "@miragon/pulse-widget-shell/widgets"
 import { describe, expect, it } from "vitest"
-import { type Fixture, mockClaude } from "../fixtures/mock-claude.ts"
+import type { Fixture } from "../fixtures/fixture.ts"
 import { clearTextTokenRefusal, isLoopbackHost } from "../scripts/token-target.ts"
 import { DASHBOARD_READS } from "../src/data/process-dashboard.ts"
-import { claudeConnector } from "../src/engine/claude-connector.ts"
-import { createEngine } from "../src/engine/engine.ts"
-import { CONNECTOR_NAME, PROCESS_KEY } from "../src/page.config.ts"
+import { PAGE_TOOLS, PROCESS_KEY } from "../src/page.config.ts"
 
 const DIR = new URL("../fixtures/", import.meta.url)
 const FILES = readdirSync(DIR).filter((name) => name.endsWith(".json"))
@@ -17,25 +16,23 @@ describe("the recorded fixtures", () => {
   })
 
   it.each(FILES)(
-    "%s: answers every call the dashboard's reads make, through the page's connector",
+    "%s: answers every call the dashboard's reads make, through the page's reader",
     async (name) => {
       const fixture = fixtureOf(name)
       expect(name).toBe(`${fixture.process}.json`)
-      const asOf = new Date(fixture.asOf)
-      const engine = createEngine(claudeConnector(mockClaude(fixture)), {
-        now: () => asOf,
-        timeZone: fixture.timeZone,
-      })
+      const { callTool, now, timeZone } = playRecording(fixture, { tools: PAGE_TOOLS })
+      const reader = createPageReader(callTool, { now, timeZone })
       for (const [section, read] of Object.entries(DASHBOARD_READS)) {
-        await expect(read(engine, fixture.process), section).resolves.toBeDefined()
+        await expect(read(reader, fixture.process), section).resolves.toBeDefined()
       }
     },
   )
 
   it("refuses a tool outside PAGE_TOOLS as the runtime refuses one the page does not declare", async () => {
-    const mcp = await mockClaude(fixtureOf(`${PROCESS_KEY}.json`)).use?.("mcp")
-    await expect(mcp?.callTool(CONNECTOR_NAME, "engine_open_cockpit", {})).rejects.toMatchObject({
-      code: "not_in_manifest",
+    const { callTool } = playRecording(fixtureOf(`${PROCESS_KEY}.json`), { tools: PAGE_TOOLS })
+    await expect(callTool("engine_open_cockpit", {})).rejects.toMatchObject({
+      code: "not_allowed",
+      tool: "engine_open_cockpit",
     })
   })
 })

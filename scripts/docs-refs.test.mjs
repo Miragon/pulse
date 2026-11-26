@@ -635,8 +635,9 @@ const DOCS_BUDGETS = {
   // page among them) and the common settings.
   "mcp/reference.md": 175,
   // A Claude artifact on Pulse: what it is, the template's start (its README and agent file carry
-  // the rest), the plugin and a pointer to pulse-ui's browser bundle for a page without a build.
-  "mcp/claude-artifacts.md": 66,
+  // the rest), the plugin, and a page without a build on the browser bundles of pulse-ui and
+  // widget-shell (their imports at the release's version, pointers to both READMEs).
+  "mcp/claude-artifacts.md": 91,
   // The web app's pages (docs/web/): what it shows and for whom, its navigation, its start page
   // (every engine's figures, what runs where, an engine it could not read), its engine screen
   // and its instance screen, the sign-in an operator sets up (variables, the provider's side,

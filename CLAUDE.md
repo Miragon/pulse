@@ -76,7 +76,8 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   docs site
 - `templates/composed-server/`: the starter for a server of your own (mirrored to
   Miragon/pulse-starter); `templates/claude-artifact/`: the template of a Claude artifact on Pulse,
-  a page in claude.ai reading the engine through the server as the viewer's connector
+  a page in claude.ai reading the engine through the server as the viewer's connector, its
+  sections and reads on widget-shell's page reads
 - `apps/mcp-server/skills/pulse-artifact/`: the Claude Code plugin `pulse-artifact`, listed in
   `.claude-plugin/marketplace.json` next to the CLI's, whose skill builds such a page from the
   template
@@ -403,8 +404,8 @@ for every workspace package.
      next to the control it marks `aria-invalid` (`Field`), never clamps it silently.
    - **The view runtime is widget-shell's.** In a chat its host adapter (`ExtAppsViewHost`) is the
      ONE place that speaks to the host; a page mounts through `mountApp`, `PageView` and
-     `mountPage` over `BrowserViewHost` (the web app, `apps/web/CLAUDE.md`), which tree-shake out
-     of the MCP bundle. Both mount the same host-agnostic contexts, as `TestViewHost` does in
+     `mountPage` over `BrowserViewHost` (the web app, `apps/web/CLAUDE.md`), a Claude artifact
+     through `mountClaudeArtifact`, all of which tree-shake out of the MCP bundle. Both mount the same host-agnostic contexts, as `TestViewHost` does in
      tests. Widgets reach the host only through `useViewHost`/`HostModelContext` and the query
      hooks (`useToolQuery`, `useToolQueries`, `useToolMutation`, `useViewData`) and never import
      ext-apps' runtime (ESLint `no-restricted-imports`). What a view offers follows its host:
@@ -424,9 +425,13 @@ for every workspace package.
      `ConfirmDialog`; nothing to show is `TableEmptyState`. A skeleton shows only after 400 ms
      (`SKELETON_DELAY_MS`), a refresh keeps the content with its region `aria-busy`, and a view's
      guard keeps its bar and title, so the page keeps its one `h1`. A page outside a host (an
-     artifact) holds the same rules with pulse-ui's `SectionState` under one `SectionStateGroup`
-     and words its transport's refusals once with `describePageError` (#664); the server's error
-     texts stay `describeError`'s.
+     artifact) holds the same rules through widget-shell's page reads: each section reads with
+     `useSectionRead` and renders through pulse-ui's `SectionState` under one
+     `SectionStateGroup`, a refusal of the page's connection is `PageGate`'s one state, and
+     `describePageFailure` words every failure, the transport's refusals by `describePageError`
+     and the server's texts by `describeError` (#664); a Claude artifact mounts with
+     `mountClaudeArtifact` (`@miragon/pulse-widget-shell/claude-artifact`), whose caller alone
+     speaks to the artifact runtime.
    - **Inline is a card, not a page** (#396): a list under a host shows the rows that fit the
      host's height, measured (`InlineFitBox`), never estimated; a paged list registers ONE list
      (`PagedRows` + `paged.fit`). An id in a table cell takes one line (`NamedId`, `IdText`), so a
@@ -681,8 +686,9 @@ The release workflows hold the publish credentials and no pull request runs them
 
 - **One release-please train.** Conventional commits on `main` drive `release-please.yml`: one
   Release PR bumps every package, app, manifest, template pin and User-Agent in lockstep
-  (`extra-files` in `release-please-config.json`), and the release tag the artifact docs clone
-  `templates/claude-artifact` from (a generic file's marked versions, held to the release by
+  (`extra-files` in `release-please-config.json`), the release tag the artifact docs clone
+  `templates/claude-artifact` from and the pulse-ui and widget-shell version a page without a
+  build loads from jsDelivr (a generic file's marked versions, held to the release by
   `pnpm lint:github`). Merging it creates the release; every publish job waits for approval of
   the `release` environment.
 - **npm:** the twelve libraries and `@miragon/pulse-cli` publish with OIDC trusted publishing (no

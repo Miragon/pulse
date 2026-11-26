@@ -8,9 +8,9 @@ import { STYLESHEET } from "../vite.config.ts"
 /**
  * What `pnpm build` writes, the three files a Claude artifact publishes (`pnpm test` builds
  * first): the page content without a document around it, one classic script, and pulse-ui's
- * stylesheet as it ships (what it holds is pulse-ui's to test). The script holds the page and its
- * kit, never the MCP client, ext-apps' runtime, React Query (they only resolve widget-shell's
- * barrel), the fixtures or the mock.
+ * stylesheet as it ships (what it holds is pulse-ui's to test). The script holds the page, its kit
+ * and widget-shell's page reads with React Query under them, never the MCP client, ext-apps'
+ * runtime, the fixtures or their replay.
  */
 
 const DIST = join(import.meta.dirname, "../dist")
@@ -73,13 +73,12 @@ describe("dist/", () => {
     }
   })
 
-  it("app.js holds no MCP client, no ext-apps runtime, no React Query, no fixtures and no mock", () => {
+  it("app.js holds no MCP client, no ext-apps runtime, no fixtures and no replay of them", () => {
     const js = read("app.js")
     for (const literal of MCP_RUNTIME_LITERALS) expect(js, literal).not.toContain(literal)
     expect(js).not.toContain("@modelcontextprotocol")
-    expect(js).not.toContain("No QueryClient set")
     expect(js).not.toContain("No recorded answer")
-    expect(js).not.toContain("The fixture fails")
+    expect(js).not.toContain("The recording fails")
     const fixture = JSON.parse(readFileSync(FIXTURE, "utf8")) as { asOf: string }
     expect(js).not.toContain(fixture.asOf)
   })

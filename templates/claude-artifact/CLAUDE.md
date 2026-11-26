@@ -6,10 +6,11 @@ reads a process engine through the viewer's connector to the Pulse MCP server an
 
 ## What a copy sets
 
-`src/page.config.ts` holds the two values: `PROCESS_KEY`, the process the dashboard shows, which
-`pnpm record` records, and `CONNECTOR_NAME`, the name the artifact runtime knows the viewer's
+`src/page.config.ts` holds what a copy sets: `PROCESS_KEY`, the process the dashboard shows,
+which `pnpm record` records; `CONNECTOR_NAME`, the name the artifact runtime knows the viewer's
 Pulse connector by (as in claude.ai's Settings, Connectors, for example `Miragon-ai-cloud`),
-which the `mcp` declaration names too. Ask for that name when you do not know it. The page's title is in `src/page.html`.
+which the `mcp` declaration names too; and `PAGE_TOOLS`, every tool the page calls. Ask for the
+connector's name when you do not know it. The page's title is in `src/page.html`.
 
 ## The artifact runtime
 
@@ -23,13 +24,17 @@ which the `mcp` declaration names too. Ask for that name when you do not know it
 - **Content security policy.** Stylesheets load only from the page's files and Google Fonts
   (Geist), and no fetch, XHR or WebSocket reaches any host: everything ships in the three files,
   and the engine comes only through the connector.
+- **One door to the runtime.** `src/artifact.tsx` mounts the page with widget-shell's
+  `mountClaudeArtifact`, whose caller alone speaks to `window.claude`: never call the runtime from
+  the page. Its contract, as a probe verified it, with its date, is in
+  `node_modules/@miragon/pulse-widget-shell/src/ui/claude-artifact/claude-tool-caller.ts` (the
+  package ships its sources), and widget-shell's README holds the page reads and the codes.
 - **Capabilities.** After the first publish, declare
-  `{ "mcp": { "servers": [{ "server": CONNECTOR_NAME, "tools": PAGE_TOOLS }] } }` with exactly
-  the names of `PAGE_TOOLS` (`src/engine/tools.ts`): the runtime refuses a call to a tool the
-  declaration leaves out (`not_in_manifest`). A declaration is always the full set, so a new tool
-  in `PAGE_TOOLS` means declaring again, every tool included. Load the `artifact-capabilities`
-  skill before you declare where it is available. `src/engine/claude-connector.ts` records the
-  runtime contract as verified, with its date.
+  `{ "mcp": { "servers": [{ "server": CONNECTOR_NAME, "tools": PAGE_TOOLS }] } }` from
+  `src/page.config.ts`, with exactly the names of `PAGE_TOOLS`: the runtime refuses a call to a
+  tool the declaration leaves out (`not_in_manifest`). A declaration is always the full set, so a
+  new tool in `PAGE_TOOLS` means declaring again, every tool included. Load the
+  `artifact-capabilities` skill before you declare where it is available.
 
 ## Data
 
@@ -68,11 +73,15 @@ recorder runs the same reads: record again after you change one.
   it holds the kit's classes and the layout utilities its README lists, and any other class renders
   nothing (`test/brand.test.ts`, which runs the kit's brand gates over `src/`). Light and dark
   follow the viewer's `data-theme`, else the OS, through that stylesheet alone.
-- **Sections.** Each reads through `useSection` and renders through `SectionState` in a `Panel`,
-  so one failing section never blanks the page: copy one of `src/sections/` for a new one.
+- **Sections.** Each reads through widget-shell's `useSectionRead` and renders through
+  `SectionState` in a `Panel`, behind the page's one `PageGate`, so one failing section never
+  blanks the page: copy one of `src/sections/` for a new one. Its key names everything its read
+  depends on besides the reader (`["stats", processKey]`): sections with one key share one read,
+  so two different reads never share a key.
 - **Dates, durations, numbers and ids** only through the `format*` helpers and `shortId`, never
   `toFixed`, `toLocaleString` or a hand-built `Intl` formatter: the helpers follow the viewer's
-  locale (`src/locale.ts` sets it) and write a `Count` as it is.
+  locale and the zone `mountClaudeArtifact` sets, and write a `Count` as it is. A relative time
+  counts from `usePageReads().now()`, the page's clock (the recording's on the fixtures).
 - **A status is a tone from `SITUATION_TONES`, never a colour:** running is `info`, never green;
   open incidents and jobs without retries `danger`. A state in a cell is a `StateLabel`.
 - **Numbers stay neutral.** Tiles carry no tint; an alarming count is a `CountFigure` with its
@@ -91,12 +100,14 @@ A search from the copy's root skips pnpm's symlink: search `node_modules/@mirago
 
 ## Checklist
 
-1. Set the two values, then `pnpm record` against a Pulse MCP server with a test engine (a
-   recording holds the engine's answers as they came) and delete `fixtures/miraveloLeasing.json`.
+1. Set the values of `src/page.config.ts`, then `pnpm record` against a Pulse MCP server with a
+   test engine (a recording holds the engine's answers as they came) and delete
+   `fixtures/miraveloLeasing.json`.
 2. Edit the sections in `src/sections/` on `pnpm dev`.
 3. `pnpm shot` and `pnpm shot -- --locale de`, then look at every screenshot in `shots/`: overflow,
    collisions, contrast and a failure where data belongs.
 4. `pnpm build`, `pnpm typecheck` and `pnpm test` pass.
-5. Publish `dist/index.html` with `dist/app.js` and `dist/pulse-ui.css`, then declare `mcp`.
+5. Publish `dist/index.html` with `dist/app.js` and `dist/pulse-ui.css`, then declare `mcp` from
+   `src/page.config.ts`.
 6. Open it in claude.ai, allow the access when claude.ai asks, and hold its numbers to the
    cockpit's process detail (`engine_open_cockpit` in the chat).
