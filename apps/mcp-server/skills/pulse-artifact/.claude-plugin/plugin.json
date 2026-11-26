@@ -1,6 +1,6 @@
 {
   "name": "pulse-artifact",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "description": "Build Claude artifacts on Pulse: live pages in claude.ai (dashboards, views and reports on Camunda 7, Operaton and CIB seven process engines) that read the engine through the Pulse MCP server, from a copy of the claude-artifact template whose agent file carries the artifact rules, the data rules and the publish checklist.",
   "author": {
     "name": "Miragon GmbH",

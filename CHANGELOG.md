@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/Miragon/pulse/compare/v0.33.0...v0.34.0) (2026-11-26)
+
+
+### Features
+
+* **widget-shell,templates:** a Claude artifact entry and page reads in widget-shell, and a thinner artifact template held to the server ([#678](https://github.com/Miragon/pulse/issues/678)) ([429a494](https://github.com/Miragon/pulse/commit/429a4942d32b7753779eaf47e8cd43580580de5d))
+
 ## [0.33.0](https://github.com/Miragon/pulse/compare/v0.32.0...v0.33.0) (2026-11-26)
 
 

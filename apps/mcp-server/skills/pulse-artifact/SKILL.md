@@ -25,7 +25,7 @@ name on npm: clone that release, never `main`.
 <!-- x-release-please-start-version -->
 
 ```sh
-git clone --depth 1 --branch v0.33.0 https://github.com/Miragon/pulse
+git clone --depth 1 --branch v0.34.0 https://github.com/Miragon/pulse
 cp -r pulse/templates/claude-artifact my-dashboard && cd my-dashboard
 pnpm install
 pnpm dev        # the example dashboard on the recorded fixtures, no server needed
@@ -63,14 +63,14 @@ published alike:
 <!-- x-release-please-start-version -->
 
 ```js
-import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.33.0/dist/browser/pulse-ui.js"
-import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.33.0/dist/browser/pulse-ui-css.js"
+import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.34.0/dist/browser/pulse-ui.js"
+import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.34.0/dist/browser/pulse-ui-css.js"
 import {
   mountClaudeArtifact,
   PageGate,
   usePageReads,
   useSectionRead,
-} from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.33.0/dist/browser/claude-artifact.js"
+} from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.34.0/dist/browser/claude-artifact.js"
 ```
 
 <!-- x-release-please-end -->
