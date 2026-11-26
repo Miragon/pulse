@@ -197,6 +197,98 @@ describe("loosenings (pure)", () => {
     ])
     assert.deepEqual(loosenings(cfg({ "max-lines": [2, 300] }), cfg({ "max-lines": [2] })), [])
   })
+
+  it("holds every size budget (#688): none rises, none drops from error, no skip relaxes", () => {
+    const base = cfg({
+      "max-lines-per-function": [2, { max: 60, skipBlankLines: true }],
+      "max-statements": [2, 20],
+      "max-depth": [2, { max: 3 }],
+      "max-params": [2, 4],
+      "max-nested-callbacks": [2, 3],
+    })
+    assert.deepEqual(loosenings(base, base), [])
+    assert.deepEqual(
+      loosenings(
+        base,
+        cfg({
+          "max-lines-per-function": [2, { max: 80, skipBlankLines: true, skipComments: true }],
+          "max-statements": [2, { max: 25 }],
+          "max-depth": [2, 4],
+          "max-params": [1, 4],
+          "max-nested-callbacks": [0],
+        }),
+      ),
+      [
+        "max-lines-per-function 60 -> 80",
+        "max-lines-per-function now sets skipComments",
+        "max-statements 20 -> 25",
+        "max-depth 3 -> 4",
+        "max-params is no longer an error",
+        "max-nested-callbacks is no longer an error",
+      ],
+    )
+    // ESLint's defaults where no option is given: 50 lines, 10 statements, depth 4, 3 parameters.
+    assert.deepEqual(
+      loosenings(
+        cfg({ "max-lines-per-function": [2], "max-statements": [2], "max-params": [2] }),
+        cfg({ "max-lines-per-function": [2, 51], "max-statements": [2, 10], "max-params": [2, 4] }),
+      ),
+      ["max-lines-per-function 50 -> 51", "max-params 3 -> 4"],
+    )
+  })
+
+  it("reads a budget as ESLint does: maximum before max, and a 0 or missing value as none", () => {
+    assert.deepEqual(
+      loosenings(
+        cfg({ "max-depth": [2, { max: 3 }], complexity: [2, { max: 10 }] }),
+        cfg({ "max-depth": [2, { maximum: 5, max: 3 }], complexity: [2, { maximum: 0 }] }),
+      ),
+      ["complexity 10 -> Infinity", "max-depth 3 -> 5"],
+    )
+  })
+
+  it("catches each option that skips part of a budget", () => {
+    assert.deepEqual(
+      loosenings(
+        cfg({
+          complexity: [2, 10],
+          "max-statements": [2, 20],
+          "max-lines-per-function": [2, { max: 60, IIFEs: true }],
+          "max-params": [2, { max: 4, countVoidThis: true }],
+        }),
+        cfg({
+          complexity: [2, { max: 10, variant: "modified" }],
+          "max-statements": [2, 20, { ignoreTopLevelFunctions: true }],
+          "max-lines-per-function": [2, { max: 60 }],
+          "max-params": [2, { max: 4 }],
+        }),
+      ),
+      [
+        "complexity now counts a switch once (variant modified)",
+        "max-lines-per-function no longer counts IIFEs",
+        "max-statements now sets ignoreTopLevelFunctions",
+        "max-params no longer counts a this parameter",
+      ],
+    )
+  })
+
+  it("holds the growth packages' backstop caps like the rules they copy", () => {
+    const backstop = cfg({
+      "pulse-backstop/complexity": [2, 15],
+      "pulse-backstop/max-lines": [2, { max: 400, skipBlankLines: true, skipComments: true }],
+    })
+    assert.deepEqual(loosenings(backstop, backstop), [])
+    assert.deepEqual(
+      loosenings(
+        backstop,
+        cfg({
+          "pulse-backstop/complexity": [2, 16],
+          "pulse-backstop/max-lines": [0],
+        }),
+      ),
+      ["pulse-backstop/complexity 15 -> 16", "pulse-backstop/max-lines is no longer an error"],
+    )
+  })
 })
 
 describe("sampleFromGlob", () => {

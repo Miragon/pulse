@@ -1,0 +1,134 @@
+{
+  "src/bpmn/bpmn-diagram.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/bpmn/bpmn-fit.ts": {
+    "max-depth": {
+      "count": 2
+    }
+  },
+  "src/bpmn/bpmn-names.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/bpmn/use-bpmn-viewer.ts": {
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/components/ListFooter.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/SectionState.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/StatusStrip.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/ViewBar.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/charts/Sparkline.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/charts/chart-frame.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/charts/chart-layout.ts": {
+    "max-params": {
+      "count": 2
+    }
+  },
+  "src/components/charts/chart-parts.tsx": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/index.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/kit/column-grip.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/kit/column-menu.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/kit/data-table-body.tsx": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "src/kit/data-table.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/kit/search-field.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/kit/segmented-control.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/primitives/tabs.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/testing/contrast.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  }
+}

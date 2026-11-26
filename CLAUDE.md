@@ -753,6 +753,11 @@ check in the MCP Inspector.
 mutation thresholds rise, the mutated surface grows, the ESLint, char and bundle budgets, knip
 ignores and inline suppressions only shrink. The one escape is a `Ratchet-Exception: <reason>`
 trailer on every commit that makes the violation; never weaken the checker instead.
+engine-connector, widget-shell, pulse-ui and the web app run the domain packages' budgets (owner
+decision 2026-11-26, #688); what broke them that day sits in each package's
+`eslint-suppressions.json`, which only shrinks: ESLint fails on a suppression no longer needed
+until `eslint --prune-suppressions` (from the package's folder) drops it, and a new one fails the
+ratchet. Split the code instead of suppressing it.
 
 **Mutation testing** runs nightly (`.github/workflows/mutation-nightly.yml`, never on a pull
 request) over the rules that run on every surface: c7-core, the transport, engine-core's rules,

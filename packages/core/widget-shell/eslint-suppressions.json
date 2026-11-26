@@ -1,0 +1,199 @@
+{
+  "src/composed-server.ts": {
+    "max-lines": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/composition.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/metrics.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/node-listener.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/oauth-discovery.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/oauth-gate.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/oauth-jwt.ts": {
+    "max-depth": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/protocol/bpmn-names.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/request-log.ts": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "src/testing/module-server.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/testing/oidc/endpoints.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/testing/oidc/realm.ts": {
+    "max-lines": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/tool-registration.ts": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 2
+    }
+  },
+  "src/ui/ask-ai-button.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/ui/browser-view-host.tsx": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/ui/confirm-dialog.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/ui/ext-apps-host.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/ui/inline-fit.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/ui/list-table.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/ui/page-reads/page-reader.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/ui/page-reads/section-read.ts": {
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/ui/recording.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/ui/tool-query.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/ui/use-detail-view.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/ui/use-paged-view-data.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/ui/view-call.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/ui/view-runtime.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/ui/widget-shell.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/view-resource.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/web/forward.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "test/browser-page.test.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  }
+}
