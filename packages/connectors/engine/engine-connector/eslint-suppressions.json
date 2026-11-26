@@ -255,11 +255,6 @@
       "count": 2
     }
   },
-  "src/widgets/instance-detail.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/widgets/instance-detail/header.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -378,14 +373,6 @@
     }
   },
   "src/widgets/process-instances/instance-row.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/widgets/process-instances/list.tsx": {
     "complexity": {
       "count": 1
     },
