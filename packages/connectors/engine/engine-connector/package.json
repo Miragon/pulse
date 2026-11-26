@@ -96,7 +96,7 @@
     "@miragon/pulse-ui": "workspace:*",
     "@miragon/pulse-widget-shell": "workspace:*",
     "@testing-library/react": "16.3.3",
-    "@types/react": "19.3.2",
+    "@types/react": "19.3.3",
     "@types/react-dom": "19.3.0",
     "bpmn-js": "18.31.1",
     "happy-dom": "21.0.4",
