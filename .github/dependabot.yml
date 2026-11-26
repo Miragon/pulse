@@ -222,11 +222,14 @@ updates:
 
   # Docker images, the server's Dockerfiles: the root one keeps its pinned base digest current;
   # the starter's (templates/composed-server) mirrors it with an unpinned node tag, so only a new
-  # Node major reaches it, outside the group like every major
+  # Node major reaches it, outside the group like every major; the VS Code extension's test image
+  # (apps/vscode/test/docker) keeps its pinned digest current too. base-images.yml fails once a
+  # week where a pin falls more than 14 days behind its tag anyway.
   - package-ecosystem: "docker"
     directories:
       - "/"
       - "/templates/composed-server"
+      - "/apps/vscode/test/docker"
     schedule:
       interval: "weekly"
     cooldown:

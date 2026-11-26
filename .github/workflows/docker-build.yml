@@ -1,6 +1,7 @@
 name: Docker build
 
-# Builds the server image (no push) on PRs touching what it is made of; never for Markdown.
+# Builds the server image (no push) on PRs touching what it is made of, for both platforms the
+# release publishes, and boots it once on each; never for Markdown.
 
 on:
   pull_request:
@@ -20,6 +21,7 @@ on:
       - apps/*/package.json
       - packages/**
       - .github/workflows/docker-build.yml
+      - scripts/image-boot-check.sh
       - "!**/*.md"
 
 concurrency:
@@ -30,20 +32,34 @@ permissions:
   contents: read
 
 jobs:
+  # Each platform the release publishes, natively (a hosted arm64 runner, no emulation), and the
+  # image started once on it: Node 26, the boot, the HEALTHCHECK and the view bundle meet here
+  # first, not on the approved release.
   build:
-    name: Docker build (no push)
-    runs-on: ubuntu-latest
+    name: Docker build ${{ matrix.platform }} (no push)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      IMAGE: pulse-server:pr-${{ github.event.pull_request.number }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - run: docker build --tag pulse-server:pr-${{ github.event.pull_request.number }} .
+      - run: docker build --tag "$IMAGE" .
 
       # What the runtime stage copies (docs/mcp/operations.md) and Node.js's own licence, which
       # THIRD_PARTY_LICENSES.txt points to: apps/mcp-server/test/third-party-licenses.test.ts holds
       # this list to the Dockerfile.
       - name: The image ships the licences
-        env:
-          IMAGE: pulse-server:pr-${{ github.event.pull_request.number }}
         run: >-
           docker run --rm --entrypoint sh "$IMAGE" -c
           'test -s /usr/share/doc/pulse-server/LICENSE &&
@@ -55,10 +71,13 @@ jobs:
       # and the page routes the boot reads (apps/mcp-server/test/third-party-licenses.test.ts holds
       # this list to the Dockerfile too).
       - name: The image holds the web app
-        env:
-          IMAGE: pulse-server:pr-${{ github.event.pull_request.number }}
         run: >-
           docker run --rm --entrypoint sh "$IMAGE" -c
           'test -s /app/web/index.html &&
           test -s /app/web/pages.json &&
           test -d /app/web/assets'
+
+      # Readiness reads no engine, so an engine nobody listens on is enough to boot. The image's
+      # own HEALTHCHECK decides, then the MCP endpoint answers a call and serves the view bundle.
+      - name: The image boots and turns healthy
+        run: scripts/image-boot-check.sh "$IMAGE"
