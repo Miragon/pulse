@@ -64,13 +64,13 @@
   "devDependencies": {
     "@miragon/pulse-ui": "workspace:*",
     "@testing-library/react": "16.3.3",
-    "@types/react": "19.3.0",
+    "@types/react": "19.3.2",
     "@types/react-dom": "19.3.0",
     "happy-dom": "21.0.4",
-    "lucide-react": "1.73.0",
+    "lucide-react": "1.78.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "typescript": "6.0.3",
-    "vitest": "5.1.1"
+    "vitest": "5.1.2"
   }
 }

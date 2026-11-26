@@ -15,9 +15,9 @@
   "dependencies": {
     "@miragon/pulse-ui": "0.34.0",
     "@miragon/pulse-widget-shell": "0.34.0",
-    "@tanstack/react-query": "5.107.2",
+    "@tanstack/react-query": "5.108.4",
     "bpmn-js": "18.31.1",
-    "lucide-react": "1.73.0",
+    "lucide-react": "1.78.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "zod": "4.6.7"
