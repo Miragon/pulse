@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Coverage floors follow their measurement and measure something (#688, F103 and F104): a vitest
  * reporter that every package's coverage run carries through vitest.shared.ts, next to vitest's

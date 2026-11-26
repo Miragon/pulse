@@ -26,6 +26,7 @@ const NOT_YET_CHECKED = [
   "scripts/check-package-scripts.test.mjs",
   "scripts/check-ratchets.mjs",
   "scripts/check-ratchets.test.mjs",
+  "scripts/coverage-floors.test.mjs",
   "scripts/dependency-cruiser-gates.test.mjs",
   "scripts/docs-refs.test.mjs",
   "scripts/editor-projects.test.mjs",
