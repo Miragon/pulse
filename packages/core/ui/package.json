@@ -111,7 +111,7 @@
     "@tailwindcss/node": "4.3.5",
     "@tailwindcss/oxide": "4.3.5",
     "@testing-library/react": "16.3.3",
-    "@types/react": "19.3.2",
+    "@types/react": "19.3.3",
     "@types/react-dom": "19.3.0",
     "bpmn-js": "18.31.1",
     "esbuild": "0.28.2",
