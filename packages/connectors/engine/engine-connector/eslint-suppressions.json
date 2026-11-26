@@ -23,11 +23,6 @@
       "count": 1
     }
   },
-  "src/data/cockpit-data.ts": {
-    "max-lines": {
-      "count": 1
-    }
-  },
   "src/data/definition-info.ts": {
     "complexity": {
       "count": 1

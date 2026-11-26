@@ -92,6 +92,17 @@ missing.
   knows the whole filter. The history's incident filters find nothing below history level FULL,
   which writes no incident to the history: `unrecordedIncidents(port)` tells that from a true
   "none" before a history query by incident answers.
+- **Instance search:** `searchedInstances(filters, term)` builds the bodies of the runtime's
+  process-instance query (POST, and its count) for a search box, a business key fragment OR a whole
+  instance id, beside the scope and the true-only flags. The engine drops `withIncident` beside the
+  OR query (`orQueries`) such a search needs in one body, and answers every match (Operaton 2.1.5,
+  CIB seven 2.2.0 and 3.0.0), while no incident field beside it reads every open incident; so with
+  the flag the search goes out as two top-level halves, the business key and the id, which names at
+  most one instance. `countSearchedInstances` counts the halves less their overlap, never below 0
+  (three requests, each in its own transaction), and `pageSearchedInstances` pages the business key
+  half with the id half's instance where the engine sorts it, both over the caller's
+  `InstanceBodyReads`; every other search stays one OR body. No caller joins the flag and an OR
+  query itself.
 - **Plans:** the pure parts of retry (`planRetry`, `retriesWrite`), advance (`chooseWait`,
   `advanceSteps`) and wait (`parseCondition`, `decide`, `poll`).
 - **Migration planning:** `definitionsAtVersion`, `proposeMigrationPlan`, `checkMigrationPlan`,
@@ -200,7 +211,7 @@ missing.
 - **Engine REST rules:** dates (`toEngineDate`, `engineDateInput` in a `DateInputReading`:
   `OFFSET_REQUIRED` refuses a time without an offset, `UTC_WITHOUT_OFFSET` reads it as UTC;
   `engineDateMillis`, `latestEngineDate`), true-only and `…Like` filters (`trueOnly`,
-  `complementaryFlags`, `engineLike`, `engineKeyList`, `engineInstanceSearch`), paired sorting
+  `complementaryFlags`, `engineLike`, `engineKeyList`), paired sorting
   (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, which refuses a value that
   is or holds a number that is not finite, since JSON would carry it as null; `autoTypedValue`),
   incident recovery (`incidentRecovery`, over `BUILT_IN_INCIDENT_TYPES`, the two types the engine
@@ -242,7 +253,8 @@ package.
   `engine_inspect_process_instance` and `engine_status`, builds its cockpit's failure clusters
   and health verdict from the same rules, flags its instance rows with `withIncidentAmong`, takes
   the filter of its instance list, its scope counts and `engine_list_process_instances` from
-  `withIncidentBody` and checks a history query by incident with `unrecordedIncidents`. Its
+  `withIncidentBody`, sends the list's search and its chips as `searchedInstances` and checks a
+  history query by incident with `unrecordedIncidents`. Its
   engine suite runs `C7Runtime` over the server's own wire, the generated SDK through its engine
   port, against the conformance kit's read laws on real engines; no tool runs the runtime. On that
   wire an integer beyond 2^53 arrives as a string of its exact digits, so `InstanceDetailReader`

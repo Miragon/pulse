@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest"
-import {
-  complementaryFlags,
-  engineInstanceSearch,
-  engineKeyList,
-  engineLike,
-  trueOnly,
-} from "./filters.js"
+import { complementaryFlags, engineKeyList, engineLike, trueOnly } from "./filters.js"
 
 describe("trueOnly: the engine ignores a false flag, so it is never sent", () => {
   it("keeps true and drops false and absent", () => {
@@ -73,31 +67,5 @@ describe("engineKeyList: single and list inputs become one comma list", () => {
     expect(engineKeyList(undefined, ["", "b"])).toBe("b")
     expect(engineKeyList(undefined, [])).toBeUndefined()
     expect(engineKeyList()).toBeUndefined()
-  })
-})
-
-describe("engineInstanceSearch: a business key fragment OR a whole instance id", () => {
-  it("ORs the business key as a substring with the term as an id", () => {
-    expect(engineInstanceSearch("CUST-1")).toEqual({
-      orQueries: [{ businessKeyLike: "%CUST-1%", processInstanceIds: ["CUST-1"] }],
-    })
-  })
-
-  it("trims a pasted id, so a trailing space still finds it", () => {
-    expect(engineInstanceSearch("  73059b49-c64b-11f1 \n")).toEqual({
-      orQueries: [
-        { businessKeyLike: "%73059b49-c64b-11f1%", processInstanceIds: ["73059b49-c64b-11f1"] },
-      ],
-    })
-  })
-
-  it("keeps a wildcard the caller placed in the business key half", () => {
-    expect(engineInstanceSearch("ORD-%-2026").orQueries?.[0]?.businessKeyLike).toBe("ORD-%-2026")
-  })
-
-  it("sends nothing for a blank or absent term", () => {
-    expect(engineInstanceSearch("")).toEqual({})
-    expect(engineInstanceSearch("   ")).toEqual({})
-    expect(engineInstanceSearch(undefined)).toEqual({})
   })
 })

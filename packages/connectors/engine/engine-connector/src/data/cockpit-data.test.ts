@@ -233,16 +233,7 @@ describe("buildProcessInstancesData: totals and page-scoped incident flags (#335
       totals: { totalCount: 9, allCount: 152, withIncidentCount: 57, suspendedCount: 9 },
       counted: [ALL, WITH_INCIDENT, SUSPENDED],
     },
-    // The search box narrows every chip alike.
-    {
-      chip: "Suspended within a search",
-      args: { suspended: true, search: " BK-7 " },
-      totals: { totalCount: 9, allCount: 152, withIncidentCount: 57, suspendedCount: 9 },
-      counted: [ALL, WITH_INCIDENT, SUSPENDED].map((body) => ({
-        ...body,
-        orQueries: [{ businessKeyLike: "%BK-7%", processInstanceIds: ["BK-7"] }],
-      })),
-    },
+    // The search box narrows every chip alike: cockpit-data.search.test.ts.
     // No chip sends both flags: their intersection is the one total no chip counts.
     {
       chip: "both flags",
@@ -327,38 +318,6 @@ describe("buildProcessInstancesData: totals and page-scoped incident flags (#335
       { sortBy: "businessKey", sortOrder: "asc" },
       { sortBy: "instanceId", sortOrder: "asc" },
     ])
-  })
-
-  it("searches a business key fragment OR a whole id, over the page and every count", async () => {
-    const { engine, client } = await engineWith(
-      instanceRoutes({ all: 1, withIncident: 0, suspended: 0 }),
-    )
-
-    // The operator's search replaces the handed-in prefilter, as the box always did.
-    const data = await buildProcessInstancesData(client, "engine-a", {
-      processDefinitionKey: "K1",
-      businessKeyLike: "BK",
-      search: " 73059b49-c64b-11f1 ",
-    })
-
-    const orQueries = [
-      { businessKeyLike: "%73059b49-c64b-11f1%", processInstanceIds: ["73059b49-c64b-11f1"] },
-    ]
-    const reads = calls(engine, "/process-instance")
-      .filter((r) => r.method === "POST")
-      .concat(calls(engine, "/process-instance/count"))
-    expect(reads).toHaveLength(4)
-    for (const read of reads) {
-      expect(bodyOf(read)).toMatchObject({ processDefinitionKey: "K1", orQueries })
-      expect(bodyOf(read)).not.toHaveProperty("businessKeyLike")
-    }
-    // The echo names what the count covers: the search, not the replaced prefilter.
-    expect(data.filters).toEqual({
-      active: undefined,
-      suspended: undefined,
-      withIncidents: undefined,
-      search: "73059b49-c64b-11f1",
-    })
   })
 
   it("keeps a handed-in businessKeyLike when the search is blank", async () => {

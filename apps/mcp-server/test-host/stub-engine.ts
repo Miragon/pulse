@@ -498,11 +498,13 @@ async function readJson(req: http.IncomingMessage): Promise<unknown> {
 
 /**
  * What a request searches for, without the `%` wildcards and lower-cased ("" = none): an
- * instance search's business key (`orQueries[0]`), or a control route's `term`.
+ * instance search's business key (`orQueries[0]`, or at the top level, where "With incident"
+ * sends it: c7-core's `searchedInstances`), or a control route's `term`.
  */
 function searchTerm(url: URL, body: unknown): string {
-  const businessKeyLike = (body as { orQueries?: Array<{ businessKeyLike?: unknown }> } | undefined)
-    ?.orQueries?.[0]?.businessKeyLike
+  const search = body as
+    { businessKeyLike?: unknown; orQueries?: Array<{ businessKeyLike?: unknown }> } | undefined
+  const businessKeyLike = search?.orQueries?.[0]?.businessKeyLike ?? search?.businessKeyLike
   const term =
     url.searchParams.get("term") ?? (typeof businessKeyLike === "string" ? businessKeyLike : "")
   return term.replaceAll("%", "").toLowerCase()

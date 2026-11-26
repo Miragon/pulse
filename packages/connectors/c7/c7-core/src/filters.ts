@@ -61,22 +61,3 @@ export function engineKeyList(...parts: (string | readonly string[] | undefined)
   const values = [...new Set(parts.flat().filter((value): value is string => !!value))]
   return values.length > 0 ? values.join(",") : undefined
 }
-
-/**
- * A search box over process instances, matching what a list names an instance
- * by: its business key as a substring OR its whole id. The engine has no LIKE
- * on ids (`processInstanceIds` matches whole ids only), so a pasted id is
- * found and a fragment of one is not. Sent as ONE nested OR query of the POST
- * `/process-instance` (and `/count`) body, which the engine ANDs with the
- * other filters; a blank term sends nothing. The term is trimmed: a pasted
- * id with a trailing space would match nothing.
- */
-export function engineInstanceSearch(term: string | undefined): {
-  orQueries?: { businessKeyLike: string; processInstanceIds: string[] }[]
-} {
-  const value = term?.trim()
-  if (!value) return {}
-  return {
-    orQueries: [{ businessKeyLike: engineLike(value) ?? value, processInstanceIds: [value] }],
-  }
-}
