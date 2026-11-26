@@ -11,28 +11,22 @@ import { IncidentsTab } from "./instance-detail/incidents-tab.js"
 import { InstanceModelContext } from "./instance-detail/model-context.js"
 import { useNav } from "./navigation.js"
 import { OpenTasksTab, useOpenTasks } from "./instance-detail/open-tasks.js"
-import { useInstanceActions } from "./instance-detail/use-instance-actions.js"
+import { type InstanceActions, useInstanceActions } from "./instance-detail/use-instance-actions.js"
 import { VariablesTab } from "./instance-detail/variables-tab.js"
-import { useT } from "../messages/use-t.js"
+import { type T, useT } from "../messages/use-t.js"
 
 export type { InstanceDetailData }
 
-export function InstanceDetailWidget({
+/** The instance's view data through the route's engine, its writes and its open tasks. */
+function useInstanceDetail({
   data: initialData = null,
   processInstanceId,
   engine,
   title,
-}: {
-  data?: InstanceDetailData | null
-  processInstanceId: string
-  engine: string
-  /** The route's title, which its bar keeps while the instance loads or fails to. */
-  title?: string
-}) {
+}: Parameters<typeof InstanceDetailWidget>[0]) {
   const t = useT()
-  const go = useNav()
   // The route's engine: a refetch never reads the default engine.
-  const { data, guard, notice, refreshError } = useDetailView<InstanceDetailData>({
+  const view = useDetailView<InstanceDetailData>({
     initialData,
     key: ["engine:instance-detail", engine, processInstanceId],
     args: { processInstanceId, engine },
@@ -43,67 +37,59 @@ export function InstanceDetailWidget({
     retryText: t("viewState.retry"),
     title,
   })
-  const actions = useInstanceActions({ engine, data, unconfirmed: refreshError !== null })
-  const { complete, visibleTasks, activeTaskId, onToggleTask, onTaskCompleted } = useOpenTasks(
-    data?.openTasks,
-    actions.canCompleteTasks,
+  const actions = useInstanceActions({
     engine,
-  )
+    data: view.data,
+    unconfirmed: view.refreshError !== null,
+  })
+  const tasks = useOpenTasks(view.data?.openTasks, actions.canCompleteTasks, engine)
+  return { ...view, actions, tasks }
+}
 
-  if (!data) return guard
+/** The loaded instance and what the view does with it. */
+interface InstanceParts {
+  data: InstanceDetailData
+  actions: InstanceActions
+  tasks: ReturnType<typeof useOpenTasks>
+}
 
-  const { instance, activityTree, variables, incidents, diagramDefinitionId } = data
-  const { engineId, isSuspended, cancelled, isActionable } = actions
+/** The lists are capped: exact engine totals minus what this view resolved, never a list length. */
+function instanceCounts({ data, actions, tasks }: InstanceParts) {
+  const activeIncidents = data.incidents.filter((i) => !actions.recovery.isDone(i)).length
+  return {
+    activeIncidents,
+    openIncidentCount: data.incidentCount - (data.incidents.length - activeIncidents),
+    openTaskCount: data.openTaskCount - (data.openTasks.length - tasks.visibleTasks.length),
+  }
+}
 
-  const variableEntries = Object.entries(variables)
-  const activeIncidents = incidents.filter((i) => !actions.recovery.isDone(i))
-  // The lists are capped: exact engine totals minus what this view resolved, never a list length.
-  const openIncidentCount = data.incidentCount - (incidents.length - activeIncidents.length)
-  const openTaskCount = data.openTaskCount - (data.openTasks.length - visibleTasks.length)
-  const status = instanceStatus(t, { cancelled, ended: instance.ended, isSuspended })
-  const callerId = data.callerInstanceId
-  const openCaller = callerId
-    ? () => go({ type: "instance-detail", processInstanceId: callerId })
-    : undefined
-  const processKey = data.definitionKey
-  const openProcess = processKey
-    ? () =>
-        go({
-          type: "process-detail",
-          processDefinitionKey: processKey,
-          label: data.processDefinitionName ?? undefined,
-        })
-    : undefined
+type InstanceCounts = ReturnType<typeof instanceCounts>
 
+/** The instance's tabs: its open tasks, its incidents, its variables and its history. */
+function instanceTabs(t: T, { data, actions, tasks }: InstanceParts, counts: InstanceCounts) {
+  const { instance, variables } = data
+  const { engineId } = actions
   const tabs: DetailPageTab[] = [
     {
       id: "tasks",
       label: t("instanceDetail.tabTasks"),
-      count: openTaskCount,
+      count: counts.openTaskCount,
       // In-progress task-form input must survive a tab switch.
       keepMounted: true,
-      content: (
-        <OpenTasksTab
-          openTasks={data.openTasks}
-          visibleTasks={visibleTasks}
-          engineId={engineId}
-          complete={complete}
-          activeTaskId={activeTaskId}
-          onToggleTask={onToggleTask}
-          onTaskCompleted={onTaskCompleted}
-        />
-      ),
+      content: <OpenTasksTab openTasks={data.openTasks} engineId={engineId} {...tasks} />,
     },
     {
       id: "incidents",
       label: t("instanceDetail.tabIncidents"),
-      count: openIncidentCount,
-      content: <IncidentsTab incidents={incidents} recovery={actions.recovery} engine={engineId} />,
+      count: counts.openIncidentCount,
+      content: (
+        <IncidentsTab incidents={data.incidents} recovery={actions.recovery} engine={engineId} />
+      ),
     },
     {
       id: "variables",
       label: t("instanceDetail.tabVariables"),
-      count: variableEntries.length,
+      count: Object.entries(variables).length,
       // An open variable-edit row must survive a tab switch.
       keepMounted: true,
       content: (
@@ -112,7 +98,7 @@ export function InstanceDetailWidget({
           instanceId={instance.id}
           definitionId={instance.definitionId}
           engineId={engineId}
-          readOnly={!isActionable}
+          readOnly={!actions.isActionable}
         />
       ),
     },
@@ -130,32 +116,81 @@ export function InstanceDetailWidget({
       ),
     },
   ]
+  return tabs
+}
 
+/**
+ * The instance's bar: its state and open incidents, the way to its caller and its process, and its
+ * writes.
+ */
+function InstanceBar({
+  data,
+  actions,
+  openIncidentCount,
+}: Omit<InstanceParts, "tasks"> & { openIncidentCount: number }) {
+  const t = useT()
+  const go = useNav()
+  const { instance } = data
+  const { cancelled, isSuspended } = actions
+  const callerId = data.callerInstanceId
+  const processKey = data.definitionKey
+  return (
+    <InstanceHeader
+      instance={instance}
+      processName={data.processDefinitionName}
+      status={instanceStatus(t, { cancelled, ended: instance.ended, isSuspended })}
+      openIncidentCount={openIncidentCount}
+      startTime={data.startTime}
+      fetchedAt={data.fetchedAt}
+      callerInstanceId={callerId}
+      engineId={actions.engineId}
+      activeActivityIds={data.activeActivityIds}
+      incidentActivityIds={data.incidentActivityIds}
+      isSuspended={isSuspended}
+      isActionable={actions.isActionable}
+      isMutatingInstance={actions.isMutatingInstance}
+      onOpenCaller={
+        callerId ? () => go({ type: "instance-detail", processInstanceId: callerId }) : undefined
+      }
+      onOpenProcess={
+        processKey
+          ? () =>
+              go({
+                type: "process-detail",
+                processDefinitionKey: processKey,
+                label: data.processDefinitionName ?? undefined,
+              })
+          : undefined
+      }
+      onRequestSuspendToggle={actions.canSuspend ? actions.requestSuspendToggle : undefined}
+      onRequestCancel={actions.canCancel ? actions.requestCancel : undefined}
+    />
+  )
+}
+
+export function InstanceDetailWidget(props: {
+  data?: InstanceDetailData | null
+  processInstanceId: string
+  engine: string
+  /** The route's title, which its bar keeps while the instance loads or fails to. */
+  title?: string
+}) {
+  const t = useT()
+  const { data, guard, notice, refreshError, actions, tasks } = useInstanceDetail(props)
+
+  if (!data) return guard
+
+  const { instance, activityTree, diagramDefinitionId } = data
+  const { engineId } = actions
+  const parts = { data, actions, tasks }
+  const counts = instanceCounts(parts)
   const defaultTab =
-    visibleTasks.length > 0 ? "tasks" : activeIncidents.length > 0 ? "incidents" : "variables"
+    tasks.visibleTasks.length > 0 ? "tasks" : counts.activeIncidents > 0 ? "incidents" : "variables"
 
   return (
     <DetailPage
       header={
-        <InstanceHeader
-          instance={instance}
-          processName={data.processDefinitionName}
-          status={status}
-          openIncidentCount={openIncidentCount}
-          startTime={data.startTime}
-          fetchedAt={data.fetchedAt}
-          callerInstanceId={callerId}
-          engineId={engineId}
-          activeActivityIds={data.activeActivityIds}
-          incidentActivityIds={data.incidentActivityIds}
-          isSuspended={isSuspended}
-          isActionable={isActionable}
-          isMutatingInstance={actions.isMutatingInstance}
-          onOpenCaller={openCaller}
-          onOpenProcess={openProcess}
-          onRequestSuspendToggle={actions.canSuspend ? actions.requestSuspendToggle : undefined}
-          onRequestCancel={actions.canCancel ? actions.requestCancel : undefined}
-        />
+        <InstanceBar data={data} actions={actions} openIncidentCount={counts.openIncidentCount} />
       }
       notice={notice}
       // No facts block: the bar holds the state and the open incidents, the tabs count the rest.
@@ -166,20 +201,20 @@ export function InstanceDetailWidget({
           activityTree={activityTree}
           activeActivityIds={data.activeActivityIds}
           incidentActivityIds={data.incidentActivityIds}
-          visibleTasks={visibleTasks}
+          visibleTasks={tasks.visibleTasks}
         />
       }
-      tabs={tabs}
+      tabs={instanceTabs(t, parts, counts)}
       defaultTab={defaultTab}
     >
       <InstanceModelContext
         instance={instance}
         engineId={engineId}
-        cancelled={cancelled}
+        cancelled={actions.cancelled}
         unconfirmed={refreshError !== null}
-        isSuspended={isSuspended}
-        openIncidentCount={openIncidentCount}
-        callerInstanceId={callerId}
+        isSuspended={actions.isSuspended}
+        openIncidentCount={counts.openIncidentCount}
+        callerInstanceId={data.callerInstanceId}
       />
       <InstanceActionDialogs actions={actions} />
     </DetailPage>

@@ -93,25 +93,17 @@ function instanceColumns(t: T, scoped: boolean, actions: boolean): ListTableColu
   ]
 }
 
-export function ProcessInstancesView({
-  data: initialData = null,
-  processDefinitionKey,
-  engine,
-}: {
-  data?: ProcessInstancesData | null
-  processDefinitionKey?: string
-  engine: string
-}) {
-  const t = useT()
-  const go = useNav()
-  const { context } = useHandOff()
-  const handOffs = useHandOffsShown()
+/**
+ * The list on its scope and search, page by page, through the route's engine and process. The
+ * scope a segment picks is a server-side filter (`instancesFilterArgs`).
+ */
+function useInstancesList(
+  initialData: ProcessInstancesData | null,
+  engine: string,
+  processDefinitionKey: string | undefined,
+) {
   const [activeChip, setActiveChip] = useState<InstanceChip>(CHIP_ALL)
-
-  const { paged, search, setSearch, interacted } = usePagedListView<
-    ProcessInstanceRow,
-    ProcessInstancesData
-  >({
+  const list = usePagedListView<ProcessInstanceRow, ProcessInstancesData>({
     initialData,
     key: ["engine:process-instances", engine, processDefinitionKey ?? null],
     tool: ENGINE_PROCESS_INSTANCES_DATA,
@@ -123,6 +115,186 @@ export function ProcessInstancesView({
     selectItems: (d) => d.instances,
     selectTotal: (d) => d.totalCount,
   })
+  return { ...list, activeChip, setActiveChip }
+}
+
+/** What the view's parts read: the list, its page on screen, the view's title and its engine. */
+interface InstancesParts {
+  list: ReturnType<typeof useInstancesList>
+  data: ProcessInstancesData
+  title: string
+  engine: string
+}
+
+/**
+ * Each segment counts what it lists on the page's scope and search, whichever is checked: the
+ * payload on screen, never the request. The count with an incident alarms by its icon, never by a
+ * coloured number (invariant 6); its label already says why, so a screen reader hears the label
+ * and the exact count, as the webview's segment reads ("With incident 54").
+ */
+function instanceScopes(t: T, data: ProcessInstancesData): SegmentedControlOption<InstanceChip>[] {
+  return [
+    { value: CHIP_ALL, label: t("processInstances.chipAll"), count: data.allCount },
+    {
+      value: CHIP_INCIDENTS,
+      label: t("processInstances.chipWithIncidents"),
+      count: data.withIncidentCount,
+      tone: data.withIncidentCount > 0 ? "danger" : undefined,
+    },
+    {
+      value: CHIP_SUSPENDED,
+      label: t("processInstances.chipSuspended"),
+      count: data.suspendedCount,
+    },
+  ]
+}
+
+/**
+ * The view's bar, then the list's filters under it, from edge to edge: the scope segments first,
+ * then the search (the webview's filter bar). Busy while a scope's page loads.
+ */
+function InstancesBars({ list, data, title, engine }: InstancesParts) {
+  const t = useT()
+  const { paged } = list
+  return (
+    <>
+      <InstancesHeader
+        title={title}
+        processName={data.processDefinitionName ?? null}
+        scopedKey={data.processDefinitionKey}
+        total={paged.total}
+        engine={engine}
+        filters={data.filters}
+        fetchedAt={data.fetchedAt}
+      />
+      <Toolbar>
+        <SegmentedControl
+          ariaLabel={t("processInstances.scopeLabel")}
+          options={instanceScopes(t, data)}
+          value={list.activeChip}
+          onChange={list.setActiveChip}
+          busy={paged.refreshing}
+        />
+        <SearchField
+          value={list.search}
+          onChange={list.setSearch}
+          delayMs={0}
+          placeholder={t("processInstances.searchPlaceholder")}
+          aria-label={t("processInstances.searchLabel")}
+        />
+      </Toolbar>
+    </>
+  )
+}
+
+/**
+ * Keep the agent aware of what the operator is looking at so it can offer the obvious next steps
+ * (drill into an instance, retry/suspend, etc.).
+ */
+function InstancesModelContext({ list, data, engine }: Omit<InstancesParts, "title">) {
+  const { context } = useHandOff()
+  const { paged } = list
+  return (
+    <HostModelContext
+      content={context(
+        describeInstancesView({
+          loadedCount: paged.items.length,
+          total: paged.total,
+          scopedKey: data.processDefinitionKey,
+          processName: data.processDefinitionName ?? null,
+          engine,
+          filters: data.filters,
+          previousResult: paged.stale,
+        }),
+      )}
+    >
+      {null}
+    </HostModelContext>
+  )
+}
+
+/** A row's drills: its instance, and its process where the row names one. */
+function useRowDrills() {
+  const go = useNav()
+  return {
+    openInstance: (instance: ProcessInstanceRow) =>
+      go({
+        type: "instance-detail",
+        processInstanceId: instance.id,
+        label: instanceName(instance.id, instance.businessKey),
+      }),
+    openProcess: (instance: ProcessInstanceRow) => {
+      if (!instance.processDefinitionKey) return
+      go({
+        type: "process-detail",
+        processDefinitionKey: instance.processDefinitionKey,
+        label: instance.processDefinitionName ?? undefined,
+      })
+    },
+  }
+}
+
+/** The page's rows, each opening its instance and its process; else what says there are none. */
+function InstanceRows({
+  list,
+  data,
+  title,
+  engine,
+  actions,
+}: InstancesParts & { actions: boolean }) {
+  const t = useT()
+  const drills = useRowDrills()
+  const { paged } = list
+  const scopedKey = data.processDefinitionKey
+  if (paged.items.length === 0) {
+    return (
+      <TableEmptyState
+        description={data.filters.search ? t("processInstances.noMatchSearch") : undefined}
+      >
+        {list.interacted ? t("processInstances.noMatch") : t("processInstances.noRunningInstances")}
+      </TableEmptyState>
+    )
+  }
+  return (
+    <ListTable
+      ariaLabel={
+        title === t("processInstances.allTitle")
+          ? title
+          : t("processInstances.tableAriaLabel", { name: title })
+      }
+      columns={instanceColumns(t, !!scopedKey, actions)}
+    >
+      {paged.items.map((row) => (
+        <InstanceRow
+          key={row.id}
+          row={row}
+          processDefinitionKey={scopedKey}
+          engine={engine}
+          showProcessColumn={!scopedKey}
+          actions={actions}
+          onOpen={drills.openInstance}
+          onOpenProcess={drills.openProcess}
+        />
+      ))}
+    </ListTable>
+  )
+}
+
+export function ProcessInstancesView({
+  data: initialData = null,
+  processDefinitionKey,
+  engine,
+}: {
+  data?: ProcessInstancesData | null
+  processDefinitionKey?: string
+  engine: string
+}) {
+  const t = useT()
+  const handOffs = useHandOffsShown()
+  const list = useInstancesList(initialData, engine, processDefinitionKey)
+  const { paged } = list
+  // The page on screen, its filters the echo of that page, never the request: an in-flight or
+  // failed query still shows the previous result.
   const data = paged.firstPage
 
   if (!data) {
@@ -142,128 +314,15 @@ export function ProcessInstancesView({
     )
   }
 
-  const scopedKey = data.processDefinitionKey
-  const title = data.processDefinitionName ?? scopedKey ?? t("processInstances.allTitle")
+  const title =
+    data.processDefinitionName ?? data.processDefinitionKey ?? t("processInstances.allTitle")
   // A row's one further action is the hand-off of an instance with an open incident.
   const actions = handOffs && paged.items.some((row) => row.hasIncident)
-  // The echo of the page on screen, never the request: an in-flight or failed query still shows the previous result.
-  const listFilters = data.filters
-
-  // Each segment counts what it lists on the page's scope and search, whichever is checked: the
-  // payload on screen, never the request. The count with an incident alarms by its icon, never
-  // by a coloured number (invariant 6); its label already says why, so a screen reader hears the
-  // label and the exact count, as the webview's segment reads ("With incident 54").
-  const scopes: SegmentedControlOption<InstanceChip>[] = [
-    { value: CHIP_ALL, label: t("processInstances.chipAll"), count: data.allCount },
-    {
-      value: CHIP_INCIDENTS,
-      label: t("processInstances.chipWithIncidents"),
-      count: data.withIncidentCount,
-      tone: data.withIncidentCount > 0 ? "danger" : undefined,
-    },
-    {
-      value: CHIP_SUSPENDED,
-      label: t("processInstances.chipSuspended"),
-      count: data.suspendedCount,
-    },
-  ]
-
   return (
-    <WidgetShell
-      header={
-        <>
-          <InstancesHeader
-            title={title}
-            processName={data.processDefinitionName ?? null}
-            scopedKey={scopedKey}
-            total={paged.total}
-            engine={engine}
-            filters={listFilters}
-            fetchedAt={data.fetchedAt}
-          />
-          {/* The list's filters under the view's bar, from edge to edge: the scope segments
-              first, then the search (the webview's filter bar). Busy while a scope's page
-              loads. */}
-          <Toolbar>
-            <SegmentedControl
-              ariaLabel={t("processInstances.scopeLabel")}
-              options={scopes}
-              value={activeChip}
-              onChange={setActiveChip}
-              busy={paged.refreshing}
-            />
-            <SearchField
-              value={search}
-              onChange={setSearch}
-              delayMs={0}
-              placeholder={t("processInstances.searchPlaceholder")}
-              aria-label={t("processInstances.searchLabel")}
-            />
-          </Toolbar>
-        </>
-      }
-    >
-      {/* Keep the agent aware of what the operator is looking at so it can offer
-          the obvious next steps (drill into an instance, retry/suspend, etc.). */}
-      <HostModelContext
-        content={context(
-          describeInstancesView({
-            loadedCount: paged.items.length,
-            total: paged.total,
-            scopedKey,
-            processName: data.processDefinitionName ?? null,
-            engine,
-            filters: listFilters,
-            previousResult: paged.stale,
-          }),
-        )}
-      >
-        {null}
-      </HostModelContext>
-
+    <WidgetShell header={<InstancesBars list={list} data={data} title={title} engine={engine} />}>
+      <InstancesModelContext list={list} data={data} engine={engine} />
       <PagedRows paged={paged}>
-        {paged.items.length === 0 ? (
-          <TableEmptyState
-            description={listFilters.search ? t("processInstances.noMatchSearch") : undefined}
-          >
-            {interacted ? t("processInstances.noMatch") : t("processInstances.noRunningInstances")}
-          </TableEmptyState>
-        ) : (
-          <ListTable
-            ariaLabel={
-              title === t("processInstances.allTitle")
-                ? title
-                : t("processInstances.tableAriaLabel", { name: title })
-            }
-            columns={instanceColumns(t, !!scopedKey, actions)}
-          >
-            {paged.items.map((row) => (
-              <InstanceRow
-                key={row.id}
-                row={row}
-                processDefinitionKey={scopedKey}
-                engine={engine}
-                showProcessColumn={!scopedKey}
-                actions={actions}
-                onOpen={(instance) =>
-                  go({
-                    type: "instance-detail",
-                    processInstanceId: instance.id,
-                    label: instanceName(instance.id, instance.businessKey),
-                  })
-                }
-                onOpenProcess={(instance) => {
-                  if (!instance.processDefinitionKey) return
-                  go({
-                    type: "process-detail",
-                    processDefinitionKey: instance.processDefinitionKey,
-                    label: instance.processDefinitionName ?? undefined,
-                  })
-                }}
-              />
-            ))}
-          </ListTable>
-        )}
+        <InstanceRows list={list} data={data} title={title} engine={engine} actions={actions} />
       </PagedRows>
       {/* Also under an empty result: a failed search keeps the previous
           (empty) rows on screen, and its error + retry live in the footer. */}

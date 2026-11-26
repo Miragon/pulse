@@ -47,7 +47,7 @@ function engineTimeWindow(args: TimeWindow) {
   }
 }
 
-export function registerHistoryTools(register: EngineToolRegistrar) {
+function registerQueryHistoricProcessInstances(register: EngineToolRegistrar) {
   register({
     name: "engine_query_historic_process_instances",
     category: "history",
@@ -86,7 +86,9 @@ export function registerHistoryTools(register: EngineToolRegistrar) {
         : list
     }),
   })
+}
 
+function registerQueryHistoricActivityInstances(register: EngineToolRegistrar) {
   register({
     name: "engine_query_historic_activity_instances",
     category: "history",
@@ -123,7 +125,9 @@ export function registerHistoryTools(register: EngineToolRegistrar) {
       return toPaginatedList(items, count, args.firstResult)
     }),
   })
+}
 
+function registerQueryHistoricTaskInstances(register: EngineToolRegistrar) {
   register({
     name: "engine_query_historic_task_instances",
     category: "history",
@@ -154,7 +158,9 @@ export function registerHistoryTools(register: EngineToolRegistrar) {
       return toPaginatedList(items, count, args.firstResult)
     }),
   })
+}
 
+function registerQueryHistoricVariableInstances(register: EngineToolRegistrar) {
   register({
     name: "engine_query_historic_variable_instances",
     category: "history",
@@ -186,7 +192,9 @@ export function registerHistoryTools(register: EngineToolRegistrar) {
       return toPaginatedList(truncateVariableRows(items), count, args.firstResult)
     }),
   })
+}
 
+function registerQueryHistoricIncidents(register: EngineToolRegistrar) {
   register({
     name: "engine_query_historic_incidents",
     category: "history",
@@ -226,4 +234,13 @@ export function registerHistoryTools(register: EngineToolRegistrar) {
       return checkedIncidentHistory(client, toPaginatedList(items, count, args.firstResult))
     }),
   })
+}
+
+/** The history tools, one registration each, in the order tools/list names them. */
+export function registerHistoryTools(register: EngineToolRegistrar) {
+  registerQueryHistoricProcessInstances(register)
+  registerQueryHistoricActivityInstances(register)
+  registerQueryHistoricTaskInstances(register)
+  registerQueryHistoricVariableInstances(register)
+  registerQueryHistoricIncidents(register)
 }

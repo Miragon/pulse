@@ -112,22 +112,12 @@
       "count": 1
     }
   },
-  "src/tools/history.ts": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/tools/incident-issue.ts": {
     "max-lines": {
       "count": 1
     }
   },
   "src/tools/jobs.ts": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/tools/process-instances.ts": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -151,20 +141,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    }
-  },
-  "src/widgets/cockpit-app/app.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
-      "count": 1
     }
   },
   "src/widgets/cockpit-app/cockpit-state.ts": {
@@ -277,11 +253,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    }
-  },
-  "src/widgets/instance-detail.tsx": {
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "src/widgets/instance-detail/header.tsx": {
@@ -409,25 +380,8 @@
       "count": 1
     }
   },
-  "src/widgets/process-instances/list.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/widgets/task-complete-form.tsx": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 2
-    },
-    "max-statements": {
       "count": 1
     }
   }
