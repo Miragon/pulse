@@ -1,5 +1,12 @@
 name: Dependabot auto-merge eligibility
 
+# Labels a Dependabot pull request auto-merge when every file it changes is a dependency file and
+# every dependency moves by a patch, or by a minor from 1.0 on. Never a workflow: an action's
+# update reaches jobs that hold the release app's key, so it waits for a review. Below 1.0 a minor
+# is a breaking step (0.12 to 0.14.2 broke @miragon/modeler-shell in #623), so it waits like a
+# major, whatever Dependabot's semver-minor says. It runs on every push to the pull request,
+# whoever pushed: a commit that is not Dependabot's withdraws the label and the auto-merge, since
+# the label judged Dependabot's change alone.
 on: pull_request
 
 permissions:
@@ -8,17 +15,35 @@ permissions:
 
 jobs:
   label-eligible:
-    if: github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
+      - name: Every commit is Dependabot's
+        id: authors
+        env:
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          others=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/commits" --paginate \
+            --jq '.[] | select(.author.login != "dependabot[bot]") | .sha')
+          if [ -n "$others" ]; then
+            echo "Commits not by Dependabot: $others"
+            echo "only_dependabot=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "only_dependabot=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Fetch Dependabot metadata
         id: meta
+        if: steps.authors.outputs.only_dependabot == 'true'
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Decide whether this update may auto-merge
         id: decision
+        if: steps.authors.outputs.only_dependabot == 'true'
         run: |
           case "$UPDATE_TYPE" in
             version-update:semver-patch) allowed_paths=$PATCH_AUTOMERGE_PATHS ;;
@@ -27,6 +52,17 @@ jobs:
             *) exit 0 ;;
           esac
           [ -n "$allowed_paths" ] || exit 0
+          # A major, or a minor below 1.0, of any dependency of the update (a group's too).
+          breaking=$(jq -r '
+            def parts: (. // "") | sub("^[^0-9]*"; "") | split(".");
+            [.[] | select(.updateType == "version-update:semver-major"
+              or ((.prevVersion | parts) as $p | (.newVersion | parts) as $n
+                  | $p[0] == "0" and $p[1] != $n[1]))
+            | .dependencyName] | join(", ")' <<< "$UPDATED")
+          if [ -n "$breaking" ]; then
+            echo "A breaking step (a major, or a minor below 1.0): $breaking"
+            exit 0
+          fi
           changed_files=$(gh pr diff --name-only "$PR_URL")
           [ -n "$changed_files" ] || exit 0
           while IFS= read -r changed_file; do
@@ -35,14 +71,17 @@ jobs:
           echo "eligible=true" >> "$GITHUB_OUTPUT"
         env:
           UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
-          PATCH_AUTOMERGE_PATHS: '^(pnpm-lock\.yaml|pnpm-workspace\.yaml|(apps|packages|templates|docs)/(.+/)?package\.json|package\.json|playground/cibseven-example/gradle/.+|\.github/workflows/.+|apps/cli/Dockerfile)$'
-          MINOR_AUTOMERGE_PATHS: '^(pnpm-lock\.yaml|pnpm-workspace\.yaml|(apps|packages|templates|docs)/(.+/)?package\.json|package\.json|playground/cibseven-example/gradle/.+|\.github/workflows/.+|apps/cli/Dockerfile)$'
+          UPDATED: ${{ steps.meta.outputs.updated-dependencies-json }}
+          PATCH_AUTOMERGE_PATHS: '^(pnpm-lock\.yaml|pnpm-workspace\.yaml|(apps|packages|templates|docs)/(.+/)?package\.json|package\.json|playground/cibseven-example/gradle/.+|apps/cli/Dockerfile)$'
+          MINOR_AUTOMERGE_PATHS: '^(pnpm-lock\.yaml|pnpm-workspace\.yaml|(apps|packages|templates|docs)/(.+/)?package\.json|package\.json|playground/cibseven-example/gradle/.+|apps/cli/Dockerfile)$'
           MAJOR_AUTOMERGE_PATHS: ""
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Fail-closed: whatever kept the decision from saying eligible (a hand-made commit, a
+      # breaking step, a file outside the list, an error) withdraws an earlier label.
       - name: Withdraw an update that is no longer eligible
-        if: steps.decision.outcome == 'success' && steps.decision.outputs.eligible != 'true'
+        if: ${{ !cancelled() && steps.decision.outputs.eligible != 'true' }}
         run: |
           gh pr edit "$PR_URL" --remove-label auto-merge || true
           gh pr merge --disable-auto "$PR_URL" || true

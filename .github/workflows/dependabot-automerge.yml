@@ -1,5 +1,12 @@
 name: Dependabot auto-merge
 
+# Enables auto-merge as the release app (a merge by the GITHUB_TOKEN would start no workflow, and
+# release-please needs the push) for a Dependabot pull request the eligibility workflow labelled.
+# The token is narrowed to this repository's contents and pull requests: it can merge no change of
+# a workflow file (that needs the workflows permission), which eligibility never labels anyway.
+# Before it enables anything it checks again that the run judged the pull request's current head,
+# that the label is still there and that every commit is Dependabot's, so a stale run never
+# enables auto-merge after a hand-made push.
 on:
   workflow_run:
     workflows:
@@ -15,23 +22,40 @@ jobs:
       github.event.workflow_run.actor.login == 'dependabot[bot]' &&
       github.event.workflow_run.pull_requests[0]
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         id: app-token
         with:
           client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Enable auto-merge as the release app
         run: |
+          head="$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)"
+          if [ "$head" != "$JUDGED_SHA" ]; then
+            echo "The run judged ${JUDGED_SHA}, the head is ${head} now: its own run decides."
+            exit 0
+          fi
           gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name' | grep -qx auto-merge || exit 0
+          others=$(gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}/commits" --paginate \
+            --jq '.[] | select(.author.login != "dependabot[bot]") | .sha')
+          if [ -n "$others" ]; then
+            echo "Commits not by Dependabot: $others"
+            exit 0
+          fi
           for i in 1 2 3 4 5; do
-            gh pr merge --auto --squash "$PR_NUMBER" && exit 0
-            echo "enablePullRequestAutoMerge race (attempt $i) — retrying in 15s…"
+            gh pr merge --auto --squash --match-head-commit "$JUDGED_SHA" "$PR_NUMBER" && exit 0
+            echo "enablePullRequestAutoMerge race (attempt $i), retrying in 15s"
             sleep 15
           done
           exit 1
         env:
           PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          JUDGED_SHA: ${{ github.event.workflow_run.head_sha }}
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
