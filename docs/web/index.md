@@ -56,7 +56,7 @@ called says where it lies and opens there in focus: its stack trace read in plac
 line marked, copy and wrap; **Open caller** leads back. It is the instance Pulse for VS Code shows.
 The search asks every engine at once for the instance with that ID and up to 20 with that exact
 business key (never a part of one, at most 256 characters), running and ended. An engine it could
-not search, refused or down, says so above the hits of the others, and "nothing found" then speaks
+not search, refused or down, says so at once above the others' hits, and "nothing found" then speaks
 of the others alone; one whose history misses running instances (Camunda 7 at history level NONE)
 says the search finds only those in its history. One hit, when every engine was searched and none
 misses history, opens its instance in the search's place, so Back leads to where you searched from.

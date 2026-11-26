@@ -359,7 +359,9 @@ server image builds the page beside the server and serves it from `/app/web`.
   engine, from the search's feed (`engine_screen_find_data`, an app-only read of the engine contract
   in every dialect, the screens' `Finder`), one call per engine of the frame's one read of the
   engine list, all at once, as the start page reads each engine, so each engine's failure is its
-  own; a refused profile is read nothing of, its refusal the list's reason in the server's words
+  own, said from its first failed attempt while the query client retries behind it, as on the start
+  page, which settles the engine for what the search shows until a later answer replaces it; a
+  refused profile is read nothing of, its refusal the list's reason in the server's words
   (`search-reads.ts`, `refusalOf`). Its bar: what was searched as the h1 (none: "Find an instance" and how to
   search, nothing read), once every engine settled how many instances were found on how many
   engines and that the search is exact, the Refresh (every engine again), when the hits were read
@@ -379,10 +381,12 @@ server image builds the page beside the server and serves it from `/app/web`.
   searched; an engine that failed for a reason a retry may change keeps the search, and so does one
   whose history misses running instances, whose notice stays to be read) replaces the address by
   its instance's (the router's `navigate` with `replace`), so Back leads to where the search
-  started; it is decided once per entry, when every engine first settled, and the router marks the
-  entry (`seen`, `markSeen`, in the entry's state), so neither a Refresh nor a return to the entry
-  (Back, Forward, a reload) leaves it. Another search is a new entry and starts the screen anew. It
-  writes nothing and hands nothing to a chat.
+  started; it is decided once per entry, once every engine answered or failed with no retry left
+  (`searchedOut`: an engine said down at its first failed attempt holds the decision while it is
+  retried, its retry paused while the tab is hidden too, so a retry that answers still opens the
+  one hit), and the router marks the entry (`seen`, `markSeen`, in the entry's state), so neither
+  a Refresh nor a return to the entry (Back, Forward, a reload) leaves it. Another search is a new
+  entry and starts the screen anew. It writes nothing and hands nothing to a chat.
 - A screen of the page's fills the window's height from 64rem on (`SessionLayout`'s `fill`, which
   bounds the sheet; widget-shell's `WidgetShell` and `ListTable` `fill`; pulse-ui's
   `NavigationFocus` `className`): the engine screen's list and the process and instance screens'

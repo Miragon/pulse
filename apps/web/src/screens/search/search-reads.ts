@@ -19,8 +19,15 @@ export const MOST_BY_BUSINESS_KEY = 20
 export interface EngineSearch {
   readonly engine: string
   readonly found: FindScreenData | undefined
+  /** Why it could not, from its first failed attempt on, while the query client retries. */
   readonly error: Error | null
+  /** Neither an answer nor a failure yet: one retried after a failure has settled for the page. */
   readonly pending: boolean
+  /**
+   * A failed attempt the query client still retries, at once or once the tab shows again: its
+   * failure shows, a retry may answer.
+   */
+  readonly retrying: boolean
   readonly fetching: boolean
 }
 
@@ -28,22 +35,44 @@ export interface EngineSearch {
 interface SearchRead {
   readonly data: FindScreenData | undefined
   readonly error: Error | null
+  /** The failure of its last attempt, set from the first one on while the query retries. */
+  readonly failureReason: Error | null
   readonly isPending: boolean
   readonly isFetching: boolean
+  /** Its next attempt waits: TanStack pauses a retry while the tab is hidden. */
+  readonly isPaused: boolean
 }
 
-/** One engine's search from its read, pending while its read has not started. */
+/**
+ * One engine's search from its read, pending while its read has not started: its failure from its
+ * first failed attempt on, as the query client retries quietly behind it, so an engine that is down
+ * says so at once, as on the start page, and counts as settled for what the search shows, though
+ * still `retrying`; an answer of a later attempt replaces the failure.
+ */
 export function searchOf(engine: string, read: SearchRead | undefined): EngineSearch {
-  if (read === undefined)
-    return { engine, found: undefined, error: null, pending: true, fetching: false }
+  if (read === undefined) {
+    return {
+      engine,
+      found: undefined,
+      error: null,
+      pending: true,
+      retrying: false,
+      fetching: false,
+    }
+  }
+  const error = read.error ?? read.failureReason
   return {
     engine,
     found: read.data,
-    error: read.error,
-    pending: read.isPending,
+    error,
+    pending: read.isPending && error === null,
+    retrying: (read.isFetching || read.isPaused) && read.failureReason !== null,
     fetching: read.isFetching,
   }
 }
+
+/** Whether an engine's search is over: answered, or failed with no retry left. */
+export const searchedOut = ({ pending, retrying }: EngineSearch): boolean => !pending && !retrying
 
 /**
  * The search for `text` on every engine of the frame's one read of the engine list (the engines of
@@ -65,6 +94,7 @@ export function useSearchReads(text: string) {
     found: undefined,
     error: refusalOf(id, reason),
     pending: false,
+    retrying: false,
     fetching: false,
   }))
   const searches = [...reads.map((engine, index) => searchOf(engine, queries[index])), ...refused]

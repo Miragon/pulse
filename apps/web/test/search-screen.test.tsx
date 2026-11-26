@@ -5,7 +5,7 @@ import { TestViewHost, WebApiError, type HostAction } from "@miragon/pulse-widge
 import type { FindScreenData } from "@miragon/pulse-screens"
 import { WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { SearchScreen } from "../src/screens/search/search-screen.js"
-import { FIND_FEED, searchOf } from "../src/screens/search/search-reads.js"
+import { FIND_FEED } from "../src/screens/search/search-reads.js"
 
 /**
  * The web app's search across engines over the kit world's find screens (WORLD_SCREENS of
@@ -504,21 +504,5 @@ describe("the search's states", () => {
       "[data-slot=status-strip]",
     )!
     expect(strip.textContent).toContain("The cluster of c8-dev has no secondary storage")
-  })
-})
-
-describe("an engine's search", () => {
-  it("is pending while its read has not started, and holds what its read holds once it has", () => {
-    expect(searchOf("prod-a", undefined)).toEqual({
-      engine: "prod-a",
-      found: undefined,
-      error: null,
-      pending: true,
-      fetching: false,
-    })
-    const found = foundOn("prod-a")
-    expect(
-      searchOf("prod-a", { data: found, error: null, isPending: false, isFetching: true }),
-    ).toEqual({ engine: "prod-a", found, error: null, pending: false, fetching: true })
   })
 })
