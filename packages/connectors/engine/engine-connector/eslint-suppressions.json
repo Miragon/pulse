@@ -112,22 +112,12 @@
       "count": 1
     }
   },
-  "src/tools/history.ts": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/tools/incident-issue.ts": {
     "max-lines": {
       "count": 1
     }
   },
   "src/tools/jobs.ts": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/tools/process-instances.ts": {
     "max-lines-per-function": {
       "count": 1
     }

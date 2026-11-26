@@ -34,7 +34,7 @@ import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
 import { CUT_VALUE_WRITE_RULE, variableRead } from "../lib/mcp/variable-truncation.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 
-export function registerProcessInstanceTools(register: EngineToolRegistrar) {
+function registerStartProcessInstance(register: EngineToolRegistrar) {
   register({
     name: "engine_start_process_instance",
     category: "process-instances",
@@ -54,7 +54,9 @@ export function registerProcessInstanceTools(register: EngineToolRegistrar) {
       }),
     ),
   })
+}
 
+function registerListProcessInstances(register: EngineToolRegistrar) {
   register({
     name: "engine_list_process_instances",
     category: "process-instances",
@@ -86,7 +88,9 @@ export function registerProcessInstanceTools(register: EngineToolRegistrar) {
       return toPaginatedList(items, count, args.firstResult)
     }),
   })
+}
 
+function registerInspectProcessInstance(register: EngineToolRegistrar) {
   register({
     name: "engine_inspect_process_instance",
     category: "process-instances",
@@ -98,7 +102,9 @@ export function registerProcessInstanceTools(register: EngineToolRegistrar) {
     inputSchema: { ...inspectProcessInstanceInput.shape, ...engineParamShape },
     handler: withEngine((client, args, { engineId }) => inspectForModel(client, args, engineId)),
   })
+}
 
+function registerGetActivityInstanceTree(register: EngineToolRegistrar) {
   register({
     name: "engine_get_activity_instance_tree",
     category: "process-instances",
@@ -111,7 +117,9 @@ export function registerProcessInstanceTools(register: EngineToolRegistrar) {
       getActivityInstanceTree({ client, path: { id: args.processInstanceId } }),
     ),
   })
+}
 
+function registerDeleteProcessInstance(register: EngineToolRegistrar) {
   register({
     name: "engine_delete_process_instance",
     category: "process-instances",
@@ -134,7 +142,9 @@ export function registerProcessInstanceTools(register: EngineToolRegistrar) {
       return { success: true, processInstanceId: args.processInstanceId }
     }),
   })
+}
 
+function registerModifyProcessInstance(register: EngineToolRegistrar) {
   register({
     name: "engine_modify_process_instance",
     category: "process-instances",
@@ -156,7 +166,9 @@ export function registerProcessInstanceTools(register: EngineToolRegistrar) {
       return { success: true, processInstanceId: args.processInstanceId }
     }),
   })
+}
 
+function registerGetProcessInstanceVariables(register: EngineToolRegistrar) {
   register({
     name: "engine_get_process_instance_variables",
     category: "process-instances",
@@ -172,7 +184,9 @@ export function registerProcessInstanceTools(register: EngineToolRegistrar) {
       ),
     ),
   })
+}
 
+function registerSetProcessInstanceVariable(register: EngineToolRegistrar) {
   register({
     name: "engine_set_process_instance_variable",
     category: "process-instances",
@@ -199,7 +213,9 @@ export function registerProcessInstanceTools(register: EngineToolRegistrar) {
       }
     }),
   })
+}
 
+function registerSetProcessInstanceSuspension(register: EngineToolRegistrar) {
   register({
     name: "engine_set_process_instance_suspension",
     category: "process-instances",
@@ -221,4 +237,17 @@ export function registerProcessInstanceTools(register: EngineToolRegistrar) {
       }
     }),
   })
+}
+
+/** The process instance tools, one registration each, in the order tools/list names them. */
+export function registerProcessInstanceTools(register: EngineToolRegistrar) {
+  registerStartProcessInstance(register)
+  registerListProcessInstances(register)
+  registerInspectProcessInstance(register)
+  registerGetActivityInstanceTree(register)
+  registerDeleteProcessInstance(register)
+  registerModifyProcessInstance(register)
+  registerGetProcessInstanceVariables(register)
+  registerSetProcessInstanceVariable(register)
+  registerSetProcessInstanceSuspension(register)
 }
