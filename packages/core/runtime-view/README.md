@@ -88,6 +88,11 @@ harness root's 1,200 pixels in a viewport as wide, so axe sees the whole screen;
 of the diagram's overlays, which scale with its zoom down to 0.7 of the named 20 px deviation, is
 the geometry gate's exception there too (`test/webview/accessibility.test.tsx`); `test/webview/semantics.test.tsx` holds the roles and
 states each screen keeps, `test/webview/focus-on-update.test.tsx` focus across a live update.
+`test/webview/canvas-labels.test.tsx` measures a label in bpmn-js's Arial, so it needs a font with
+Arial's metrics (Arial, Liberation Sans or Arimo; Playwright's `install-deps` brings
+fonts-liberation, as in CI) and skips that case with its reason on a machine without one. On CI
+it fails instead (the browser project hands the tests `CI` as `runsOnCi`), so a runner that lost
+the font goes red rather than skipping the case unseen.
 
 They reach the webview by role and accessible name, which a query asserts, and where no role
 fits by a `data-part` hook, never by a CSS class of the webview. Where the webview renders the

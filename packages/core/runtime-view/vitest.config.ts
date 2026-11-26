@@ -49,6 +49,7 @@ export default mergeConfig(
           test: {
             name: "browser",
             include: ["test/webview/**/*.test.tsx"],
+            provide: { runsOnCi: Boolean(process.env.CI) },
             browser: {
               enabled: true,
               headless: true,

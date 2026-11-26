@@ -1,5 +1,5 @@
 import TextRenderer from "bpmn-js/lib/draw/TextRenderer"
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, describe, expect, inject, it, vi, type TestContext } from "vitest"
 import orderXml from "../../dev/webview/fixtures/order-fulfillment.bpmn"
 import { FIXTURES } from "../../dev/webview/fixtures/states.js"
 import type { Decorations } from "../../src/webview/diagram/decorations.js"
@@ -49,13 +49,37 @@ function asTheModelerSizesIt(xml: string): { readonly xml: string; readonly box:
   return { xml: new XMLSerializer().serializeToString(doc), box }
 }
 
-function widthInGeist(text: string): number {
+function widthIn(font: string, text: string): number {
   const context = document.createElement("canvas").getContext("2d")
   if (context === null) {
     throw new Error("No 2D context to measure with.")
   }
-  context.font = '11px "Geist Variable"'
+  context.font = font
   return context.measureText(text).width
+}
+
+function widthInGeist(text: string): number {
+  return widthIn('11px "Geist Variable"', text)
+}
+
+function arialFallsBackToTheNextFamily(): boolean {
+  return widthIn("11px Arial, monospace", LABEL) === widthIn("11px monospace", LABEL)
+}
+
+const NO_FONT_WITH_ARIAL_METRICS =
+  "no font with Arial's metrics is installed (Arial, or Liberation Sans or Arimo, the faces " +
+  "Chromium takes for it; fonts-liberation on Debian and Ubuntu, which CI's playwright " +
+  "install-deps brings), so bpmn-js would size the box for Arial in another font"
+
+function needsAFontWithArialMetrics(context: TestContext): void {
+  const missing = arialFallsBackToTheNextFamily()
+  if (inject("runsOnCi")) {
+    expect(
+      missing,
+      `${NO_FONT_WITH_ARIAL_METRICS}, and on CI this case runs rather than skips`,
+    ).toBe(false)
+  }
+  context.skip(missing, NO_FONT_WITH_ARIAL_METRICS)
 }
 
 function canvasOn(host: HTMLElement): RuntimeCanvas {
@@ -104,7 +128,8 @@ describe("the labels on the diagram", () => {
     document.body.replaceChildren()
   })
 
-  it("keep one line where the modeler sized the box for Arial, which Geist would overflow", async () => {
+  it("keep one line where the modeler sized the box for Arial, which Geist would overflow", async (context) => {
+    needsAFontWithArialMetrics(context)
     const { xml, box } = asTheModelerSizesIt(orderXml)
     expect(document.fonts.check('11px "Geist Variable"')).toBe(true)
     expect(widthInGeist(LABEL)).toBeGreaterThan(box.width)
