@@ -2880,6 +2880,15 @@ describe("a script's `// @ts-check` (the scripts not typed yet only shrink)", ()
       compareTsCheck("scripts/b.mjs", null, untyped)[0],
       /scripts\/b\.mjs is new and does not say `\/\/ @ts-check`.*NOT_YET_CHECKED/,
     )
+    // tsc honours @ts-nocheck over @ts-check, so the pragma kept above it checks nothing.
+    for (const nocheck of ["// @ts-nocheck", "/* @ts-nocheck */", " * @ts-nocheck"]) {
+      assert.match(
+        compareTsCheck("scripts/a.mjs", typed, `${typed}${nocheck}\nexport const a = 1\n`)[0],
+        /scripts\/a\.mjs no longer says `\/\/ @ts-check` \(a `@ts-nocheck` comment switches it off\)/,
+        nocheck,
+      )
+    }
+    assert.equal(compareTsCheck("scripts/b.mjs", null, `${typed}// @ts-nocheck\n`).length, 1)
   })
 
   it("lets a script keep it, gain it, go, or stay unchecked as the base had it", () => {
@@ -2891,6 +2900,11 @@ describe("a script's `// @ts-check` (the scripts not typed yet only shrink)", ()
     // After a shebang, as tsc reads it; anywhere else it checks nothing.
     assert.deepEqual(compareTsCheck("scripts/a.mjs", typed, `#!/usr/bin/env node\n${typed}`), [])
     assert.equal(compareTsCheck("scripts/a.mjs", typed, `${untyped}// @ts-check\n`).length, 1)
+    // A comment that only names the pragma is no pragma.
+    assert.deepEqual(
+      compareTsCheck("scripts/a.mjs", typed, `${typed}// no \`@ts-nocheck\` here\n`),
+      [],
+    )
   })
 })
 

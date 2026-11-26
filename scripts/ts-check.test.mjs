@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url"
 import picomatch from "picomatch"
 import ts from "typescript"
 import { REPO_SCRIPTS } from "../eslint.config.mjs"
-import { TS_CHECK, isTypedScript } from "./check-ratchets.mjs"
+import { isTypedScript, saysTsCheck as checkedByTsc } from "./check-ratchets.mjs"
 import { readWorkspace } from "./workspace-packages.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
@@ -59,7 +59,7 @@ function repoScripts() {
 /** The project of the dependency rules at a package's root (no pragma: checkJs checks them). */
 const DEPENDENCY_RULES = "scripts/tsconfig.dependency-rules.json"
 
-const saysTsCheck = (rel) => TS_CHECK.test(fs.readFileSync(path.join(repoRoot, rel), "utf8"))
+const saysTsCheck = (rel) => checkedByTsc(fs.readFileSync(path.join(repoRoot, rel), "utf8"))
 
 describe("every script says // @ts-check, the ones not yet typed aside (pnpm typecheck:scripts)", () => {
   const scripts = repoScripts()

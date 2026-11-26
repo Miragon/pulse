@@ -195,8 +195,9 @@
  *   `// @ts-check` of a script      a script under scripts/ or the root
  *                                   .dependency-cruiser.cjs that `pnpm
  *                                   typecheck:scripts` checks stays checked:
- *                                   one without the pragma that lost it or is
- *                                   new fails, so the list of the scripts not
+ *                                   one without the pragma (or switched off by
+ *                                   `@ts-nocheck`) that lost it or is new
+ *                                   fails, so the list of the scripts not
  *                                   typed yet (NOT_YET_CHECKED of
  *                                   scripts/ts-check.test.mjs) only shrinks
  *
@@ -1648,6 +1649,12 @@ export function compareSuppressions(relPath, oldText, newText) {
 /** `// @ts-check` as tsc reads it: the first line, or the one after a shebang. */
 export const TS_CHECK = /^(?:#![^\n]*\n)?\/\/ @ts-check\r?\n/
 
+/** A `@ts-nocheck` comment, which tsc honours over `// @ts-check` (a comment line saying it). */
+export const TS_NOCHECK = /^[ \t]*(?:\/\/|\/\*+|\*)[ \t]*@ts-nocheck\b/m
+
+/** Whether tsc checks a script's text: it says `// @ts-check` and no `@ts-nocheck` turns it off. */
+export const saysTsCheck = (text) => TS_CHECK.test(text) && !TS_NOCHECK.test(text)
+
 /** The scripts `pnpm typecheck:scripts` checks by their pragma (REPO_SCRIPTS of eslint.config.mjs). */
 export const isTypedScript = (relPath) =>
   /^(?:scripts\/[^/]+\.mjs|\.dependency-cruiser\.cjs)$/.test(relPath)
@@ -1660,11 +1667,12 @@ export const isTypedScript = (relPath) =>
  * absent).
  */
 export function compareTsCheck(relPath, oldText, newText) {
-  if (!isTypedScript(relPath) || typeof newText !== "string" || TS_CHECK.test(newText)) return []
-  if (typeof oldText === "string" && !TS_CHECK.test(oldText)) return []
+  if (!isTypedScript(relPath) || typeof newText !== "string" || saysTsCheck(newText)) return []
+  if (typeof oldText === "string" && !saysTsCheck(oldText)) return []
   const what = typeof oldText === "string" ? "no longer says" : "is new and does not say"
+  const off = TS_CHECK.test(newText) ? " (a `@ts-nocheck` comment switches it off)" : ""
   return [
-    `${relPath} ${what} \`// @ts-check\`: \`pnpm typecheck:scripts\` checks only the scripts that say it, so its types go unchecked and NOT_YET_CHECKED of scripts/ts-check.test.mjs grows. Start the file with the pragma (after a shebang) and fix what tsc reports.`,
+    `${relPath} ${what} \`// @ts-check\`${off}: \`pnpm typecheck:scripts\` checks only the scripts that say it, so its types go unchecked and NOT_YET_CHECKED of scripts/ts-check.test.mjs grows. Start the file with the pragma (after a shebang), drop any \`@ts-nocheck\` and fix what tsc reports.`,
   ]
 }
 
