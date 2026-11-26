@@ -1414,6 +1414,8 @@ const GATE_RULES = [
   "max-params",
   "max-nested-callbacks",
   "no-restricted-syntax",
+  "pulse-backstop/complexity",
+  "pulse-backstop/max-lines",
 ]
 
 /**
@@ -2118,10 +2120,24 @@ const BASELINE_INTRODUCED = (relPath) =>
  * longer needed until it is pruned), so the file only loses entries; one that gains them froze a
  * new violation (`--suppress-rule`, `--suppress-all`) where the code should have been split.
  */
-function compareEslintBaseline(relPath, oldJson, newJson) {
+function compareEslintBaseline(relPath, oldJson, newJson, fileExists) {
   const violations = []
+  const dir = path.posix.dirname(relPath)
   for (const [file, rules] of Object.entries(newJson ?? {})) {
+    // ESLint never reports a suppression of a file it no longer lints, so a deleted or moved file
+    // keeps its entries, and a new file at that path would inherit them.
+    if (!fileExists(`${dir}/${file}`)) {
+      violations.push(
+        `${relPath} -> ${file} no longer exists: prune its entries (eslint --prune-suppressions in ${dir}).`,
+      )
+    }
     for (const [rule, entry] of Object.entries(rules ?? {})) {
+      if (rule.startsWith("pulse-backstop/")) {
+        violations.push(
+          `${relPath} -> ${file}: ${rule} is suppressed, but the backstop caps are never baselined: a suppression counts violations, not their size, and the backstop keeps the size.`,
+        )
+        continue
+      }
       const before = oldJson?.[file]?.[rule]?.count ?? 0
       const after = entry?.count ?? 0
       if (after > before) {
@@ -2409,7 +2425,8 @@ export function checkRatchetFile(
   if (kind === "char-budgets" || kind === "bundle-budget") {
     return compareBudgets(kind, relPath, oldJson, newJson)
   }
-  if (kind === "eslint-baseline") return compareEslintBaseline(relPath, oldJson, newJson)
+  if (kind === "eslint-baseline")
+    return compareEslintBaseline(relPath, oldJson, newJson, fileExists)
   if (kind === "root-scripts")
     return [
       ...compareRootScripts(relPath, oldJson, newJson),

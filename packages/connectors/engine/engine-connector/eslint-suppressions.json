@@ -99,11 +99,6 @@
       "count": 1
     }
   },
-  "src/lib/engine/test-support/c8-platform.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/lib/mcp/failure-text.ts": {
     "complexity": {
       "count": 1
@@ -140,11 +135,6 @@
   "src/tools/tasks.ts": {
     "max-lines-per-function": {
       "count": 1
-    }
-  },
-  "src/tools/test-support/stats-world.ts": {
-    "complexity": {
-      "count": 2
     }
   },
   "src/view-models.ts": {

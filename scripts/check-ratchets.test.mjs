@@ -2432,6 +2432,20 @@ describe("a package's baseline of budget violations (eslint-suppressions.json, s
     assert.match(violations[2], /src\/c\.ts: max-params 0 -> 1 suppressed/)
   })
 
+  it("refuses an entry of a file that is gone and any suppression of a backstop cap", () => {
+    const exists = (rel) => rel !== "packages/core/ui/src/b.ts"
+    const stale = checkRatchetFile(rel, base, base, exists)
+    assert.equal(stale.length, 1)
+    assert.match(stale[0], /src\/b\.ts no longer exists: prune its entries/)
+    const backstop = JSON.stringify({
+      "src/a.tsx": { complexity: { count: 2 }, "pulse-backstop/complexity": { count: 1 } },
+    })
+    assert.match(
+      checkRatchetFile(rel, base, backstop)[0],
+      /pulse-backstop\/complexity is suppressed, but the backstop caps are never baselined/,
+    )
+  })
+
   it("asks for a trailer where a baseline appears, since it freezes violations", () => {
     const [violation] = checkRatchetFile(rel, null, base)
     assert.match(violation, /eslint-suppressions\.json is new: a baseline of ESLint suppressions/)
@@ -2728,6 +2742,7 @@ describe("inline suppressions (shrink-only)", () => {
       "// eslint-disable-next-line max-lines-per-function",
       "/* eslint-disable max-statements, max-depth */",
       "// eslint-disable-next-line max-params, max-nested-callbacks",
+      "// eslint-disable-next-line pulse-backstop/complexity",
       '/* eslint complexity: ["error", 99] */',
       "/* eslint no-restricted-syntax: off */",
       "/* v8 ignore next */",

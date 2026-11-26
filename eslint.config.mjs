@@ -1,4 +1,5 @@
 import js from "@eslint/js"
+import { builtinRules } from "eslint/use-at-your-own-risk"
 import tseslint from "typescript-eslint"
 import reactHooks from "eslint-plugin-react-hooks"
 import globals from "globals"
@@ -19,6 +20,14 @@ const PROJECT_TYPED_WIDGET_TREES = [
 ]
 const BLOCKS_SRC = "packages/core/blocks/src/**/*.{ts,tsx}"
 const WEB_SRC = "apps/web/src/**/*.{ts,tsx}"
+/**
+ * ESLint's complexity and max-lines under a second name, which the growth packages' baselines
+ * never suppress (#688): a bulk suppression counts a file's violations of a rule, not their size,
+ * so a baselined file keeps the caps it had before its budget tightened.
+ */
+const pulseBackstop = {
+  rules: { complexity: builtinRules.get("complexity"), "max-lines": builtinRules.get("max-lines") },
+}
 const WIDGET_TREES = [...PROJECT_TYPED_WIDGET_TREES, BLOCKS_SRC, WEB_SRC]
 
 // Server tests (and the Playwright host simulation) live outside src/ (not
@@ -707,7 +716,22 @@ export default tseslint.config(
   // it lacked. What broke a budget on that day sits in each package's eslint-suppressions.json:
   // ESLint fails on a violation beyond it and on a suppression no longer needed until it is
   // pruned, and lint:ratchets lets the file only shrink. A package lints from its own folder (its
-  // lint script, lint-staged.config.mjs), since ESLint reads the file's paths relative to it.
+  // lint script, lint-staged.config.mjs), since ESLint reads the file's paths relative to it. A
+  // suppression counts violations, not their size, so the caps the packages had before (complexity
+  // 15, 400 lines) stay below every file as `pulse-backstop/*`, which no baseline may suppress.
+  {
+    files: [
+      "packages/connectors/engine/engine-connector/src/**/*.{ts,tsx}",
+      "packages/core/widget-shell/src/**/*.{ts,tsx}",
+      "packages/core/ui/src/**/*.{ts,tsx}",
+      "apps/web/src/**/*.{ts,tsx}",
+    ],
+    plugins: { "pulse-backstop": pulseBackstop },
+    rules: {
+      "pulse-backstop/complexity": ["error", 15],
+      "pulse-backstop/max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
+    },
+  },
   {
     files: [
       "packages/connectors/engine/engine-connector/src/**/*.{ts,tsx}",
@@ -728,9 +752,13 @@ export default tseslint.config(
   {
     files: [
       "packages/connectors/engine/engine-connector/src/**/*.{test,test-support}.{ts,tsx}",
+      "packages/connectors/engine/engine-connector/src/**/test-support/**/*.{ts,tsx}",
       "packages/core/widget-shell/src/**/*.{test,test-support}.{ts,tsx}",
+      "packages/core/widget-shell/src/**/test-support/**/*.{ts,tsx}",
       "packages/core/ui/src/**/*.{test,test-support}.{ts,tsx}",
+      "packages/core/ui/src/**/test-support/**/*.{ts,tsx}",
       "apps/web/src/**/*.{test,test-support}.{ts,tsx}",
+      "apps/web/src/**/test-support/**/*.{ts,tsx}",
     ],
     rules: {
       complexity: ["error", 15],
@@ -753,7 +781,7 @@ export default tseslint.config(
   // i18n message catalogs are data, not code: no length budget.
   {
     files: ["packages/connectors/*/*/src/messages/*.sweep.ts"],
-    rules: { "max-lines": "off" },
+    rules: { "max-lines": "off", "pulse-backstop/max-lines": "off" },
   },
   // Pulse's building blocks (packages/core/blocks) keep pulse-ui's house rules (function
   // components, JSDoc) with the editor budgets, complexity 10 and 300 lines, since their code

@@ -40,7 +40,12 @@ const GATE_RULES = [
   "max-params",
   "max-nested-callbacks",
   "no-restricted-syntax",
+  // eslint.config.mjs's never-suppressed caps of the growth packages (#688), held as their rules.
+  "pulse-backstop/complexity",
+  "pulse-backstop/max-lines",
 ]
+/** The core rule a gate rule is: a backstop alias is held like the rule it copies. */
+const baseRule = (rule) => rule.replace(/^pulse-backstop\//, "")
 
 // ESLint's own defaults when a rule is enabled without options.
 const DEFAULT_COMPLEXITY = 20
@@ -64,16 +69,33 @@ const severity = (setting) => {
 const firstOption = (setting) => (Array.isArray(setting) ? setting[1] : undefined)
 
 function complexityMax(setting) {
-  const option = firstOption(setting)
-  if (typeof option === "number") return option
-  return option?.max ?? option?.maximum ?? DEFAULT_COMPLEXITY
+  return numericMax(setting, DEFAULT_COMPLEXITY)
 }
 
-/** A budget of one number: its option as a number or as `max` (`maximum`), else the default. */
+/**
+ * A budget of one number as ESLint 10 reads it: a number, else an object's `maximum || max`, which
+ * a 0 or a missing value leaves undefined, so the rule reports nothing (Infinity here); else the
+ * rule's default.
+ */
 function numericMax(setting, fallback) {
   const option = firstOption(setting)
   if (typeof option === "number") return option
-  return option?.max ?? option?.maximum ?? fallback
+  if (option !== null && typeof option === "object") {
+    if (Object.hasOwn(option, "maximum") || Object.hasOwn(option, "max")) {
+      return option.maximum || option.max || Number.POSITIVE_INFINITY
+    }
+  }
+  return fallback
+}
+/** An option object of a setting at `index` (1 = after the severity), else none. */
+const optionAt = (setting, index) => {
+  const option = Array.isArray(setting) ? setting[index] : undefined
+  return option !== null && typeof option === "object" ? option : {}
+}
+/** Whether max-params counts a `this` parameter (countThis "always", or countVoidThis). */
+const countsThis = (setting) => {
+  const option = optionAt(setting, 1)
+  return option.countThis === "always" || option.countVoidThis === true
 }
 function maxLinesOptions(setting, defaultMax = DEFAULT_MAX_LINES) {
   const option = firstOption(setting)
@@ -112,19 +134,33 @@ export function loosenings(base, cur, { stillApplied = new Set(), peers = null }
       reasons.push(`${rule} is no longer an error`)
       continue
     }
-    if (rule === "complexity" && complexityMax(after) > complexityMax(before))
-      reasons.push(`complexity ${complexityMax(before)} -> ${complexityMax(after)}`)
-    if (rule === "max-lines" || rule === "max-lines-per-function") {
-      const fallback = rule === "max-lines" ? DEFAULT_MAX_LINES : DEFAULT_MAX_LINES_PER_FUNCTION
+    const kind = baseRule(rule)
+    if (kind === "complexity" && complexityMax(after) > complexityMax(before))
+      reasons.push(`${rule} ${complexityMax(before)} -> ${complexityMax(after)}`)
+    if (kind === "complexity" && optionAt(after, 1).variant === "modified") {
+      if (optionAt(before, 1).variant !== "modified")
+        reasons.push(`${rule} now counts a switch once (variant modified)`)
+    }
+    if (kind === "max-statements" && optionAt(after, 2).ignoreTopLevelFunctions === true) {
+      if (optionAt(before, 2).ignoreTopLevelFunctions !== true)
+        reasons.push(`${rule} now sets ignoreTopLevelFunctions`)
+    }
+    if (kind === "max-lines-per-function" && optionAt(before, 1).IIFEs === true) {
+      if (optionAt(after, 1).IIFEs !== true) reasons.push(`${rule} no longer counts IIFEs`)
+    }
+    if (kind === "max-params" && countsThis(before) && !countsThis(after))
+      reasons.push(`${rule} no longer counts a this parameter`)
+    if (kind === "max-lines" || kind === "max-lines-per-function") {
+      const fallback = kind === "max-lines" ? DEFAULT_MAX_LINES : DEFAULT_MAX_LINES_PER_FUNCTION
       const was = maxLinesOptions(before, fallback)
       const now = maxLinesOptions(after, fallback)
       if (now.max > was.max) reasons.push(`${rule} ${was.max} -> ${now.max}`)
       for (const skip of ["skipBlankLines", "skipComments"])
         if (now[skip] && !was[skip]) reasons.push(`${rule} now sets ${skip}`)
     }
-    if (Object.hasOwn(NUMERIC_DEFAULTS, rule)) {
-      const was = numericMax(before, NUMERIC_DEFAULTS[rule])
-      const now = numericMax(after, NUMERIC_DEFAULTS[rule])
+    if (Object.hasOwn(NUMERIC_DEFAULTS, kind)) {
+      const was = numericMax(before, NUMERIC_DEFAULTS[kind])
+      const now = numericMax(after, NUMERIC_DEFAULTS[kind])
       if (now > was) reasons.push(`${rule} ${was} -> ${now}`)
     }
     if (rule === "no-restricted-syntax") {

@@ -236,6 +236,59 @@ describe("loosenings (pure)", () => {
       ["max-lines-per-function 50 -> 51", "max-params 3 -> 4"],
     )
   })
+
+  it("reads a budget as ESLint does: maximum before max, and a 0 or missing value as none", () => {
+    assert.deepEqual(
+      loosenings(
+        cfg({ "max-depth": [2, { max: 3 }], complexity: [2, { max: 10 }] }),
+        cfg({ "max-depth": [2, { maximum: 5, max: 3 }], complexity: [2, { maximum: 0 }] }),
+      ),
+      ["complexity 10 -> Infinity", "max-depth 3 -> 5"],
+    )
+  })
+
+  it("catches each option that skips part of a budget", () => {
+    assert.deepEqual(
+      loosenings(
+        cfg({
+          complexity: [2, 10],
+          "max-statements": [2, 20],
+          "max-lines-per-function": [2, { max: 60, IIFEs: true }],
+          "max-params": [2, { max: 4, countVoidThis: true }],
+        }),
+        cfg({
+          complexity: [2, { max: 10, variant: "modified" }],
+          "max-statements": [2, 20, { ignoreTopLevelFunctions: true }],
+          "max-lines-per-function": [2, { max: 60 }],
+          "max-params": [2, { max: 4 }],
+        }),
+      ),
+      [
+        "complexity now counts a switch once (variant modified)",
+        "max-lines-per-function no longer counts IIFEs",
+        "max-statements now sets ignoreTopLevelFunctions",
+        "max-params no longer counts a this parameter",
+      ],
+    )
+  })
+
+  it("holds the growth packages' backstop caps like the rules they copy", () => {
+    const backstop = cfg({
+      "pulse-backstop/complexity": [2, 15],
+      "pulse-backstop/max-lines": [2, { max: 400, skipBlankLines: true, skipComments: true }],
+    })
+    assert.deepEqual(loosenings(backstop, backstop), [])
+    assert.deepEqual(
+      loosenings(
+        backstop,
+        cfg({
+          "pulse-backstop/complexity": [2, 16],
+          "pulse-backstop/max-lines": [0],
+        }),
+      ),
+      ["pulse-backstop/complexity 15 -> 16", "pulse-backstop/max-lines is no longer an error"],
+    )
+  })
 })
 
 describe("sampleFromGlob", () => {
