@@ -17,7 +17,7 @@ on npm; you need Node.js 22.22.2 or later and pnpm 10.32.1:
 <!-- x-release-please-start-version -->
 
 ```sh
-git clone --depth 1 --branch v0.32.0 https://github.com/Miragon/pulse
+git clone --depth 1 --branch v0.33.0 https://github.com/Miragon/pulse
 cp -r pulse/templates/claude-artifact my-dashboard
 cd my-dashboard
 pnpm install
@@ -97,7 +97,7 @@ and the artifact's one file is `pulse-ui.css` of the same version, copied from t
 <link rel="stylesheet" href="pulse-ui.css" />
 <div id="root"></div>
 <script type="module">
-  import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.32.0/dist/browser/pulse-ui.js"
+  import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.33.0/dist/browser/pulse-ui.js"
   const mcp = await window.claude.use("mcp")
   const args = { processDefinitionKey: "miraveloLeasing", bucket: "day" }
   const cache = { staleTime: 30000, gcTime: 600000 }
