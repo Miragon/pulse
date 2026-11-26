@@ -147,9 +147,12 @@ grew up; the house rules are in `apps/vscode/CLAUDE.md`.
 
 The coverage floors (`vitest.config.ts`, ratchets that only rise) hold all of `src` but its
 declaration files, as a whole and per layer: the core, the model reader, the webview and the host
-kit. Outside `src`, `dev/` and `scripts/` are not measured. The global floors are the values
-measured on 2026-11-12, the host kit's those of 2026-11-14, rounded down; a new branch of `src`
-brings its test. The host kit's floor is what this package's tests reach, about three quarters of it,
+kit. Outside `src`, `dev/` and `scripts/` are not measured. On 2026-11-26, when a floor came to
+trail its measurement by at most 3 points (`scripts/coverage-floors.mjs`), each floor rose to the
+value then measured, rounded down less a point, where that lay above it: the global branches
+floor and floors of every layer; the global lines, statements and functions are still the values
+measured on 2026-11-12, rounded down. A new branch of `src` brings its test. The host kit's floor is what
+this package's tests reach, about seven eighths of it,
 since a host's coverage counts no file of the runtime view: the hosts' tests run the confirmation
 policy, the rest of the write policy, the write audit, the audited commands, the timer scheduler,
 `NotificationText.printable` and part of the panel titles. Two of its safety rules have their tests

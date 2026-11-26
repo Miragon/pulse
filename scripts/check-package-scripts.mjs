@@ -20,6 +20,9 @@
  *
  * The same source packages must also carry a `vitest.config.ts`: vitest runs
  * with coverage off by default, so no coverage floor would hold the package.
+ * It merges sharedConfig, which switches coverage on and hands the run the
+ * check that each floor follows its measurement (scripts/vitest-wiring.mjs
+ * says why and what holds).
  *
  * Mutation testing covers exactly the packages MUTATED_PACKAGES names, each
  * with the reason the owner chose it: each carries a stryker.config.json, and
@@ -51,6 +54,7 @@ import { fileURLToPath } from "node:url"
 import { editorProjectFindings, extraTsconfigs } from "./editor-projects.mjs"
 import { checkModuleSyntax } from "./module-syntax.mjs"
 import { MUTATION_PAUSED } from "./mutation-pause.mjs"
+import { checkVitestWiring } from "./vitest-wiring.mjs"
 
 /**
  * The scripts every source package must define, each anchored to the command
@@ -518,6 +522,7 @@ if (isMain) {
   const { default: ts } = await import("typescript")
   errors.push(...checkEditorProjects(ts, root, sourceDirs))
   errors.push(...checkModuleSyntax(ts, root, sourceDirs))
+  errors.push(...checkVitestWiring(ts, root, sourceDirs))
   if (errors.length > 0) {
     console.error(
       "Workspace packages with missing or non-canonical gate scripts, configs, filters, " +
@@ -527,8 +532,10 @@ if (isMain) {
     console.error(
       "\nFix the package, never the gate: a source package outside " +
         "`turbo run lint|typecheck|test` or without a vitest.config.ts is invisible to the " +
-        "gates, and a stryker.config.json belongs in exactly the packages MUTATED_PACKAGES " +
-        "lists (CLAUDE.md, Verification); a file only a tsconfig.<x>.json checks opens in a " +
+        "gates, one whose vitest.config.ts does not merge sharedConfig runs without the check " +
+        "that its floors follow the measurement (scripts/vitest-wiring.mjs), and a " +
+        "stryker.config.json belongs in exactly the packages MUTATED_PACKAGES lists " +
+        "(CLAUDE.md, Verification); a file only a tsconfig.<x>.json checks opens in a " +
         "nested tsconfig.json that extends that project (scripts/editor-projects.mjs); every " +
         "program sets verbatimModuleSyntax and isolatedModules (scripts/module-syntax.mjs).",
     )
@@ -539,6 +546,6 @@ if (isMain) {
     ? "(mutation testing paused, stryker.config.json not checked: scripts/mutation-pause.mjs)"
     : `(a gated stryker.config.json in ${mutated} and in no other package)`
   console.log(
-    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts ${mutation}, and every pnpm filter names a workspace package; editors open every file with the settings of the project that checks it (with the template's packages); every program compiles with verbatimModuleSyntax and isolatedModules (the exempt aside).`,
+    `Package scripts: all ${sourceDirs.length} source packages run the canonical lint, typecheck and test, carry a vitest.config.ts that merges sharedConfig ${mutation}, and every pnpm filter names a workspace package; editors open every file with the settings of the project that checks it (with the template's packages); every program compiles with verbatimModuleSyntax and isolatedModules (the exempt aside).`,
   )
 }

@@ -9,8 +9,9 @@ export default mergeConfig(
       // The engine suite needs Docker: vitest.engines.config.ts runs it (`test:engines`).
       exclude: ["src/**/*.engine.test.ts"],
       coverage: {
-        // Ratchet: frozen 2 points under the baseline. Raise when you
-        // push coverage up; never lower. Documented re-baseline 2026-08-13:
+        // Ratchet: frozen under the baseline, never more than 3 points
+        // (scripts/coverage-floors.mjs). Raise when you push coverage up;
+        // never lower. Documented re-baseline 2026-08-13:
         // the profile store + migrations (a well-tested surface) moved to
         // @miragon/pulse-widget-shell, where the SAME code is now held to that
         // package's higher thresholds, so this package's percentages shifted
@@ -52,8 +53,12 @@ export default mergeConfig(
         // history marks, cockpit head, landing, settings save bar; measured
         // 88.96 / 78.13 / 88.69 / 90.08). Raised with the camunda7 review
         // fixes (the row menu, the read-only reason matrix, the BPMN viewer's
-        // names; measured 89.46 / 78.91 / 89.08 / 90.49).
-        thresholds: { statements: 89, branches: 78, functions: 89, lines: 90 },
+        // names; measured 89.46 / 78.91 / 89.08 / 90.49). Raised 2026-11-26,
+        // when the floors came to follow the measurement (#688; they had not
+        // moved since 2026-10-12 while the tests grew): measured statements
+        // 96.72 / branches 91.13 / functions 97.33 / lines 97.32, each floor
+        // that value rounded down less a point.
+        thresholds: { statements: 95, branches: 90, functions: 96, lines: 96 },
       },
     },
   }),

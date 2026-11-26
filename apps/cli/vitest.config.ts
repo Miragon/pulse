@@ -32,10 +32,14 @@ export default mergeConfig(
         ],
         // Only the entry point stays out: importing it runs the CLI, so no unit test can.
         exclude: ["**/*.test.ts", "src/bin/pulse-cli.ts"],
-        // Ratchet: the floors the CLI brought along (measured with the Node runtime counted:
-        // statements 99.40 / branches 97.18 / functions 99.64 / lines 99.59). Raise when you push
-        // coverage up; never lower.
-        thresholds: { statements: 90, branches: 85, functions: 90, lines: 90 },
+        // Ratchet: under the measured values, never more than 3 points
+        // (scripts/coverage-floors.mjs). Raise when you push coverage up; never lower. The floors
+        // the CLI brought along (90 / 85 / 90 / 90, measured with the Node runtime counted:
+        // statements 99.40 / branches 97.18 / functions 99.64 / lines 99.59) were raised
+        // 2026-11-26, when the floors came to follow the measurement (#688): measured statements
+        // 99.29 / branches 96.82 / functions 99.65 / lines 99.48, each floor that value rounded
+        // down less a point, since the property tests draw new inputs on every run.
+        thresholds: { statements: 98, branches: 95, functions: 98, lines: 98 },
       },
     },
   }),

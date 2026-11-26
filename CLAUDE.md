@@ -757,7 +757,11 @@ engine-connector, widget-shell, pulse-ui and the web app run the domain packages
 decision 2026-11-26, #688); what broke them that day sits in each package's
 `eslint-suppressions.json`, which only shrinks: ESLint fails on a suppression no longer needed
 until `eslint --prune-suppressions` (from the package's folder) drops it, and a new one fails the
-ratchet. Split the code instead of suppressing it.
+ratchet. Split the code instead of suppressing it. A coverage floor also follows its measurement:
+every package's run fails a floor more than 3 points under what it measures and a floor over a
+scope that measures no statement, so a change that raises the coverage raises its floors with it
+(`scripts/coverage-floors.mjs`, wired in `vitest.shared.ts`, which `pnpm lint:package-scripts`
+holds every package's vitest.config.ts to merging).
 
 **Mutation testing** runs nightly (`.github/workflows/mutation-nightly.yml`, never on a pull
 request) over the rules that run on every surface: c7-core, the transport, engine-core's rules,

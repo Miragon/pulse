@@ -20,7 +20,7 @@ export default mergeConfig(
       coverage: {
         include: ["src/**/*.{ts,tsx}"],
         exclude: ["src/**/*.d.ts"],
-        thresholds: { lines: 92, statements: 92, functions: 98, branches: 80 },
+        thresholds: { lines: 98, statements: 98, functions: 99, branches: 94 },
       },
       projects: [
         {

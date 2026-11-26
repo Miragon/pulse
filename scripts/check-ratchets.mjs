@@ -62,9 +62,17 @@
  *                                   the rules of an introduced one, and one it
  *                                   cannot read on either side fails. An
  *                                   INTRODUCED <pkg>/vitest.config.ts is not
- *                                   free: it must be readable, measure (merge
- *                                   sharedConfig or set coverage.enabled: true)
- *                                   and carry all four global floors
+ *                                   free: it must be readable, merge
+ *                                   sharedConfig (which switches coverage on
+ *                                   and hands the run the check that its
+ *                                   floors follow the measurement, so a
+ *                                   coverage.enabled: true of its own no
+ *                                   longer stands in for it), leave `enabled`
+ *                                   alone and carry all four global floors;
+ *                                   a package config that stops merging it
+ *                                   fails too (lint:package-scripts holds
+ *                                   every package's to the one shape,
+ *                                   scripts/vitest-wiring.mjs)
  *   <pkg>/stryker.config.json       thresholds.break raise-only; `mutate`
  *                                   grow-only (an entry may leave only when
  *                                   break rises in the same diff, or when it
@@ -1261,8 +1269,8 @@ function readProjects(node, opaque, lists) {
  * threshold, and every computed key of the file whose name is no literal
  * (`[KEY]: ...` could BE coverage, test, thresholds or enabled).
  * `usesShared`: the config passes `sharedConfig` (vitest.shared.ts, where
- * coverage is ENABLED) into a call such as `mergeConfig`; vitest's own
- * default is coverage off.
+ * coverage is ENABLED and the floors' check is wired) into a call such as
+ * `mergeConfig`; vitest's own default is coverage off.
  */
 export function extractVitestCoverage(relPath, text) {
   const blocks = []
@@ -1742,6 +1750,10 @@ function projectChanges(relPath, before, after) {
   return violations
 }
 
+/** What a package's config takes from sharedConfig, for the messages on one that drops it. */
+const SHARED_HANDS =
+  "vitest.shared.ts switches coverage on and hands every package's run the check that its floors follow the measurement and measure something (scripts/coverage-floors.mjs)"
+
 /** What the ratchet reads in a vitest config, for the message on an opaque member. */
 const VITEST_READS =
   "The ratchet reads literals, and a constant of the file only where it sees all the constant can hold (a top-level const string, or a const array the file names only as an include/exclude list or in a spread); for one it cannot read, the reason follows its name in parentheses"
@@ -1750,9 +1762,11 @@ const VITEST_READS =
  * The rules for a package vitest config with nothing to compare against (the
  * diff introduces it, or the ratchet could not read its base): from the next
  * diff on it IS the ratchet, so it must be readable (an unreadable base is
- * never compared), measure (sharedConfig or `enabled: true`; vitest's default
- * is off and the canonical `vitest run` passes no flag) and carry a floor for
- * each of the four metrics. vitest.shared.ts only must stay free of floors.
+ * never compared), measure through sharedConfig (vitest's default is off and
+ * the canonical `vitest run` passes no flag; an `enabled: true` of its own
+ * measures without the floors' check sharedConfig hands the run) and carry a
+ * floor for each of the four metrics. vitest.shared.ts only must stay free of
+ * floors.
  */
 function newVitestConfigViolations(relPath, cur) {
   const violations = cur.opaque.map(
@@ -1761,10 +1775,13 @@ function newVitestConfigViolations(relPath, cur) {
   )
   violations.push(...sharedFloorViolations(relPath, cur))
   if (relPath === "vitest.shared.ts") return violations
-  const measures = cur.enabled === true || (cur.enabled === undefined && cur.usesShared)
-  if (!measures)
+  if (!cur.usesShared)
     violations.push(
-      `${relPath} neither merges sharedConfig nor sets coverage.enabled: true (enabled: ${String(cur.enabled)}): \`vitest run\` would never measure coverage, so no threshold could fail. Merge sharedConfig (mergeConfig(sharedConfig, defineConfig({ ... }))) and leave \`enabled\` alone.`,
+      `${relPath} does not merge sharedConfig. ${SHARED_HANDS}: without it \`vitest run\` measures no coverage (vitest's default is off), and with a coverage.enabled: true of the package's own it measures without that check. Merge sharedConfig (export default mergeConfig(sharedConfig, defineConfig({ ... }))) and leave \`enabled\` alone.`,
+    )
+  else if (cur.enabled !== undefined && cur.enabled !== true)
+    violations.push(
+      `${relPath} merges sharedConfig but sets coverage.enabled: ${String(cur.enabled)}: \`vitest run\` would never measure coverage, so no threshold could fail. Leave \`enabled\` alone.`,
     )
   const missing = COVERAGE_METRICS.filter((metric) => {
     const floor = cur.thresholds?.[metric]
@@ -1887,9 +1904,9 @@ function compareVitest(relPath, oldText, newText) {
       `${relPath} -> coverage.enabled is now ${String(cur.enabled)} (was ${String(old.enabled)}). Switching coverage off disables every threshold.`,
     )
   }
-  if (old.usesShared && !cur.usesShared && cur.enabled !== true) {
+  if (old.usesShared && !cur.usesShared) {
     violations.push(
-      `${relPath} no longer merges sharedConfig and does not enable coverage itself: the thresholds would never be enforced.`,
+      `${relPath} no longer merges sharedConfig. ${SHARED_HANDS}: without it the thresholds would never be enforced (vitest's default is coverage off), and with a coverage.enabled: true of the package's own they would be enforced without that check. Merge sharedConfig again (export default mergeConfig(sharedConfig, defineConfig({ ... }))).`,
     )
   }
   for (const entry of cur.opaque) {
