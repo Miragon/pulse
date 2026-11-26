@@ -423,6 +423,11 @@ server image builds the page beside the server and serves it from `/app/web`.
   `test/messages.test.ts`), its UI on the kit with the brand gates of `@miragon/pulse-ui/testing`
   (`test/brand-gates.test.ts`), dates and numbers through the kit's formatters (the date and number
   gates hold `src`).
+- A case that converts between this browser's wall clock and an instant (`src/router/wall-clock.ts`
+  and what calls it) runs on every clock (`onEveryClock` of `test/time-zones.test-support.ts`: the
+  runner's, Berlin's and Los Angeles'), and `test/wall-clock.test.ts` pins the instants on both
+  sides of each zone's change to summer time: CI and the agent VMs run in UTC, where a conversion
+  that drops the offset passes.
 - Only files under the build's `assets/` are served: anything the page loads is imported, so Vite
   emits it there under a hashed name; nothing is inlined (`assetsInlineLimit: 0`), no script runs
   inline (the server's Content Security Policy allows the page's own scripts only), and `public/`
