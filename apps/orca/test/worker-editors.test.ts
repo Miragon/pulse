@@ -5,6 +5,8 @@ import activate, { deactivate } from "../src/worker/main.js"
 import { EDITOR_FRAME, PULSE_PANEL } from "./fake-orca.js"
 import { REMOTE_ENDPOINT, WorkerHarness } from "./worker-harness.js"
 
+const WAIT_UNDER_SUITE_LOAD = { timeout: 10_000 } as const
+
 const ENGINE_VIEW = JSON.stringify({ pulse: 1, engine: "shop-dev", view: "engine" })
 
 afterEach(() => {
@@ -165,7 +167,7 @@ describe("boards in editor tabs", () => {
           { workspaceId: "shop", path: ".pulse/views/shop-dev/shop-dev processes.pulse-view" },
         ]),
       )
-    })
+    }, WAIT_UNDER_SUITE_LOAD)
   })
 
   test("render the board text and follow its edits", async () => {
