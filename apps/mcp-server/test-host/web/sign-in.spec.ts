@@ -3,6 +3,7 @@ import { BROKEN_ENGINE, HEALTHY_ENGINE } from "../engines.js"
 import {
   ALICE,
   chooseUser,
+  engineReadsOf,
   expectNoAxeFinding,
   idpRecord,
   navEntry,
@@ -69,14 +70,12 @@ test.describe("signing in", () => {
     // The bar names who signed in and offers the sign-out.
     await expect(page.getByText(`Signed in as ${ALICE.name}`)).toBeAttached()
     await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible()
-    // The start page reads each engine's engine screen and calls no view.
+    // The start page reads each engine's engine screen and calls no view: the healthy engine once,
+    // the down one again on the query client's first retry, which can come before this line.
     expect(calls.filter((call) => call.name === "engine_open_cockpit")).toEqual([])
-    expect(
-      calls
-        .filter((call) => call.name === "engine_screen_processes_data")
-        .map((call) => call.arguments?.engine)
-        .sort(),
-    ).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
+    const reads = engineReadsOf(calls, "engine_screen_processes_data")
+    expect(reads.filter((engine) => engine === HEALTHY_ENGINE)).toHaveLength(1)
+    expect([...new Set(reads)].sort()).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
   })
 
   test("comes back to a deep link with its query after the sign-in", async ({ page }) => {

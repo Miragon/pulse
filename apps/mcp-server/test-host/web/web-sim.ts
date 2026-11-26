@@ -184,6 +184,11 @@ export function recordCalls(page: Page): PageCall[] {
   return calls
 }
 
+/** The engine of each call of `tool` among `calls`, in the order the page sent them. */
+export function engineReadsOf(calls: readonly PageCall[], tool: string): unknown[] {
+  return calls.filter((call) => call.name === tool).map((call) => call.arguments?.engine)
+}
+
 /** Console errors and uncaught exceptions of the page. */
 export function collectErrors(page: Page): string[] {
   const errors: string[] = []
