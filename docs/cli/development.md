@@ -21,7 +21,7 @@ pnpm --fail-if-no-match --filter @miragon/pulse-cli test:engines
 ```
 
 `test:engines` runs the Testcontainers suites against the built CLI (Docker or Podman, `build`
-first). `PULSE_CLI_IT_ENGINES=operaton` picks engines (`operaton`, `cibseven`, `cibseven-3`; all when unset),
+first). `PULSE_CLI_IT_ENGINES=operaton` picks engines (`operaton`, `cibseven`; both when unset),
 `PULSE_CLI_IT_SKIP_PACK=1` skips the tarball test, `PULSE_CLI_IT_BINARY=<absolute path>` tests a
 standalone executable and `PULSE_CLI_IT_CLI=<script>` another entry script.
 

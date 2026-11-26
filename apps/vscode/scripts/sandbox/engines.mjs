@@ -26,7 +26,7 @@ const SHOP_TEST = {
   name: "shop-test",
   container: {
     name: "pulse-sandbox-test",
-    image: "docker.io/cibseven/cibseven:run-2.2.0",
+    image: "docker.io/cibseven/cibseven:run-3.0.0",
     port: 18091,
     environment: {
       CAMUNDA_BPM_RUN_EXAMPLE_ENABLED: "false",
@@ -34,7 +34,7 @@ const SHOP_TEST = {
     },
   },
   credentials: { username: "demo", password: "demo" },
-  webApp: "http://localhost:18091/camunda/app/cockpit/",
+  webApp: "http://localhost:18091/webapp/",
   deployments: [
     ["shipment", `${DEPLOYED_MODELS}/shipment.v1.bpmn`],
     ["return-handling", `${PROJECT_MODELS}/return-handling.bpmn`],

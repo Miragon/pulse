@@ -210,14 +210,8 @@ jobs:
         # cli-engine: the flavor's name in PULSE_CLI_IT_ENGINES.
         include:
           - flavor: cibseven
-            image: cibseven/cibseven:run-2.2.0
-            cli-engine: cibseven
-          # CIB seven 3.0 beside 2.2, which stays while customers run it (owner decision of
-          # 2026-11-26); scripts/engine-images.test.mjs holds the starter's and the playground's
-          # engine images to these legs.
-          - flavor: cibseven-3
             image: cibseven/cibseven:run-3.0.0
-            cli-engine: cibseven-3
+            cli-engine: cibseven
           - flavor: operaton
             image: operaton/operaton:2.1.5
             cli-engine: operaton

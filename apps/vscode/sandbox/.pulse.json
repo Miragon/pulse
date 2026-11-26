@@ -8,7 +8,7 @@
     "shop-test": {
       "url": "http://localhost:18091/engine-rest",
       "flavor": "cibseven",
-      "cockpitUrl": "http://localhost:18091/camunda/app/cockpit/default/",
+      "cockpitUrl": "http://localhost:18091/webapp/",
       "auth": {
         "type": "basic"
       }

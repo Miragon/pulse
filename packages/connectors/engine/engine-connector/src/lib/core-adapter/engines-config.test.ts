@@ -74,8 +74,8 @@ describe("engineImageOf", () => {
       flavor: "operaton",
     })
     expect(engineImageOf(" ")).toMatchObject({ name: "operaton/operaton:2.1.5" })
-    expect(engineImageOf("cibseven/cibseven:run-2.2.0")).toEqual({
-      name: "cibseven/cibseven:run-2.2.0",
+    expect(engineImageOf("cibseven/cibseven:run-3.0.0")).toEqual({
+      name: "cibseven/cibseven:run-3.0.0",
       dialect: "c7",
       flavor: "cibseven",
     })
