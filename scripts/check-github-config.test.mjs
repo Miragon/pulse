@@ -30,6 +30,7 @@ import {
   VSCODE_ENVIRONMENT,
   VSCODE_PUBLISH_WORKFLOW,
   actionRefs,
+  checkActionPins,
   checkCiScopes,
   checkChannelPublishWorkflows,
   checkCredentialJobs,
@@ -1073,7 +1074,7 @@ describe("checkVscodePublish", () => {
     [
       "cache: pnpm on setup-node",
       ({ jobs }) => (stepUsing(jobs.package, "actions/setup-node").with.cache = "pnpm"),
-      [/job package: actions\/setup-node@v7\.1\.0 sets cache/],
+      [/job package: actions\/setup-node@[0-9a-f]{40} sets cache/],
     ],
     [
       "setup-node with the package manager cache",
@@ -1518,6 +1519,58 @@ describe("checkCredentialJobs", () => {
       run: "cp starter/pnpm-lock.yaml mirror/ && rm -f mirror/yarn.lock",
     })
     assert.deepEqual(checkCredentialJobs(docs), [])
+  })
+})
+
+// ── every workflow: actions pinned by commit ────────────────────────────────
+
+describe("checkActionPins", () => {
+  const SHA = "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  const texts = () =>
+    new Map(
+      readdirSync(path.join(ROOT, ".github/workflows"))
+        .filter((name) => name.endsWith(".yml"))
+        .map((name) => [
+          `.github/workflows/${name}`,
+          readFileSync(path.join(ROOT, ".github/workflows", name), "utf8"),
+        ]),
+    )
+
+  it("accepts the real workflows", () => {
+    assert.deepEqual(checkActionPins(texts()), [])
+  })
+
+  it("refuses a tag, a major and a commit without its version, naming the line", () => {
+    const file = ".github/workflows/x.yml"
+    const text = [
+      "jobs:",
+      "  a:",
+      "    steps:",
+      "      - uses: actions/checkout@v7.0.1",
+      "      - uses: actions/setup-node@v7",
+      `      - uses: actions/cache@${SHA}`,
+      `        uses: actions/cache/save@${SHA} # see the docs`,
+    ].join("\n")
+    const errors = checkActionPins(new Map([[file, text]]))
+    assert.equal(errors.length, 4)
+    assert.match(
+      errors[0],
+      /x\.yml:4: actions\/checkout is pinned to "v7\.0\.1"; pin it to the full commit SHA/,
+    )
+    assert.match(errors[1], /x\.yml:5: actions\/setup-node is pinned to "v7"/)
+    assert.match(errors[2], /x\.yml:6: actions\/cache@[0-9a-f]{40} names no version in a comment/)
+    assert.match(errors[3], /x\.yml:7: actions\/cache\/save@[0-9a-f]{40} names no version/)
+  })
+
+  it("lets a local action, a reusable workflow of this repository and a commented pin pass", () => {
+    const text = [
+      "      - uses: ./.github/actions/setup",
+      "    uses: ./.github/workflows/docs.yml",
+      `      - uses: actions/checkout@${SHA} # v7.0.1`,
+      `      - uses: superfly/flyctl-actions/setup-flyctl@${SHA} # 1.6`,
+      "      - uses: docker://alpine:3.22",
+    ].join("\n")
+    assert.deepEqual(checkActionPins(new Map([[".github/workflows/x.yml", text]])), [])
   })
 })
 

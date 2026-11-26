@@ -49,7 +49,7 @@ jobs:
     env:
       VERSION: ${{ inputs.version }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -62,7 +62,7 @@ jobs:
           bash apps/cli/scripts/homebrew-formula.sh "$VERSION" "$RUNNER_TEMP/pulse-cli-SHA256SUMS" > "$RUNNER_TEMP/formula/pulse-cli.rb"
           cat "$RUNNER_TEMP/formula/pulse-cli.rb"
 
-      - uses: actions/upload-artifact@v7.0.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cli-homebrew-formula
           path: ${{ runner.temp }}/formula/pulse-cli.rb
@@ -88,11 +88,11 @@ jobs:
       EXPECTED_VERSION: ${{ inputs.version }}
       HOMEBREW_NO_AUTO_UPDATE: "1"
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/download-artifact@v8.0.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: cli-homebrew-formula
           path: ${{ runner.temp }}/formula
@@ -150,14 +150,14 @@ jobs:
       VERSION: ${{ inputs.version }}
       TAP: Miragon/homebrew-tap
     steps:
-      - uses: actions/download-artifact@v8.0.2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: cli-homebrew-formula
           path: ${{ runner.temp }}/formula
 
       - id: tap-token
         name: Create a GitHub App token
-        uses: actions/create-github-app-token@v3.4.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}

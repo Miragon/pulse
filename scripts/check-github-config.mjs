@@ -31,6 +31,8 @@
  * - the docs site deploys with a release: docs.yml runs on no push, its one deploy job in the
  *   github-pages environment holds only the Pages grants, and one job of release-please.yml calls
  *   it after the approval, once a release is created (checkDocsDeploy);
+ * - every action of every workflow is pinned by a commit SHA with its version as a comment
+ *   (checkActionPins);
  * - every job of ci.yml runs in a scope of scripts/ci-scopes.mjs, and a failed changes job
  *   fails a job instead of skipping all of them (checkCiScopes).
  *
@@ -1222,6 +1224,42 @@ export function checkVscodePublish(releaseDoc, publishDoc, packages) {
   return errors
 }
 
+// ── every workflow: actions pinned by commit ────────────────────────────────
+
+/** A step's `uses:` line, with the action, its ref and what follows it on the line. */
+const USES_LINE = /^\s*(?:-\s+)?uses:\s*(\S+?)(?:@(\S+))?(\s+#.*)?\s*$/
+/** The version a pin names in its comment, as Dependabot writes it back: `# v7.0.1`, `# 1.6`. */
+const PIN_COMMENT = /^\s+#\s*v?\d+(?:\.\d+)*\b/
+
+/**
+ * Every workflow: each action is pinned by a full commit SHA with its version as a comment, which
+ * Dependabot's github-actions entry moves to each release; a tag moves with whoever controls the
+ * action's repository, so it never stands where a job holds a credential, or anywhere else. A
+ * local action (`./`) and a reusable workflow of this repository need none (pure, over the files'
+ * text: the comment is gone once parsed).
+ */
+export function checkActionPins(texts) {
+  const errors = []
+  for (const [file, text] of texts) {
+    text.split("\n").forEach((line, index) => {
+      const match = USES_LINE.exec(line)
+      if (match === null) return
+      const [, action, ref = "", comment = ""] = match
+      if (action.startsWith("./") || action.startsWith("docker://")) return
+      const at = `${file}:${index + 1}`
+      if (!COMMIT_REF.test(ref)) {
+        errors.push(
+          `${at}: ${action} is pinned to "${ref}"; pin it to the full commit SHA of its release, ` +
+            `with the version as a comment (uses: ${action}@<sha> # v<version>)`,
+        )
+      } else if (!PIN_COMMENT.test(comment)) {
+        errors.push(`${at}: ${action}@${ref} names no version in a comment (# v<version>)`)
+      }
+    })
+  }
+  return errors
+}
+
 // ── docs.yml: the docs site ─────────────────────────────────────────────────
 
 export const DOCS_WORKFLOW = ".github/workflows/docs.yml"
@@ -1442,6 +1480,9 @@ export function checkRepo(root) {
   )
   const exists = (rel) => existsSync(path.join(root, rel))
   const others = new Map([...workflows].filter(([file]) => file !== PUBLISH_WORKFLOW))
+  const texts = new Map(
+    [...workflows.keys()].map((file) => [file, readFileSync(path.join(root, file), "utf8")]),
+  )
   return [
     ...checkPublishWorkflow(workflows.get(PUBLISH_WORKFLOW), { pinnedRefs: actionRefs(others) }),
     ...checkPublishMatrix(workflows.get(RELEASE_WORKFLOW), packages),
@@ -1470,6 +1511,7 @@ export function checkRepo(root) {
     ...checkReleaseGate(workflows.get(RELEASE_WORKFLOW)),
     ...checkChannelPublishWorkflows(workflows),
     ...checkCredentialJobs(workflows),
+    ...checkActionPins(texts),
     ...checkVscodePublish(
       workflows.get(RELEASE_WORKFLOW),
       workflows.get(VSCODE_PUBLISH_WORKFLOW),
@@ -1497,7 +1539,7 @@ if (isMain) {
     "GitHub config: publish workflow, npm matrix and repositories, release extra-files, " +
       "plugin versions and template pins in release-please's form, the versions the generic " +
       "extra-files mark, the release gate, the channels' publish workflows (the CLI, Orca, the " +
-      "image, the starter's mirror), no build next to a credential, the extension's release " +
-      "path, the docs deploy and the CI scopes hold.",
+      "image, the starter's mirror), no build next to a credential, the actions' commit pins, " +
+      "the extension's release path, the docs deploy and the CI scopes hold.",
   )
 }
