@@ -16,10 +16,13 @@
  *   (checkTemplatePinBumps), each json file of them in the form release-please writes it back
  *   in, so prettier takes the Release PR's bump (checkJsonExtraFileForm);
  * - every job of release-please.yml past the approval waits for gate, and release-please.yml
- *   calls the publish workflows of the CLI and the Orca plugin, which run on no other trigger
- *   (a dispatch only publishes the formula of a release again) and hold their tokens like the
- *   npm publish, the Orca publish action pinned to a commit (checkReleaseGate,
+ *   calls the publish workflows of the CLI, the Orca plugin, the server image and the starter's
+ *   mirror, which run on no other trigger (a dispatch only publishes the formula of a release or
+ *   the mirror again, after the release environment's approval of that run) and hold their
+ *   tokens like the npm publish, the Orca publish action pinned to a commit (checkReleaseGate,
  *   checkChannelPublishWorkflows);
+ * - in every workflow, a job that mints an App token or reads a secret runs no package manager
+ *   and no JVM build (checkCredentialJobs);
  * - every VS Code extension is packaged by exactly one release job through
  *   publish-vscode-extension.yml, after the release gate, and that workflow publishes by
  *   trusted publishing on both stores (no secret anywhere) from its one job in the
@@ -111,7 +114,8 @@ const NPM_RUNS_CODE = new RegExp(
     NPM_CODE_VERBS.map(escapeRegExp).join("|") +
     String.raw`)(?![\w-])`,
 )
-const OTHER_PACKAGE_MANAGERS = /\b(?:pnpm|pnpx|yarn|yarnpkg|npx|corepack|bun|bunx)\b/
+// A name with more after a dash or a dot (pnpm-lock.yaml, yarn.lock) names a file, not the tool.
+const OTHER_PACKAGE_MANAGERS = /\b(?:pnpm|pnpx|yarn|yarnpkg|npx|corepack|bun|bunx)\b(?![-.]\w)/
 
 /** The package manager command a run script starts, if any (the first one found). */
 export const packageManagerRun = (script) =>
@@ -683,18 +687,30 @@ export const CHANNEL_PUBLISH_WORKFLOWS = [
   ".github/workflows/publish-cli.yml",
   ".github/workflows/publish-homebrew.yml",
   ".github/workflows/publish-orca-plugin.yml",
+  ".github/workflows/publish-to-docker.yml",
+  ".github/workflows/sync-template-mirror.yml",
 ]
 
 /**
- * The events each one runs on: the release calls both, and only the formula can be published
- * again by hand, from the assets of a release that exists. Nothing reaches the binaries or the
- * image without the approval.
+ * The events each one runs on: the release calls each, and only the formula (from the assets of
+ * a release that exists) and the starter's mirror (its bootstrap, a re-sync) can be published
+ * again by hand, after the release environment's approval of that run (MANUAL_APPROVAL_JOB).
+ * Nothing reaches the binaries or the images without an approval.
  */
 export const CHANNEL_PUBLISH_TRIGGERS = {
   ".github/workflows/publish-cli.yml": ["workflow_call"],
   ".github/workflows/publish-homebrew.yml": ["workflow_call", "workflow_dispatch"],
   ".github/workflows/publish-orca-plugin.yml": ["workflow_call"],
+  ".github/workflows/publish-to-docker.yml": ["workflow_call"],
+  ".github/workflows/sync-template-mirror.yml": ["workflow_call", "workflow_dispatch"],
 }
+
+/**
+ * The job a manual run of a channel waits in for the release environment's approval. It runs on
+ * a direct run alone: called by release-please.yml, a workflow's github context is its caller's,
+ * so `github.workflow_ref` names the channel's file only when someone ran it by hand.
+ */
+export const MANUAL_APPROVAL_JOB = "approval"
 
 /**
  * The action that publishes into Miragon/orca-plugins. A full commit pins it, with its release of
@@ -802,6 +818,109 @@ export function checkChannelPublishWorkflows(workflows) {
           )
         }
         errors.push(...checkOrcaPublishStep(at, job, step))
+      }
+      errors.push(...checkNeedsResults(at, job))
+    }
+    if (allowed.includes("workflow_dispatch")) errors.push(...checkManualApproval(file, doc))
+  }
+  return errors
+}
+
+/**
+ * A job whose `if` names a status check function runs whatever its needs ended in, so it names
+ * each need's result itself (a rejected approval, a failed build), never `!cancelled()` alone.
+ */
+function checkNeedsResults(at, job) {
+  if (!STATUS_FUNCTION.test(String(job?.if ?? ""))) return []
+  return asList(job?.needs)
+    .filter((need) => !String(job.if).includes(`needs.${need}.result`))
+    .map(
+      (need) =>
+        `${at}'s if names a status check function but not needs.${need}.result: it would run ` +
+        `after ${need} failed or was refused`,
+    )
+}
+
+/**
+ * A channel that runs by hand too publishes then without the release's gate, so its
+ * MANUAL_APPROVAL_JOB waits in the release environment on a direct run alone, holding nothing,
+ * and every job that holds a credential waits for it, directly or through another job (pure).
+ */
+function checkManualApproval(file, doc) {
+  const jobs = Object.fromEntries(jobsOf(doc))
+  const approval = jobs[MANUAL_APPROVAL_JOB]
+  if (approval === undefined) {
+    return [
+      `${file} runs on workflow_dispatch, but has no job ${MANUAL_APPROVAL_JOB}: a manual run ` +
+        `waits for the release environment's approval there`,
+    ]
+  }
+  const errors = []
+  const at = `${file}: job ${MANUAL_APPROVAL_JOB}`
+  if (environmentOf(approval) !== "release") {
+    errors.push(`${at} must run in the environment release`)
+  }
+  const direct = `contains(github.workflow_ref, '/${path.basename(file)}@')`
+  if (!String(approval.if ?? "").includes(direct)) {
+    errors.push(
+      `${at}'s if must hold ${direct}: it waits on a manual run, and the release's call, which ` +
+        `its gate approved, skips it`,
+    )
+  }
+  if (credentialOf(approval) !== undefined || stepsOf(approval).some((step) => step.uses)) {
+    errors.push(`${at} only waits: it holds no credential and uses no action`)
+  }
+  const waits = (id, seen) =>
+    id === MANUAL_APPROVAL_JOB ||
+    (!seen.has(id) &&
+      jobs[id] !== undefined &&
+      asList(jobs[id].needs).some((need) => waits(need, new Set([...seen, id]))))
+  for (const [id, job] of Object.entries(jobs)) {
+    const credential = credentialOf(job)
+    if (id === MANUAL_APPROVAL_JOB || credential === undefined || waits(id, new Set())) continue
+    errors.push(
+      `${file}: job ${id} holds ${credential} but never waits for job ${MANUAL_APPROVAL_JOB}: ` +
+        `a manual run would publish without the release approval`,
+    )
+  }
+  return errors
+}
+
+/** A JVM build tool, which runs the build's plugins and dependencies. */
+const JVM_BUILD = /(?:^|[\s;&|(])(?:\.\/gradlew|gradlew|gradle|mvnw?|\.\/mvnw)(?=\s|$)/m
+
+/**
+ * Every workflow: a job that mints an App token or reads a secret other than its GITHUB_TOKEN
+ * (or a token another job minted) runs no package manager and no JVM build, whose plugins and
+ * dependencies would run next to it. Such a job checks out, downloads what a job without the
+ * credential built, and publishes or pushes (CLAUDE.md, Releases). A write grant of the job's
+ * own GITHUB_TOKEN is the publish workflows' business (checkPublishWorkflow,
+ * checkChannelPublishWorkflows, checkVscodePublish), pure.
+ */
+export function checkCredentialJobs(workflows) {
+  const errors = []
+  for (const [file, doc] of workflows) {
+    for (const [id, job] of jobsOf(doc)) {
+      const text = JSON.stringify(job ?? {})
+      const credential = stepsOf(job).some((step) =>
+        usesAction(step, "actions/create-github-app-token"),
+      )
+        ? "an App token"
+        : SECRET.test(text)
+          ? "a secret"
+          : TOKEN_OUTPUT.test(text)
+            ? "a minted token"
+            : undefined
+      if (credential === undefined) continue
+      for (const step of stepsOf(job)) {
+        const run = runOf(step)
+        const tool = packageManagerRun(run) ?? JVM_BUILD.exec(run)?.[0]?.trim()
+        if (tool) {
+          errors.push(
+            `${file}: job ${id} holds ${credential} and runs "${tool}": build in a job without ` +
+              `it and hand the result over as an artifact`,
+          )
+        }
       }
     }
   }
@@ -1350,6 +1469,7 @@ export function checkRepo(root) {
     ),
     ...checkReleaseGate(workflows.get(RELEASE_WORKFLOW)),
     ...checkChannelPublishWorkflows(workflows),
+    ...checkCredentialJobs(workflows),
     ...checkVscodePublish(
       workflows.get(RELEASE_WORKFLOW),
       workflows.get(VSCODE_PUBLISH_WORKFLOW),
@@ -1376,7 +1496,8 @@ if (isMain) {
   console.log(
     "GitHub config: publish workflow, npm matrix and repositories, release extra-files, " +
       "plugin versions and template pins in release-please's form, the versions the generic " +
-      "extra-files mark, the release gate, the CLI and Orca publish " +
-      "workflows, the extension's release path, the docs deploy and the CI scopes hold.",
+      "extra-files mark, the release gate, the channels' publish workflows (the CLI, Orca, the " +
+      "image, the starter's mirror), no build next to a credential, the extension's release " +
+      "path, the docs deploy and the CI scopes hold.",
   )
 }

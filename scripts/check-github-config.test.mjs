@@ -32,6 +32,7 @@ import {
   actionRefs,
   checkCiScopes,
   checkChannelPublishWorkflows,
+  checkCredentialJobs,
   checkDocsDeploy,
   checkGenericExtraFiles,
   checkJsonExtraFileForm,
@@ -1345,10 +1346,68 @@ describe("checkChannelPublishWorkflows", () => {
       run: "yarn install",
     })
     const errors = checkChannelPublishWorkflows(docs)
-    assert.equal(errors.length, 3)
+    assert.equal(errors.length, 5)
     assert.match(errors[0], /job formula holds a secret and runs "npm ci"/)
     assert.match(errors[1], /job verify holds a minted token and runs "yarn"/)
     assert.match(errors[2], /job publish holds an App token and runs "npx"/)
+    // The formula runs by hand too, so a job that now holds a credential waits for the approval.
+    assert.match(errors[3], /job formula holds a secret but never waits for job approval/)
+    assert.match(errors[4], /job verify holds a minted token but never waits for job approval/)
+  })
+
+  it("holds a channel's manual run to the release environment's approval", () => {
+    const docs = workflows()
+    const mirror = docs.get(".github/workflows/sync-template-mirror.yml")
+    mirror.jobs.approval.environment = "npm"
+    mirror.jobs.approval.if = "${{ github.event_name == 'workflow_dispatch' }}"
+    mirror.jobs.push.needs = []
+    delete docs.get(".github/workflows/publish-homebrew.yml").jobs.approval
+    const errors = checkChannelPublishWorkflows(docs)
+    assert.equal(errors.length, 4)
+    assert.match(
+      errors[0],
+      /publish-homebrew\.yml runs on workflow_dispatch, but has no job approval/,
+    )
+    assert.match(
+      errors[1],
+      /sync-template-mirror\.yml: job approval must run in the environment release/,
+    )
+    assert.match(
+      errors[2],
+      /job approval's if must hold contains\(github\.workflow_ref, '\/sync-template-mirror\.yml@'\)/,
+    )
+    assert.match(
+      errors[3],
+      /sync-template-mirror\.yml: job push holds an App token but never waits for job approval/,
+    )
+  })
+
+  it("refuses a job that runs after a need failed, and an approval job that holds anything", () => {
+    const docs = workflows()
+    const mirror = docs.get(".github/workflows/sync-template-mirror.yml")
+    mirror.jobs.push.if = "${{ !cancelled() }}"
+    mirror.jobs.approval.steps.push({
+      uses: "actions/checkout@v7.0.1",
+      with: { "persist-credentials": false },
+    })
+    const errors = checkChannelPublishWorkflows(docs)
+    assert.equal(errors.length, 2)
+    assert.match(
+      errors[0],
+      /job push's if names a status check function but not needs\.test\.result/,
+    )
+    assert.match(errors[1], /job approval only waits: it holds no credential and uses no action/)
+  })
+
+  it("runs the server image on the release alone", () => {
+    const docs = workflows()
+    docs.get(".github/workflows/publish-to-docker.yml").on.workflow_dispatch = {}
+    const errors = checkChannelPublishWorkflows(docs)
+    assert.equal(errors.length, 1)
+    assert.match(
+      errors[0],
+      /publish-to-docker\.yml: runs on workflow_dispatch; it runs on workflow_call only/,
+    )
   })
 
   it("lets a contents: read job with only its own GITHUB_TOKEN run a package manager", () => {
@@ -1414,6 +1473,51 @@ describe("checkChannelPublishWorkflows", () => {
       checkChannelPublishWorkflows(docs)[0],
       /no job calls \.\/\.github\/workflows\/publish-cli\.yml/,
     )
+  })
+})
+
+// ── every workflow: no build next to a credential ───────────────────────────
+
+describe("checkCredentialJobs", () => {
+  const workflows = () =>
+    new Map(
+      readdirSync(path.join(ROOT, ".github/workflows"))
+        .filter((name) => name.endsWith(".yml"))
+        .map((name) => [`.github/workflows/${name}`, readDoc(`.github/workflows/${name}`)]),
+    )
+
+  it("accepts the real workflows", () => {
+    assert.deepEqual(checkCredentialJobs(workflows()), [])
+  })
+
+  it("refuses a JVM build or a package manager next to a secret or an App token", () => {
+    const docs = workflows()
+    const deploy = docs.get(".github/workflows/deploy-playground.yml").jobs.deploy
+    deploy.steps.splice(1, 0, { run: "cd playground/cibseven-example && ./gradlew bootJar" })
+    const push = docs.get(".github/workflows/sync-template-mirror.yml").jobs.push
+    push.steps.push({ run: "pnpm install --frozen-lockfile" })
+    const errors = checkCredentialJobs(docs)
+    assert.equal(errors.length, 2)
+    assert.match(
+      errors[0],
+      /deploy-playground\.yml: job deploy holds a secret and runs "\.\/gradlew"/,
+    )
+    assert.match(
+      errors[1],
+      /sync-template-mirror\.yml: job push holds an App token and runs "pnpm"/,
+    )
+  })
+
+  it("lets a job without a credential build, and a credential job copy a lockfile", () => {
+    const docs = workflows()
+    docs.get(".github/workflows/deploy-playground.yml").jobs["engine-jar"].steps.push({
+      env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" },
+      run: "./gradlew build && pnpm install",
+    })
+    docs.get(".github/workflows/sync-template-mirror.yml").jobs.push.steps.push({
+      run: "cp starter/pnpm-lock.yaml mirror/ && rm -f mirror/yarn.lock",
+    })
+    assert.deepEqual(checkCredentialJobs(docs), [])
   })
 })
 

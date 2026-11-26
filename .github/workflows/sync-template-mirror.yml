@@ -15,6 +15,12 @@ name: Sync template mirror
 # Runs after publish-npm on purpose: syncing on the release merge would
 # briefly advertise pins that are not on npm yet.
 #
+# Two jobs, so no dependency code runs next to the release app's token: `test`
+# installs, builds and tests the template with contents: read and hands the
+# lockfile it resolved over as an artifact; `push` mints the token and only
+# checks out, copies and pushes. A manual run waits for the release
+# environment's approval first, as the release does (`approval`).
+#
 # One-time setup:
 #   1. Create the mirror repo (MIRROR_OWNER/MIRROR_NAME below),
 #      auto-initialized (any README) so it has a default branch, and mark it
@@ -37,27 +43,50 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 env:
   MIRROR_OWNER: Miragon
   MIRROR_NAME: pulse-starter
 
 jobs:
-  sync:
-    name: Test against npm + push mirror
+  # A manual run (the bootstrap, a re-sync) pushes to customers without the
+  # release's gate, so it waits for the release environment's approval itself.
+  # Called by release-please.yml, whose gate approved the release, it is
+  # skipped: a called workflow's github context is its caller's, so
+  # workflow_ref names release-please.yml there.
+  approval:
+    name: Wait for the release approval of a manual run
+    if: ${{ contains(github.workflow_ref, '/sync-template-mirror.yml@') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: release
+    permissions: {}
+    steps:
+      - name: Approved
+        env:
+          TAG: ${{ inputs.tag_name }}
+        run: echo "A manual sync of ${TAG} was approved."
+
+  test:
+    name: Test against npm
+    needs: approval
+    if: ${{ !cancelled() && (needs.approval.result == 'success' || needs.approval.result == 'skipped' && !contains(github.workflow_ref, '/sync-template-mirror.yml@')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.tag_name }}
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6.1.1
 
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: 22
+          package-manager-cache: false
 
       # npm's read replicas can lag the publish by a minute or two: a plain
       # install would then resolve a 404 and fail the whole sync. The metadata can
@@ -103,6 +132,7 @@ jobs:
           pnpm typecheck
           pnpm test
           echo "WORK=$WORK" >> "$GITHUB_ENV"
+          cp pnpm-lock.yaml "$RUNNER_TEMP/pnpm-lock.yaml"
 
       # No other job builds the starter's Dockerfile: scripts/test-template.sh runs
       # no docker build (its lockfile points at local tarballs outside the context)
@@ -113,9 +143,36 @@ jobs:
       - name: Build the template's Docker image
         run: docker build --tag pulse-starter-check "$WORK"
 
+      # The one file of the mirror that the tag does not hold.
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: starter-lockfile
+          path: ${{ runner.temp }}/pnpm-lock.yaml
+          if-no-files-found: error
+          retention-days: 1
+
+  # Holds the release app's token: checks out, copies and pushes, and runs
+  # neither a package manager nor a build nor a script of the repository.
+  push:
+    name: Push the mirror
+    needs: test
+    if: ${{ !cancelled() && needs.test.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.tag_name }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: starter-lockfile
+          path: ${{ runner.temp }}/starter
+
       # Minted right before the push so the 1h token lifetime never races the
-      # npm wait + test steps above. Same app as the release train, scoped
-      # down to the mirror repo.
+      # test job. Same app as the release train, scoped down to the mirror repo.
       - uses: actions/create-github-app-token@v3.4.0
         id: mirror-token
         with:
@@ -129,6 +186,7 @@ jobs:
           repository: ${{ env.MIRROR_OWNER }}/${{ env.MIRROR_NAME }}
           token: ${{ steps.mirror-token.outputs.token }}
           path: mirror
+          persist-credentials: false
 
       # Mirror-only files (lockfile, LICENSE, README banner) are re-created
       # after the --delete pass, so stale copies can never survive a sync.
@@ -141,7 +199,7 @@ jobs:
           TAG: ${{ inputs.tag_name }}
         run: |
           rsync -a --delete --exclude .git --exclude /.github/CODEOWNERS templates/composed-server/ mirror/
-          cp "$WORK/pnpm-lock.yaml" mirror/pnpm-lock.yaml
+          cp "$RUNNER_TEMP/starter/pnpm-lock.yaml" mirror/pnpm-lock.yaml
           cp LICENSE mirror/LICENSE
           {
             echo "> [!NOTE]"
@@ -160,10 +218,14 @@ jobs:
       # Ends early when the tree is already up to date, which only a rerun of the
       # same tag can find: the banner names ${TAG} and every release bumps the
       # template's pins. The tag and release step below still runs.
+      # The checkout kept no credential, so git pushes through gh's helper with
+      # the token in this step's environment only.
       - name: Commit and push
         env:
           TAG: ${{ inputs.tag_name }}
+          GH_TOKEN: ${{ steps.mirror-token.outputs.token }}
         run: |
+          gh auth setup-git
           cd mirror
           git add -A
           if git diff --cached --quiet; then
@@ -185,6 +247,7 @@ jobs:
           TAG: ${{ inputs.tag_name }}
           GH_TOKEN: ${{ steps.mirror-token.outputs.token }}
         run: |
+          gh auth setup-git
           cd mirror
           mirror="${MIRROR_OWNER}/${MIRROR_NAME}"
           commit="$(git rev-parse HEAD)"

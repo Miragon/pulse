@@ -29,28 +29,57 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Deploy playground to Fly.io
+  # The engine Dockerfile copies the pre-built jar from build/libs. Gradle runs
+  # its plugins and the build's dependencies here, where no Fly token is.
+  engine-jar:
+    name: Build the engine jar
+    if: ${{ inputs.target == 'all' || inputs.target == 'engine' }}
     runs-on: ubuntu-latest
-    env:
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-java@v6.3.0
-        if: ${{ inputs.target == 'all' || inputs.target == 'engine' }}
         with:
           distribution: temurin
           java-version: 21
           cache: gradle
 
-      # The engine Dockerfile copies the pre-built jar from build/libs.
       - name: Build engine jar
-        if: ${{ inputs.target == 'all' || inputs.target == 'engine' }}
         working-directory: playground/cibseven-example
         run: ./gradlew bootJar
         env:
           GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: playground-engine-jar
+          path: playground/cibseven-example/build/libs/cibseven-example.jar
+          if-no-files-found: error
+          retention-days: 1
+
+  # Holds the Fly token, in the deploy step alone: runs flyctl and builds
+  # nothing itself (Fly's remote builder builds the images).
+  deploy:
+    name: Deploy playground to Fly.io
+    needs: engine-jar
+    if: ${{ !cancelled() && (needs.engine-jar.result == 'success' || needs.engine-jar.result == 'skipped' && inputs.target == 'server') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v8.0.2
+        if: ${{ inputs.target == 'all' || inputs.target == 'engine' }}
+        with:
+          name: playground-engine-jar
+          path: playground/cibseven-example/build/libs
 
       # superfly/flyctl-actions has no exact-version release tags beyond 1.5,
       # so pin by commit SHA instead (repo convention: no floating tags). The
@@ -61,7 +90,9 @@ jobs:
           version: 0.4.67
 
       - name: Deploy
-        run: ./playground/fly/deploy.sh "${{ inputs.target }}"
         env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           # Org that owns the playground apps (repo variable, optional).
           FLY_ORG: ${{ vars.FLY_ORG || 'miragon' }}
+          TARGET: ${{ inputs.target }}
+        run: ./playground/fly/deploy.sh "$TARGET"
