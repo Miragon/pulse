@@ -57,7 +57,7 @@ export class OpenPanel<Session extends Panel> implements vscode.Disposable {
       navigation.live.attention.onDidChange(() => {
         this.attend()
       }),
-      connectThemeBridge(vscode, panel, THEMES),
+      vscode.Disposable.from(connectThemeBridge(vscode, panel, THEMES)),
     ]
     this.attend()
   }

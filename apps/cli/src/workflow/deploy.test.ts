@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { assert, describe, expect, it } from "vitest"
 import { depsOf } from "../../test/support/engine-port.js"
 import { engineError, fakeServer, json } from "../../test/support/fake-fetch.js"
 import { fakeRuntime } from "../../test/support/fake-runtime.js"
@@ -279,7 +279,9 @@ describe("deploy details", () => {
     await deploy(depsFor(server.fetch), BASE)
     const form = server.requests.find((request) => request.path === "/deployment/create")
       ?.body as FormData
-    expect(await (form.get("order.bpmn") as File).text()).toBe(ORDER)
+    const file = form.get("order.bpmn")
+    assert.instanceOf(file, File)
+    expect(await file.text()).toBe(ORDER)
     expect(
       ["deployment-name", "deployment-source", "deploy-changed-only"].map((name) => form.get(name)),
     ).toEqual(["pulse-cli", "pulse-cli", "true"])

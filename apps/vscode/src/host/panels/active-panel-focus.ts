@@ -14,19 +14,18 @@ export class ActivePanelFocus implements vscode.Disposable {
 
   track(panel: vscode.WebviewPanel, focus: PanelFocus | undefined): vscode.Disposable {
     if (focus === undefined) {
-      return { dispose: () => undefined }
+      return vscode.Disposable.from()
     }
     this.focuses.set(panel, focus)
     this.report(panel)
     const listener = panel.onDidChangeViewState((event) => {
       this.changed(event.webviewPanel)
     })
-    return {
+    return vscode.Disposable.from(listener, {
       dispose: () => {
-        listener.dispose()
         this.forget(panel)
       },
-    }
+    })
   }
 
   dispose(): void {

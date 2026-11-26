@@ -1,5 +1,5 @@
 import fc from "fast-check"
-import { describe, expect, it } from "vitest"
+import { assert, describe, expect, it } from "vitest"
 import type { OperationSpec, ParamSpec } from "../catalog/types.js"
 import { PulseCliError } from "../errors.js"
 import {
@@ -374,7 +374,8 @@ describe("buildRequest", () => {
     expect(request.body).toBeInstanceOf(FormData)
     const form = request.body as FormData
     expect(form.get("deployment-name")).toBe("app")
-    const file = form.get("a.bpmn") as File
+    const file = form.get("a.bpmn")
+    assert.instanceOf(file, File)
     expect(file.name).toBe("a.bpmn")
     expect(await file.text()).toBe("<xml/>")
   })
