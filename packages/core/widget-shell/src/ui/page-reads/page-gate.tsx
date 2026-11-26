@@ -3,7 +3,15 @@
  * of its own: the gate a refusal of a connection closes (`PageGate`), the bar's Refresh, when the
  * numbers on screen were read and whether a read runs (`usePageReads`).
  */
-import { createContext, useCallback, useMemo, useSyncExternalStore, type ReactNode } from "react"
+import {
+  createContext,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react"
 import { notifyManager, useIsFetching, type QueryCache } from "@tanstack/react-query"
 import { ErrorState, useLocale } from "@miragon/pulse-ui"
 import { useQueryClient } from "../tool-query.js"
@@ -123,12 +131,29 @@ export interface PageGateProps {
   readonly children: ReactNode
 }
 
+/** pulse-ui's `SectionState` region, which takes focus programmatically. */
+const SECTION = "[data-slot='section-state']"
+
+/** The first section region after `marker` among its siblings, in document order. */
+function firstSectionAfter(marker: HTMLElement | null): HTMLElement | null {
+  for (
+    let next = marker?.nextElementSibling ?? null;
+    next !== null;
+    next = next.nextElementSibling
+  ) {
+    const section = next.matches(SECTION) ? next : next.querySelector(SECTION)
+    if (section instanceof HTMLElement) return section
+  }
+  return null
+}
+
 /**
  * The page's sections, or its ONE state while a refusal of a connection as a whole stands (no
  * sign-in, no connection, no approval): every section would fail alike, so none mounts, and the
  * sections below it never say such a refusal as their own. Its Try again is the page's Refresh,
- * which opens it and reads every section again. A refusal of a connection no gate covers stays
- * in its sections, said once under a `SectionStateGroup`.
+ * which opens it and reads every section again; the first section then takes the keyboard focus
+ * its gone Try again held (WCAG 2.4.3), found from a hidden marker before the sections. A refusal
+ * of a connection no gate covers stays in its sections, said once under a `SectionStateGroup`.
  */
 export function PageGate({ connector, children }: PageGateProps) {
   const refused = useCacheValue((cache) => refusalOf(cache, connector))
@@ -136,8 +161,27 @@ export function PageGate({ connector, children }: PageGateProps) {
   const locale = useLocale()
   const words = useErrorWords()
   const gate = useMemo(() => ({ connector }), [connector])
+  const marker = useRef<HTMLSpanElement>(null)
+  const reopened = useRef(false)
+  const retry = useCallback(() => {
+    reopened.current = true
+    refresh()
+  }, [refresh])
+  useLayoutEffect(() => {
+    const doc = marker.current?.ownerDocument
+    if (refused !== undefined || !reopened.current || doc === undefined) return
+    reopened.current = false
+    if (doc.activeElement === null || doc.activeElement === doc.body) {
+      firstSectionAfter(marker.current)?.focus({ preventScroll: true })
+    }
+  })
   if (refused === undefined) {
-    return <PageGateContext.Provider value={gate}>{children}</PageGateContext.Provider>
+    return (
+      <PageGateContext.Provider value={gate}>
+        <span ref={marker} hidden />
+        {children}
+      </PageGateContext.Provider>
+    )
   }
   // None of these refusals is permanent: a reconnect, a choice or an approval ends each.
   const failure = describePageFailure(refused, locale, words)
@@ -147,7 +191,7 @@ export function PageGate({ connector, children }: PageGateProps) {
       title={failure.title}
       description={failure.hint}
       details={failure.details}
-      onRetry={refresh}
+      onRetry={retry}
     />
   )
 }

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-import { useEffect, useState } from "react"
-import { afterEach, describe, expect, it } from "vitest"
+import { act, useEffect, useState } from "react"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { SectionState, SectionStateGroup, type SectionFailure } from "@miragon/pulse-ui"
 import type { ToolCaller } from "../browser-view-host.js"
 import { PAGE_HINTS, type PageHints } from "../page-hints.js"
@@ -127,14 +127,39 @@ describe("PageGate", () => {
     },
   )
 
+  it("stays closed past TanStack's collection of reads no section observes, until its Refresh", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const caller = swappableCaller(played(["needs_reauth"]).callTool)
+    const container = await mountReads(Page, { callTool: caller.callTool, pageHints: HINTS })
+    const gate = container.querySelector("h2")
+    const asked = caller.calls.length
+    expect(gate).not.toBeNull()
+    // Past TanStack's default gcTime of 5 minutes for the reads the closed gate unmounted.
+    await act(async () => {
+      vi.advanceTimersByTime(6 * 60_000)
+    })
+    await settled()
+    expect(container.querySelector("h2")).toBe(gate)
+    expect(caller.calls).toHaveLength(asked)
+    expect(container.querySelector('[data-testid="stats"]')).toBeNull()
+  })
+
   it("opens on its Try again, the page's Refresh, and reads every section again past the caches", async () => {
     const caller = swappableCaller(played(["needs_reauth"]).callTool)
     const container = await mountReads(Page, { callTool: caller.callTool, pageHints: HINTS })
     expect(headings(container)).toHaveLength(1)
     caller.answer(played().callTool)
+    const button = [...container.querySelectorAll("button")].find(
+      (b) => b.textContent === "Try again",
+    )
+    button?.focus()
     await click(container, "Try again")
     expect(headings(container)).toEqual([])
     expect(phaseOf(container, "stats")).toBe("ready")
+    // The gone Try again's focus goes to the first section, never to the document.
+    expect(document.activeElement).toBe(
+      container.querySelector('[data-testid="stats"] [data-slot="section-state"]'),
+    )
     expect(phaseOf(container, "counts")).toBe("ready")
     expect(caller.refreshes("stats")).toEqual([false, true])
     expect(caller.refreshes("counts").at(-1)).toBe(true)

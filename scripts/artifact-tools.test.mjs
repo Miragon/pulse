@@ -133,7 +133,8 @@ function recordingsOf(root) {
 const OUTPUT_GOLDENS = "apps/mcp-server/test/__golden__/outputs"
 /** The page tools no output golden pins, each with why; an entry whose tool has one fails. */
 const WITHOUT_OUTPUT_GOLDEN = {
-  engine_get_process_definition_xml: "answers { id, bpmn20Xml }, which no output golden pins",
+  engine_get_process_definition_xml:
+    "answers { id, bpmn20Xml }, which no output golden pins: readDiagram fails loud without bpmn20Xml",
 }
 /** Objects keyed by data (end event ids), held under `*`; an entry needs a map on both sides. */
 const DATA_KEYED_MAPS = { engine_process_stats: ["buckets[].endedAt"] }

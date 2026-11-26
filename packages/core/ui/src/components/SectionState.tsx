@@ -162,6 +162,27 @@ function useSaidOnce(
   }
 }
 
+/**
+ * Keeps keyboard focus in the section across its Try again (WCAG 2.4.3): the button goes once the
+ * read succeeds, which would drop focus to the document, so the section's region takes it, unless
+ * the reader moved it elsewhere meanwhile.
+ */
+function useFocusKeptOnRetry(ref: RefObject<HTMLDivElement | null>, retry: () => void): () => void {
+  const pending = useRef<HTMLDivElement | null>(null)
+  useLayoutEffect(() => {
+    const element = pending.current
+    if (element === null) return
+    const active = document.activeElement
+    if (active === document.body) element.focus({ preventScroll: true })
+    if (!element.contains(active)) pending.current = null
+  })
+  return useCallback(() => {
+    const element = ref.current
+    pending.current = element?.contains(document.activeElement) === true ? element : null
+    retry()
+  }, [ref, retry])
+}
+
 /** Read data that counts as nothing found unless `isEmpty` says otherwise. */
 function isNothing(data: unknown): boolean {
   return Array.isArray(data) && data.length === 0
@@ -206,12 +227,15 @@ export function SectionState<T>({
   const { common } = useUiMessages()
   const ref = useRef<HTMLDivElement>(null)
   const failure = state.error ?? undefined
-  const { repeated, retry } = useSaidOnce(ref, failure, onRetry)
+  const said = useSaidOnce(ref, failure, onRetry)
+  const { repeated } = said
+  const retry = useFocusKeptOnRetry(ref, said.retry)
   const { data } = state
   const busy = state.loading === true || undefined
   const root = (phase: string, content: ReactNode, waiting = false) => (
     <div
       ref={ref}
+      tabIndex={-1}
       data-slot="section-state"
       data-state={phase}
       aria-busy={waiting || busy}

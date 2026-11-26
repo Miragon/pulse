@@ -24,6 +24,7 @@ export const EN = {
   "page.refresh": "Refresh",
   "page.engine": "Engine",
   "scope.allVersions": COUNT_TERMS.allVersions.en,
+  "kpi.title": "Key figures",
   "kpi.now": "Now",
   "kpi.last24h": "Last 24 hours",
   "kpi.running": "Running instances",
@@ -67,6 +68,10 @@ export const EN = {
   "outcomes.noShare":
     "The engine's history of these days is not whole, so no share is shown: the bars compare the end events.",
   "outcomes.empty": "No instance ended in the last 14 days.",
+  "outcomes.noEndEvent":
+    "Instances ended in the last 14 days, but none reached an end event: they were cancelled or deleted.",
+  "outcomes.noHistory":
+    "The engine writes no history, so which end events instances reached is not known.",
   "incidents.title": "Open incidents by activity",
   "incidents.label": "Activities with open incidents",
   "incidents.activity": "Activity",
@@ -91,6 +96,7 @@ export const DE: Readonly<Record<MessageKey, Message>> = {
   "page.refresh": "Aktualisieren",
   "page.engine": "Engine",
   "scope.allVersions": COUNT_TERMS.allVersions.de,
+  "kpi.title": "Kennzahlen",
   "kpi.now": "Jetzt",
   "kpi.last24h": "Letzte 24 Stunden",
   "kpi.running": "Laufende Instanzen",
@@ -136,6 +142,10 @@ export const DE: Readonly<Record<MessageKey, Message>> = {
   "outcomes.noShare":
     "Die Historie der Engine zu diesen Tagen ist nicht vollständig, deshalb zeigt die Seite keinen Anteil: Die Balken vergleichen die Endereignisse.",
   "outcomes.empty": "In den letzten 14 Tagen wurde keine Instanz beendet.",
+  "outcomes.noEndEvent":
+    "In den letzten 14 Tagen wurden Instanzen beendet, aber keine hat ein Endereignis erreicht, sie wurden also abgebrochen oder gelöscht.",
+  "outcomes.noHistory":
+    "Die Engine schreibt keine Historie, deshalb ist nicht bekannt, welche Endereignisse Instanzen erreicht haben.",
   "incidents.title": "Offene Incidents nach Aktivität",
   "incidents.label": "Aktivitäten mit offenen Incidents",
   "incidents.activity": "Aktivität",

@@ -141,6 +141,11 @@ export async function readDiagram(reader: Reader, key: string): Promise<DiagramD
     "engine_get_process_definition_xml",
     { processDefinitionId: counts.definitionId },
   )
+  // No output golden pins this answer (scripts/artifact-tools.test.mjs), so a renamed field fails
+  // the section loud instead of drawing no diagram; null is an engine without the XML.
+  if (!("bpmn20Xml" in answer)) {
+    throw new Error("engine_get_process_definition_xml answered without bpmn20Xml")
+  }
   return { counts, xml: answer.bpmn20Xml ?? null }
 }
 
@@ -172,19 +177,32 @@ export function boundOf(count: Count): number {
 
 /**
  * The end events reached in the chart's days: every end event an instance that ended reached,
- * the most reached first, and one whose count is unknown, never read as none. An instance can
- * reach more than one (a non-interrupting branch ends at an end event of its own), so the shares
- * are each of the instances that ended, never of a sum.
+ * the most reached first, and one whose count is unknown or a lower bound (`{ atLeast: 0 }` where
+ * the engine removed history), never read as none. An instance can reach more than one (a
+ * non-interrupting branch ends at an end event of its own), so the shares are each of the
+ * instances that ended, never of a sum.
  */
 export function outcomesOf(stats: ProcessStats): OutcomesData {
   return {
     outcomes: stats.endEvents
-      .filter((event) => event.ended === null || boundOf(event.ended) > 0)
+      .filter((event) => typeof event.ended !== "number" || event.ended > 0)
       .sort(
         (a, b) => boundOf(b.ended) - boundOf(a.ended) || (a.activityId < b.activityId ? -1 : 1),
       ),
     ended: stats.totals.ended,
   }
+}
+
+/**
+ * Why no end event shows: no instance ended (`none`, only for exactly 0), instances ended without
+ * reaching one, cancelled or deleted (`noEndEvent`), or the engine writes no history (`noHistory`).
+ */
+export type OutcomesEmpty = "none" | "noEndEvent" | "noHistory"
+
+export function outcomesEmptyOf(stats: ProcessStats): OutcomesEmpty {
+  const { ended } = stats.totals
+  if (ended === null) return "noHistory"
+  return ended === 0 ? "none" : "noEndEvent"
 }
 
 /**

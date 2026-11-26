@@ -264,6 +264,8 @@ describe("the dashboard on the fixtures", () => {
     }
     const incidents = screen.getByRole("region", { name: en("incidents.title") })
     expect(within(incidents).getAllByRole("table").length).toBeGreaterThan(0)
+    const figures = screen.getByRole("region", { name: en("kpi.title") })
+    expect(within(figures).getAllByText(en("kpi.running")).length).toBeGreaterThan(0)
     expect(screen.queryAllByRole("alert")).toEqual([])
   })
 
