@@ -42,6 +42,32 @@ describe("checkPackageScripts", () => {
       checkPackageScripts("apps/z", { ...COMPLETE, lint: "eslint src scripts test *.config.ts" }),
       [],
     )
+    // and the package's own dependency rules, after the source dirs
+    for (const lint of [
+      "eslint src test .dependency-cruiser.cjs",
+      "eslint src .dependency-cruiser.cjs *.config.ts",
+    ])
+      assert.deepEqual(
+        checkPackageScripts("apps/z", { ...COMPLETE, lint }, { dependencyRules: true }),
+        [],
+        lint,
+      )
+  })
+
+  it("requires a package with dependency rules of its own to lint them (F71)", () => {
+    const [error, ...more] = checkPackageScripts("apps/vscode", COMPLETE, {
+      dependencyRules: true,
+    })
+    assert.deepEqual(more, [])
+    assert.match(
+      error,
+      /^apps\/vscode: "lint" does not lint the package's \.dependency-cruiser\.cjs/,
+    )
+    // A lint that misses src says so once, a missing one once: no second finding of the rules.
+    const noSrc = { ...COMPLETE, lint: "eslint .dependency-cruiser.cjs" }
+    assert.equal(checkPackageScripts("apps/x", noSrc, { dependencyRules: true }).length, 1)
+    const { lint: _lint, ...noLint } = COMPLETE
+    assert.equal(checkPackageScripts("apps/x", noLint, { dependencyRules: true }).length, 1)
   })
 
   it("flags each missing script: turbo would skip the package silently", () => {
@@ -82,6 +108,9 @@ describe("checkPackageScripts", () => {
       { lint: "eslint src *.ts" },
       { lint: "eslint src *.config.ts test" },
       { lint: "eslint *.config.ts" },
+      { lint: "eslint src .dependency-cruiser.cjs test" },
+      { lint: "eslint src *.config.ts .dependency-cruiser.cjs" },
+      { lint: "eslint src x.dependency-cruiser.cjs" },
       { typecheck: "tsc --version" },
       { typecheck: "tsc --noEmit; true" },
     ]) {
@@ -575,8 +604,9 @@ function workspaceFixture(change = () => {}) {
   // The docs site: no src/, so no gate applies.
   write("docs/package.json", JSON.stringify({ name: "@miragon/pulse-docs" }))
   for (const [dir, spec] of Object.entries(packages)) {
-    const { name, engines, stryker, vitest = true, src = true, raw } = spec
-    write(`${dir}/package.json`, JSON.stringify({ name, engines, scripts: SCRIPTS }))
+    const { name, engines, stryker, vitest = true, src = true, raw, scripts = SCRIPTS } = spec
+    write(`${dir}/package.json`, JSON.stringify({ name, engines, scripts }))
+    if (spec.dependencyRules) write(`${dir}/.dependency-cruiser.cjs`, "module.exports = {}\n")
     if (src) write(`${dir}/src/index.ts`, "export {}\n")
     if (vitest) write(`${dir}/vitest.config.ts`, "export default {}\n")
     if (raw !== undefined) write(`${dir}/stryker.config.json`, raw)
@@ -610,6 +640,20 @@ describe("checkWorkspace over fixture trees", () => {
       errors[0],
       /^packages\/connectors\/engine\/engine-connector: no vitest\.config\.ts/,
     )
+  })
+
+  it("flags a package whose lint misses its own .dependency-cruiser.cjs, and passes one naming it", () => {
+    const { errors } = workspaceErrors((p) => (p["apps/vscode"].dependencyRules = true))
+    assert.equal(errors.length, 1, errors.join("\n"))
+    assert.match(
+      errors[0],
+      /^apps\/vscode: "lint" does not lint the package's \.dependency-cruiser/,
+    )
+    const named = workspaceErrors((p) => {
+      p["apps/vscode"].dependencyRules = true
+      p["apps/vscode"].scripts = { ...SCRIPTS, lint: "eslint src .dependency-cruiser.cjs" }
+    })
+    assert.deepEqual(named.errors, [])
   })
 
   it("flags a listed package without stryker.config.json", () => {

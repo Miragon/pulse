@@ -763,11 +763,12 @@ ratchet. Split the code instead of suppressing it. The repository's scripts (`sc
 baseline (F71), and `pnpm typecheck:scripts` checks each that says `// @ts-check`
 (`scripts/tsconfig.json`): every script but those `scripts/ts-check.test.mjs` lists, a list that
 only shrinks, since the ratchet refuses a script that drops the pragma or comes without it. A
-coverage floor also follows its measurement: every package's run fails a floor more than 3 points
-under what it measures and a floor over a scope that measures no statement, so a change that
-raises the coverage raises its floors with it (`scripts/coverage-floors.mjs`, wired in
-`vitest.shared.ts`, which `pnpm lint:package-scripts` holds every package's vitest.config.ts to
-merging).
+package's own `.dependency-cruiser.cjs` is linted by its `lint` (`pnpm lint:package-scripts`) and
+type-checked whole by `scripts/tsconfig.dependency-rules.json`. A coverage floor also follows its
+measurement: every package's run fails a floor more than 3 points under what it measures and a
+floor over a scope that measures no statement, so a change that raises the coverage raises its
+floors with it (`scripts/coverage-floors.mjs`, wired in `vitest.shared.ts`, which
+`pnpm lint:package-scripts` holds every package's vitest.config.ts to merging).
 
 **Mutation testing** runs nightly (`.github/workflows/mutation-nightly.yml`, never on a pull
 request) over the rules that run on every surface: c7-core, the transport, engine-core's rules,

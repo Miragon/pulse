@@ -9,7 +9,8 @@
  * ESLint error had already landed there (#333).
  *
  * Every workspace package with a `src/` directory must define `lint` (ESLint
- * over src), `typecheck` (tsc) and `test` (vitest), each in its CANONICAL
+ * over src, and over the package's own `.dependency-cruiser.cjs` where it has
+ * one, F71 of #688), `typecheck` (tsc) and `test` (vitest), each in its CANONICAL
  * shape: a command that merely mentions the tool can still switch its gate
  * off (`vitest run --coverage.enabled=false`, `eslint src || true`,
  * `eslint src --rule 'complexity: off'`). `typecheck` must cover every extra
@@ -64,10 +65,11 @@ import { checkVitestWiring } from "./vitest-wiring.mjs"
  */
 export const REQUIRED_SCRIPTS = {
   lint: {
-    // `*.config.ts` (the one glob, last) also lints the package's root configs.
-    pattern: /^eslint src(?: \w[\w-]*)*(?: \*\.config\.ts)?$/,
+    // `*.config.ts` (the one glob, last) also lints the package's root configs, and
+    // `.dependency-cruiser.cjs` (before it) the package's own dependency rules.
+    pattern: /^eslint src(?: \w[\w-]*)*(?: \.dependency-cruiser\.cjs)?(?: \*\.config\.ts)?$/,
     expect:
-      "`eslint src` (further source dirs and a final `*.config.ts` allowed; no flags or shell operators)",
+      "`eslint src` (further source dirs, then `.dependency-cruiser.cjs` and a final `*.config.ts` allowed; no flags or shell operators)",
   },
   typecheck: {
     pattern: /^tsc --noEmit(?: && tsc -p tsconfig\.[\w-]+\.json)*$/,
@@ -152,14 +154,35 @@ const normalizedCommand = (command) =>
     : undefined
 
 /**
+ * The package's own dependency rules (a `.dependency-cruiser.cjs` at its root, which
+ * `pnpm lint:architecture:<package>` loads) are linted by its `lint`, under the package's budgets:
+ * no other ESLint run reaches the file (F71, #688).
+ *
+ * @param {string} dir
+ * @param {string} lint the normalized `lint` command
+ */
+function dependencyRulesUnlinted(dir, lint) {
+  if (lint.split(" ").includes(".dependency-cruiser.cjs")) return []
+  return [
+    `${dir}: "lint" does not lint the package's .dependency-cruiser.cjs, so its dependency rules ` +
+      `run under no ESLint: add \`.dependency-cruiser.cjs\` after the source dirs`,
+  ]
+}
+
+/**
  * Violations for one package.json's `scripts` block (pure; unit-tested).
- * `tsconfigs`: the package's extra `tsconfig.<x>.json` files.
+ * `tsconfigs`: the package's extra `tsconfig.<x>.json` files; `dependencyRules`: whether the
+ * package has a `.dependency-cruiser.cjs` of its own.
  *
  * @param {string} dir
  * @param {Record<string, unknown> | undefined} scripts
- * @param {{ tsconfigs?: string[] }} [options]
+ * @param {{ tsconfigs?: string[], dependencyRules?: boolean }} [options]
  */
-export function checkPackageScripts(dir, scripts, { tsconfigs = [] } = {}) {
+export function checkPackageScripts(
+  dir,
+  scripts,
+  { tsconfigs = [], dependencyRules = false } = {},
+) {
   const errors = []
   for (const [name, { pattern, expect }] of Object.entries(REQUIRED_SCRIPTS)) {
     const command = normalizedCommand(scripts?.[name])
@@ -181,6 +204,8 @@ export function checkPackageScripts(dir, scripts, { tsconfigs = [] } = {}) {
       )
     }
   }
+  const lint = normalizedCommand(scripts?.lint)
+  if (dependencyRules && lint !== undefined) errors.push(...dependencyRulesUnlinted(dir, lint))
   return errors
 }
 
@@ -389,7 +414,10 @@ export function checkWorkspace(
     const { scripts } = JSON.parse(readFileSync(path.join(abs, "package.json"), "utf8"))
     const stryker = readStrykerConfig(abs)
     errors.push(
-      ...checkPackageScripts(dir, scripts, { tsconfigs: extraTsconfigs(abs) }),
+      ...checkPackageScripts(dir, scripts, {
+        tsconfigs: extraTsconfigs(abs),
+        dependencyRules: existsSync(path.join(abs, ".dependency-cruiser.cjs")),
+      }),
       ...checkPackageConfigs(dir, {
         hasVitestConfig: existsSync(path.join(abs, "vitest.config.ts")),
         stryker,

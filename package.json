@@ -29,7 +29,7 @@
     "lint:github": "node scripts/check-github-config.mjs",
     "lint:configs": "node scripts/lint-configs.mjs",
     "lint:scripts": "eslint --max-warnings 0 \"scripts/*.mjs\" .dependency-cruiser.cjs",
-    "typecheck:scripts": "tsc -p scripts/tsconfig.json",
+    "typecheck:scripts": "tsc -p scripts/tsconfig.json && tsc -p scripts/tsconfig.dependency-rules.json",
     "lint:fix": "turbo run lint:fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -8,6 +8,7 @@ import picomatch from "picomatch"
 import ts from "typescript"
 import { REPO_SCRIPTS } from "../eslint.config.mjs"
 import { TS_CHECK, isTypedScript } from "./check-ratchets.mjs"
+import { readWorkspace } from "./workspace-packages.mjs"
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -55,6 +56,9 @@ function repoScripts() {
     .sort()
 }
 
+/** The project of the dependency rules at a package's root (no pragma: checkJs checks them). */
+const DEPENDENCY_RULES = "scripts/tsconfig.dependency-rules.json"
+
 const saysTsCheck = (rel) => TS_CHECK.test(fs.readFileSync(path.join(repoRoot, rel), "utf8"))
 
 describe("every script says // @ts-check, the ones not yet typed aside (pnpm typecheck:scripts)", () => {
@@ -85,25 +89,45 @@ describe("every script says // @ts-check, the ones not yet typed aside (pnpm typ
   })
 
   it("tsc reads every script, and `pnpm lint` runs it", () => {
-    const tsconfig = path.join(repoRoot, "scripts/tsconfig.json")
-    const parsed = ts.getParsedCommandLineOfConfigFile(
-      tsconfig,
-      {},
-      {
-        ...ts.sys,
-        onUnRecoverableConfigFileDiagnostic: (diagnostic) => {
-          throw new Error(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))
-        },
-      },
-    )
-    assert.ok(parsed, tsconfig)
-    const read = new Set(parsed.fileNames.map((file) => path.relative(repoRoot, file)))
+    const { fileNames } = readProject("scripts/tsconfig.json")
+    const read = new Set(fileNames)
     const unread = scripts.filter((rel) => !read.has(rel))
     assert.deepEqual(unread, [], "scripts/tsconfig.json's `include` misses them")
     const { scripts: root } = JSON.parse(
       fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"),
     )
-    assert.equal(root["typecheck:scripts"], "tsc -p scripts/tsconfig.json")
+    assert.deepEqual(root["typecheck:scripts"].split(" && "), [
+      "tsc -p scripts/tsconfig.json",
+      `tsc -p ${DEPENDENCY_RULES}`,
+    ])
     assert.ok(root.lint.split(" && ").includes("pnpm typecheck:scripts"), root.lint)
   })
+
+  it("checks every package's own dependency rules whole, which can carry no pragma", () => {
+    const rules = readWorkspace(repoRoot)
+      .map(({ dir }) => `${dir}/.dependency-cruiser.cjs`)
+      .filter((rel) => fs.existsSync(path.join(repoRoot, rel)))
+      .sort()
+    assert.ok(rules.includes("apps/vscode/.dependency-cruiser.cjs"), rules.join(", "))
+    const { fileNames, options } = readProject(DEPENDENCY_RULES)
+    assert.deepEqual([...fileNames].sort(), rules, `${DEPENDENCY_RULES}'s \`include\``)
+    assert.equal(options.checkJs, true)
+  })
 })
+
+/** The project tsconfig of the scripts at `rel` names: its files (repo-relative) and options. */
+function readProject(rel) {
+  const parsed = ts.getParsedCommandLineOfConfigFile(
+    path.join(repoRoot, rel),
+    {},
+    {
+      ...ts.sys,
+      onUnRecoverableConfigFileDiagnostic: (diagnostic) => {
+        throw new Error(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))
+      },
+    },
+  )
+  assert.ok(parsed, rel)
+  const fileNames = parsed.fileNames.map((file) => path.relative(repoRoot, file))
+  return { fileNames, options: parsed.options }
+}

@@ -25,8 +25,8 @@
     "c8:up": "node scripts/c8.mjs up",
     "c8:down": "node scripts/c8.mjs down",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json",
-    "lint": "eslint src test scripts",
-    "lint:fix": "eslint src test scripts --fix"
+    "lint": "eslint src test scripts .dependency-cruiser.cjs",
+    "lint:fix": "eslint src test scripts .dependency-cruiser.cjs --fix"
   },
   "dependencies": {
     "@miragon/pulse-c8-core": "workspace:*",
