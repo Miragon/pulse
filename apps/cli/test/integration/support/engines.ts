@@ -6,7 +6,7 @@
 import { GenericContainer, type StartedNetwork, Wait } from "testcontainers"
 import type { Flavor } from "../../../src/config/types.js"
 
-export const ENGINE_NAMES = ["operaton", "cibseven"] as const
+export const ENGINE_NAMES = ["operaton", "cibseven", "cibseven-3"] as const
 export type EngineName = (typeof ENGINE_NAMES)[number]
 
 export interface EngineDefinition {
@@ -51,6 +51,19 @@ export const ENGINE_START_TIMEOUT_MS = 240_000
 /** The administrator that every Run distribution creates (`admin-user` of its default.yml). */
 export const ADMIN = { username: "demo", password: "demo" } as const
 
+/** What every CIB seven Run image takes, whatever its version. */
+const CIBSEVEN_RUN = {
+  flavor: "cibseven",
+  port: 8080,
+  restPath: "/engine-rest",
+  // default.yml already enables auth, but with `pseudo` authentication that lets every request in
+  basicAuthEnv: {
+    CAMUNDA_BPM_RUN_AUTH_ENABLED: "true",
+    CAMUNDA_BPM_RUN_AUTH_AUTHENTICATION: "basic",
+  },
+  withoutExampleEnv: { CAMUNDA_BPM_RUN_EXAMPLE_ENABLED: "false" },
+} as const satisfies Omit<EngineDefinition, "name" | "image" | "version">
+
 export const ENGINES: Readonly<Record<EngineName, EngineDefinition>> = {
   operaton: {
     name: "operaton",
@@ -64,17 +77,16 @@ export const ENGINES: Readonly<Record<EngineName, EngineDefinition>> = {
   },
   cibseven: {
     name: "cibseven",
-    flavor: "cibseven",
     image: "cibseven/cibseven:run-2.2.0",
-    port: 8080,
-    restPath: "/engine-rest",
     version: "2.2.0",
-    // default.yml already enables auth, but with `pseudo` authentication that lets every request in
-    basicAuthEnv: {
-      CAMUNDA_BPM_RUN_AUTH_ENABLED: "true",
-      CAMUNDA_BPM_RUN_AUTH_AUTHENTICATION: "basic",
-    },
-    withoutExampleEnv: { CAMUNDA_BPM_RUN_EXAMPLE_ENABLED: "false" },
+    ...CIBSEVEN_RUN,
+  },
+  // 3.0 beside 2.2, which stays while customers run it (owner decision of 2026-11-26).
+  "cibseven-3": {
+    name: "cibseven-3",
+    image: "cibseven/cibseven:run-3.0.0",
+    version: "3.0.0",
+    ...CIBSEVEN_RUN,
   },
 }
 
