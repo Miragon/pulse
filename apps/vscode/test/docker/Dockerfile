@@ -1,6 +1,6 @@
 # VS Code under Xvfb for the extension's smoke and e2e suites, run by scripts/docker-test.mjs:
 # Node 22 as in CI, plus the libraries VS Code's Electron needs on Linux.
-FROM node:22-bookworm-slim@sha256:be979e5523c76fa4d5ca4ebd3099078f220aa47ec39c48ad5b5df9314debd6eb
+FROM node:25-bookworm-slim@sha256:81db02c4b671288a03915da9534dbd54f96d0e7c24d80ccc54f5b36b2e684370
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
