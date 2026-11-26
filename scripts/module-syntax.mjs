@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Module-syntax gate: every program of a workspace package compiles with `verbatimModuleSyntax`
  * and `isolatedModules`. Without them tsc drops a re-export of a type not marked `type` from dist,
@@ -25,7 +26,11 @@ const posix = path.posix
 /** The compiler options every program sets to true. */
 export const MODULE_SYNTAX_OPTIONS = ["verbatimModuleSyntax", "isolatedModules"]
 
-/** The source packages whose programs may leave both options out, each with its reason. */
+/**
+ * The source packages whose programs may leave both options out, each with its reason.
+ *
+ * @type {Record<string, string>}
+ */
 export const MODULE_SYNTAX_EXEMPT = {
   "apps/mcp-server":
     "the server app publishes no entry, so no test of an entry's exports can promise a name " +

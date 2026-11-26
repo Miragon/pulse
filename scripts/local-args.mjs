@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * The command line of scripts/local.mjs, the script behind the root `pnpm stack:*`, `play*`,
  * `test:one` and `check*` commands (pure; scripts/local-args.test.mjs).

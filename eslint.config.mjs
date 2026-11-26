@@ -108,6 +108,12 @@ const RUNTIME_VIEW = "packages/core/runtime-view"
 const FAMILY_ADAPTERS = "packages/connectors/*/*-adapter"
 const EDITOR_TREES = `{apps/vscode,apps/orca,${RUNTIME_VIEW},${FAMILY_ADAPTERS}}`
 
+// The repository's own scripts: the gates, the repo guards and the local tooling under scripts/
+// (their tests beside them) and the dependency rules. `pnpm lint:scripts` lints exactly these,
+// lint-staged.config.mjs the staged ones among them.
+export const REPO_SCRIPTS = ["scripts/*.mjs", ".dependency-cruiser.cjs"]
+const REPO_SCRIPT_TESTS = "scripts/*.test.mjs"
+
 // The runtime probes (<package>/test/<layer>/runtime.boundary.ts) expect the globals of their
 // layer to be missing, so the package's tsconfig.json (the union the editor and the project
 // service use) leaves them out; each is typed by its layer's tsconfig instead.
@@ -878,6 +884,49 @@ export default tseslint.config(
   {
     files: ["apps/cli/scripts/**/*.ts"],
     rules: { "no-console": "off" },
+  },
+  // ── The repository's scripts (scripts/, .dependency-cruiser.cjs) ─────────
+  // The gates, the repo guards and the local tooling (pnpm play, pnpm check) under scripts/, and
+  // the dependency rules (F71, #688): plain JavaScript for Node, linted by `pnpm lint:scripts` from
+  // the root. A file that says `// @ts-check` is type-checked by scripts/tsconfig.json
+  // (`pnpm typecheck:scripts`), so no type-aware rule of typescript-eslint reads them. They report
+  // on the console and drop a key by destructuring the rest. Their budgets are the domain
+  // packages': complexity 10, depth 3, four parameters, three nested callbacks, 300 lines a file
+  // and 60 a function, 20 statements, comments not counted (JSDoc types them); their tests the
+  // domain packages' tests', complexity 15 and 400 lines a file. What broke a budget on the day
+  // sits in the root eslint-suppressions.json, which `pnpm lint:scripts` and the pre-commit hook
+  // read from the root and lint:ratchets lets only shrink.
+  {
+    files: REPO_SCRIPTS,
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: globals.node },
+    rules: {
+      "no-console": "off",
+      "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
+      complexity: ["error", 10],
+      "max-depth": ["error", 3],
+      "max-params": ["error", 4],
+      "max-nested-callbacks": ["error", 3],
+      "max-lines": ["error", { max: 300, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["error", { max: 60, skipBlankLines: true, skipComments: true }],
+      "max-statements": ["error", 20],
+    },
+  },
+  {
+    files: [".dependency-cruiser.cjs"],
+    languageOptions: { sourceType: "commonjs" },
+  },
+  {
+    files: [REPO_SCRIPT_TESTS],
+    rules: {
+      complexity: ["error", 15],
+      "max-depth": "off",
+      "max-params": "off",
+      "max-nested-callbacks": "off",
+      "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": "off",
+      "max-statements": "off",
+    },
   },
   // ── The editor hosts (apps/vscode, apps/orca) and the runtime view they share ──
   {

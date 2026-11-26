@@ -142,8 +142,10 @@
  *                                   it); each file's $comment says what it
  *                                   measures
  *   <pkg>/eslint-suppressions.json  a package's baseline of budget violations
- *                                   (#688): no file, rule or count beyond the
- *                                   base; a new one needs a Ratchet-Exception
+ *   eslint-suppressions.json        (#688), and the root's, which holds the
+ *                                   repository's scripts (`pnpm lint:scripts`):
+ *                                   no file, rule or count beyond the base; a
+ *                                   new one needs a Ratchet-Exception
  *   package.json (root)             no gate drops out of `lint`/`test`, and the
  *                                   chains only gain plain `pnpm <script>`
  *                                   gates; every chained gate script and the
@@ -187,7 +189,17 @@
  *   inline suppressions             `eslint-disable` of a gate rule (or of every
  *                                   rule), inline gate-rule config, `v8|c8|
  *                                   istanbul ignore`, `Stryker disable` in
- *                                   apps/ and packages/ sources: shrink-only
+ *                                   apps/ and packages/ sources, the scripts
+ *                                   under scripts/ and .dependency-cruiser.cjs:
+ *                                   shrink-only
+ *   `// @ts-check` of a script      a script under scripts/ or the root
+ *                                   .dependency-cruiser.cjs that `pnpm
+ *                                   typecheck:scripts` checks stays checked:
+ *                                   one without the pragma (or switched off by
+ *                                   `@ts-nocheck`) that lost it or is new
+ *                                   fails, so the list of the scripts not
+ *                                   typed yet (NOT_YET_CHECKED of
+ *                                   scripts/ts-check.test.mjs) only shrinks
  *
  * The SINGLE documented escape is a trailer on the commit that makes the
  * change, and it covers that commit only:
@@ -324,7 +336,8 @@ export function ratchetKind(relPath) {
   if (/^apps\/[^/]+\/test\/__golden__\/char-budgets\.json$/.test(relPath)) return "char-budgets"
   if (new RegExp(`^${PKG}/test/__golden__/bundle-budget\\.json$`).test(relPath))
     return "bundle-budget"
-  if (new RegExp(`^${PKG}/eslint-suppressions\\.json$`).test(relPath)) return "eslint-baseline"
+  // A package's, and the root's: `pnpm lint:scripts` lints the repository's scripts from the root.
+  if (new RegExp(`^(?:${PKG}/)?eslint-suppressions\\.json$`).test(relPath)) return "eslint-baseline"
   if (relPath === "package.json") return "root-scripts"
   if (new RegExp(`^${PKG}/package\\.json$`).test(relPath)) return "package-scripts"
   // The docs workspace and the starter's manifests pin no gate script; only
@@ -1633,6 +1646,36 @@ export function compareSuppressions(relPath, oldText, newText) {
   return violations
 }
 
+/** `// @ts-check` as tsc reads it: the first line, or the one after a shebang. */
+export const TS_CHECK = /^(?:#![^\n]*\n)?\/\/ @ts-check\r?\n/
+
+/** A `@ts-nocheck` comment, which tsc honours over `// @ts-check` (a comment line saying it). */
+export const TS_NOCHECK = /^[ \t]*(?:\/\/|\/\*+|\*)[ \t]*@ts-nocheck\b/m
+
+/** Whether tsc checks a script's text: it says `// @ts-check` and no `@ts-nocheck` turns it off. */
+export const saysTsCheck = (text) => TS_CHECK.test(text) && !TS_NOCHECK.test(text)
+
+/** The scripts `pnpm typecheck:scripts` checks by their pragma (REPO_SCRIPTS of eslint.config.mjs). */
+export const isTypedScript = (relPath) =>
+  /^(?:scripts\/[^/]+\.mjs|\.dependency-cruiser\.cjs)$/.test(relPath)
+
+/**
+ * A script that says `// @ts-check` keeps saying it, and a new one says it from its first commit
+ * (F71, #688): tsc checks only the scripts that say it, so one without it goes unchecked while
+ * `pnpm typecheck:scripts` stays green. scripts/ts-check.test.mjs lists the scripts not typed yet
+ * and fails on any other script without it; this keeps that list from growing (null text = file
+ * absent).
+ */
+export function compareTsCheck(relPath, oldText, newText) {
+  if (!isTypedScript(relPath) || typeof newText !== "string" || saysTsCheck(newText)) return []
+  if (typeof oldText === "string" && !saysTsCheck(oldText)) return []
+  const what = typeof oldText === "string" ? "no longer says" : "is new and does not say"
+  const off = TS_CHECK.test(newText) ? " (a `@ts-nocheck` comment switches it off)" : ""
+  return [
+    `${relPath} ${what} \`// @ts-check\`${off}: \`pnpm typecheck:scripts\` checks only the scripts that say it, so its types go unchecked and NOT_YET_CHECKED of scripts/ts-check.test.mjs grows. Start the file with the pragma (after a shebang), drop any \`@ts-nocheck\` and fix what tsc reports.`,
+  ]
+}
+
 // ── Direction policies ───────────────────────────────────────────────────────
 
 /** An include list (null = absent) only grows; it never appears or vanishes. */
@@ -2143,7 +2186,8 @@ function compareEslintBaseline(relPath, oldJson, newJson, fileExists) {
   for (const [file, rules] of Object.entries(newJson ?? {})) {
     // ESLint never reports a suppression of a file it no longer lints, so a deleted or moved file
     // keeps its entries, and a new file at that path would inherit them.
-    if (!fileExists(`${dir}/${file}`)) {
+    // Joined, not concatenated: the root's entries are repo-relative already (no `./`).
+    if (!fileExists(path.posix.join(dir, file))) {
       violations.push(
         `${relPath} -> ${file} no longer exists: prune its entries (eslint --prune-suppressions in ${dir}).`,
       )
@@ -2526,8 +2570,17 @@ function attributeViolations(violations, steps) {
 
 // ── CLI ──────────────────────────────────────────────────────────────────────
 
-/** Sources the inline-suppression scan and the effective ESLint config cover. */
-const SOURCE_FILE = /^(?:apps|packages)\/(?!(?:.*\/)?node_modules\/).*\.(?:[cm]?[jt]s|[jt]sx)$/
+/**
+ * Sources the inline-suppression scan and the effective ESLint config cover: every source under
+ * apps/ and packages/, and the repository's scripts and dependency rules (REPO_SCRIPTS of
+ * eslint.config.mjs, under their budgets since #688). SOURCE_PATHSPECS are where they live.
+ */
+const SOURCE_FILE =
+  /^(?:(?:apps|packages)\/(?!(?:.*\/)?node_modules\/).*\.(?:[cm]?[jt]s|[jt]sx)|scripts\/[^/]+\.mjs|\.dependency-cruiser\.cjs)$/
+const SOURCE_PATHSPECS = ["apps", "packages", "scripts", ".dependency-cruiser.cjs"]
+
+/** Whether the inline-suppression scan and the effective ESLint config cover `relPath`. */
+export const isScannedSource = (relPath) => SOURCE_FILE.test(relPath)
 
 /** The side that is no commit: the working tree, uncommitted changes included. */
 const WORKTREE = "<working tree>"
@@ -2631,7 +2684,7 @@ function openRepo(root) {
           return [] // exit 1: no such file mentions a suppression
         }
       }
-      if (!paths) return once(`grep:${rev}`, () => new Set(grep(["apps", "packages"])))
+      if (!paths) return once(`grep:${rev}`, () => new Set(grep(SOURCE_PATHSPECS)))
       const found = new Set()
       for (let i = 0; i < paths.length; i += 500)
         for (const rel of grep(paths.slice(i, i + 500).map((p) => `:(literal)${p}`))) found.add(rel)
@@ -2668,6 +2721,12 @@ function suppressionViolations(repo, from, to, files, { scoped = false } = {}) {
   }
   return violations
 }
+
+/** The scripts of `files` that `to` takes out of the type check against `from`. */
+const tsCheckViolations = (repo, from, to, files) =>
+  files
+    .filter(isTypedScript)
+    .flatMap((rel) => compareTsCheck(rel, repo.read(from, rel), repo.read(to, rel)))
 
 /**
  * The effective ESLint half's state for one run at `root`: a temporary
@@ -2783,6 +2842,7 @@ async function netViolations(repo, eslint, mergeBase) {
       messages.push(...ratchetFileViolations(repo, rel, mergeBase, WORKTREE))
   }
   messages.push(...suppressionViolations(repo, mergeBase, WORKTREE, repo.listed()))
+  messages.push(...tsCheckViolations(repo, mergeBase, WORKTREE, repo.listed()))
   const violations = messages.map(plainViolation)
   violations.push(...(await effectiveEslintViolations(repo, eslint, mergeBase, WORKTREE)))
   return { violations, baseFileCount: baseFiles.size }
@@ -2822,6 +2882,7 @@ async function stepKeys(repo, eslint, from, to, { effectiveFiles, mergeBase }) {
       ratchetFileViolations(repo, rel, stepSide(repo, rel, from, to, mergeBase), to),
     )
   messages.push(...suppressionViolations(repo, from, to, changed, { scoped: true }))
+  messages.push(...tsCheckViolations(repo, from, to, changed))
   const violations = messages.map(plainViolation)
   if (effectiveFiles.length > 0 && changed.includes("eslint.config.mjs"))
     violations.push(...(await effectiveEslintViolations(repo, eslint, from, to, effectiveFiles)))

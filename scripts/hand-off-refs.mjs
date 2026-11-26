@@ -1,3 +1,4 @@
+// @ts-check
 import ts from "typescript"
 
 /**

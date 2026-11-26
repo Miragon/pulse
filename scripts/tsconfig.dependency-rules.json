@@ -1,0 +1,16 @@
+{
+  // The type check of the dependency rules the editor hosts, the runtime view and the adapters keep
+  // at their package's root (`pnpm typecheck:scripts`, F71, #688), which `pnpm
+  // lint:architecture:<package>` loads: their package's ESLint config takes no comment, so no
+  // `// @ts-check` can name them, and checkJs checks each whole. Every other option is the scripts'
+  // (tsconfig.json beside it); scripts/ts-check.test.mjs holds the list to the files there are.
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "checkJs": true },
+  "include": [
+    "../apps/orca/.dependency-cruiser.cjs",
+    "../apps/vscode/.dependency-cruiser.cjs",
+    "../packages/connectors/c7/c7-adapter/.dependency-cruiser.cjs",
+    "../packages/connectors/c8/c8-adapter/.dependency-cruiser.cjs",
+    "../packages/core/runtime-view/.dependency-cruiser.cjs"
+  ]
+}

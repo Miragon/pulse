@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * The full tool surface (every module, the admin toolset, deployments on) as the MCP server app's
  * admin golden pins it: the tools/list payload `tools-list.golden.test.ts` holds to the booted

@@ -4,7 +4,8 @@ import path from "node:path"
  * The pre-commit hook's checks of the staged files. ESLint reads a package's baseline of budget
  * violations (its eslint-suppressions.json, #688) by paths relative to the folder it runs in, and
  * `pnpm lint` runs it in the package's folder: a staged file of such a package is linted from
- * there too, so the baseline applies to the hook as to the gate; every other file from the root.
+ * there too, so the baseline applies to the hook as to the gate; every other file from the root,
+ * whose own eslint-suppressions.json is the repository scripts' baseline.
  */
 const BASELINED = [
   "packages/connectors/engine/engine-connector",
@@ -35,7 +36,18 @@ export function eslintRuns(files, cwd = process.cwd(), paths = path) {
   ]
 }
 
+/**
+ * The repository's scripts and the dependency rules (REPO_SCRIPTS of eslint.config.mjs, which
+ * scripts/eslint-gates.test.mjs holds this to): linted from the root, whose eslint-suppressions.json
+ * is their baseline (#688), with warnings failing, as `pnpm lint:scripts` lints them.
+ */
+export const STAGED_REPO_SCRIPTS = "{scripts/*.mjs,.dependency-cruiser.cjs}"
+
 export default {
   "*.{ts,tsx}": (files) => [...eslintRuns(files), `prettier --write ${quoted(files)}`],
+  [STAGED_REPO_SCRIPTS]: (files) => [
+    `eslint --max-warnings 0 --fix ${quoted(files)}`,
+    `prettier --write ${quoted(files)}`,
+  ],
   "*.{json,md,yml,yaml,css}": "prettier --write",
 }

@@ -23,8 +23,8 @@
     "test:engines": "vitest run --config vitest.engines.config.ts",
     "golden:update": "turbo run build --filter=@miragon/pulse-c7-adapter^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --project unit --coverage.enabled=false",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json",
-    "lint": "eslint src test",
-    "lint:fix": "eslint src test --fix"
+    "lint": "eslint src test .dependency-cruiser.cjs",
+    "lint:fix": "eslint src test .dependency-cruiser.cjs --fix"
   },
   "dependencies": {
     "@miragon/pulse-c7-core": "workspace:*",

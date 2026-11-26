@@ -1,3 +1,4 @@
+// @ts-check
 import assert from "node:assert/strict"
 import { before, describe, it } from "node:test"
 import ts from "typescript"

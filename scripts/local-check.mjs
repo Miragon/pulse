@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * The steps of `pnpm check` and `pnpm check:all` and their summary (pure but for reading the root
  * `lint` and `test` chains; scripts/local-check.test.mjs). A step is `{ name, command, args }`, or

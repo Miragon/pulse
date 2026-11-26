@@ -41,8 +41,8 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.ports.json && tsc -p tsconfig.core.json && tsc -p tsconfig.model.json && tsc -p tsconfig.webview.json && tsc -p tsconfig.host-kit.json && tsc -p tsconfig.tooling.json && tsc -p tsconfig.build.json",
-    "lint": "eslint src test dev scripts",
-    "lint:fix": "eslint src test dev scripts --fix"
+    "lint": "eslint src test dev scripts .dependency-cruiser.cjs",
+    "lint:fix": "eslint src test dev scripts .dependency-cruiser.cjs --fix"
   },
   "dependencies": {
     "@fontsource-variable/geist": "5.3.0",

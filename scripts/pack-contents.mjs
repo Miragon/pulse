@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * Pack-content gate: what a published tarball ships. scripts/test-template.sh packs every
  * library (pnpm pack, the same tarball the release publishes) and runs this over the tarballs:

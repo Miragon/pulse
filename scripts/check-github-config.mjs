@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * GitHub-config gate: the release workflows hold the publish credentials and run only on a
  * release, so no pull request exercises them. What keeps those credentials safe and the
@@ -415,7 +416,13 @@ export function checkPublishMatrix(releaseDoc, packages) {
   return errors
 }
 
-/** Every workspace package under apps/ and packages/, and the root, gets its version bumped. */
+/**
+ * Every workspace package under apps/ and packages/, and the root, gets its version bumped.
+ *
+ * @param {any} config release-please-config.json as parsed
+ * @param {any[]} packages the workspace packages (readWorkspace)
+ * @param {{ fileExists?: (rel: string) => boolean }} [options]
+ */
 export function checkReleaseExtraFiles(config, packages, { fileExists = () => true } = {}) {
   const errors = []
   const extraFiles = asList(config?.packages?.["."]?.["extra-files"])

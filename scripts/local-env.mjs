@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * The playground stack as scripts/local.mjs sees it: its services, ports and URLs, the settings
  * the server and the CLI get against it, and who holds a port (pure;
@@ -166,6 +167,9 @@ export const webClientProbe = (port = DEFAULT_SERVER_PORT) => {
  * the directory of the board files (ENGINE_BOARDS_DIR). `web` turns on the web app under `/app`
  * behind the same Keycloak: the realm's client PLAYGROUND_WEB_CLIENT, `sessionKey` (the caller's
  * fresh one) for MCP_WEB_SESSION_KEYS and `webDir`, the absolute path of WEB_BUILD.
+ *
+ * @param {{ multiEngine?: boolean, admin?: boolean, deploy?: boolean, auth?: boolean,
+ *   web?: boolean, port?: number, boardsDir?: string, webDir?: string, sessionKey?: string }} [options]
  */
 export function serverPreset({
   multiEngine = false,

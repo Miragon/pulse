@@ -1,3 +1,4 @@
+// @ts-check
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { describe, it } from "node:test"
@@ -14,7 +15,7 @@ import {
 
 const names = (steps) => steps.map(({ name }) => name)
 const rootScripts = () =>
-  JSON.parse(readFileSync(new URL("../package.json", import.meta.url))).scripts
+  JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).scripts
 const CHAINS = {
   test: "turbo run test --continue=always && pnpm test:scripts",
   lint: "pnpm lint:first && turbo run lint --continue=always && pnpm run lint:last",
@@ -43,7 +44,7 @@ describe("checkSteps", () => {
       "@miragon/pulse-runtime-view",
     ])
     const manifest = JSON.parse(
-      readFileSync(new URL("../packages/core/runtime-view/package.json", import.meta.url)),
+      readFileSync(new URL("../packages/core/runtime-view/package.json", import.meta.url), "utf8"),
     )
     assert.ok(manifest.devDependencies["@vitest/browser-playwright"])
     assert.ok(manifest.devDependencies.playwright)

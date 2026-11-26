@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 /**
  * The CI scopes a pull request needs, as outputs of ci.yml's `changes` job. Fails closed: a push,
  * a shared input or an unknown path turns on every scope.
