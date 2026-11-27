@@ -15,6 +15,10 @@ export default mergeConfig(
       testTimeout: 30_000,
       hookTimeout: 30_000,
       coverage: {
+        // The request-count golden's medium engine (test/engine-goldens/medium-*.ts) is a world
+        // for a test, which its laws in medium-world.test.ts cover whole: measured here, its
+        // branches would outweigh the app's and let a floor over them pass a loss in src/.
+        exclude: ["test/engine-goldens/medium-*.ts"],
         // Ratchet: frozen under the baseline, never more than 3 points
         // (scripts/coverage-floors.mjs). Raise when you push coverage up;
         // never lower. Documented re-baseline 2026-08-13: the
