@@ -7,10 +7,7 @@
 
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import { CORE_ROUTES } from "../core-routes.js"
-import { type EnginePort, pageQuery, type Query } from "../port.js"
-
-/** The rows asked for per request; a shorter page is the last one. */
-export const PAGE_SIZE = 500
+import { type EnginePort, PAGE_SIZE, pageQuery, type Query } from "../port.js"
 
 /** Where an operation reads, as the words of an unusable answer name it. */
 function pathOf(operationId: string): string {

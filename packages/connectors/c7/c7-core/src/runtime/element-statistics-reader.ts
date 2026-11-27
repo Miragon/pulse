@@ -27,7 +27,7 @@
 
 import { ElementId, type DefinitionId, type ElementStatistics } from "@miragon/pulse-engine-core"
 import { elementOfActivity } from "../multi-instance-body.js"
-import { type EnginePort, PARALLEL, type Query } from "../port.js"
+import { type EnginePort, PAGE_SIZE, PARALLEL, type Query } from "../port.js"
 import { isRootIncident } from "../root-incident.js"
 import { mapLimit } from "../util.js"
 import { callActivityIdsOf } from "./call-activity-tags.js"
@@ -35,7 +35,7 @@ import { type DiagramRead, diagramReadOf } from "./definition-rows.js"
 import { engineIdOf } from "./engine-ids.js"
 import { type IncidentRow, incidentRowsOf } from "./incident-rows.js"
 import { JsonView } from "../json-view.js"
-import { PAGE_SIZE, readAll } from "./read-all.js"
+import { readAll } from "./read-all.js"
 
 interface ElementCounts {
   active: number

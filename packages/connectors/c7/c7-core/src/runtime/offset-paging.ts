@@ -7,12 +7,10 @@
  */
 
 import { type Page, PageCursor, type PageRequest } from "@miragon/pulse-engine-core"
+import type { OffsetWindow } from "../port.js"
 
-/** The rows of a request: `firstResult` and `maxResults`, the engine's paging. */
-export interface OffsetWindow {
-  readonly firstResult: number
-  readonly maxResults: number
-}
+/** The window's home is the port's paging, where `TiedPages` of the main entry reads it too. */
+export type { OffsetWindow }
 
 /** A page by its offset. */
 export class OffsetPaging {

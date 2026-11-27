@@ -12,8 +12,8 @@
  */
 
 import { type Page, PageCursor, type PageRequest } from "@miragon/pulse-engine-core"
+import { PAGE_SIZE } from "../port.js"
 import { OffsetPaging, type OffsetWindow } from "./offset-paging.js"
-import { PAGE_SIZE } from "./read-all.js"
 
 /** The most windows one page reads, the first included. */
 const MOST_WINDOWS = 10

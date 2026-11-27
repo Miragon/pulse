@@ -480,9 +480,13 @@ run test:engines`, two cases of its own on a bulk operation, which no read law r
   (`withIncident: false`) drops rows of the engine's answer and fills from further
   windows, at most 10 in all (c7-core's README), so only a page where nearly every row
   drops can come back short, even empty, with a cursor at the first row not read and no
-  kept row skipped. Its cut follows the engine's order, and `GET /incident` sorts by the
-  time alone: of two incidents raised in the same millisecond at a page's boundary, one
-  may repeat or be skipped between two reads. Ended instances show the variables `inspect`
+  kept row skipped. The instances' cut follows the engine's order. `GET /incident` sorts
+  by the time alone, so a page of root incidents reads every run of up to 500 incident
+  rows raised in the same millisecond whole, ordered by id; a run counts every row the
+  filter matches, the copies in calling instances and the rows the search drops included,
+  not the root incidents alone. Of a longer run, which no request holds whole, incidents
+  may repeat and about as many be skipped, even within one page, wherever the database
+  orders the run anew between two reads. Ended instances show the variables `inspect`
   reports, without engine types for plain values. Below history level FULL the engine
   keeps no historic batch: a finished batch reads `undefined` (the core then reconciles by
   ids) and a Stop after it ended is rejected. With `invocationsPerBatchJob` above 1 the

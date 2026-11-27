@@ -9,9 +9,14 @@
  * contract: the engine-wide search passes over it and never fails on it. An id of the filter no
  * engine assigns fails as `misconfigured`. The
  * engine orders by `incidentTimestamp` alone, its one sort key, so incidents raised at the same
- * instant come in any order; a page reads them whole and orders them by id (`tied-pages.ts`), so
- * the order is newest first and then by id on every read and across pages, and a page keeps what
- * becomes an incident of the contract and fills from further windows.
+ * instant come in any order. A page reads every run of up to 500 such rows whole and orders it by
+ * id (`TiedPages`, `src/tied-pages.ts`), so the order is newest first and then by id on every read
+ * and across pages; a run counts every row the filter matches at that instant, the copies and the
+ * other rows the page drops included. A longer run keeps the engine's order at plain offsets, all
+ * but a rest of up to 500 rows after a page's bound, which the next page reads whole and by id.
+ * Where the database orders a longer run anew between two requests, its incidents may repeat and
+ * about as many be missed, even within one page. A page keeps what becomes an incident of the
+ * contract and fills from further windows.
  */
 
 import {
@@ -34,7 +39,7 @@ import type { DefinitionReader } from "./definition-reader.js"
 import { engineIdOf } from "./engine-ids.js"
 import { type IncidentRow, incidentRowsOf, recoveryIdOf } from "./incident-rows.js"
 import type { OffsetWindow } from "./offset-paging.js"
-import { TiedPages } from "./tied-pages.js"
+import { TiedPages } from "../tied-pages.js"
 import { timestampOf } from "./timestamps.js"
 
 /** The newest incident first, as the engine pages them. */

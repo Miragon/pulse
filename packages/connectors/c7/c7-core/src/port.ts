@@ -102,7 +102,8 @@ export interface EnginePort {
 
 /** Most parallel requests of one round. */
 export const PARALLEL = 8
-const PAGE_SIZE = 500
+/** The most rows one request of a list asks for; a shorter page is the last one. */
+export const PAGE_SIZE = 500
 
 /**
  * A 404 that is no engine answer about a resource: no exception type (a servlet container's or a
@@ -127,6 +128,12 @@ export function isMissing(failure: EngineFailure | undefined): boolean {
     !isUnknownEndpoint(failure) &&
     failure.engineType !== "QueryParamException"
   )
+}
+
+/** The rows of a request: `firstResult` and `maxResults`, the engine's paging. */
+export interface OffsetWindow {
+  readonly firstResult: number
+  readonly maxResults: number
 }
 
 /** The query of a page of `list`. */

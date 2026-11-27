@@ -6,57 +6,18 @@ import {
   RuntimeError,
 } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
-import { fakePort, type Route } from "../testing/fake-port.js"
-import { DefinitionReader } from "./definition-reader.js"
-import { IncidentSearch } from "./incident-search.js"
-
-const ORDER_1 = { id: "order:1:a", key: "order", version: 1, name: "Order" }
-const LABEL_1 = { id: "label:1:b", key: "label", version: 1 }
-
-const ROOT = {
-  id: "inc-1",
-  incidentType: "failedJob",
-  activityId: "Activity_Charge",
-  incidentTimestamp: "2026-10-21T18:44:04.554+0000",
-  processInstanceId: "p1",
-  processDefinitionId: ORDER_1.id,
-  incidentMessage: "boom",
-  rootCauseIncidentId: "inc-1",
-  configuration: "job-1",
-}
-
-function searchOver(incidents: Route) {
-  const port = fakePort({
-    getIncidents: incidents,
-    getProcessDefinitionStatistics: () => [
-      { definition: ORDER_1, instances: 1 },
-      { definition: LABEL_1, instances: 1 },
-    ],
-  })
-  return { port, search: new IncidentSearch(port, new DefinitionReader(port)) }
-}
-
-/** The incidents of the window a request asks for, in the order given. */
-function incidentsOf(rows: readonly object[]): Route {
-  return (input) => {
-    const first = Number(input.query.firstResult)
-    return rows.slice(first, first + Number(input.query.maxResults))
-  }
-}
-
-function rootIncident(id: string, incidentTimestamp = ROOT.incidentTimestamp) {
-  return { ...ROOT, id, rootCauseIncidentId: id, incidentTimestamp }
-}
-
-/** The timestamp `seconds` before ROOT's, so rows of distinct seconds never tie. */
-function secondsBefore(seconds: number): string {
-  const instant = new Date(Date.parse(ROOT.incidentTimestamp) - seconds * 1000)
-  return instant.toISOString().replace("Z", "+0000")
-}
-
-function idsOf(page: { readonly items: readonly { readonly id: string }[] }): string[] {
-  return page.items.map((incident) => incident.id)
-}
+import { turningTies } from "../testing/fake-port.js"
+import {
+  idsOf,
+  incidentsOf,
+  LABEL_1,
+  ORDER_1,
+  pagesOf,
+  ROOT,
+  rootIncident,
+  searchOver,
+  secondsBefore,
+} from "../testing/incident-search.test-support.js"
 
 async function rejection(read: Promise<unknown>): Promise<unknown> {
   return read.then(
@@ -288,29 +249,19 @@ describe("IncidentSearch.search", () => {
 
   it("pages without gaps or repeats where the engine orders incidents raised at once anew on each request", async () => {
     const tied = ["inc-x", "inc-y", "inc-z"].map((id) => rootIncident(id, secondsBefore(1)))
-    let requests = 0
-    const { search } = searchOver((input) => {
-      // Each request turns the tied incidents one further, as a database may.
-      const turn = requests++ % tied.length
-      const rows = [
-        ROOT,
-        ...tied.slice(turn),
-        ...tied.slice(0, turn),
-        rootIncident("inc-0", secondsBefore(2)),
-      ]
-      const first = Number(input.query.firstResult)
-      return rows.slice(first, first + Number(input.query.maxResults))
-    })
+    // Each request turns the tied incidents one further, as a database may.
+    const { search } = searchOver(
+      turningTies(
+        [ROOT, ...tied, rootIncident("inc-0", secondsBefore(2))],
+        (row) => row.incidentTimestamp,
+      ),
+    )
 
-    const pages: string[][] = []
-    let after: PageCursor | undefined
-    do {
-      const page = await search.search({}, after === undefined ? { limit: 2 } : { limit: 2, after })
-      pages.push(idsOf(page))
-      after = page.next
-    } while (after !== undefined)
-
-    expect(pages).toStrictEqual([["inc-1", "inc-x"], ["inc-y", "inc-z"], ["inc-0"]])
+    expect(await pagesOf(search, 2)).toStrictEqual([
+      ["inc-1", "inc-x"],
+      ["inc-y", "inc-z"],
+      ["inc-0"],
+    ])
   })
 
   it("stops at the tenth window, its cursor the first incident not read whole, keeping what it read", async () => {

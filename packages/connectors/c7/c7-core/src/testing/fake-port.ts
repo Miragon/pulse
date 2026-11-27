@@ -1,4 +1,7 @@
-/** A recording engine port over canned answers, and a fake clock, for tests of the workflows. */
+/**
+ * A recording engine port over canned answers, the answer of a list whose one sort key ties and
+ * whose ties the engine orders anew on every request, and a fake clock, for tests of the workflows.
+ */
 
 import {
   createEnginePort,
@@ -54,6 +57,48 @@ export function fakePort(routes: Readonly<Partial<Record<string, Route>>>): Fake
     failure: (error) => (error instanceof FakeFailure ? error.failure : undefined),
   }
   return { ...createEnginePort(transport), calls }
+}
+
+/** The runs of `rows` with the same key, in their order. */
+function tiedRunsOf<Row>(rows: readonly Row[], keyOf: (row: Row) => string): Row[][] {
+  const runs: { readonly key: string; readonly rows: Row[] }[] = []
+  for (const row of rows) {
+    const last = runs.at(-1)
+    if (last?.key === keyOf(row)) last.rows.push(row)
+    else runs.push({ key: keyOf(row), rows: [row] })
+  }
+  return runs.map((run) => run.rows)
+}
+
+/**
+ * `rows` in the engine's order with each run of rows of the same key (`keyOf`) turned `turn`
+ * places: an order a database may give rows its one sort key cannot tell apart.
+ */
+export function turnTies<Row>(
+  rows: readonly Row[],
+  keyOf: (row: Row) => string,
+  turn: number,
+): Row[] {
+  return tiedRunsOf(rows, keyOf).flatMap((run) => {
+    const by = turn % run.length
+    return [...run.slice(by), ...run.slice(0, by)]
+  })
+}
+
+/**
+ * The answer of a list the engine orders by one key that ties (`keyOf`), such as the incidents
+ * by `incidentTimestamp`: `rows` in the engine's order, every run of the same key turned one place
+ * further on each request than on the last (`turnTies`, the first request as given), and of them
+ * the rows from `firstResult` on, at most `maxResults` (all without them).
+ */
+export function turningTies<Row>(rows: readonly Row[], keyOf: (row: Row) => string): Route {
+  let requests = 0
+  return (input) => {
+    const answer = turnTies(rows, keyOf, requests)
+    requests += 1
+    const first = Number(input.query.firstResult ?? 0)
+    return answer.slice(first, first + Number(input.query.maxResults ?? answer.length))
+  }
 }
 
 /** A fake clock: `sleep` advances it at once and records the sleeps. */
