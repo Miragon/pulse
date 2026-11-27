@@ -27,13 +27,14 @@ A page of its own reads a board's JSON form through `engine_get_board`, with its
 ## What a board shows
 
 - A tile opens the view of its engine: an instance (an ended one in its history), an incident, a
-  process or an engine's overview, and the trail's first crumb leads back to the board. A count's
-  filter stays on the board: it opens its process, or the process's incidents for instances with
-  incident.
-- **Refresh** reads every engine again. The server keeps a board's read for 30 seconds per user,
-  and the bar says when it was read (**As of**).
-- An engine that cannot be read gets a strip of its own and "not read" in its cells; a total then
-  says how many engines it counts. A number that was not read never shows as 0.
+  process or an engine's overview, the trail's first crumb back to the board. A count's filter
+  stays on the board: it opens its process, or for instances with incident the process's incidents.
+- **Refresh** reads what the server has not kept: it keeps each engine's reads of a board for 30
+  seconds per user, so after a failure only that engine is read again, and the bar says when the
+  oldest number was read (**As of**).
+- An engine that cannot be read, or has not said what it is within 15 seconds, gets a strip of its
+  own and "not read" in its cells; one that has keeps "not read" in the cells it missed, no strip.
+  A total then says how many engines it counts, and a number that was not read never shows as 0.
 - A broken widget lists its problems in its place; the other tiles read as usual.
 
 ## Set up the server's boards

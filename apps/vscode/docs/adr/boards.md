@@ -1,7 +1,7 @@
 # Boards
 
 - Status: accepted
-- Last reviewed: 2026-11-17 (the MCP server and its web app show boards over Camunda 8 clusters too, held to c8-core's recorded board; an engine whose definitions read fails as misconfigured fails on every surface); 2026-11-16 (the MCP server shows the board files of `ENGINE_BOARDS_DIR` with the same builder and tiles, and both editors cut a new board's file name at 64 characters, the server's id rule; before that the same day, the webview's board cards moved into the published package `@miragon/pulse-blocks`, which words the tiles in English and German, every problem code included, and takes the webview's table, short id and canvas as slots; the protocol's problems stay codes; before that the same day, the webview gets a board in its JSON form, `BoardJson.of`, plus the targets and the diagram's XML); 2026-11-15 (a broken widget is refused in its place instead of the whole board, an unknown root key is a note, problems and notes are data with codes, the version rule, `tenants`, and a widget of ended instances with incident is refused; before that the same day, the format moved out of the runtime view into the published package `@miragon/pulse-board`, with its JSON Schema, shared fixtures and one starter board for both editors; the builder followed into its `./builder` entry, and the runtime view renders its model); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
+- Last reviewed: 2026-11-27 (the builder gives each engine a deadline of 15 seconds from the start of a build, owner decision 2026-11-26: an engine that has not answered by then fails as unreachable or keeps its numbers not read, and no engine's tiles wait for a slower one; the editors take the builder's default, the MCP server passes its own value and keeps each engine's reads on a floor of their own); 2026-11-17 (the MCP server and its web app show boards over Camunda 8 clusters too, held to c8-core's recorded board; an engine whose definitions read fails as misconfigured fails on every surface); 2026-11-16 (the MCP server shows the board files of `ENGINE_BOARDS_DIR` with the same builder and tiles, and both editors cut a new board's file name at 64 characters, the server's id rule; before that the same day, the webview's board cards moved into the published package `@miragon/pulse-blocks`, which words the tiles in English and German, every problem code included, and takes the webview's table, short id and canvas as slots; the protocol's problems stay codes; before that the same day, the webview gets a board in its JSON form, `BoardJson.of`, plus the targets and the diagram's XML); 2026-11-15 (a broken widget is refused in its place instead of the whole board, an unknown root key is a note, problems and notes are data with codes, the version rule, `tenants`, and a widget of ended instances with incident is refused; before that the same day, the format moved out of the runtime view into the published package `@miragon/pulse-board`, with its JSON Schema, shared fixtures and one starter board for both editors; the builder followed into its `./builder` entry, and the runtime view renders its model); 2026-11-14 (the counter and the incident summary read "with incident" one way, c7-core's runtime rule); 2026-11-12 (boards are the first feature of D2; the format and the builder move to a new published package); 2026-11-09 (the project file is read with `@miragon/pulse-profile`; before that 2026-11-04, the CLI's rules)
 
 ## Context
 
@@ -110,7 +110,12 @@ panel's `SharedDefinitions` and the diagram once for the builder and the drawing
 single-engine. Per engine the builder probes `describeEngine` first and reads nothing else from an
 engine that fails it; an engine whose `listDefinitions` fails as `misconfigured` (a Camunda 8
 cluster without secondary storage) fails with that error and is asked nothing else either, never
-ready with empty tiles. It reads each distinct question once per engine and load. Honest
+ready with empty tiles. It reads each distinct question once per engine and load. Each engine has
+a deadline from the start of the load, `BoardBuilder.ENGINE_DEADLINE_MS` (15 seconds, owner
+decision 2026-11-26), which `BoardPanel` takes as it is: an engine's tiles read as soon as its probe
+answered, never after a slower engine's, and once the deadline passed its reads still out fail as
+`unreachable` ("Can't reach …", the detail naming the deadline) and it is asked nothing more, so it
+shows failed, or ready with its numbers not read, while the others' tiles read on time. Honest
 numbers: totals come from counts and the shared definitions, never from page lengths; a failed
 read shows "not read", never 0; a total says how many engines it counts ("from 2 of 3 engines"); a
 threshold warns per engine, and a count that is only a lower bound at or below it reads
@@ -147,13 +152,15 @@ board of either editor keeps, since both cut its file name there. Its `engines` 
 of the server's own configuration, so a file shared with the editors works where both name the
 same engines (`docs/mcp/boards.md`). The app-only feed `engine_board_data` builds a board with the
 same builder over each engine's runtime (`C7Runtime`, or c8-core's `C8Runtime` for a cluster) and
-serializes it with `BoardJson.of`, kept 30 seconds per caller and board, and the cockpit's `board`
-route renders the tiles of `@miragon/pulse-blocks` with its own table, id and diagram; a tile opens
-one of the cockpit's routes, a cluster's tile none (`BoardSlots.opens`). c7-core's recorded
-answers (`C7_BOARD_ENGINE`) hold both wires to one board, and the board cases of both engine suites
-read it on a live engine; c8-core's (`C8_BOARD_ENGINE`) hold the C8 adapter and the server's
-Camunda 8 wire to one board too, and the board cases of both Camunda 8 engine suites read it on a
-live cluster, locally only until #531.
+serializes it with `BoardJson.of`, kept 30 seconds per caller and board, each engine given its
+deadline of 15 seconds (the server passes its own value) and its reads kept 30 seconds per caller
+apart from the build, so a build that missed one engine reads only that engine again, and the
+cockpit's `board` route renders the tiles of `@miragon/pulse-blocks` with its own table, id and
+diagram; a tile opens one of the cockpit's routes, a cluster's tile none (`BoardSlots.opens`).
+c7-core's recorded answers (`C7_BOARD_ENGINE`) hold both wires to one board, and the board cases
+of both engine suites read it on a live engine; c8-core's (`C8_BOARD_ENGINE`) hold the C8 adapter
+and the server's Camunda 8 wire to one board too, and the board cases of both Camunda 8 engine
+suites read it on a live cluster, locally only until #531.
 
 ## Consequences
 
@@ -197,3 +204,4 @@ live cluster, locally only until #531.
 | Version rule     | A root key that changes what a widget reads is a version   | An older reader never reads a newer file wrong   |
 | Ended, incident  | Refused in its place                                       | It could only ever read 0                        |
 | `tenants`        | Kept, each widget refused until the contract filters       | Reading every tenant would show others' numbers  |
+| Slow engine      | 15 s per engine from the build's start, in the builder     | One engine never holds the others' tiles back    |

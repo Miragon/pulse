@@ -7,11 +7,12 @@ import { EngineReads } from "./engine-reads.js"
 export class IncidentListTiles {
   static async build(
     widget: IncidentListWidget,
-    engines: readonly ProbedEngine[],
+    engines: readonly Promise<ProbedEngine>[],
   ): Promise<IncidentListModel> {
     const process = widget.process === undefined ? undefined : BpmnProcessId(widget.process)
     const groups = await Promise.all(
-      engines.map(async (engine): Promise<IncidentGroupModel> => {
+      engines.map(async (probed): Promise<IncidentGroupModel> => {
+        const engine = await probed
         const name = engine.model.name
         const page =
           engine.reads === undefined

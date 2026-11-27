@@ -1,6 +1,7 @@
 /**
  * The board feed's floor: a build is kept per caller and board for 30 seconds, never one that
- * missed a read (each read of the degrade table broken in turn) or holds an undecided reading,
+ * missed a read (each read of the degrade table broken in turn, then answered from the floor of
+ * its reads) or holds an undecided reading (its count read again, as a lower bound is not kept),
  * and a build its caller cancelled is read again for a call that shared it, on the Camunda 7 SDK
  * wire and on the server's Camunda 8 wire. A Camunda 7 count is
  * exact, so the runtime here can be switched to answer every count as a lower bound, as a dialect
@@ -27,7 +28,8 @@ import {
   startFakeEngine,
 } from "../tools/test-support/fake-engine.js"
 import type * as EngineRuntime from "../lib/engine/engine-runtime.js"
-import { BOARD_FLOOR_MS, cachedBoardData } from "./board-data.js"
+import { cachedBoardData } from "./board-data.js"
+import { BOARD_FLOOR_MS } from "./board-floor.js"
 import { DEGRADE, worldBoard, worldResolver } from "./honest-numbers.test-support.js"
 
 const runtimes = vi.hoisted(() => ({ countsAreLowerBounds: false }))
@@ -159,7 +161,7 @@ describe("cachedBoardData keeps no build that is not final", () => {
     expect(counter).toMatchObject({ kind: "counter", known: 1, total: { count: 1 } })
   })
 
-  it("reads again after a build whose reading is undecided: a lower bound at or below its threshold", async () => {
+  it("reads its count again after a build whose reading is undecided: a lower bound at or below its threshold", async () => {
     runtimes.countsAreLowerBounds = true
     const { engine, resolve } = await shop()
     const board = boardOver(["shop"])
@@ -167,15 +169,17 @@ describe("cachedBoardData keeps no build that is not final", () => {
     expect(first.rows[0]?.[0]).toMatchObject({
       readings: [{ engine: "shop", count: { count: 1, atLeast: true }, undecided: true }],
     })
-    const reads = engine.requests.length
+    const reads = engine.requests.map(readOf)
     await cachedBoardData(board, resolve)
-    expect(engine.requests).toHaveLength(2 * reads)
+    const counts = reads.filter((read) => read.includes("/count"))
+    expect(counts.length).toBeGreaterThan(0)
+    expect(engine.requests.slice(reads.length).map(readOf)).toEqual(counts)
   })
 })
 
 describe("cachedBoardData keeps no build that missed any of its reads", () => {
   it.each(Object.keys(DEGRADE.buildBoardData.places))(
-    "reads again after a build whose read %s failed, then keeps the build",
+    "reads again after a build whose read %s failed, then nothing more within the floor",
     async (read) => {
       let failing = true
       const engine = await startFakeEngine({}, (request) =>

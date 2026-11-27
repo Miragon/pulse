@@ -58,8 +58,9 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board), the format of Pulse
   for VS Code and Pulse for Orca, at boot: `engine_list_engines` names the boards, the cockpit's
   landing lists them, and its `board` view shows one across the engines it names, its numbers built
-  by the format's builder in the app-only `engine_board_data` (a failure in its place, never 0, kept
-  30 s per caller) and its tiles drawn by
+  by the format's builder in the app-only `engine_board_data` (a failure in its place, never 0;
+  each engine has 15 s to answer; kept 30 s per caller, each engine's reads too, so a build that
+  missed one engine reads only that one again) and its tiles drawn by
   [`@miragon/pulse-blocks`](https://www.npmjs.com/package/@miragon/pulse-blocks), as in the editors.
 - **The web app's screens.** App-only screen feeds read the engine contract in every dialect and
   build a screen of [`@miragon/pulse-screens`](https://www.npmjs.com/package/@miragon/pulse-screens)

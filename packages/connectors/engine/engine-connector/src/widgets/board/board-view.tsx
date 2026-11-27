@@ -36,8 +36,10 @@ import { engineTargetOf } from "./board-targets.js"
 const boardQueryKey = (board: string) => ["engine:board", board] as const
 
 /**
- * Reads every engine of the board again. The server keeps a build for 30 seconds per caller and
- * board, so a refresh within them shows the same numbers and the same time, which the bar states.
+ * Asks the server for the board again. It keeps a whole build for 30 seconds per caller and board,
+ * but never one that missed a read, and each engine's reads as long: a refresh within them after a
+ * build that missed one engine reads only that engine again, and the bar states the time of the
+ * oldest number (`asOf`).
  */
 function BoardRefreshButton({ board }: { readonly board: string }) {
   const t = useT()

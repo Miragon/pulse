@@ -5,6 +5,7 @@ import { ParseProblems } from "../format/parse-problems.js"
 import type { BoardModel, TileModel } from "./board-model.js"
 import type { EngineSource } from "./board-reads.js"
 import { CounterTiles } from "./counter-tiles.js"
+import { DeadlineReads } from "./deadline-reads.js"
 import { EngineProbe, type ProbedEngine } from "./engine-probe.js"
 import { IncidentListTiles } from "./incident-list-tiles.js"
 import { IncidentSummaryTiles } from "./incident-summary-tiles.js"
@@ -12,17 +13,47 @@ import { InstanceListTiles } from "./instance-list-tiles.js"
 import { ProcessDiagramTiles } from "./process-diagram-tiles.js"
 import { RefusedTiles } from "./refused-tiles.js"
 
+export interface BoardBuildOptions {
+  readonly engineDeadlineMs?: number
+}
+
+interface ProbingEngine {
+  readonly name: string
+  readonly probed: Promise<ProbedEngine>
+}
+
 export class BoardBuilder {
+  static readonly ENGINE_DEADLINE_MS = 15_000
+
   static async build(
     board: BoardDefinition,
     engines: readonly EngineSource[],
+    options: BoardBuildOptions = {},
   ): Promise<BoardModel> {
-    const probed = await Promise.all(engines.map((engine) => EngineProbe.probe(engine)))
+    const deadline = new DeadlineReads(options.engineDeadlineMs ?? BoardBuilder.ENGINE_DEADLINE_MS)
+    try {
+      return await BoardBuilder.read(
+        board,
+        engines.map((engine) => ({
+          name: engine.name,
+          probed: EngineProbe.probe(deadline.of(engine)),
+        })),
+      )
+    } finally {
+      deadline.end()
+    }
+  }
+
+  private static async read(
+    board: BoardDefinition,
+    probing: readonly ProbingEngine[],
+  ): Promise<BoardModel> {
     const rows = await Promise.all(
       BoardTiles.of(board).map((row) =>
-        Promise.all(row.map((tile) => BoardBuilder.tile(tile, probed))),
+        Promise.all(row.map((tile) => BoardBuilder.tile(tile, probing))),
       ),
     )
+    const probed = await Promise.all(probing.map((engine) => engine.probed))
     const notes = BoardBuilder.notesOf(rows)
     return {
       title: board.title,
@@ -55,14 +86,19 @@ export class BoardBuilder {
     )
   }
 
-  private static tile(tile: BoardTile, probed: readonly ProbedEngine[]): Promise<TileModel> {
+  private static tile(tile: BoardTile, probing: readonly ProbingEngine[]): Promise<TileModel> {
     return "refused" in tile
       ? Promise.resolve(RefusedTiles.of(tile))
-      : BoardBuilder.widget(tile, probed)
+      : BoardBuilder.widget(tile, probing)
   }
 
-  private static widget(widget: BoardWidget, probed: readonly ProbedEngine[]): Promise<TileModel> {
-    const engines = probed.filter((engine) => widget.engines.includes(engine.model.name))
+  private static widget(
+    widget: BoardWidget,
+    probing: readonly ProbingEngine[],
+  ): Promise<TileModel> {
+    const engines = probing
+      .filter((engine) => widget.engines.includes(engine.name))
+      .map((engine) => engine.probed)
     switch (widget.widget) {
       case "counter":
         return CounterTiles.build(widget, engines)

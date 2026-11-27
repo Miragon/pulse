@@ -41,7 +41,7 @@ import {
 } from "../tools/test-support/fake-engine.js"
 import type { BoardStartData } from "../view-models.board.js"
 import type { TileData } from "@miragon/pulse-board"
-import { boardReadsOf } from "./board-reads.js"
+import { boardReadsOf, newReadLog } from "./board-reads.js"
 
 const engines: FakeC7Engine[] = []
 const dirs: string[] = []
@@ -370,7 +370,7 @@ describe("engine_board_data over both dialects", () => {
       await recording.tool(ENGINE_BOARD_DATA).call({ board: "both" }),
     )
 
-    const c7 = await alone("shop", boardReadsOf(resolveEngine("shop", registry), { failed: false }))
+    const c7 = await alone("shop", boardReadsOf(resolveEngine("shop", registry), newReadLog()))
     const c8 = await alone("c8", new FakeEngine(FakeWorld.seed().state))
     expect(data.engines).toEqual([...c7.engines, ...c8.engines])
     expect(data.engines.map(({ state }) => state)).toEqual(["ready", "ready"])

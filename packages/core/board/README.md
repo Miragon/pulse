@@ -125,10 +125,11 @@ const model = await BoardBuilder.build(board, [
 ])
 ```
 
-`BoardBuilder.build(board, engines)` takes a parsed board and, per engine of the board, its name
-and its reads (`BoardReads`, seven reads of `ProcessRuntime`: `describeEngine`, `listDefinitions`,
-`countInstances`, `searchInstances`, `getDiagramXml`, `getElementStatistics`, `searchIncidents`); an
-engine without reads is one the reader has not configured. It returns a `BoardModel`:
+`BoardBuilder.build(board, engines, options?)` takes a parsed board and, per engine of the board,
+its name and its reads (`BoardReads`, seven reads of `ProcessRuntime`: `describeEngine`,
+`listDefinitions`, `countInstances`, `searchInstances`, `getDiagramXml`, `getElementStatistics`,
+`searchIncidents`); an engine without reads is one the reader has not configured. It returns a
+`BoardModel`:
 
 - per engine `ready` with its `EngineInfo` and its totals (running, with incident) from the
   definitions, `failed` with the error as thrown by `describeEngine`, or by `listDefinitions` when
@@ -148,6 +149,17 @@ engine without reads is one the reader has not configured. It returns a `BoardMo
   `diagramTooLong` at its tile's path (`rows[1].row[0]`), whose values name the tile as its card
   does (the widget's title, else the process's name or id) and its engine, so no badge
   goes missing without a word and a surface names the tile, not a path, to whoever reads the board.
+
+Each engine has a deadline that starts with the build: `BoardBuilder.ENGINE_DEADLINE_MS`, 15
+seconds, unless the reader passes its own (`BoardBuildOptions`, `{ engineDeadlineMs }`): from 1 to
+2147483647 ms, the range of a timer, or `Infinity` for none; any other value rejects the build with
+a `RangeError` that names the option, before any read. An engine's tiles read as soon as it said
+what it is, never after a slower engine. Once its deadline passed, its reads still out reject as a
+`RuntimeError` of the failure `unreachable` that names the engine and the deadline, and it is asked
+nothing more, so it shows as any failed read does: failed when it has not said what it is, else its
+numbers not read, while the other engines' tiles read on time. The builder cancels no read of the
+reader's (`BoardReads` takes no signal): a read the deadline cut runs on until the reader's own
+deadline ends it or the reader cancels it.
 
 Honest numbers: a read that fails leaves its number out (a surface shows "not read", never 0), a
 total says how many engines it counts (`known`), totals come from counts and the definitions, never
@@ -241,7 +253,7 @@ dialect's recorded board by it, so one rule decides what counts as the same numb
 | Entry                                           | Holds                                                                                                                                                                             |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@miragon/pulse-board`                          | `BoardParser`, `BoardProblems`, `BoardTiles`, `BoardVocabulary`, `StarterBoard` and the types of a board, its widgets and problems and of a built board's JSON form (`BoardData`) |
-| `@miragon/pulse-board/builder`                  | `BoardBuilder`, `BoardJson`, `DiagramBadges`, `CollapsedShapes`, `CallActivities` and the types of `BoardModel` and `BoardReads`                                                  |
+| `@miragon/pulse-board/builder`                  | `BoardBuilder`, `BoardJson`, `DiagramBadges`, `CollapsedShapes`, `CallActivities` and the types of `BoardModel`, `BoardReads` and `BoardBuildOptions`                             |
 | `@miragon/pulse-board/schema/board.schema.json` | The JSON Schema of a board file                                                                                                                                                   |
 | `@miragon/pulse-board/testing`                  | `BOARD_FIXTURES`, the shared fixtures, and `BoardFigures`, a built board's figures                                                                                                |
 

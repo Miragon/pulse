@@ -8,11 +8,12 @@ import { FilterQuery } from "./filter-query.js"
 export class CounterTiles {
   static async build(
     widget: CounterWidget,
-    engines: readonly ProbedEngine[],
+    engines: readonly Promise<ProbedEngine>[],
   ): Promise<CounterModel> {
     const query = FilterQuery.of(widget.filter)
     const readings = await Promise.all(
-      engines.map(async (engine): Promise<CounterReading> => {
+      engines.map(async (probed): Promise<CounterReading> => {
+        const engine = await probed
         const count =
           engine.reads === undefined
             ? undefined

@@ -8,7 +8,7 @@ import { FilterQuery } from "./filter-query.js"
 export class InstanceListTiles {
   static async build(
     widget: InstanceListWidget,
-    engines: readonly ProbedEngine[],
+    engines: readonly Promise<ProbedEngine>[],
   ): Promise<InstanceListModel> {
     const query = FilterQuery.of(widget.filter)
     const groups = await Promise.all(
@@ -18,9 +18,10 @@ export class InstanceListTiles {
   }
 
   private static async group(
-    engine: ProbedEngine,
+    probed: Promise<ProbedEngine>,
     query: InstanceFilter,
   ): Promise<InstanceGroupModel> {
+    const engine = await probed
     const name = engine.model.name
     if (engine.reads === undefined) {
       return { engine: name }
