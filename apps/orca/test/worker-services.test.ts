@@ -9,13 +9,14 @@ import {
   type EngineTarget,
   UserConfigLocation,
   type UserConfigVerdict,
+  WriteAudit,
 } from "@miragon/pulse-runtime-view/host-kit"
 import type { EngineRegistry } from "../src/worker/engine-registry.js"
 import { OrcaSettings } from "../src/worker/orca-settings.js"
 import { OrcaWorkspaces } from "../src/worker/orca-workspaces.js"
 import { Prompts } from "../src/worker/prompts.js"
 import { WorkerServices } from "../src/worker/worker-services.js"
-import type { WriteConfirmation } from "../src/worker/write-confirmation.js"
+import { WriteConfirmation } from "../src/worker/write-confirmation.js"
 import { FakeOrca } from "./fake-orca.js"
 
 const PROD_EU: EngineTarget = {
@@ -65,7 +66,11 @@ class Harness {
       {
         settings: new OrcaSettings(api),
         prompts: this.prompts,
-        confirmation: {} as WriteConfirmation,
+        confirmation: new WriteConfirmation(
+          this.prompts,
+          new WriteAudit({ info: () => undefined }),
+          () => ({ user: undefined, workspace: [] }),
+        ),
       },
     )
   }

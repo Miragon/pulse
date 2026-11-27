@@ -1,6 +1,6 @@
 /** Operation commands through `run()`: binary responses, `--out-file` and the request input. */
 
-import { describe, expect, it } from "vitest"
+import { assert, describe, expect, it } from "vitest"
 import { bodyOf, errorOf, only, XML } from "../../test/support/cli-operation.js"
 import {
   binary,
@@ -205,7 +205,9 @@ describe("operation commands: input", () => {
     expect(result).toMatchObject({ code: 0, stdout: '{"id":"d1"}\n' })
     const form = only(server).body as FormData
     expect([...form.keys()]).toEqual(["deployment-name", "order.bpmn", "approval.dmn"])
-    expect(await (form.get("order.bpmn") as File).text()).toBe("<bpmn/>")
+    const file = form.get("order.bpmn")
+    assert.instanceOf(file, File)
+    expect(await file.text()).toBe("<bpmn/>")
   })
 
   it("reports a missing resource file as usage error", async () => {

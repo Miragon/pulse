@@ -112,7 +112,7 @@ export class PulseExtension {
     documents: IncidentDocuments,
     panels: PanelManager,
     live: LiveWiring,
-  ): vscode.Disposable[] {
+  ): vscode.ExtensionContext["subscriptions"] {
     const engines = new EnginesTree(registry)
     const enginesLive = new EnginesTreeLive(registry, engines, live)
     return [
@@ -128,7 +128,10 @@ export class PulseExtension {
     ]
   }
 
-  private boards(registry: ConnectionRegistry, panels: PanelManager): vscode.Disposable[] {
+  private boards(
+    registry: ConnectionRegistry,
+    panels: PanelManager,
+  ): vscode.ExtensionContext["subscriptions"] {
     const tree = new BoardsTree()
     const boards = new BoardPanels(registry, panels)
     return [

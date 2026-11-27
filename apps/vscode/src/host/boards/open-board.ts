@@ -29,7 +29,7 @@ export class OpenBoard implements vscode.Disposable {
       panel.webview.onDidReceiveMessage((message: unknown) => {
         this.receive(message)
       }),
-      connectThemeBridge(vscode, panel, THEMES),
+      vscode.Disposable.from(connectThemeBridge(vscode, panel, THEMES)),
     ]
   }
 
