@@ -27,6 +27,11 @@ export function omit<T extends object, K extends keyof T & string>(
 }
 
 /** True for plain JSON-like objects (not null, not arrays). */
+/** `value` unless it is empty text: an engine that names no tenant may send "". */
+export function nonEmpty(value: string | undefined): string | undefined {
+  return value === "" ? undefined : value
+}
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }

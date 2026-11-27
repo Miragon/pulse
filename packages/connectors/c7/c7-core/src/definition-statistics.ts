@@ -6,22 +6,26 @@
  * in a called instance is no root incident). Per process key (`statisticsByKey`): the latest
  * version, the one with the highest version number and the first listed of equal ones, the sums
  * over every version and the versions that hold a root incident, of one incident type where one is
- * named. The status triage, the contract's processes and the MCP server's overview, incidents
- * dashboard and process incidents take a key's numbers from this fold, so a key counts the same on
- * every surface. A key spans the versions of every tenant. The answer is read through `JsonView`,
- * so an unusable one fails as `RuntimeError("unexpectedResponse")`, never as a row left out or
- * counted under another key.
+ * named. Per process (`statisticsByProcess`): the same fold over a key's versions in one tenant,
+ * the tenant a version names (`tenantId`, null for none, never ""), as the engine contract names a
+ * process by its key and its tenant: the contract's processes and versions read it. The status
+ * triage and the MCP server's overview, incidents dashboard and process incidents take a key's
+ * numbers from the fold per key, which spans the versions of every tenant, as they take a key
+ * alone. The answer is read through `JsonView`, so an unusable one fails as
+ * `RuntimeError("unexpectedResponse")`, never as a row left out or counted under another key.
  */
 
 import { JsonView } from "./json-view.js"
 import type { EnginePort, Query } from "./port.js"
 import { queryInput } from "./requests.js"
-import { compact } from "./util.js"
+import { compact, nonEmpty } from "./util.js"
 
-/** A deployed version of a process: its id, key, version and what it names. */
+/** A deployed version of a process: its id, key, tenant, version and what it names. */
 export interface DefinitionRow {
   readonly id: string
   readonly key: string
+  /** The tenant it is deployed in; null for none. */
+  readonly tenantId: string | null
   readonly version: number
   readonly name?: string
   readonly deploymentId?: string
@@ -57,6 +61,7 @@ function definitionRowOf(record: JsonView): DefinitionRow {
   return {
     id: record.requiredString("id"),
     key: record.requiredString("key"),
+    tenantId: nonEmpty(record.optionalString("tenantId")) ?? null,
     version: record.requiredNumber("version"),
     ...compact({
       name: record.optionalString("name"),
@@ -177,22 +182,63 @@ function processOf(
   }
 }
 
+/** The rows grouped by `identity`, each group in the order the engine lists its rows. */
+function groupedBy(
+  rows: readonly DefinitionStatisticsRow[],
+  identity: (definition: DefinitionRow) => string,
+): DefinitionStatisticsRow[][] {
+  const groups = new Map<string, DefinitionStatisticsRow[]>()
+  for (const row of rows) {
+    const group = groups.get(identity(row.definition))
+    if (group === undefined) groups.set(identity(row.definition), [row])
+    else group.push(row)
+  }
+  return [...groups.values()]
+}
+
+/** The key the rows of a group share. */
+function keyOf(versions: readonly DefinitionStatisticsRow[]): string {
+  return versions[0]?.definition.key ?? ""
+}
+
 /**
  * The statistics per process key, in the order the engine first lists each key; with
  * `incidentType`, a key's root incidents are those of that type alone (the engine counts them per
- * type, and `rootIncidents=true` takes no type of its own).
+ * type, and `rootIncidents=true` takes no type of its own). A key spans the versions of every
+ * tenant.
  */
 export function statisticsByKey(
   rows: readonly DefinitionStatisticsRow[],
   incidentType?: string,
 ): Map<string, ProcessStatistics> {
-  const versionsByKey = new Map<string, DefinitionStatisticsRow[]>()
-  for (const row of rows) {
-    const versions = versionsByKey.get(row.definition.key)
-    if (versions === undefined) versionsByKey.set(row.definition.key, [row])
-    else versions.push(row)
-  }
   return new Map(
-    [...versionsByKey].map(([key, versions]) => [key, processOf(key, versions, incidentType)]),
+    groupedBy(rows, (definition) => definition.key).map((versions) => [
+      keyOf(versions),
+      processOf(keyOf(versions), versions, incidentType),
+    ]),
+  )
+}
+
+/** A process's statistics: the versions of a key in one tenant. */
+export interface TenantProcessStatistics extends ProcessStatistics {
+  /** The tenant its versions are deployed in; null for none. */
+  readonly tenantId: string | null
+}
+
+/**
+ * The statistics per process, a key in one tenant, in the order the engine first lists each
+ * process; `incidentType` as for `statisticsByKey`. The latest version is the one with the highest
+ * version number in the process's own tenant, so a tenant's newer deployment is never another
+ * tenant's latest.
+ */
+export function statisticsByProcess(
+  rows: readonly DefinitionStatisticsRow[],
+  incidentType?: string,
+): TenantProcessStatistics[] {
+  return groupedBy(rows, ({ key, tenantId }) => JSON.stringify([key, tenantId])).map(
+    (versions) => ({
+      ...processOf(keyOf(versions), versions, incidentType),
+      tenantId: versions[0]?.definition.tenantId ?? null,
+    }),
   )
 }

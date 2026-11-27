@@ -1,23 +1,30 @@
 /**
  * The processes a version calls (`getCalledProcesses` of the engine contract): each call activity
  * of its deployed BPMN XML with the process it names and, when the engine holds it, the version
- * its binding starts (`latest`, `deployment`, `version`, `versionTag`). A call activity whose
- * process or version tag only an expression decides is left out, and so is one without an id or
- * with a version that is no whole number. After the diagram it reads the versions of the called
- * processes alone, by their keys (every version of a key, of every tenant), and the caller's own
- * version only where a call is bound to its deployment, never the statistics of the whole engine.
+ * its binding starts (`latest`, `deployment`, `version`, `versionTag`) in the tenant it resolves
+ * in, as the engine resolves it: the tenant its `calledElementTenantId` names, else the caller's
+ * (a caller without a tenant calls a process without one); a `deployment` binding takes the
+ * version of the caller's deployment, whose tenant is the caller's. A call activity whose process,
+ * version tag or tenant only an expression decides is left out, and so is one without an id or
+ * with a version that is no whole number. The caller's tenant is the one the caller names
+ * (`CallingVersion`, as a summary or an instance named the version), so no read asks for it. After
+ * the diagram it reads the versions of the called processes alone, by their keys (every version of
+ * a key, of every tenant, of which a call takes its tenant's), and the caller's own version only
+ * where a call is bound to its deployment, never the statistics of the whole engine.
  */
 
 import {
   BpmnProcessId,
   ElementId,
   type CalledProcess,
+  type CallingVersion,
   type DefinitionId,
+  type TenantId,
 } from "@miragon/pulse-engine-core"
 import type { DefinitionRow } from "../definition-statistics.js"
 import type { EnginePort } from "../port.js"
 import { CALL_ACTIVITY_TAG } from "./call-activity-tags.js"
-import { definitionRefOf } from "./definition-refs.js"
+import { definitionRefOf, tenantIdOf } from "./definition-refs.js"
 import { type DiagramRead, diagramReadOf, readDefinitionRows } from "./definition-rows.js"
 
 type CalledElementBinding =
@@ -28,6 +35,7 @@ type CalledElementBinding =
 interface CalledElement {
   readonly elementId: string
   readonly processKey: string
+  readonly tenantId: TenantId | null
   readonly binding: CalledElementBinding
 }
 
@@ -51,12 +59,19 @@ function bindingOf(tag: string): CalledElementBinding | undefined {
     : undefined
 }
 
-function calledElementsOf(tag: string): CalledElement[] {
+/**
+ * The calls of a call activity's tag, resolved in `callerTenant` unless the tag names a tenant of
+ * its own (an empty one names none, as the engine reads it).
+ */
+function calledElementsOf(tag: string, callerTenant: TenantId | null): CalledElement[] {
   const elementId = attribute(tag, "id")
   const processKey = attribute(tag, "calledElement")
+  const tenant = attribute(tag, "calledElementTenantId")
   const binding = bindingOf(tag)
   if (elementId === undefined || processKey === undefined || binding === undefined) return []
-  return EXPRESSION.test(processKey) ? [] : [{ elementId, processKey, binding }]
+  if (EXPRESSION.test(processKey) || (tenant !== undefined && EXPRESSION.test(tenant))) return []
+  const tenantId = tenant ? tenantIdOf(tenant) : callerTenant
+  return [{ elementId, processKey, tenantId, binding }]
 }
 
 function definitionStartedBy(
@@ -67,19 +82,20 @@ function definitionStartedBy(
   const versions = definitions
     .filter((definition) => definition.key === called.processKey)
     .sort((left, right) => right.version - left.version)
+  const inTenant = versions.filter((version) => tenantIdOf(version.tenantId) === called.tenantId)
   const binding = called.binding
   switch (binding.kind) {
     case "latest":
-      return versions[0]
+      return inTenant[0]
     case "deployment":
       return versions.find(
         (version) =>
           version.deploymentId !== undefined && version.deploymentId === caller?.deploymentId,
       )
     case "version":
-      return versions.find((version) => version.version === binding.version)
+      return inTenant.find((version) => version.version === binding.version)
     case "versionTag":
-      return versions.find((version) => version.versionTag === binding.versionTag)
+      return inTenant.find((version) => version.versionTag === binding.versionTag)
   }
 }
 
@@ -90,17 +106,23 @@ export class CalledProcessReader {
     private readonly diagram: DiagramRead = diagramReadOf(port),
   ) {}
 
-  /** The calls of the version `definitionId`; none for a version the engine does not know. */
-  async read(definitionId: DefinitionId): Promise<CalledProcess[]> {
+  /**
+   * The calls of the version `id`, each resolved in its tenant (`tenantId`, the caller's, unless
+   * the call names its own); none for a version the engine does not know.
+   */
+  async read({ id: definitionId, tenantId }: CallingVersion): Promise<CalledProcess[]> {
     const xml = await this.diagram(definitionId)
     if (xml === undefined) return []
-    const calls = [...xml.matchAll(CALL_ACTIVITY_TAG)].flatMap(([tag]) => calledElementsOf(tag))
+    const calls = [...xml.matchAll(CALL_ACTIVITY_TAG)].flatMap(([tag]) =>
+      calledElementsOf(tag, tenantId),
+    )
     const { definitions, caller } = await this.versionsOf(definitionId, calls)
     return calls.map((called) => {
       const definition = definitionStartedBy(called, definitions, caller)
       return {
         elementId: ElementId(called.elementId),
         bpmnProcessId: BpmnProcessId(called.processKey),
+        tenantId: called.tenantId,
         ...(definition === undefined ? {} : { definition: definitionRefOf(definition) }),
       }
     })

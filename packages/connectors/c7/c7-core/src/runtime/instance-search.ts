@@ -33,6 +33,7 @@ import {
 } from "./historic-instances.js"
 import { historicQueryOf, incidentScopeOf, runtimeKnowsWhole } from "./instance-query.js"
 import { OffsetPaging, type OffsetWindow } from "./offset-paging.js"
+import { versionTenantsOf } from "./version-tenants.js"
 
 /**
  * The filter with only the instance ids an engine could have assigned (`isEngineId`): any other
@@ -84,9 +85,13 @@ export class InstanceSearch {
       cappedFor(paging.window(), scoped),
       this.chunk,
     )
-    const withOpenIncident = await this.idsWithOpenIncident(rows.slice(0, page.limit), filter)
+    const shown = rows.slice(0, page.limit)
+    const [withOpenIncident, tenants] = await Promise.all([
+      this.idsWithOpenIncident(shown, filter),
+      versionTenantsOf(this.port, shown),
+    ])
     return paging.pageOf(rows, (pageRows) =>
-      pageRows.map((row) => instanceSummaryOf(row, withOpenIncident.has(row.id))),
+      pageRows.map((row) => instanceSummaryOf(row, withOpenIncident.has(row.id), tenants)),
     )
   }
 
@@ -159,8 +164,13 @@ export class InstanceSearch {
         cappedFor(window, filter),
         this.chunk,
       )
-      const failing = await withIncidentAmong(this.port, runningIdsOf(rows))
-      return rows.map((row) => (failing.has(row.id) ? undefined : instanceSummaryOf(row, false)))
+      const [failing, tenants] = await Promise.all([
+        withIncidentAmong(this.port, runningIdsOf(rows)),
+        versionTenantsOf(this.port, rows),
+      ])
+      return rows.map((row) =>
+        failing.has(row.id) ? undefined : instanceSummaryOf(row, false, tenants),
+      )
     })
   }
 

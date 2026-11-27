@@ -9,7 +9,7 @@
 import { InstanceId, type InstanceSummary } from "@miragon/pulse-engine-core"
 import { type EnginePort, PARALLEL } from "../port.js"
 import { compact, mapLimit } from "../util.js"
-import { definitionRefOfInstance } from "./definition-refs.js"
+import { definitionRefOfInstance, type VersionTenants } from "./definition-refs.js"
 import {
   chunkedQueries,
   HISTORY_ID_CHUNK,
@@ -29,6 +29,7 @@ export interface HistoricInstanceRow {
   readonly processDefinitionKey: string
   readonly processDefinitionVersion: number
   readonly processDefinitionName?: string
+  readonly tenantId?: string
   readonly state: string
   readonly startTime?: string
   readonly endTime?: string
@@ -64,6 +65,7 @@ function rowOf(record: JsonView): HistoricInstanceRow {
     ...compact({
       businessKey: record.optionalString("businessKey"),
       processDefinitionName: record.optionalString("processDefinitionName"),
+      tenantId: record.optionalString("tenantId"),
       startTime: record.optionalString("startTime"),
       endTime: record.optionalString("endTime"),
       superProcessInstanceId: record.optionalString("superProcessInstanceId"),
@@ -131,11 +133,18 @@ export async function countHistoricInstances(
   return counts.reduce((sum, count) => sum + count, 0)
 }
 
-/** `row` as the contract's summary of an instance, flagged when it holds an open incident. */
-export function instanceSummaryOf(row: HistoricInstanceRow, hasIncident: boolean): InstanceSummary {
+/**
+ * `row` as the contract's summary of an instance, flagged when it holds an open incident, its
+ * version in the tenant `tenants` names (`versionTenantsOf`; none where it names none).
+ */
+export function instanceSummaryOf(
+  row: HistoricInstanceRow,
+  hasIncident: boolean,
+  tenants: VersionTenants,
+): InstanceSummary {
   return {
     id: InstanceId(row.id),
-    definition: definitionRefOfInstance(row),
+    definition: definitionRefOfInstance(row, tenants),
     state: instanceStateOf(row.state),
     hasIncident,
     ...compact({

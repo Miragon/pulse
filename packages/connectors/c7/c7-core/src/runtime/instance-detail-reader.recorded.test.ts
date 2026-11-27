@@ -50,13 +50,21 @@ const IDS = {
 const ORDER_V1 = {
   id: IDS.order1,
   bpmnProcessId: "pulse-order",
+  tenantId: null,
   version: 1,
   name: "Order fulfillment",
 }
-const LABEL_V1 = { id: IDS.label1, bpmnProcessId: "pulse-label", version: 1, name: "Print label" }
+const LABEL_V1 = {
+  id: IDS.label1,
+  bpmnProcessId: "pulse-label",
+  tenantId: null,
+  version: 1,
+  name: "Print label",
+}
 const DISPATCH_V1 = {
   id: IDS.dispatch1,
   bpmnProcessId: "pulse-dispatch",
+  tenantId: null,
   version: 1,
   name: "Dispatch order",
 }
@@ -142,6 +150,7 @@ describe("the instance detail over recorded engine answers", () => {
       definition: {
         id: IDS.dispatch1,
         bpmnProcessId: "pulse-dispatch",
+        tenantId: null,
         version: 1,
         name: "Dispatch order",
       },
@@ -155,6 +164,7 @@ describe("the instance detail over recorded engine answers", () => {
         id: IDS.label,
         parentInstanceId: IDS.dispatch,
         bpmnProcessId: "pulse-label",
+        tenantId: null,
         state: "running",
         calledFromElementId: "Activity_PrintShippingLabel",
       },

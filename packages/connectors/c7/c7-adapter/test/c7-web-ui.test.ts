@@ -10,6 +10,7 @@ import { C7Adapter } from "../src/index.js"
 const DEFINITION = {
   id: DefinitionId("order-fulfillment:3:5f1c-11f1"),
   bpmnProcessId: BpmnProcessId("order-fulfillment"),
+  tenantId: null,
   version: 3,
 }
 

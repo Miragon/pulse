@@ -55,12 +55,14 @@ const INSTANCE_MISSING =
 const ORDER_V1 = {
   id: WORLD_IDS.order1,
   bpmnProcessId: "pulse-order",
+  tenantId: null,
   version: 1,
   name: "Order fulfillment",
 }
 const LABEL_V1 = {
   id: WORLD_IDS.label1,
   bpmnProcessId: "pulse-label",
+  tenantId: null,
   version: 1,
   name: "Print label",
 }
@@ -332,7 +334,7 @@ describe("the C7 runtime over recorded engine answers", () => {
   test("lists the versions of one process newest first with their own counts", async () => {
     const { runtime } = fakeRuntime([ROUTE.definitionStatistics, ROUTE.instancesWithIncident])
 
-    const versions = await runtime.listVersions(BpmnProcessId("pulse-order"))
+    const versions = await runtime.listVersions(BpmnProcessId("pulse-order"), null)
 
     expect(
       versions.map((version) => [
@@ -408,6 +410,7 @@ describe("the C7 runtime over recorded engine answers", () => {
           definition: {
             id: "pulse-order:2:63bcbc19-cd7f-11f1-86d2-667bc3771e0d",
             bpmnProcessId: "pulse-order",
+            tenantId: null,
             version: 2,
             name: "Order fulfillment",
           },
@@ -626,7 +629,13 @@ describe("the C7 runtime over recorded engine answers", () => {
 
     expect(detail?.instance).toEqual({
       id: "p1",
-      definition: { id: PARENT_DEFINITION, bpmnProcessId: "order", version: 1, name: "Order" },
+      definition: {
+        id: PARENT_DEFINITION,
+        bpmnProcessId: "order",
+        tenantId: null,
+        version: 1,
+        name: "Order",
+      },
       state: "running",
       hasIncident: true,
       businessKey: "ORD-1",
@@ -649,6 +658,7 @@ describe("the C7 runtime over recorded engine answers", () => {
         definition: {
           id: CALLED_DEFINITION,
           bpmnProcessId: "label",
+          tenantId: null,
           version: 2,
           name: "Print label",
         },
@@ -671,6 +681,7 @@ describe("the C7 runtime over recorded engine answers", () => {
         id: "c1",
         parentInstanceId: "p1",
         bpmnProcessId: "label",
+        tenantId: null,
         state: "running",
         calledFromElementId: "call",
       },

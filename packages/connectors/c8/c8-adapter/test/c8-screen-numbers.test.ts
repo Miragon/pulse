@@ -84,6 +84,7 @@ async function processScreen(
     C8_SCREEN_ENGINE.engine,
     {
       bpmnProcessId: BpmnProcessId(bpmnProcessId),
+      tenantId: null,
       ...(name === "olderVersion" && selected !== null
         ? { definitionId: DefinitionId(selected.id) }
         : {}),

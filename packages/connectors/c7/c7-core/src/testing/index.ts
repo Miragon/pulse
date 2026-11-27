@@ -1,7 +1,8 @@
 /**
  * Test helpers of @miragon/pulse-c7-core: the verified workflow fixture, the status fixture,
  * wait states of every kind, a recording fake port, a list whose tied rows turn on every request
- * and a fake clock; the seed of the Camunda 7 conformance world and a board's answers recorded
+ * and a fake clock; the seed of the Camunda 7 conformance world, of its tenant world and its
+ * removal, and a board's answers recorded
  * from it, with the board they give, and the answers of the shared screens' reads, with the
  * screens they give; the seed of the Camunda 7 status world and the answers of the status', the
  * health's and the verdict's reads recorded from it, with what each surface gives; and the seams
@@ -27,6 +28,13 @@ export {
   turnTies,
 } from "./fake-port.js"
 export { seedC7CommandWorld, seedC7World } from "./seed-world.js"
+export {
+  type C7SeededTenantWorld,
+  type C7TenantDeployment,
+  type C7TenantWorldPlan,
+  removeC7Deployments,
+  seedC7TenantWorld,
+} from "./seed-tenants.js"
 export { C7_BOARD_ENGINE, type C7BoardEngine, type C7RecordedAnswer } from "./board-engine.js"
 export { C7_SCREEN_ENGINE, type C7ExpectedScreens, type C7ScreenEngine } from "./screen-engine.js"
 export { C7_STATUS_WORLD, type C7StatusWorldIds, seedC7StatusWorld } from "./status-world.js"

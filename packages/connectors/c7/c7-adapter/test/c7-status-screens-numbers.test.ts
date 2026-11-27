@@ -36,7 +36,7 @@ describe("the C7 adapter over c7-core's recorded status screens, the multi-insta
 
     const model = await ProcessScreen.read(
       C7_STATUS_SCREENS.engine,
-      { bpmnProcessId: BpmnProcessId(expectedProcess().bpmnProcessId) },
+      { bpmnProcessId: BpmnProcessId(expectedProcess().bpmnProcessId), tenantId: null },
       runtime,
       () => ASKED,
     )

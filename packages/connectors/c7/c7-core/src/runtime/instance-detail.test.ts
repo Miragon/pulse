@@ -10,6 +10,7 @@ const T1 = "2026-10-21T18:44:05.000+0000"
 const ORDER: DefinitionRef = {
   id: DefinitionId("order:1:d1"),
   bpmnProcessId: BpmnProcessId("order"),
+  tenantId: null,
   version: 1,
   name: "Order",
 }
@@ -234,6 +235,7 @@ describe("instanceDetailOf: what it holds", () => {
         id: "c1",
         parentInstanceId: "p1",
         bpmnProcessId: "label",
+        tenantId: null,
         state: "running",
         calledFromElementId: "call",
       },

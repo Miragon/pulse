@@ -12,6 +12,8 @@ export interface DefinitionView {
   readonly key: string
   readonly version?: number
   readonly name?: string
+  /** The tenant it is deployed in; absent for none. */
+  readonly tenantId?: string
   readonly id: string
 }
 
@@ -100,6 +102,8 @@ export interface ChildView {
   readonly parentId: string
   readonly key: string
   readonly version?: number
+  /** The tenant of its version; absent for none. */
+  readonly tenantId?: string
   readonly businessKey?: string
   readonly state: "ACTIVE" | "SUSPENDED"
 }

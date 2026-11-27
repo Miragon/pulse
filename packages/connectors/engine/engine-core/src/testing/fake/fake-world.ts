@@ -1,5 +1,10 @@
 import type { CommandWorld } from "../conformance/command-harness.js"
 import type { SeededWorld } from "../conformance/harness.js"
+import type { SeededTenantWorld } from "../conformance/tenant-harness.js"
+import {
+  WORLD_TENANT_DEPLOYMENTS,
+  type TenantDeploymentAlias,
+} from "../conformance/world/tenant-world.js"
 import {
   WORLD_BULK_INSTANCES,
   WORLD_COMMAND_INSTANCES,
@@ -17,6 +22,10 @@ import { FakeWorldSimulation, type AnyWorldInstance } from "./fake-world-simulat
 export interface FakeWorldSeed {
   readonly state: FakeEngineState
   readonly world: SeededWorld
+}
+
+export interface FakeTenantWorldSeed extends FakeWorldSeed {
+  readonly tenantWorld: SeededTenantWorld
 }
 
 export interface FakeCommandWorldSeed {
@@ -40,6 +49,23 @@ export class FakeWorld {
         instanceIds: FakeWorld.idsOf(WORLD_INSTANCES),
         unknown: UNKNOWN,
       },
+    }
+  }
+
+  static seedWithTenants(): FakeTenantWorldSeed {
+    const { state, world } = FakeWorld.seed()
+    const deployed = WORLD_TENANT_DEPLOYMENTS.map((deployment) => ({
+      alias: deployment.alias,
+      definition: FakeWorldSimulation.tenantDefinitionOf(deployment),
+    }))
+    const tenantDefinitions = deployed.map(({ definition }) => definition)
+    const definitionIds = Object.fromEntries(
+      deployed.map(({ alias, definition }) => [alias, definition.ref.id]),
+    ) as Record<TenantDeploymentAlias, DefinitionId>
+    return {
+      state: { ...state, definitions: [...state.definitions, ...tenantDefinitions] },
+      world,
+      tenantWorld: { definitionIds },
     }
   }
 

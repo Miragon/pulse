@@ -16,8 +16,17 @@ describe("InstanceInspection of the tree's versions", () => {
 
     expect(view?.versions).toStrictEqual(
       new Map([
-        [P, { id: PARENT_DEF, bpmnProcessId: "workflow-parent", version: 1 }],
-        [C, { id: CHILD_DEF, bpmnProcessId: "workflow-child", version: 1, name: "Child" }],
+        [P, { id: PARENT_DEF, bpmnProcessId: "workflow-parent", tenantId: null, version: 1 }],
+        [
+          C,
+          {
+            id: CHILD_DEF,
+            bpmnProcessId: "workflow-child",
+            tenantId: null,
+            version: 1,
+            name: "Child",
+          },
+        ],
       ]),
     )
     expect(port.calls.map((call) => call.operationId)).not.toContain(

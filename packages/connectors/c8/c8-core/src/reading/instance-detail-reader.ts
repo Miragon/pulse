@@ -14,6 +14,7 @@ import { DefinitionRefs } from "../mapping/definition-refs.js"
 import { Incidents } from "../mapping/incidents.js"
 import { InstanceSummaries } from "../mapping/instance-summaries.js"
 import { Keys } from "../mapping/keys.js"
+import { Tenants } from "../mapping/tenants.js"
 import {
   Present,
   type CamundaClient,
@@ -235,6 +236,7 @@ export class InstanceDetailReader {
       id: InstanceId(member.key),
       parentInstanceId: InstanceId(member.parentKey ?? root.key),
       bpmnProcessId: BpmnProcessId(member.bpmnProcessId),
+      tenantId: Tenants.of(member.tenantId),
       state: InstanceSummaries.stateOf(member),
       ...(caller === undefined ? {} : { calledFromElementId: ElementId(caller.elementId) }),
     }

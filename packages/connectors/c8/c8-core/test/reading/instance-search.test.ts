@@ -92,7 +92,7 @@ describe("the instance search", () => {
     })
     expect(items[0]).toEqual({
       id: "1",
-      definition: { id: "100", bpmnProcessId: "order", version: 1, name: "Order" },
+      definition: { id: "100", bpmnProcessId: "order", tenantId: null, version: 1, name: "Order" },
       state: "running",
       hasIncident: true,
       businessKey: "ORD-1",

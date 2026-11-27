@@ -5,6 +5,7 @@ import type {
   IncidentId,
   InstanceId,
   IsoTimestamp,
+  TenantId,
 } from "./ids.js"
 
 export interface EngineInfo {
@@ -15,6 +16,7 @@ export interface EngineInfo {
 export interface DefinitionRef {
   readonly id: DefinitionId
   readonly bpmnProcessId: BpmnProcessId
+  readonly tenantId: TenantId | null
   readonly version: number
   readonly name?: string
 }
@@ -37,6 +39,7 @@ export interface VersionSummary extends RuntimeCounts {
 export interface CalledProcess {
   readonly elementId: ElementId
   readonly bpmnProcessId: BpmnProcessId
+  readonly tenantId: TenantId | null
   readonly definition?: DefinitionRef
 }
 
@@ -112,6 +115,7 @@ export interface CalledInstance {
   readonly id: InstanceId
   readonly parentInstanceId: InstanceId
   readonly bpmnProcessId: BpmnProcessId
+  readonly tenantId: TenantId | null
   readonly state: InstanceState
   readonly calledFromElementId?: ElementId
 }

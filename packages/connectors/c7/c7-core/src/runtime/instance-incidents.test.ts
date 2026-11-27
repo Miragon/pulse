@@ -16,6 +16,7 @@ import type { InspectView } from "./instance-inspection.js"
 const ORDER: DefinitionRef = {
   id: DefinitionId("order:1:d1"),
   bpmnProcessId: BpmnProcessId("order"),
+  tenantId: null,
   version: 1,
 }
 const LABEL: DefinitionRef = { ...ORDER, id: DefinitionId("label:2:d2"), version: 2 }

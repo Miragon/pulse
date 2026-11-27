@@ -22,6 +22,7 @@ describe("calledInstanceOf", () => {
       id: "c1",
       parentInstanceId: "p1",
       bpmnProcessId: "label",
+      tenantId: null,
       state: "running",
       calledFromElementId: "Activity_Print",
     })
@@ -34,9 +35,14 @@ describe("calledInstanceOf", () => {
       id: "c1",
       parentInstanceId: "p1",
       bpmnProcessId: "label",
+      tenantId: null,
       state: "suspended",
     })
     expect(calledInstanceOf(CHILD, [])).not.toHaveProperty("calledFromElementId")
+  })
+
+  it("names the tenant of the called instance's version", () => {
+    expect(calledInstanceOf({ ...CHILD, tenantId: "acme" }, []).tenantId).toBe("acme")
   })
 
   it("fails on a state no engine writes", () => {

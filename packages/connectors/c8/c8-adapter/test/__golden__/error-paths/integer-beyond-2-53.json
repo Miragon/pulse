@@ -19,6 +19,7 @@
               "bpmnProcessId": "pulse-order",
               "id": "2251799813685326",
               "name": "Order fulfillment",
+              "tenantId": null,
               "version": 2
             },
             "hasIncident": false,

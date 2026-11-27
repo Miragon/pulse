@@ -13,6 +13,7 @@ const ORDER_1 = { id: "order:1:o", key: "order", version: 1 }
 const ref = (definition: { id: string; key: string; version: number; name?: string }) => ({
   id: definition.id,
   bpmnProcessId: definition.key,
+  tenantId: null,
   version: definition.version,
   ...(definition.name === undefined ? {} : { name: definition.name }),
 })
@@ -154,7 +155,7 @@ describe("DefinitionReader.list", () => {
 describe("DefinitionReader.versions", () => {
   it("lists the versions of one process newest first, each with its own counts", async () => {
     const { reader } = readerOver()
-    expect(await reader.versions(BpmnProcessId("invoice"))).toStrictEqual([
+    expect(await reader.versions(BpmnProcessId("invoice"), null)).toStrictEqual([
       { definition: ref(INVOICE_3), running: 1, withIncident: 1, incidents: 1 },
       { definition: ref(INVOICE_2), running: 7, withIncident: 0, incidents: 0 },
       { definition: ref(INVOICE_1), running: 5, withIncident: 2, incidents: 3 },
@@ -163,7 +164,7 @@ describe("DefinitionReader.versions", () => {
 
   it("lists the process's instances with an open incident alone", async () => {
     const { port, reader } = readerOver()
-    await reader.versions(BpmnProcessId("invoice"))
+    await reader.versions(BpmnProcessId("invoice"), null)
     expect(port.calls.map((call) => call.operationId)).toEqual([
       "getProcessDefinitionStatistics",
       "getProcessInstances",
@@ -180,15 +181,15 @@ describe("DefinitionReader.versions", () => {
       path: "perVersion",
     })
 
-    expect(await reader.versions(BpmnProcessId("invoice"))).toStrictEqual(
-      await readerOver().reader.versions(BpmnProcessId("invoice")),
+    expect(await reader.versions(BpmnProcessId("invoice"), null)).toStrictEqual(
+      await readerOver().reader.versions(BpmnProcessId("invoice"), null),
     )
     expect(countedVersions(port).sort()).toEqual([INVOICE_1.id, INVOICE_3.id, INVOICE_2.id].sort())
   })
 
   it("has none for a process the engine does not hold", async () => {
     const { reader } = readerOver()
-    expect(await reader.versions(BpmnProcessId("refund"))).toEqual([])
+    expect(await reader.versions(BpmnProcessId("refund"), null)).toEqual([])
   })
 })
 
@@ -260,7 +261,7 @@ describe("DefinitionReader's requests past a page of instances with an incident"
   it("counts each version where 2 run an instance and 2,600 instances hold an incident", async () => {
     const { port, reader } = engineWith(2, 2600)
 
-    const versions = await reader.versions(BpmnProcessId("order"))
+    const versions = await reader.versions(BpmnProcessId("order"), null)
 
     expect(versions.map((version) => version.withIncident)).toEqual([1300, 1300])
     expect(requestsOf(port)).toEqual([

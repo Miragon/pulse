@@ -19,10 +19,10 @@ describe("treeVersionsOf", () => {
       ],
     })
 
-    const label = { id: LABEL, bpmnProcessId: "label", version: 2 }
+    const label = { id: LABEL, bpmnProcessId: "label", tenantId: null, version: 2 }
     expect(versions).toStrictEqual(
       new Map<string, unknown>([
-        ["p1", { id: ORDER, bpmnProcessId: "order", version: 1, name: "Order" }],
+        ["p1", { id: ORDER, bpmnProcessId: "order", tenantId: null, version: 1, name: "Order" }],
         ["c1", label],
         ["c2", label],
       ]),

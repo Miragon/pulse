@@ -12,6 +12,7 @@ import {
 } from "@miragon/pulse-engine-core"
 import type { ChildView, TimelineEntry } from "../types.js"
 import { compact } from "../util.js"
+import { tenantIdOf } from "./definition-refs.js"
 import { instanceStateOf } from "./instance-states.js"
 
 /** `child` as the contract's called instance, from the step of `path` that called it. */
@@ -21,6 +22,7 @@ export function calledInstanceOf(child: ChildView, path: readonly TimelineEntry[
     id: InstanceId(child.id),
     parentInstanceId: InstanceId(child.parentId),
     bpmnProcessId: BpmnProcessId(child.key),
+    tenantId: tenantIdOf(child.tenantId),
     state: instanceStateOf(child.state),
     ...compact({
       calledFromElementId: call === undefined ? undefined : ElementId(call.activityId),

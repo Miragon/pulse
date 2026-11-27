@@ -50,7 +50,13 @@ describe("IncidentSearch.search", () => {
         {
           id: "inc-1",
           instanceId: "p1",
-          definition: { id: ORDER_1.id, bpmnProcessId: "order", version: 1, name: "Order" },
+          definition: {
+            id: ORDER_1.id,
+            bpmnProcessId: "order",
+            tenantId: null,
+            version: 1,
+            name: "Order",
+          },
           elementId: "Activity_Charge",
           type: "failedJob",
           message: "boom",
@@ -60,7 +66,7 @@ describe("IncidentSearch.search", () => {
         {
           id: "inc-3",
           instanceId: "p2",
-          definition: { id: LABEL_1.id, bpmnProcessId: "label", version: 1 },
+          definition: { id: LABEL_1.id, bpmnProcessId: "label", tenantId: null, version: 1 },
           elementId: "Activity_Render",
           type: "failedExternalTask",
           message: "",

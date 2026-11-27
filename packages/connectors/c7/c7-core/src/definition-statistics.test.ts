@@ -5,6 +5,7 @@ import {
   definitionStatisticsQuery,
   readDefinitionStatistics,
   statisticsByKey,
+  statisticsByProcess,
 } from "./definition-statistics.js"
 import { readStatus } from "./engine-status.js"
 import { WorkflowError } from "./errors.js"
@@ -15,12 +16,13 @@ import { NOW } from "./testing/status.js"
 const FULL = {
   id: "invoice:2:x",
   key: "invoice",
+  tenantId: null,
   version: 2,
   name: "Invoice Receipt",
   deploymentId: "d2",
   versionTag: "stable",
 }
-const BARE = { id: "order:1:y", key: "order", version: 1 }
+const BARE = { id: "order:1:y", key: "order", tenantId: null, version: 1 }
 
 function statisticsPort(answer: unknown) {
   return fakePort({ getProcessDefinitionStatistics: () => answer })
@@ -175,7 +177,7 @@ describe("readDefinitionStatistics", () => {
 
 /** A statistics row of `definition` as the engine answers it. */
 const row = (
-  definition: { id: string; key: string; version: number; name?: string },
+  definition: { id: string; key: string; tenantId?: string | null; version: number; name?: string },
   [instances, failedJobs]: readonly [number, number],
   incidents: Record<string, number> = {},
 ) => ({
@@ -188,11 +190,17 @@ const row = (
   })),
 })
 
-const ORDER_1 = { id: "order:1:a", key: "order", version: 1, name: "Order" }
-const ORDER_3 = { id: "order:3:c", key: "order", version: 3, name: "Order v3" }
-const ORDER_3_TENANT = { id: "order:3:t", key: "order", version: 3, name: "Order of acme" }
-const ORDER_2 = { id: "order:2:b", key: "order", version: 2 }
-const SHIP_1 = { id: "ship:1:s", key: "ship", version: 1 }
+const ORDER_1 = { id: "order:1:a", key: "order", tenantId: null, version: 1, name: "Order" }
+const ORDER_3 = { id: "order:3:c", key: "order", tenantId: null, version: 3, name: "Order v3" }
+const ORDER_3_TENANT = {
+  id: "order:3:t",
+  key: "order",
+  tenantId: "acme",
+  version: 3,
+  name: "Order of acme",
+}
+const ORDER_2 = { id: "order:2:b", key: "order", tenantId: null, version: 2 }
+const SHIP_1 = { id: "ship:1:s", key: "ship", tenantId: null, version: 1 }
 
 /** Versions in no order of theirs, a version number twice (two tenants), keys interleaved. */
 const ROWS = definitionStatisticsOf([
@@ -255,5 +263,46 @@ describe("statisticsByKey", () => {
 
   it("has no key on an engine without deployments", () => {
     expect(statisticsByKey([])).toEqual(new Map())
+  })
+})
+
+describe("statisticsByProcess", () => {
+  it("folds the versions of a key in each tenant apart, each tenant's latest its own", () => {
+    const processes = statisticsByProcess(ROWS)
+    expect(processes.map(({ key, tenantId }) => [key, tenantId])).toEqual([
+      ["order", null],
+      ["ship", null],
+      ["order", "acme"],
+    ])
+    expect(processes[0]).toMatchObject({
+      latest: ORDER_3,
+      instances: 8,
+      failedJobs: 1,
+      rootIncidents: 3,
+      incidentVersionIds: [ORDER_1.id, ORDER_3.id],
+    })
+    expect(processes[2]).toMatchObject({
+      latest: ORDER_3_TENANT,
+      instances: 4,
+      failedJobs: 2,
+      incidentsByType: byType({ failedJob: 3 }),
+      incidentVersionIds: [ORDER_3_TENANT.id],
+    })
+  })
+
+  it("reads a version's tenant as the engine names it, an empty one as none", () => {
+    const [none, empty, acme] = definitionStatisticsOf([
+      row({ id: ORDER_1.id, key: "order", version: 1 }, [0, 0]),
+      row({ ...ORDER_2, tenantId: "" }, [0, 0]),
+      row(ORDER_3_TENANT, [0, 0]),
+    ])
+    expect([none, empty, acme].map((version) => version?.definition.tenantId)).toEqual([
+      null,
+      null,
+      "acme",
+    ])
+    expect(
+      statisticsByProcess([none, empty, acme].flatMap((version) => version ?? [])),
+    ).toHaveLength(2)
   })
 })

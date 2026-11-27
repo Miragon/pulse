@@ -15,8 +15,10 @@ describe("the @miragon/pulse-engine-core entries", () => {
       "IsoTimestamp",
       "MoveReasons",
       "PageCursor",
+      "ProcessTenants",
       "RootCauses",
       "RuntimeError",
+      "TenantId",
       "ValueKinds",
     ])
   })
@@ -31,6 +33,7 @@ describe("the @miragon/pulse-engine-core entries", () => {
       "NEUTRAL_DIAGRAMS",
       "PatchedCommands",
       "PatchedRuntime",
+      "TENANT_CASE",
       "WORLD_BULK_INSTANCES",
       "WORLD_COMMAND_INSTANCES",
       "WORLD_DEPLOYMENTS",
@@ -40,6 +43,8 @@ describe("the @miragon/pulse-engine-core entries", () => {
       "WORLD_MIGRATION_INSTANCES",
       "WORLD_PROCESS",
       "WORLD_SECOND_TOKEN",
+      "WORLD_TENANT",
+      "WORLD_TENANT_DEPLOYMENTS",
     ])
   })
 })

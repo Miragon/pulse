@@ -10,6 +10,7 @@ import { C8Adapter } from "../src/index.js"
 const DEFINITION = {
   id: DefinitionId("100"),
   bpmnProcessId: BpmnProcessId("order fulfilment"),
+  tenantId: null,
   version: 3,
 }
 const INSTANCE: InstanceSummary = {

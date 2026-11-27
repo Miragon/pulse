@@ -138,7 +138,7 @@ describe.skipIf(!RUNS_ON_CAMUNDA_8)(
       const read = async (bpmnProcessId: string, version?: number): Promise<ProcessScreenData> => {
         const latest = await ProcessScreen.read(
           C8_SCREEN_ENGINE.engine,
-          { bpmnProcessId: BpmnProcessId(bpmnProcessId) },
+          { bpmnProcessId: BpmnProcessId(bpmnProcessId), tenantId: null },
           runtime,
           () => new Date(),
         )
@@ -150,7 +150,7 @@ describe.skipIf(!RUNS_ON_CAMUNDA_8)(
             ? latest
             : await ProcessScreen.read(
                 C8_SCREEN_ENGINE.engine,
-                { bpmnProcessId: BpmnProcessId(bpmnProcessId), definitionId },
+                { bpmnProcessId: BpmnProcessId(bpmnProcessId), tenantId: null, definitionId },
                 runtime,
                 () => new Date(),
               )

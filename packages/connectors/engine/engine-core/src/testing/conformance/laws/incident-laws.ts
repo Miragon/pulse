@@ -60,6 +60,7 @@ class IncidentChecks {
     Ensure.that(
       definition.id === expected.definitionId &&
         definition.bpmnProcessId === BpmnProcessId(expected.bpmnProcessId) &&
+        definition.tenantId === null &&
         definition.version === expected.version,
       law,
       `expected ${Ensure.describe(expected)}, got ${Ensure.describe(definition)}`,

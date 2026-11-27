@@ -29,6 +29,7 @@ const BODY = `${APPROVE}#multiInstanceBody`
 const ORDER: DefinitionRef = {
   id: DefinitionId("order:1:d1"),
   bpmnProcessId: BpmnProcessId("order"),
+  tenantId: null,
   version: 1,
 }
 const MESSAGE = "Unknown property used in expression: ${copies}"

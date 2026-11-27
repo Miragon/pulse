@@ -5,6 +5,7 @@ import type {
   DefinitionId,
   IncidentId,
   InstanceId,
+  TenantId,
 } from "../../model/ids.js"
 import type { MigrationCheck, MigrationPlan } from "../../model/migrations.js"
 import type {
@@ -27,7 +28,7 @@ import type {
   VersionSummary,
 } from "../../model/read-models.js"
 import type { ProcessCommands, TokenMove, VariableChange } from "../../ports/process-commands.js"
-import type { ProcessRuntime } from "../../ports/process-runtime.js"
+import type { CallingVersion, ProcessRuntime } from "../../ports/process-runtime.js"
 import { FakeBulkWork, type FakeSubmission } from "./fake-bulk-work.js"
 import type { FakeDefinition, FakeEngineState, FakeInstance } from "./fake-engine-state.js"
 import { FakeMigration } from "./fake-migration.js"
@@ -46,8 +47,11 @@ export class FakeEngine implements ProcessRuntime, ProcessCommands {
     return Promise.resolve(this.definitionSummaries())
   }
 
-  listVersions(bpmnProcessId: BpmnProcessId): Promise<readonly VersionSummary[]> {
-    return Promise.resolve(this.versionsOf(bpmnProcessId))
+  listVersions(
+    bpmnProcessId: BpmnProcessId,
+    tenantId: TenantId | null,
+  ): Promise<readonly VersionSummary[]> {
+    return Promise.resolve(this.versionsOf(bpmnProcessId, tenantId))
   }
 
   getDiagramXml(definitionId: DefinitionId): Promise<string | undefined> {
@@ -60,12 +64,13 @@ export class FakeEngine implements ProcessRuntime, ProcessCommands {
     return Promise.resolve(this.queries().elementStatistics(definitionId))
   }
 
-  getCalledProcesses(definitionId: DefinitionId): Promise<readonly CalledProcess[]> {
-    const caller = this.state.definitions.find((definition) => definition.ref.id === definitionId)
+  getCalledProcesses({ id, tenantId }: CallingVersion): Promise<readonly CalledProcess[]> {
+    const caller = this.state.definitions.find((definition) => definition.ref.id === id)
     return Promise.resolve(
       (caller?.calls ?? []).map((call) => {
-        const latest = this.versionsOf(call.bpmnProcessId)[0]?.definition
-        return latest === undefined ? call : { ...call, definition: latest }
+        const latest = this.versionsOf(call.bpmnProcessId, tenantId)[0]?.definition
+        const called = { ...call, tenantId }
+        return latest === undefined ? called : { ...called, definition: latest }
       }),
     )
   }
@@ -182,19 +187,22 @@ export class FakeEngine implements ProcessRuntime, ProcessCommands {
     }
   }
 
-  private versionsOf(bpmnProcessId: BpmnProcessId): VersionSummary[] {
+  private versionsOf(bpmnProcessId: BpmnProcessId, tenantId: TenantId | null): VersionSummary[] {
     return this.state.definitions
-      .filter((definition) => definition.ref.bpmnProcessId === bpmnProcessId)
+      .filter(({ ref }) => ref.bpmnProcessId === bpmnProcessId && ref.tenantId === tenantId)
       .sort((left, right) => right.ref.version - left.ref.version)
       .map((definition) => this.versionSummary(definition))
   }
 
   private definitionSummaries(): DefinitionSummary[] {
-    const processIds = [
-      ...new Set(this.state.definitions.map((definition) => definition.ref.bpmnProcessId)),
-    ]
-    return processIds.flatMap((bpmnProcessId) => {
-      const versions = this.versionsOf(bpmnProcessId)
+    const processes = new Map(
+      this.state.definitions.map(({ ref }) => [
+        JSON.stringify([ref.bpmnProcessId, ref.tenantId]),
+        { bpmnProcessId: ref.bpmnProcessId, tenantId: ref.tenantId },
+      ]),
+    )
+    return [...processes.values()].flatMap(({ bpmnProcessId, tenantId }) => {
+      const versions = this.versionsOf(bpmnProcessId, tenantId)
       const latest = versions[0]
       if (latest === undefined) {
         return []
@@ -237,6 +245,7 @@ export class FakeEngine implements ProcessRuntime, ProcessCommands {
       id: child.summary.id,
       parentInstanceId: child.summary.parentInstanceId ?? rootId,
       bpmnProcessId: child.summary.definition.bpmnProcessId,
+      tenantId: child.summary.definition.tenantId,
       state: child.summary.state,
       ...(child.calledFromElementId === undefined
         ? {}

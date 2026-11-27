@@ -72,7 +72,12 @@ reads and gives one failure the same kind.
   members; one that fails fails the read of the definitions or versions, so every surface that lists
   a cluster's processes, a board's engine and a process screen's versions included, fails with it),
   and the mappings from the checked views onto
-  engine-core's read models: keys that are Java longs, page cursors, the BPMN text a reader needs
+  engine-core's read models: a process a key in one tenant (`Tenants`: the cluster's tenant id, its
+  default tenant `<default>` read as none, `tenantId: null`; the processes per key and tenant, a
+  process's versions its tenant's, a call resolved in its caller's tenant as Zeebe resolves it,
+  the incident count of a process by its tenant only where its key is deployed in more than one,
+  so a cluster without tenants is asked as before), keys that are Java longs, page cursors, the
+  BPMN text a reader needs
   (read in one pass over the tags and their attributes, in time that grows with the text, no tag
   of a text over 4 Mi characters; the tag reader is a copy of the board builder's, held equal by
   `scripts/xml-tag-readers.test.mjs`), and the root cause by engine-core's `RootCauses`.

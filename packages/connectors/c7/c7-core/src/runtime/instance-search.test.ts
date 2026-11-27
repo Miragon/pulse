@@ -75,14 +75,14 @@ describe("InstanceSearch.search", () => {
       items: [
         {
           id: "p3",
-          definition: { id: "order:1:a", bpmnProcessId: "order", version: 1 },
+          definition: { id: "order:1:a", bpmnProcessId: "order", tenantId: null, version: 1 },
           state: "running",
           hasIncident: false,
           startedAt: "2026-10-21T18:44:04.554Z",
         },
         {
           id: "p2",
-          definition: { id: "order:1:a", bpmnProcessId: "order", version: 1 },
+          definition: { id: "order:1:a", bpmnProcessId: "order", tenantId: null, version: 1 },
           state: "completed",
           hasIncident: false,
           endedAt: "2026-10-21T18:44:04.526Z",

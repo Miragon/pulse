@@ -36,7 +36,7 @@ describe("the called processes", () => {
     <bpmn:callActivity id="Bare" />
   </bpmn:definitions>`
 
-  test("take the newest version when tenants hold several latest ones", async () => {
+  test("take the newest version where the search holds several latest ones of the caller's tenant", async () => {
     const { reader } = readerWith([
       {
         route: "GET /process-definitions/100/xml",
@@ -52,7 +52,7 @@ describe("the called processes", () => {
       },
     ])
 
-    const calls = await reader.read(DefinitionId("100"))
+    const calls = await reader.read({ id: DefinitionId("100"), tenantId: null })
 
     expect(calls.map((call) => call.definition?.id)).toEqual(["30"])
   })
@@ -74,7 +74,7 @@ describe("the called processes", () => {
       },
     ])
 
-    const calls = await reader.read(DefinitionId("100"))
+    const calls = await reader.read({ id: DefinitionId("100"), tenantId: null })
 
     expect(calls.map((call) => [call.elementId, call.bpmnProcessId, call.definition?.id])).toEqual([
       ["Latest", "label", "30"],
@@ -116,7 +116,7 @@ describe("the called processes", () => {
       },
     ])
 
-    const calls = await reader.read(DefinitionId("100"))
+    const calls = await reader.read({ id: DefinitionId("100"), tenantId: null })
 
     expect(calls.map((call) => [call.elementId, call.definition?.id])).toEqual([
       ["First", "30"],
@@ -145,7 +145,7 @@ describe("the called processes", () => {
       },
     ])
 
-    const calls = await reader.read(DefinitionId("100"))
+    const calls = await reader.read({ id: DefinitionId("100"), tenantId: null })
 
     expect(calls.map((call) => [call.elementId, call.definition])).toEqual([
       ["Deployment", undefined],
@@ -164,7 +164,7 @@ describe("the called processes", () => {
       },
     ])
 
-    expect(await reader.read(DefinitionId("100"))).toEqual([])
-    expect(await reader.read(DefinitionId("999"))).toEqual([])
+    expect(await reader.read({ id: DefinitionId("100"), tenantId: null })).toEqual([])
+    expect(await reader.read({ id: DefinitionId("999"), tenantId: null })).toEqual([])
   })
 })

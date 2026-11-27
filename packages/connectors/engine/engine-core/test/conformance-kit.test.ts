@@ -71,6 +71,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
         definition: {
           id: harness.world.definitionIds["dispatch@1"],
           bpmnProcessId: BpmnProcessId("pulse-dispatch"),
+          tenantId: null,
           version: 1,
         },
         elementId: ElementId("Activity_PrintShippingLabel"),
@@ -102,10 +103,10 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
   [
     "a call activity names its process without the version it starts",
     (runtime) => ({
-      getCalledProcesses: async (definitionId) => {
-        const calls = await runtime.getCalledProcesses(definitionId)
-        return calls.map(({ elementId, bpmnProcessId }) => ({ elementId, bpmnProcessId }))
-      },
+      getCalledProcesses: async (definition) =>
+        (await runtime.getCalledProcesses(definition)).map(
+          ({ elementId, bpmnProcessId, tenantId }) => ({ elementId, bpmnProcessId, tenantId }),
+        ),
     }),
     [CASE.callsResolveTheCalledVersion],
   ],
@@ -232,7 +233,7 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
     (runtime) => ({
       listDefinitions: async () => {
         const summaries = await runtime.listDefinitions()
-        const versions = await runtime.listVersions(BpmnProcessId("pulse-order"))
+        const versions = await runtime.listVersions(BpmnProcessId("pulse-order"), null)
         const perVersion = versions.map((version) => ({ ...version, latest: version.definition }))
         return [...summaries, ...perVersion]
       },
