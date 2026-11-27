@@ -17,16 +17,16 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 - **Engines:** `list_engines` (each with its `dialect`), `engine_status` (one engine's triage:
   findings, counts, the live verdict from its open root incidents by `ENGINE_HEALTH_*` and findings)
 - **Process definitions:** `list_process_definitions`, `get_process_definition_xml`
-- **Process numbers** to show, every version of a key: `engine_process_stats` (now: running, open
-  root incidents, with incident, jobs without retries, open tasks, started and ended in 24 hours;
-  per day or hour of a `timeZone` (a bare date is that zone's day), at most 48 buckets: started,
-  ended and ended per end event, with the median and P90 duration (nearest rank) overall and per end
-  event, unknown past 50,000 instances) and `engine_activity_counts` (per activity the cockpit's
-  diagram counts, open user tasks and the oldest, each kind's latest incident, the screens' diagram
-  decorations; `version` counts one version on its own diagram). Each figure is the engine's count:
-  `{ atLeast }` where its history time to live may have removed some (`history.keptFrom`), `null`
-  where it writes none (`history.recorded`). No XML: `definitionId` names the diagram, so a page
-  loads both and the diagram in three calls; each answer is kept 30 seconds per caller
+- **Process numbers**, every version of a key: `engine_process_stats` (now: running, open root
+  incidents, with incident, jobs without retries, open tasks, started and ended in 24 h; per day or
+  hour of a `timeZone` (a bare date: that zone's day), at most 48 buckets: started, ended and ended
+  per end event, the median and P90 duration (nearest rank) overall and per end event, unknown past
+  50,000 instances; an explicit `from` cut down, `to` up to a whole minute or now (`range.cut`), one
+  build at a time per engine) and `engine_activity_counts` (per activity the cockpit's diagram
+  counts, open user tasks and the oldest, each kind's latest incident, diagram decorations;
+  `version` counts one on its own diagram). Each figure is the engine's count, `{ atLeast }` where
+  history may be removed (`history.keptFrom`), `null` where none is written (`history.recorded`). No
+  XML (`definitionId` names the diagram): a page loads in 3 calls, each kept up to 30 s per caller
 - **Process instances:** `start`, `list`, `inspect_process_instance` (where one instance waits and
   why, running or ended, by id, business key or definition key), `delete`, `modify`,
   `set_*_suspension`, `get_activity_instance_tree` (admin, the ids `modify` takes), variables

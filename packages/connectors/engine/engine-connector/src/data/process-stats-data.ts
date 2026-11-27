@@ -4,17 +4,11 @@ import {
   getHistoricProcessInstancesCount,
   getTasksCount,
 } from "@miragon/pulse-c7-client/sdk"
-import {
-  countWithIncident,
-  engineDateMillis,
-  mapLimit,
-  PARALLEL,
-  toEngineDate,
-} from "@miragon/pulse-c7-core"
+import { countWithIncident, mapLimit, PARALLEL, toEngineDate } from "@miragon/pulse-c7-core"
 import { bpmnProcessNameOf, readBpmnNames } from "@miragon/pulse-widget-shell/server"
 import { bpmnProcessEndEventIds } from "../lib/bpmn/bpmn-parse.js"
 import { enginePortFor } from "../lib/core-adapter/engine-port.js"
-import { createCallerCache, oneAtATime } from "../lib/engine/per-engine.js"
+import { oneAtATime } from "../lib/engine/per-engine.js"
 import {
   type DefinitionVersion,
   fetchDefinitionVersions,
@@ -25,15 +19,7 @@ import {
 import { countOf, DAY_MS, rowsOf } from "./engine-reads.js"
 import { recordsHistory } from "./history-recorded.js"
 import { countFailedJobs, countRunningInstances } from "./process-incidents-data.js"
-import { SCREEN_FLOOR_MS } from "./screens/screen-floor.js"
-import {
-  type BucketRange,
-  type BucketSpan,
-  bucketsOf,
-  canonicalTimeZone,
-  dayStartOf,
-  type StatsBucket,
-} from "./stats-buckets.js"
+import type { BucketRange, BucketSpan, StatsBucket } from "./stats-buckets.js"
 
 /**
  * A process's numbers ready to show (`engine_process_stats`), every version of its key: its counts
@@ -44,19 +30,19 @@ import {
  * and a P90 are the instance at their rank in the engine's order by duration, by the nearest rank.
  * An engine that writes no history (history level `none`) answers every history count with 0:
  * where the history holds nothing and an instance runs, its counts are unknown (`null`), never 0.
+ * The floor and the range a call reads live in `process-stats-floor.ts`.
  */
 
 /** A count as pulse-ui's `formatCount` takes it: exact, a lower bound, or unknown (null). */
 type Count = number | { readonly atLeast: number } | null
 
-export interface ProcessStatsArgs {
-  processDefinitionKey: string
-  /** ISO 8601, as the schema takes it. */
-  from?: string
-  to?: string
-  bucket: StatsBucket
-  /** IANA; the buckets' days and hours, and the day a bare date of `from` and `to` is (default UTC). */
-  timeZone?: string
+/** What a build reads: a key's numbers over the range its floor cut (`process-stats-floor.ts`). */
+export interface StatsQuery {
+  readonly processDefinitionKey: string
+  readonly range: BucketRange
+  readonly bucket: StatsBucket
+  /** IANA, as the runtime spells it. */
+  readonly timeZone: string
 }
 
 /** The median and P90 of the instances that ended since `from`, by the nearest rank. */
@@ -107,7 +93,8 @@ export interface ProcessStatsData {
     startedLast24h: Count
     endedLast24h: Count
   }
-  range: { from: string; to: string; bucket: StatsBucket; timeZone: string }
+  /** What was read; `cut` says where a cut to whole minutes moved an explicit `from` or `to`. */
+  range: { from: string; to: string; bucket: StatsBucket; timeZone: string; cut?: string }
   /**
    * The shortest history time to live of the versions (days; null: kept for good) and the instant
    * before which the engine may have removed history: a count of a bucket that starts earlier is a
@@ -122,8 +109,6 @@ export interface ProcessStatsData {
   /** Null where no bucket lies after `history.keptFrom`. */
   durations: DurationStats | null
 }
-
-const DEFAULT_TIME_ZONE = "UTC"
 
 /** Versions counted at once while finding those whose instances ended in the range. */
 const VERSIONS_AT_ONCE = 4
@@ -141,37 +126,7 @@ const ENDED_VERSIONS_COUNTED = 3 * VERSIONS_AT_ONCE
  */
 export const DURATION_RANK_LIMIT = 50_000
 
-/**
- * The answers kept per engine and caller (past it the caller's least recently used one goes) and
- * the callers per engine (past it the least recently active caller's go): 128 answers at most.
- */
-const STATS_FLOOR_BOUNDS = { maxEntries: 4, maxCallers: 32 }
-
-/**
- * The floor under the numbers: a call reads up to a few hundred counts, so a caller's same call
- * within SCREEN_FLOOR_MS (30 s) gets the answer read before, its `asOf` that read's. Kept per
- * engine client and per CALLER (`createCallerCache`); a failed read is not kept.
- */
-const statsFloor = createCallerCache<ProcessStatsData>({
-  ...STATS_FLOOR_BOUNDS,
-  ttlMs: SCREEN_FLOOR_MS,
-  now: () => Date.now(),
-})
-
 const iso = (instant: number) => new Date(instant).toISOString()
-
-const BARE_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
-
-/**
- * An ISO 8601 input as an instant: a bare date the start of that day in the buckets' zone, so a
- * range of days is that zone's days; else the engine's reading of it (`toEngineDate`).
- */
-function instantOf(input: string | undefined, timeZone: string): number | undefined {
-  if (input === undefined) return undefined
-  const date = BARE_DATE.exec(input.trim())
-  if (date) return dayStartOf(Number(date[1]), Number(date[2]), Number(date[3]), timeZone)
-  return engineDateMillis(toEngineDate(input)) ?? undefined
-}
 
 /** The engine's bounds hold both ends, so a span's end goes a millisecond short. */
 const startedIn = (span: BucketSpan) => ({
@@ -260,7 +215,8 @@ const rankOf = (n: number, q: number) => Math.max(1, Math.ceil(q * n))
 /**
  * The median and P90 of the `ended` instances `filter` finds: the duration at each rank in the
  * engine's order by duration, one row each. Each such read sorts the window's history in the
- * engine's database, so they go one at a time per engine (`oneAtATime`), whoever asks.
+ * engine's database, so they go one at a time per engine (`oneAtATime`), whoever asks, one after
+ * the other in the build.
  */
 async function durationsOf(
   client: Client,
@@ -290,11 +246,8 @@ async function durationsOf(
   // One row where both ranks name the same instance (a single one ended).
   const median = rankOf(ended, 0.5)
   const p90 = rankOf(ended, 0.9)
-  const [medianMs, p90Ms] = await Promise.all([
-    at(median),
-    p90 === median ? Promise.resolve(null) : at(p90),
-  ])
-  return { from: iso(from), ended, medianMs, p90Ms: p90 === median ? medianMs : p90Ms }
+  const medianMs = await at(median)
+  return { from: iso(from), ended, medianMs, p90Ms: p90 === median ? medianMs : await at(p90) }
 }
 
 const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0)
@@ -370,7 +323,8 @@ function countReader({ keptFrom, recorded }: KeptHistory) {
 /**
  * The median and P90 overall and per end event, over the buckets the history keeps whole: from
  * the first that starts at or after `keptFrom` to the range's end; none where no bucket does, or
- * the engine writes no history.
+ * the engine writes no history. Each ranks in turn, so a build holds `oneAtATime` for one sort at
+ * a time and a read that waits for it (the Throughput's) waits for no more.
  */
 async function readDurations(
   client: Client,
@@ -386,31 +340,31 @@ async function readDurations(
   const span = { start: keptStart, end: range.to }
   const inSpan = (per: readonly number[]) => sum(per.slice(kept))
   const filter = { processDefinitionKey: key, ...endedIn(span) }
-  const [durations, ...perEvent] = await Promise.all([
-    durationsOf(client, filter, keptStart, inSpan(series.endedPer)),
-    ...events.map((event, e) =>
-      durationsOf(
-        client,
-        { ...filter, executedActivityIdIn: event.id },
-        keptStart,
-        inSpan(series.endedAt[e] ?? []),
-      ),
-    ),
-  ])
+  const ranked = [
+    { filter, ended: inSpan(series.endedPer) },
+    ...events.map((event, e) => ({
+      filter: { ...filter, executedActivityIdIn: event.id },
+      ended: inSpan(series.endedAt[e] ?? []),
+    })),
+  ]
+  const [durations, ...perEvent] = await mapLimit(ranked, 1, (one) =>
+    durationsOf(client, one.filter, keptStart, one.ended),
+  )
   return { durations: durations ?? null, perEvent }
 }
 
-async function readProcessStats(
+/**
+ * The numbers of `query` on the engine behind `client` at `nowMs`, each read anew: the floor
+ * (`buildProcessStatsData`) keeps them and runs one build at a time per engine. A key the engine
+ * has no version of is a not-found error.
+ */
+export async function readProcessStats(
   client: Client,
   engineId: string,
-  args: ProcessStatsArgs,
+  query: StatsQuery,
   nowMs: number,
 ): Promise<ProcessStatsData> {
-  const key = args.processDefinitionKey
-  // The schema admits a zone this runtime knows; the answer names it as the runtime spells it.
-  const timeZone = canonicalTimeZone(args.timeZone ?? DEFAULT_TIME_ZONE) ?? DEFAULT_TIME_ZONE
-  const [from, to] = [instantOf(args.from, timeZone), instantOf(args.to, timeZone)]
-  const range = bucketsOf({ from, to, bucket: args.bucket, timeZone }, nowMs)
+  const { processDefinitionKey: key, range, bucket, timeZone } = query
   const whole = { start: range.from, end: range.to }
   const day = { start: nowMs - DAY_MS, end: nowMs }
   const count = (filter: HistoryFilter) =>
@@ -478,7 +432,7 @@ async function readProcessStats(
       startedLast24h: counted(startedDay, day.start),
       endedLast24h: counted(endedDay, day.start),
     },
-    range: { from: iso(range.from), to: iso(range.to), bucket: args.bucket, timeZone },
+    range: { from: iso(range.from), to: iso(range.to), bucket, timeZone },
     history: {
       timeToLiveDays: ttl,
       keptFrom: keptFrom === null ? null : iso(keptFrom),
@@ -502,25 +456,4 @@ async function readProcessStats(
     })),
     durations,
   }
-}
-
-/**
- * The numbers of `args` on the engine behind `client`, kept for 30 s per caller and arguments
- * (`statsFloor`). A key the engine has no version of is a not-found error, a range the buckets
- * refuse a tool error naming the parameters.
- */
-export function buildProcessStatsData(
-  client: Client,
-  engineId: string,
-  args: ProcessStatsArgs,
-  nowMs?: number,
-): Promise<ProcessStatsData> {
-  const id = JSON.stringify([
-    args.processDefinitionKey,
-    args.from ?? null,
-    args.to ?? null,
-    args.bucket,
-    args.timeZone ?? DEFAULT_TIME_ZONE,
-  ])
-  return statsFloor(client, id, () => readProcessStats(client, engineId, args, nowMs ?? Date.now()))
 }

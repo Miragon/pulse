@@ -154,6 +154,35 @@ export function dayStartOf(year: number, month: number, day: number, timeZone: s
 
 const iso = (instant: number) => new Date(instant).toISOString()
 
+/** Refuses a range whose `from` does not lie before its `to` (at most now), naming both. */
+function refuseOrder(from: number, to: number): void {
+  if (from >= to) {
+    throw new Error(`from (${iso(from)}) must lie before to (${iso(to)}), and to at most now.`)
+  }
+}
+
+const MINUTE_MS = 60_000
+
+/**
+ * `request` as a process's numbers read and keep it (owner decision 2026-11-26): an explicit
+ * `from` cut down and an explicit `to` cut up to a whole minute, so instants a few milliseconds
+ * apart read one range, which holds the one asked for; a `to` the cut brings to now or later reads
+ * up to now as of the build, as one left out does (a build kept from before ends at its own now,
+ * which can lie before a `to` asked since). The order is refused before the cut, as bucketsOf
+ * refuses it, so the cut never admits a range that ends before it starts.
+ */
+export function wholeMinutes(request: BucketRequest, now: number): BucketRequest {
+  const { from, to, bucket, timeZone } = request
+  if (from !== undefined) refuseOrder(from, Math.min(to ?? now, now))
+  const end = to === undefined ? now : Math.ceil(to / MINUTE_MS) * MINUTE_MS
+  return {
+    bucket,
+    timeZone,
+    ...(from === undefined ? {} : { from: Math.floor(from / MINUTE_MS) * MINUTE_MS }),
+    ...(end < now ? { to: end } : {}),
+  }
+}
+
 /**
  * The buckets of `request` at `now`: from `from` (default: the start of the day 13 days before
  * the last one, or of the hour 23 hours before) to `to` (default and at most: now), cut at the
@@ -169,9 +198,7 @@ export function bucketsOf(request: BucketRequest, now: number): BucketRange {
     from = startOf(to - 1, bucket, format)
     for (let i = 1; i < DEFAULT_BUCKETS[bucket]; i++) from = startOf(from - 1, bucket, format)
   }
-  if (from >= to) {
-    throw new Error(`from (${iso(from)}) must lie before to (${iso(to)}), and to at most now.`)
-  }
+  refuseOrder(from, to)
   const buckets: BucketSpan[] = []
   for (let start = from; start < to;) {
     if (buckets.length === MAX_BUCKETS) {

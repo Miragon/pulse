@@ -4,6 +4,7 @@ import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
 import { EngineRequestError } from "./engine-error.js"
 import {
   createCallerCache,
+  createGate,
   createHeldCache,
   createOwnerCache,
   dropAfterWrite,
@@ -177,6 +178,51 @@ describe("createOwnerCache: a value's age", () => {
   })
 })
 
+describe("createOwnerCache: ageFromAnswer", () => {
+  it("shares a read still out past the TTL, which runs from its answer", async () => {
+    let clock = 0
+    const cache = createOwnerCache<number>({
+      maxEntries: 8,
+      maxCallers: 4,
+      ttlMs: 1000,
+      now: () => clock,
+      ageFromAnswer: true,
+    })
+    const owner = {}
+    const out = deferred()
+    let reads = 0
+    const read = () => out.promise.then(() => ++reads)
+    const first = cache(owner, "a", read)
+    // Still waiting its turn 5 s on: a call then shares it, never queues a second read.
+    clock = 5000
+    const joined = cache(owner, "a", read)
+    out.resolve()
+    expect([await first, await joined]).toEqual([1, 1])
+    clock = 5999
+    expect(await cache(owner, "a", () => Promise.resolve(++reads))).toBe(1)
+    clock = 6000
+    expect(await cache(owner, "a", () => Promise.resolve(++reads))).toBe(2)
+  })
+
+  it("still ages a value from the oldest read it holds", async () => {
+    let clock = 500
+    const cache = createOwnerCache<{ readAt: number }>({
+      maxEntries: 8,
+      maxCallers: 4,
+      ttlMs: 1000,
+      now: () => clock,
+      readAt: (value) => value.readAt,
+      ageFromAnswer: true,
+    })
+    const owner = {}
+    const first = await cache(owner, "a", () => Promise.resolve({ readAt: 0 }))
+    clock = 999
+    expect(await cache(owner, "a", () => Promise.resolve({ readAt: clock }))).toBe(first)
+    clock = 1000
+    expect(await cache(owner, "a", () => Promise.resolve({ readAt: clock }))).not.toBe(first)
+  })
+})
+
 describe("dropAfterWrite", () => {
   it("drops every caller's entries of the written engine in the caches made to drop them", async () => {
     const dropped = createOwnerCache<number>({ maxEntries: 8, maxCallers: 4, dropOnWrite: true })
@@ -319,5 +365,24 @@ describe("oneAtATime", () => {
     await tick()
     expect(started).toEqual(["one", "other"])
     held.resolve()
+  })
+})
+
+describe("createGate", () => {
+  it("keeps its turns apart from every other gate's on the same engine", async () => {
+    const client = engineClient()
+    const builds = createGate()
+    const held = deferred()
+    const started: string[] = []
+    const build = builds(client, () => (started.push("build"), held.promise))
+    const next = builds(client, () => (started.push("next build"), Promise.resolve()))
+
+    // A read through another gate does not wait for the build; the next build does.
+    await oneAtATime(client, () => (started.push("read"), Promise.resolve()))
+    expect(started).toEqual(["build", "read"])
+    held.resolve()
+    await build
+    await next
+    expect(started).toEqual(["build", "read", "next build"])
   })
 })

@@ -74,6 +74,13 @@ export interface OwnerCacheOptions<T> extends CallerCacheOptions {
    * (`dropAfterWrite`), so the next read after a write reads anew. Default: no.
    */
   dropOnWrite?: boolean
+  /**
+   * Whether a read still out answers every call that asks meanwhile, however long it waits, its
+   * TTL running from its answer (or `readAt`, where that is older) instead of the start of its
+   * read: for a read that queues for its engine's turn (`createGate`) before it starts. Default:
+   * no.
+   */
+  ageFromAnswer?: boolean
 }
 
 /** Answers `id` of `owner` from the cache, or from `read`. */
@@ -227,7 +234,8 @@ function keepAnswer<T>(
  * call that started it: when THAT call is cancelled, the read is dropped and a joiner reads again
  * through its own view, so only its own cancellation fails it. With `dropOnWrite`, a write to the
  * owner's engine drops the owner's entries of every caller (`dropAfterWrite`): a read in flight
- * then answers its callers and is kept no longer.
+ * then answers its callers and is kept no longer. With `ageFromAnswer`, a read in flight answers
+ * every call of its caller regardless of the TTL, which runs from its answer (or `readAt`).
  */
 export function createHeldCache<T>({
   maxEntries,
@@ -237,6 +245,7 @@ export function createHeldCache<T>({
   keep = () => true,
   readAt = () => Infinity,
   dropOnWrite = false,
+  ageFromAnswer = false,
 }: OwnerCacheOptions<T>): HeldCache<T> {
   const caches = new WeakMap<object, OwnerEntries<T>>()
   if (dropOnWrite) droppedOnWrite.add(caches)
@@ -261,13 +270,14 @@ export function createHeldCache<T>({
       return joined(out, releaseOf(entries.out, slot, out), () => held(owner, id, read))
     }
     // Async, so even a synchronous failure reaches the callers as a rejection.
-    const entry: Entry<T> = { read: (async () => read())(), at: now() }
+    const entry: Entry<T> = { read: (async () => read())(), at: ageFromAnswer ? Infinity : now() }
     entries.out.set(slot, entry)
     const release = releaseOf(entries.out, slot, entry)
     entry.read.then((value) => {
       const stays = entries.out.get(slot) === entry && caches.get(owner) === entries && keep(value)
       release()
-      const answer = { read: entry.read, at: Math.min(entry.at, readAt(value)), value }
+      const at = Math.min(ageFromAnswer ? now() : entry.at, readAt(value))
+      const answer = { read: entry.read, at, value }
       if (stays) keepAnswer(entries.kept, { caller, id, kept: answer }, bounds)
     }, release)
     return { read: entry.read, release }
@@ -300,22 +310,34 @@ export function createCallerCache<T>(options: OwnerCacheOptions<T>): CallerCache
   )
 }
 
-const turns = new WeakMap<object, Promise<void>>()
+/** A turn on the engine behind `client` for `read` (`createGate`). */
+type Gate = <T>(client: Client, read: () => Promise<T>) => Promise<T>
 
 /**
- * Runs `read` once every earlier read through this gate on the same engine has settled: one at a
- * time per configured engine, whoever asks. For a read that loads the engine's database (the
- * history statistics); a queued read whose caller has gone fails fast on its cancelled signal.
+ * A gate of its own: runs `read` once every earlier read through THIS gate on the same engine has
+ * settled, one at a time per configured engine, whoever asks, while a read through another gate
+ * never waits for it. For reads that load the engine's database; a queued read whose caller has
+ * gone fails fast on its cancelled signal. A read never passes its gate from inside its own turn:
+ * it would wait for itself.
  */
-export function oneAtATime<T>(client: Client, read: () => Promise<T>): Promise<T> {
-  const key = engineClientKey(client)
-  const turn = (turns.get(key) ?? Promise.resolve()).then(read)
-  turns.set(
-    key,
-    turn.then(
-      () => undefined,
-      () => undefined,
-    ),
-  )
-  return turn
+export function createGate(): Gate {
+  const turns = new WeakMap<object, Promise<void>>()
+  return (client, read) => {
+    const key = engineClientKey(client)
+    const turn = (turns.get(key) ?? Promise.resolve()).then(read)
+    turns.set(
+      key,
+      turn.then(
+        () => undefined,
+        () => undefined,
+      ),
+    )
+    return turn
+  }
 }
+
+/**
+ * The gate of the single reads that sort or sum the engine's history (`createGate`): the process
+ * flow's Throughput statistics and a process's numbers' median and P90 ranks.
+ */
+export const oneAtATime: Gate = createGate()
