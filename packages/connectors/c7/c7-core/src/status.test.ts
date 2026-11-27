@@ -7,6 +7,7 @@ import {
   topicStatus,
   unknownKeys,
 } from "./status.js"
+import { definitionStatisticsOf } from "./definition-statistics.js"
 import { messageSignature } from "./message-signature.js"
 import { NOW, statistics } from "./testing/status.js"
 
@@ -31,7 +32,7 @@ describe("groupIncidents", () => {
         incident("3", { rootCauseIncidentId: "1" }),
         incident("4", { incidentType: "custom", activityId: "pay" }),
       ],
-      [statistics("order", 1, [1, 1, 1])],
+      definitionStatisticsOf([statistics("order", 1, [1, 1, 1])]),
     )
     expect(grouped.propagated).toBe(1)
     expect(grouped.groups.map((group) => [group.count, group.type, group.next])).toEqual([
@@ -59,7 +60,7 @@ describe("groupIncidents", () => {
         incident("1", { rootCauseIncidentId: undefined }),
         incident("2", { rootCauseIncidentId: "" }),
       ],
-      [statistics("order", 1, [2, 2, 2])],
+      definitionStatisticsOf([statistics("order", 1, [2, 2, 2])]),
     )
     expect(grouped.propagated).toBe(0)
     expect(grouped.groups.map((group) => group.count)).toEqual([2])
@@ -76,7 +77,7 @@ describe("groupIncidents", () => {
         // another cause at the same activity
         incident("4", message("Connection refused calling 'https://a.example/1'")),
       ],
-      [statistics("order", 1, [4, 4, 4])],
+      definitionStatisticsOf([statistics("order", 1, [4, 4, 4])]),
     )
     expect(grouped.groups.map((group) => group.count)).toEqual([2, 1, 1])
     expect(grouped.groups[0]?.processInstanceIds).toEqual(["pi-1", "pi-2"])
@@ -127,7 +128,10 @@ describe("groupIncidents", () => {
 
 describe("the other status reads", () => {
   it("sums definitions and finds unknown keys", () => {
-    const rows = [statistics("order", 1, [2, 0, 0]), statistics("order", 2, [1, 1, 1])]
+    const rows = definitionStatisticsOf([
+      statistics("order", 1, [2, 0, 0]),
+      statistics("order", 2, [1, 1, 1]),
+    ])
     expect(definitionStatus(rows, [])).toEqual([
       {
         key: "order",
@@ -140,6 +144,31 @@ describe("the other status reads", () => {
       },
     ])
     expect(unknownKeys(rows, ["order", "nope"])).toEqual(["nope"])
+  })
+
+  it("leaves out keys without instances, failed jobs and incidents unless named, and sorts", () => {
+    const rows = definitionStatisticsOf([
+      statistics("idle", 1, [0, 0, 0]),
+      statistics("run", 1, [3, 0, 0]),
+      statistics("calm", 1, [3, 0, 0]),
+      statistics("fail", 1, [1, 2, 0]),
+      statistics("inc", 1, [1, 1, 1]),
+      statistics("jobs", 1, [0, 1, 0]),
+    ])
+    const keys = (named: readonly string[]) => definitionStatus(rows, named).map(({ key }) => key)
+    // incidents, then failed jobs, then instances, then the key
+    expect(keys([])).toEqual(["inc", "fail", "jobs", "calm", "run"])
+    expect(keys(["idle", "run"])).toEqual(["run", "idle"])
+  })
+
+  it("keys an incident by its version in the statistics, a bare generated id too", () => {
+    const bare = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
+    const rows = definitionStatisticsOf([
+      { instances: 1, definition: { id: bare, key: "longProcessKey", version: 1 } },
+    ])
+    const incident = { id: "i1", rootCauseIncidentId: "i1", processDefinitionId: bare }
+    const grouped = groupIncidents([incident], rows)
+    expect(grouped.groups.map((group) => group.processDefinitionKey)).toEqual(["longProcessKey"])
   })
 
   it("partitions external tasks per topic and finds overdue jobs", () => {

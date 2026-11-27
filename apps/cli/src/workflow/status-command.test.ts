@@ -30,14 +30,23 @@ function rootsOf(incidents: readonly unknown[]) {
   return roots === 0 ? [] : [{ incidentType: "failedJob", incidentCount: roots }]
 }
 
+/** The batches the engine lists and counts: those with failed jobs where `withFailures` asks. */
+function batchesOf(batches: readonly { readonly id: string; readonly failedJobs?: number }[]) {
+  return (request: { query: URLSearchParams }) =>
+    request.query.get("withFailures") === "true"
+      ? batches.filter((batch) => (batch.failedJobs ?? 0) > 0)
+      : batches
+}
+
 function engine(
   overrides: {
     incidents?: unknown[]
     externalTasks?: unknown[]
     staleJobs?: unknown[]
-    batches?: unknown[]
+    batches?: { id: string; failedJobs?: number }[]
   } = {},
 ) {
+  const batches = batchesOf(overrides.batches ?? [])
   let clock = NOW
   const server = fakeServer()
     .on("GET", "/version", () => {
@@ -65,7 +74,8 @@ function engine(
     .on("GET", "/job/count", json({ count: 2 }))
     .on("GET", "/job", json(overrides.staleJobs ?? []))
     .on("GET", "/task/count", json({ count: 4 }))
-    .on("GET", "/batch/statistics", json(overrides.batches ?? []))
+    .on("GET", "/batch/statistics", (request) => json(batches(request)))
+    .on("GET", "/batch/statistics/count", (request) => json({ count: batches(request).length }))
     .on("GET", "/job/j1/stacktrace", text("x.Y: outer\nCaused by: a.B: inner", "text/plain"))
   return { server, deps: { port: portOf(server.fetch), now: () => clock } }
 }
@@ -161,7 +171,7 @@ describe("status", () => {
     const { deps, server } = engine()
     const result = await status(deps, { ...OPTIONS, dryRun: true })
     expect(server.requests).toEqual([])
-    expect(result.kind === "dry-run" ? result.requests.length : 0).toBe(10)
+    expect(result.kind === "dry-run" ? result.requests.length : 0).toBe(12)
     const jobs = statusRequests(OPTIONS, NOW).find((request) => request.operationId === "getJobs")
     // active: a job of a suspended job definition is "executable" for the engine
     expect(jobs?.input.query).toEqual({
@@ -303,7 +313,9 @@ describe("status details", () => {
         },
       ],
       ["getTasksCount", { processDefinitionKeyIn: undefined }],
-      ["getBatchStatistics", { maxResults: "100" }],
+      ["getBatchStatistics", { maxResults: "100", withFailures: "true" }],
+      ["getBatchStatisticsCount", {}],
+      ["getBatchStatisticsCount", { withFailures: "true" }],
     ])
   })
 
@@ -343,5 +355,21 @@ describe("status details", () => {
     })
     expect(result.view.batches).toEqual({ running: 3, withFailures: 1 })
     expect(result.view.engine).toMatchObject({ engine: "second" })
+  })
+
+  it("words a statistics answer it cannot read as a configuration error, never as a bug of pulse", async () => {
+    const { deps, server } = engine()
+    const unversioned = { id: "order:1:x", key: "order" }
+    server.on(
+      "GET",
+      "/process-definition/statistics",
+      json([{ id: "order:1:x", instances: 1, incidents: [], definition: unversioned }]),
+    )
+
+    await expect(status(deps, OPTIONS)).rejects.toMatchObject({
+      code: "CONFIG",
+      message:
+        "Unexpected answer of the engine to getProcessDefinitionStatistics: version is missing",
+    })
   })
 })

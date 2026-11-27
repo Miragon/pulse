@@ -225,7 +225,10 @@ function namedTopics(findings: readonly Finding[]): ReadonlySet<string> {
   return new Set(findings.flatMap((finding) => ("topic" in finding.next ? finding.next.topic : [])))
 }
 
-/** The triage of one engine, named by its id (never its address), by the verdict's thresholds. */
+/**
+ * The triage of one engine, named by its id (never its address), by the verdict's thresholds; an
+ * answer it cannot read is a tool error (`[UNEXPECTED_ANSWER] …`).
+ */
 export async function engineStatusForModel(
   client: Client,
   args: EngineStatusArgs,
@@ -237,7 +240,9 @@ export async function engineStatusForModel(
   const data = await readStatus(
     { port: enginePortFor(client), now: () => Date.now() },
     { keys: [...new Set(keys)], maxGroups: MAX_STATUS_ROWS, thresholds },
-  )
+  ).catch((error: unknown) => {
+    throw asToolError(error, engineId)
+  })
   const notes = [...(data.truncated ?? [])]
   const named = namedTopics(data.findings)
   // the topics a finding names first (c7-core sorts them by name), so the cut keeps their rows

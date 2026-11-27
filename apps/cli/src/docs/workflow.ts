@@ -240,7 +240,7 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
     description:
       "Engine triage in one call: the definitions with instances and incidents, the root incidents grouped by definition, activity, type and message with their root cause, overdue executable jobs (is the job executor running?), external task topics with waiting, locked and expired tasks (is a worker subscribed?), open tasks and failed batches. Every finding names the next command. The status is critical from 50 open root incidents (a call activity's copy of a called instance's incident never counts), 25 of one cause or an overdue job, warning with any other finding; --fail-on makes CI fail on it.",
     requests:
-      "in parallel GET /version, GET /process-definition/statistics, GET /incident and /incident/count, GET /external-task and /external-task/count, GET /job/count and GET /job (executable, created before --stale-after), GET /task/count and GET /batch/statistics; then one root cause per incident group shown",
+      "in parallel GET /version, GET /process-definition/statistics, GET /incident and /incident/count, GET /external-task and /external-task/count, GET /job/count and GET /job (executable, created before --stale-after), GET /task/count, GET /batch/statistics (with failed jobs) and /batch/statistics/count; then one root cause per incident group shown",
     effect: "read",
     arguments: [],
     options: STATUS_OPTIONS,
@@ -255,6 +255,7 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
       "getJobs",
       "getTasksCount",
       "getBatchStatistics",
+      "getBatchStatisticsCount",
       "getStacktrace",
       "getExternalTaskErrorDetails",
     ]),

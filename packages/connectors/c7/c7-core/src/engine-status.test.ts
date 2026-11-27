@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { readStatus, statusRequests } from "./engine-status.js"
+import { BATCH_REQUESTS } from "./status-batches.js"
 import { fakePort, type Route } from "./testing/fake-port.js"
 import { NOW, statistics } from "./testing/status.js"
 import type { VerdictThresholds } from "./verdict.js"
@@ -31,6 +32,7 @@ function engine(overrides: Readonly<Record<string, Route>> = {}) {
     getJobs: () => [{ id: "j9", dueDate: "2026-01-01T11:40:00.000+0000" }],
     getTasksCount: () => ({ count: 7 }),
     getBatchStatistics: () => [],
+    getBatchStatisticsCount: () => ({ count: 0 }),
     getStacktrace: () =>
       "org.x.ProcessEngineException: outer\nCaused by: org.x.PropertyNotFoundException: Cannot resolve identifier 'missingBean'",
     ...overrides,
@@ -128,26 +130,6 @@ describe("readStatus", () => {
     const data = await readStatus({ port, now: clock() }, { ...OPTIONS, keys: ["order", "pay"] })
     expect(data.jobs.overdue).toBe(1000)
     expect(data.truncated).toEqual(["jobs: the first 1000 overdue candidates loaded"])
-  })
-
-  it("counts batches with failed jobs and keeps their incidents out of the groups", async () => {
-    const data = await readStatus(
-      {
-        port: engine({
-          getBatchStatistics: () => [
-            { id: "b1", type: "migration", failedJobs: 1, batchJobDefinitionId: "jd-b" },
-            { id: "b2", type: "migration", failedJobs: 0 },
-          ],
-          getIncidents: () => [{ ...failedJob("1", "x"), jobDefinitionId: "jd-b" }],
-          getRestAPIVersion: () => ({}),
-        }),
-        now: clock(),
-      },
-      OPTIONS,
-    )
-    expect(data.batches).toEqual({ running: 2, withFailures: 1 })
-    expect(data.incidents).toEqual([])
-    expect(data.engine.version).toBeNull()
   })
 })
 
@@ -398,7 +380,7 @@ describe("statusRequests", () => {
       "getJobs",
       "getTasksCount",
     ])
-    expect(statusRequests(OPTIONS, NOW).at(-1)?.operationId).toBe("getBatchStatistics")
+    expect(statusRequests(OPTIONS, NOW).slice(-3)).toEqual(BATCH_REQUESTS)
   })
 
   it("waits 5 minutes and shows 10 incident groups unless told otherwise", async () => {

@@ -23,11 +23,6 @@
       "count": 1
     }
   },
-  "src/data/definition-info.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/data/incident-detail-data.ts": {
     "complexity": {
       "count": 2

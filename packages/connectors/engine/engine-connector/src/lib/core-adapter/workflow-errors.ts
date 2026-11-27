@@ -53,7 +53,8 @@ function ambiguous({ selection, candidates, more }: Ambiguous): WorkflowToolErro
 
 /**
  * The tool error of the reasons the read composites raise; any other reason keeps its kind. A
- * NOT_FOUND names the engine asked (` (engine <id>)`), as the client's engine errors do.
+ * NOT_FOUND and an UNEXPECTED_ANSWER name the engine asked (` (engine <id>)`), as the client's
+ * engine errors do.
  */
 function reasonError(reason: WorkflowErrorReason, engine: string): WorkflowToolError {
   switch (reason.kind) {
@@ -87,14 +88,19 @@ function reasonError(reason: WorkflowErrorReason, engine: string): WorkflowToolE
         "NOT_FOUND",
         `Process instance ${reason.id} does not exist, neither running nor in the history${engine}. ${NO_HISTORY}`,
       )
+    case "unexpected-answer":
+      return new WorkflowToolError(
+        "UNEXPECTED_ANSWER",
+        `The engine answered ${reason.operationId} in a shape the REST API does not document${engine}: ${reason.problem}.`,
+      )
     default:
       return new WorkflowToolError("WORKFLOW", reason.kind)
   }
 }
 
 /**
- * A WorkflowError as its tool error, a NOT_FOUND naming `engineId`; anything else unchanged
- * (engine errors print as before).
+ * A WorkflowError as its tool error, a NOT_FOUND or an UNEXPECTED_ANSWER naming `engineId`;
+ * anything else unchanged (engine errors print as before).
  */
 export function asToolError(error: unknown, engineId?: string): unknown {
   const engine = engineId === undefined ? "" : ` (engine ${engineId})`

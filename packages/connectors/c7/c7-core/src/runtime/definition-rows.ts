@@ -1,75 +1,13 @@
 /**
- * The process definitions as the engine lists them: every deployed version with the count of its
- * running instances and of its open root incidents (`/process-definition/statistics` with
- * `rootIncidents=true`, whose counts per incident type it sums; a copy a call activity holds of an
- * incident in a called instance is no root incident), and the BPMN XML a version was deployed
- * with. Each answer is read through `JsonView`, so an unusable one fails as
- * `RuntimeError("unexpectedResponse")`.
+ * The BPMN XML a version was deployed with, read through `JsonView`, so an unusable answer fails as
+ * `RuntimeError("unexpectedResponse")`. The versions themselves and their counts are the definition
+ * statistics of the main entry (`../definition-statistics.ts`), which the status triage reads too.
  */
 
 import type { EnginePort } from "../port.js"
-import { queryInput } from "../requests.js"
-import { compact } from "../util.js"
 import { isEngineId } from "./engine-ids.js"
 import { findUnlessGone } from "./find-unless-gone.js"
 import { JsonView } from "../json-view.js"
-
-/** A deployed version of a process: its id, key, version and what it names. */
-export interface DefinitionRow {
-  readonly id: string
-  readonly key: string
-  readonly version: number
-  readonly name?: string
-  readonly deploymentId?: string
-  readonly versionTag?: string
-}
-
-/** A version with the count of its running instances and of its open root incidents. */
-export interface DefinitionStatisticsRow {
-  readonly definition: DefinitionRow
-  readonly instances: number
-  readonly rootIncidents: number
-}
-
-function definitionRowOf(record: JsonView): DefinitionRow {
-  return {
-    id: record.requiredString("id"),
-    key: record.requiredString("key"),
-    version: record.requiredNumber("version"),
-    ...compact({
-      name: record.optionalString("name"),
-      deploymentId: record.optionalString("deploymentId"),
-      versionTag: record.optionalString("versionTag"),
-    }),
-  }
-}
-
-/** The open root incidents of a statistics row: the sum of its counts per incident type. */
-function rootIncidentsOf(row: JsonView): number {
-  return row
-    .optionalList("incidents")
-    .reduce((sum, type) => sum + type.requiredNumber("incidentCount"), 0)
-}
-
-/**
- * Every deployed version with its running instances and open root incidents, in one request: the
- * one shape of the statistics read, which the definitions and versions read for their counts and
- * the incident search's version refs and the called processes for the versions alone, the root
- * incidents one grouped subquery over the open incidents beside the instances it already counts.
- */
-export async function readDefinitionStatistics(
-  port: EnginePort,
-): Promise<DefinitionStatisticsRow[]> {
-  const answer = await port.json(
-    "getProcessDefinitionStatistics",
-    queryInput({ rootIncidents: "true" }),
-  )
-  return JsonView.listOf(answer, "definition statistics").map((row) => ({
-    definition: definitionRowOf(row.object("definition", "statistics definition")),
-    instances: row.requiredNumber("instances"),
-    rootIncidents: rootIncidentsOf(row),
-  }))
-}
 
 /**
  * A read of the BPMN XML a version was deployed with: undefined for a version the engine does not

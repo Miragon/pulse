@@ -5,7 +5,7 @@ import { advanceSteps } from "./advance-plan.js"
 import { inspectInstance, loadInstance } from "./inspect.js"
 import { missingRoots, planRetry } from "./retry-plan.js"
 import { mergeCandidates } from "./select.js"
-import { definitionStatus, groupIncidents, jobStatus, topicStatus } from "./status.js"
+import { groupIncidents, jobStatus, topicStatus } from "./status.js"
 import { fakeFailure, FakeFailure, fakePort } from "./testing/fake-port.js"
 import { activeData, activity, activityTree, P, PARENT_DEF } from "./testing/fixture.js"
 import { approveRoutes } from "./testing/inspect-routes.js"
@@ -16,25 +16,13 @@ import { waitStates } from "./waits.js"
 const ALL = { variables: true, history: false, stacktrace: false }
 
 describe("sparse status data", () => {
-  it("reads statistics rows without a definition object and groups without timestamps", () => {
-    expect(
-      definitionStatus(
-        [
-          { id: "bare:1:x", instances: 1 },
-          { definition: null, instances: 2 },
-        ],
-        [],
-      ),
-    ).toEqual([
-      { key: "", latestVersion: 0, versions: 1, instances: 2, failedJobs: 0, incidents: 0 },
-      { key: "bare", latestVersion: 0, versions: 1, instances: 1, failedJobs: 0, incidents: 0 },
-    ])
+  it("groups incidents without timestamps by the key their id names, and sparse topics and jobs", () => {
     const grouped = groupIncidents(
       [
         { id: "a", rootCauseIncidentId: "a", processDefinitionId: "bare:1:x" },
         { id: "b", rootCauseIncidentId: "b", processDefinitionId: "bare:1:x" },
       ],
-      [{ instances: 1 }, { id: "bare:1:x", definition: "not an object" }],
+      [],
     )
     expect(grouped.groups).toMatchObject([
       { processDefinitionKey: "bare", count: 2, firstAt: "", lastAt: "", processInstanceIds: [] },

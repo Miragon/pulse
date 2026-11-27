@@ -1,3 +1,4 @@
+import { definitionStatisticsOf } from "@miragon/pulse-c7-core"
 import { afterEach, describe, expect, it } from "vitest"
 import { clientFor, startFakeEngine, type FakeEngine } from "../tools/test-support/fake-engine.js"
 import {
@@ -15,7 +16,7 @@ import {
 
 const LONG_KEY = "customerOnboardingApprovalProcess"
 const UUID = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
-const STATS = [{ id: UUID, definition: { id: UUID, key: LONG_KEY, version: 1 } }]
+const STATS = [{ id: UUID, instances: 0, definition: { id: UUID, key: LONG_KEY, version: 1 } }]
 
 const engines: FakeEngine[] = []
 afterEach(async () => {
@@ -38,7 +39,7 @@ describe("definitionKeyInId", () => {
 
 describe("definitionKeyResolver", () => {
   it("resolves a listed bare id, parses an unlisted keyed id, and never returns a UUID", () => {
-    const keyOf = definitionKeyResolver(foldStatsByKey(STATS))
+    const keyOf = definitionKeyResolver(foldStatsByKey(definitionStatisticsOf(STATS)))
     expect(keyOf(UUID)).toBe(LONG_KEY)
     expect(keyOf("order:3:d3")).toBe("order")
     expect(keyOf("0d9e8f7a-0000-4000-8000-000000000000")).toBeNull()

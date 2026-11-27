@@ -218,6 +218,7 @@ export function routeTable(state: EngineState): [string, RegExp, Route][] {
         }),
     ],
     ["GET", /^\/batch\/statistics$/, () => json([])],
+    ["GET", /^\/batch\/statistics\/count$/, () => count(0)],
     ["GET", /^\/incident$/, () => json(state.incidents(IDS.instance))],
     ["GET", /^\/incident\/count$/, () => count(state.incidents(IDS.instance).length)],
     ["GET", /^\/incident\/([^/]+)$/, () => incident(state)],

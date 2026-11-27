@@ -1377,6 +1377,7 @@ REQUESTS
   getJobs                         pulse job list
   getTasksCount                   pulse task count
   getBatchStatistics              pulse batch get-statistics
+  getBatchStatisticsCount         pulse batch get-statistics-count
   getStacktrace                   pulse job get-stacktrace
   getExternalTaskErrorDetails     pulse external-task get-error-details
 
@@ -1427,6 +1428,10 @@ exports[`workflow command describe text > renders the description of status 2`] 
   {
     "command": "batch get-statistics",
     "operationId": "getBatchStatistics",
+  },
+  {
+    "command": "batch get-statistics-count",
+    "operationId": "getBatchStatisticsCount",
   },
   {
     "command": "job get-stacktrace",

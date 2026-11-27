@@ -356,8 +356,8 @@ describe("workflow command help", () => {
       Requests: in parallel GET /version, GET /process-definition/statistics, GET
       /incident and /incident/count, GET /external-task and /external-task/count, GET
       /job/count and GET /job (executable, created before --stale-after), GET
-      /task/count and GET /batch/statistics; then one root cause per incident group
-      shown.
+      /task/count, GET /batch/statistics (with failed jobs) and
+      /batch/statistics/count; then one root cause per incident group shown.
 
       Effect: read
 

@@ -43,7 +43,7 @@ async function engineWith(counts: HistoryCounts, routes: FakeRoutes) {
             id: "order:1:d1",
             instances: 3,
             incidents: [],
-            definition: { key: "order", version: 1 },
+            definition: { id: "order:1:d1", key: "order", version: 1 },
           },
         ],
       },

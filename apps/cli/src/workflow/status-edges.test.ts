@@ -1,7 +1,7 @@
 /** Edge cases, ordering and grouping of the status reads (status.ts). */
 
 import { describe, expect, it } from "vitest"
-import { messageSignature } from "@miragon/pulse-c7-core"
+import { definitionStatisticsOf, messageSignature } from "@miragon/pulse-c7-core"
 import {
   definitionStatus,
   jobStatus,
@@ -23,13 +23,13 @@ describe("status edge cases", () => {
     ...overrides,
   })
 
-  it("sums incident counts of object entries only and keeps keys with any activity", () => {
-    const rows = [
-      { id: "inc:1:x", instances: 0, failedJobs: 0, incidents: [{ incidentCount: 2 }, null, 5] },
-      { id: "fail:1:x", instances: 0, failedJobs: 3, incidents: "none" },
-      { id: "run:1:x", instances: 1, failedJobs: 0 },
-      { id: "zero:1:x", instances: 0, failedJobs: 0, incidents: [{ incidentCount: 0 }, {}] },
-    ]
+  it("keeps the keys with any instance, failed job or incident, unless named", () => {
+    const rows = definitionStatisticsOf([
+      statistics("inc", 1, [0, 0, 2]),
+      statistics("fail", 1, [0, 3, 0]),
+      statistics("run", 1, [1, 0, 0]),
+      statistics("zero", 1, [0, 0, 0]),
+    ])
     expect(definitionStatus(rows, []).map((status) => [status.key, status.incidents])).toEqual([
       ["inc", 2],
       ["fail", 0],
@@ -38,14 +38,14 @@ describe("status edge cases", () => {
   })
 
   it("sorts by incidents, failed jobs, instances, then key", () => {
-    const rows = [
+    const rows = definitionStatisticsOf([
       statistics("e", 1, [1, 1, 0]),
       statistics("a", 1, [1, 0, 1]),
       statistics("d", 1, [5, 0, 0]),
       statistics("b", 1, [1, 2, 1]),
       statistics("c", 1, [5, 0, 0]),
       statistics("f", 1, [3, 1, 0]),
-    ]
+    ])
     expect(definitionStatus(rows, []).map((status) => status.key)).toEqual([
       "b",
       "a",
@@ -57,34 +57,32 @@ describe("status edge cases", () => {
   })
 
   it("takes the name and version of the highest version, in any order", () => {
-    const rows = [
+    const rows = definitionStatisticsOf([
       statistics("order", 1, [1, 0, 0]),
       statistics("order", 3, [1, 0, 0]),
       statistics("order", 2, [1, 0, 0]),
-    ]
+    ])
     expect(definitionStatus(rows, [])).toMatchObject([
       { key: "order", name: "order v3", latestVersion: 3, versions: 3, instances: 3 },
     ])
   })
 
-  it("finds the key of an incident in the statistics rows, with or without definition object", () => {
+  it("finds the key of an incident by its version in the statistics, else by the key its id names", () => {
+    const bare = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
     const rows = [
-      { id: "p:1:x", key: "flat" },
-      { id: "q:1:x", definition: null, key: "nulled" },
-      { id: "r:1:x", definition: { key: "nested" } },
-      { instances: 1 },
+      { id: bare, instances: 1, definition: { id: bare, key: "longProcessKey", version: 1 } },
+      statistics("nested", 1, [1, 0, 0]),
     ]
     const keys = groupIncidents(
       [
-        incident("a", { processDefinitionId: "p:1:x" }),
-        incident("b", { processDefinitionId: "q:1:x" }),
-        incident("c", { processDefinitionId: "r:1:x" }),
+        incident("a", { processDefinitionId: bare }),
+        incident("c", { processDefinitionId: "nested:1:x" }),
         incident("d", { processDefinitionId: "unknown:1:x" }),
         incident("e", { processDefinitionId: undefined }),
       ],
       rows,
     ).groups.map((group) => group.processDefinitionKey)
-    expect(keys.toSorted()).toEqual(["", "flat", "nested", "nulled", "unknown"])
+    expect(keys.toSorted()).toEqual(["", "longProcessKey", "nested", "unknown"])
   })
 
   it("keeps fields apart in the group key and orders equal groups by last time, then command", () => {
