@@ -1,6 +1,5 @@
 import { z } from "zod"
-import type { pagingShape } from "./schemas/index.js"
-import { listIncidentsInput, listProcessInstancesInput } from "./schemas/index.js"
+import { listIncidentsInput, listProcessInstancesInput, pagingShape } from "./schemas/index.js"
 
 /** Single source for both tool schemas and (type-only, no runtime zod) the builders and widgets. */
 
@@ -73,11 +72,14 @@ export const clusterDetailFilterShape = {
 }
 export type ClusterDetailFilters = z.infer<z.ZodObject<typeof clusterDetailFilterShape>>
 
-export const activityIncidentsFilterShape = {
+/** An activity's page of incidents: which activity, the cursor of the page before, its size. */
+export const activityIncidentsPageShape = {
   processDefinitionKey: z.string().describe("Process definition key"),
   activityId: z.string().describe("Activity id whose incidents to page"),
+  after: z.string().min(1).optional().describe("The cursor of the page before, from its next."),
+  maxResults: pagingShape.maxResults,
 }
-export type ActivityIncidentsFilters = z.infer<z.ZodObject<typeof activityIncidentsFilterShape>>
+export type ActivityIncidentsPageArgs = z.infer<z.ZodObject<typeof activityIncidentsPageShape>>
 
 export const activityStatisticsShape = {
   processDefinitionKey: z.string().describe("Process definition key"),

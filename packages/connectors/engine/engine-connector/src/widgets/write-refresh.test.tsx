@@ -94,6 +94,7 @@ function activityRows(incidents: IncidentInstance[]): ActivityIncidentsData {
     activityId: "chargeCard",
     incidents,
     totalCount: incidents.length,
+    next: null,
     engineId: "prod",
   }
 }

@@ -231,6 +231,7 @@ describe("an activity group's rows", () => {
       },
     ],
     totalCount: 1,
+    next: null,
     engineId: "prod-a",
   })
 

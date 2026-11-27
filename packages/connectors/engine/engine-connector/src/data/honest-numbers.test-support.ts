@@ -46,6 +46,9 @@ export interface Case extends BuildCase {
   fallback?: Record<string, string>
 }
 
+/** The lookup of a key's latest version: where it lists none, no version of the key is deployed. */
+export const KEY_LOOKUP = "GET /process-definition?key&latestVersion&maxResults&sortBy&sortOrder"
+
 const engines: FakeEngine[] = []
 
 /** Closes the engines of the builds so far: each test file's `afterEach`. */
@@ -206,7 +209,14 @@ export const V1_CALL_ACTIVITIES = {
 }
 
 /** Each build's own: when it read, the engine's address and the times the scan stamps now. */
-const OWN_PER_BUILD = new Set(["fetchedAt", "asOf", "cockpitUrl", "firstSeen", "latestIncident"])
+const OWN_PER_BUILD = new Set([
+  "fetchedAt",
+  "asOf",
+  "cockpitUrl",
+  "cockpitInstanceUrl",
+  "firstSeen",
+  "latestIncident",
+])
 
 /** An outcome's figures, without what each build has of its own. */
 function figuresOf(outcome: unknown): unknown {

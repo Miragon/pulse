@@ -28,10 +28,8 @@ import { expect } from "vitest"
 import { buildActivityCountsData } from "../../data/activity-counts-data.js"
 import { buildBoardData } from "../../data/board-data.js"
 import { buildIncidentsDashboardData } from "../../data/incidents-dashboard-data.js"
-import {
-  buildActivityIncidentsData,
-  buildProcessIncidentsData,
-} from "../../data/process-incidents-data.js"
+import { buildActivityIncidentsData } from "../../data/activity-incidents-data.js"
+import { buildProcessIncidentsData } from "../../data/process-incidents-data.js"
 import { buildProcessScreenData } from "../../data/screens/process-screen-data.js"
 import type { ResolvedEngine } from "../engine/resolve-engine.js"
 import { recordedBoard } from "./compared-boards.test-support.js"

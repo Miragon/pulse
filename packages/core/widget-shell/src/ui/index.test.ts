@@ -68,6 +68,7 @@ describe("the /widgets entry", () => {
       "recordToolCalls",
       "servedFontBaseUrl",
       "useActionFeedback",
+      "useCursorViewData",
       "useDetailView",
       "useDiagramMaxHeight",
       "useErrorWords",

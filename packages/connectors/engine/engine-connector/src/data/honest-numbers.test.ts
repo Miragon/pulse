@@ -22,7 +22,7 @@ import { buildHistoryTimelineData } from "./history-timeline-data.js"
 import { buildIncidentDetailData } from "./incident-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
 import { buildInstanceDetailData } from "./instance-detail-data.js"
-import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
+import { buildProcessIncidentsData } from "./process-incidents-data.js"
 import { buildActivityStatisticsData } from "./activity-statistics-data.js"
 import { buildJobBacklogData } from "./job-backlog-data.js"
 import { PROCESS_NUMBER_CASES } from "./honest-numbers.process-numbers.test-support.js"
@@ -33,9 +33,11 @@ import {
   DEGRADE,
   expectFallbacks,
   incidentScan,
+  KEY_LOOKUP,
   V1_CALL_ACTIVITIES,
 } from "./honest-numbers.test-support.js"
 import { COPY_CASES, HISTORY_ENRICHMENT } from "./honest-numbers.copies.test-support.js"
+import { ACTIVITY_PAGE_CASES } from "./honest-numbers.activity-page.test-support.js"
 
 // Each case declares only its enrichment and fallback reads; EVERY other read its
 // healthy build makes is primary and broken in turn, so a newly swallowed failure
@@ -45,7 +47,6 @@ afterEach(closeBuildEngines)
 
 const urls = (baseUrl: string) => ({ baseUrl, provider: cibsevenProvider })
 
-const KEY_LOOKUP = "GET /process-definition?key&latestVersion&maxResults&sortBy&sortOrder"
 /** Another process with a root incident, unnamed, so its diagram names it (enrichment). */
 const SHIP_STATS = {
   id: "ship:1:s1",
@@ -285,28 +286,10 @@ const CASES: Record<string, Case> = {
       }) => data.siblingsWithIncidents?.[0]?.processDefinitionName ?? null,
     },
   },
-  buildActivityIncidentsData: {
-    run: (client, baseUrl) =>
-      buildActivityIncidentsData(client, {
-        ...urls(baseUrl),
-        processDefinitionKey: WORLD.key,
-        activityId: WORLD.activityId,
-      }),
-    unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
-    enrichment: {
-      // The rows are named by their instances' business keys (#322 U13).
-      "GET /process-instance?maxResults&processInstanceIds": (data: {
-        incidents: Array<{ businessKey: unknown }>
-      }) => data.incidents[0]?.businessKey,
-      // The latest diagram names the element; unread, the page reads the activity whole, since
-      // it cannot tell a call activity, and its rows stay the same.
-      [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: {
-        incidents: Array<{ activityName: unknown }>
-      }) => data.incidents[0]?.activityName,
-    },
-  },
+  // An activity's page: read whole, and a first page with more, totalled as its group counts it.
+  ...ACTIVITY_PAGE_CASES,
   // A call activity's copies: an instance's copy's root incident and its element's name are
-  // enrichment; an activity's page at a call activity reads its incidents whole.
+  // enrichment; an activity's page at a call activity lists its root incidents alone.
   ...COPY_CASES,
   // Every version's statistics are primary: a version left out would undercount the key.
   buildActivityStatisticsData: activityStatistics("runtime"),

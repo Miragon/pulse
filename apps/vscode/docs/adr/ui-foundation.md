@@ -243,8 +243,9 @@ point 10: the screens' JSON forms as data for any page.
      element statistics of the engine contract, the rule the shared process screen reads by
      (c7-core's `ElementStatisticsReader`, never a second one), the incidents of the instances an
      element called a quiet badge apart on the flow and on a board's diagram. A copy is no row of
-     a process, an activity or a cause (an activity's page at a call activity reads its incidents
-     whole and lists its root incidents alone); where an instance's incidents list one, it stands
+     a process, an activity or a cause (an activity's page at a call activity lists its root
+     incidents alone, by its cursor since #690, and totals them as its group counts them); where an
+     instance's incidents list one, it stands
      for its root, which its row opens, names and copies. The last hour's root incidents come from
      the newest open incidents read, where they hold the hour, else they are unknown; a cluster
      beyond its scan counts by `/incident/count` only where its element is no call activity. The

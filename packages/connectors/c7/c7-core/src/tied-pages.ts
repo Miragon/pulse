@@ -29,6 +29,9 @@
  * the next page reads the run's rest from it as a run of its own: a rest of more than 500 rows it
  * tells by the one row after a window of 500 and keeps at plain offsets, a rest of 500 rows or
  * fewer it reads whole and orders by id.
+ *
+ * Each item of a page may carry the cursor of a page that starts with it (`cursoredPageOf`), so a
+ * read that merges two such pagings goes on in each from the first item the merged page left.
  */
 
 import { type Page, PageCursor, type PageRequest } from "@miragon/pulse-engine-core"
@@ -99,17 +102,21 @@ const isKept = <Item>(row: PlacedRow<Item>): row is KeptRow<Item> => row.item !=
 
 const CURSOR = /^(\d+)(?:\.(\d+)|(~))?$/
 
-function cursorOf(after: string | undefined): TiedCursor {
-  if (after === undefined) return { start: 0, skip: 0, within: false }
+/** The place `after` names, none where it is no cursor of this paging. */
+function parsedCursor(after: string): TiedCursor | undefined {
   const match = CURSOR.exec(after)
   const cursor = {
     start: Number(match?.[1]),
     skip: Number(match?.[2] ?? 0),
     within: match?.[3] !== undefined,
   }
-  if (!Number.isSafeInteger(cursor.start + cursor.skip)) {
-    throw new RangeError(`"${after}" is not a page cursor of this engine`)
-  }
+  return Number.isSafeInteger(cursor.start + cursor.skip) ? cursor : undefined
+}
+
+function cursorOf(after: string | undefined): TiedCursor {
+  if (after === undefined) return { start: 0, skip: 0, within: false }
+  const cursor = parsedCursor(after)
+  if (cursor === undefined) throw new RangeError(`"${after}" is not a page cursor of this engine`)
   return cursor
 }
 
@@ -239,15 +246,40 @@ function placedOf<Item>(got: WindowRuns<Item>, cursor: TiedCursor): PlacedRow<It
   return [...long, ...runs]
 }
 
+/** An item of a page and the cursor of a page that starts with it. */
+export interface CursoredItem<Item> {
+  readonly item: Item
+  readonly at: PageCursor
+}
+
+const cursoredOf = <Item>({ item, at }: KeptRow<Item>): CursoredItem<Item> => ({
+  item,
+  at: PageCursor(at),
+})
+
 /** A page by its cursor, its runs of tied rows ordered by id, one of more than 500 by offset. */
 export class TiedPages {
   constructor(private readonly page: PageRequest) {}
+
+  /** Whether `after` is a cursor of this paging; `pageOf` fails any other as a `RangeError`. */
+  static isCursor(after: string): boolean {
+    return parsedCursor(after) !== undefined
+  }
 
   /**
    * The page of the rows `read` keeps, and the cursor of the next kept row if one follows. A
    * cursor that is none of this paging fails as a `RangeError` before anything is read.
    */
   async pageOf<Item>(read: TiedRead<Item>): Promise<Page<Item>> {
+    const page = await this.cursoredPageOf(read)
+    return { ...page, items: page.items.map(({ item }) => item) }
+  }
+
+  /**
+   * The page of {@link pageOf}, each item with the cursor of a page that starts with it, so a read
+   * that merges this paging with another goes on from the first item it did not take.
+   */
+  async cursoredPageOf<Item>(read: TiedRead<Item>): Promise<Page<CursoredItem<Item>>> {
     const cursor = cursorOf(this.page.after)
     const requests = new Requests(read)
     const kept: KeptRow<Item>[] = []
@@ -267,14 +299,14 @@ export class TiedPages {
     }
   }
 
-  private cut<Item>(kept: readonly KeptRow<Item>[]): Page<Item> {
-    const items = kept.slice(0, this.page.limit).map(({ item }) => item)
+  private cut<Item>(kept: readonly KeptRow<Item>[]): Page<CursoredItem<Item>> {
+    const items = kept.slice(0, this.page.limit).map(cursoredOf)
     const following = kept[this.page.limit]
     return following === undefined ? { items } : { items, next: PageCursor(following.at) }
   }
 
   /** The page at the bound of requests: what it kept, its cursor the first row it has not taken. */
-  private bound<Item>(kept: readonly KeptRow<Item>[], next: number): Page<Item> {
-    return { items: kept.map(({ item }) => item), next: PageCursor(String(next)) }
+  private bound<Item>(kept: readonly KeptRow<Item>[], next: number): Page<CursoredItem<Item>> {
+    return { items: kept.map(cursoredOf), next: PageCursor(String(next)) }
   }
 }

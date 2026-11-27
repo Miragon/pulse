@@ -113,14 +113,29 @@ export function atActivity(
   )
 }
 
+/** Every incident of `byActivity`, newest first, as the key's scan lists them. */
+export function newestFirst(byActivity: Readonly<Record<string, readonly unknown[]>>): unknown[] {
+  const timeOf = (row: unknown) =>
+    Date.parse((row as { incidentTimestamp: string }).incidentTimestamp)
+  return Object.values(byActivity)
+    .flat()
+    .sort((a, b) => timeOf(b) - timeOf(a))
+}
+
 /**
  * The engine's incidents at each activity id, as `/incident` and `/incident/count` answer a query
  * by one (its `activityId`), paged by `firstResult` and `maxResults`; none at any other id, such
- * as a multi-instance body that holds none.
+ * as a multi-instance body that holds none. A query by no activity, the key's scan, lists every
+ * one of them, newest first. The lists are read at each request, so a test changes the world by
+ * changing them.
  */
 export function incidentsAt(byActivity: Readonly<Record<string, readonly unknown[]>>): FakeRoutes {
   const at = (query: Readonly<Record<string, string>>) =>
-    Object.hasOwn(byActivity, query.activityId ?? "") ? byActivity[query.activityId ?? ""] : []
+    query.activityId === undefined
+      ? newestFirst(byActivity)
+      : Object.hasOwn(byActivity, query.activityId)
+        ? byActivity[query.activityId]
+        : []
   return {
     "GET /incident": (r: RecordedRequest) => {
       const first = Number(r.query.firstResult ?? 0)

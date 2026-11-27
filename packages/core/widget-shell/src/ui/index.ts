@@ -138,6 +138,7 @@ export {
 } from "./ask-ai-prompt.js"
 export { OpenInCockpitLink } from "./open-in-cockpit-link.js"
 export { usePagedViewData, type PagedViewData } from "./use-paged-view-data.js"
+export { useCursorViewData, type CursorViewDataOptions } from "./use-cursor-view-data.js"
 export { usePagedListView, type PagedListView } from "./use-paged-list-view.js"
 export { PagedRows } from "./paged-rows.js"
 export { RowsBudgeted, useDiagramMaxHeight } from "./inline-budget.js"

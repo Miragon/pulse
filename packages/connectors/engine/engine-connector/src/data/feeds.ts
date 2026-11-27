@@ -1,6 +1,6 @@
 import { z } from "zod"
 import {
-  activityIncidentsFilterShape,
+  activityIncidentsPageShape,
   activityStatisticsShape,
   clusterDetailFilterShape,
   incidentsDashboardFilterShape,
@@ -56,7 +56,8 @@ import { buildIncidentDetailData } from "./incident-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
 import { buildInstanceDetailData } from "./instance-detail-data.js"
 import { buildJobBacklogData } from "./job-backlog-data.js"
-import { buildActivityIncidentsData, buildProcessIncidentsData } from "./process-incidents-data.js"
+import { buildActivityIncidentsData } from "./activity-incidents-data.js"
+import { buildProcessIncidentsData } from "./process-incidents-data.js"
 
 /**
  * The cockpit's `*_data` feeds, described once: name, title, the description the model reads,
@@ -289,9 +290,9 @@ const activityIncidentsFeed = dataFeed({
   name: ENGINE_ACTIVITY_INCIDENTS_DATA,
   title: "Activity incidents data (internal)",
   description:
-    "Internal JSON feed (no UI) for one activity's incident rows, offset-paged. Prefer engine_open_cockpit.",
+    "Internal JSON feed (no UI) for one activity's incident rows, cursor-paged. Prefer engine_open_cockpit.",
   dialects: ["c7"],
-  shape: { ...activityIncidentsFilterShape, ...pagingShape },
+  shape: activityIncidentsPageShape,
   read: async (filters, { client, engineId, ...urls }) => ({
     ...(await buildActivityIncidentsData(client, { ...urls, ...filters })),
     engineId,

@@ -253,8 +253,18 @@ missing.
   after a window of 500 and pages at plain offsets, a rest of 500 rows or fewer it reads whole and
   orders by id. Where the database orders such a run anew between two requests, its incidents may
   repeat and about as many be missed, even within one page, up to most of the run; the incidents
-  raised before or after it never. The readers stay inside the entry; beside `C7Runtime` it exports
-  the reads a surface's commands check before they write:
+  raised before or after it never. Beyond the contract, `searchElementRootIncidents` pages the open
+  root incidents at one element over every version of a process (`{ bpmnProcessId, elementId }`),
+  for the MCP server's page of an activity's incidents: those raised at the element and at its
+  multi-instance body, which Camunda 7 lists under an id of its own, each list paged by `TiedPages`
+  from a place of its own and the two merged newest first and then by id, each row as the engine
+  answers it (`ElementIncident`), a copy a call activity holds no row. Its cursor names where each
+  list goes on, `<element>,<body>`, a cursor of `TiedPages` or `-` past the list's end, so each
+  incident of either list comes once, across pages too, with the bound above; a page ends before
+  the incidents of a list whose page stopped at its 10 requests, short or even empty, and the next
+  page reads on there. `TiedPages` hands each item of a page the cursor of a page that starts with
+  it (`cursoredPageOf`), which the merge goes on from. The readers stay inside the entry; beside
+  `C7Runtime` it exports the reads a surface's commands check before they write:
   `findActivityTree` (the activity instance tree of a running instance, its scopes and transition
   instances, a move's token among them; none for an instance that does not run or an id no engine
   assigns, without a request), `readHistoricInstances` (the history's instances a query finds, newest

@@ -1,8 +1,6 @@
 import { Fragment } from "react"
 import {
   Button,
-  cn,
-  PagedListFooter,
   formatClock,
   formatInstant,
   LogText,
@@ -18,21 +16,12 @@ import {
   ListTable,
   type ListTableColumn,
   OpenInCockpitLink,
-  PagedRows,
-  usePagedViewData,
-  ViewDataState,
 } from "@miragon/pulse-widget-shell/widgets"
 
-import type {
-  ActivityIncidentsData,
-  IncidentInstance,
-  IncidentRootCause,
-} from "../../view-models.js"
-import { ENGINE_ACTIVITY_INCIDENTS_DATA } from "../../tool-names.js"
+import type { IncidentInstance, IncidentRootCause } from "../../view-models.js"
 import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { useT, type T } from "../../messages/use-t.js"
-import { EngineActionDialog } from "../lib/engine-action-dialog.js"
-import { useIncidentRecovery, type IncidentRecoveryState } from "./use-incident-recovery.js"
+import type { IncidentRecoveryState } from "./use-incident-recovery.js"
 import { InstanceLabel, NARROW_SUBJECT_FLOOR } from "../lib/identity.js"
 import { incidentTypeWords } from "../lib/incident-type.js"
 import { DoneMark } from "../lib/done-mark.js"
@@ -40,9 +29,6 @@ import { MoreActions } from "../lib/more-actions.js"
 import { WriteError } from "../lib/write-error.js"
 import { instanceName } from "../lib/write-feedback.js"
 import { useNav } from "../navigation.js"
-
-/** Mirrors the feed's server default. */
-const INCIDENT_PAGE_SIZE = 10
 
 /** What a row opens: its incident (a copy's root, `targetOf`) and the element the crumb names. */
 export interface IncidentTarget {
@@ -355,87 +341,5 @@ export function IncidentTable({
         )
       })}
     </ListTable>
-  )
-}
-
-/** An activity group's body: the ground under its summary on the card, its table's head too. */
-const GROUP_GROUND = "bg-muted [--table-surface:var(--muted)]"
-
-/**
- * Pages `engine_activity_incidents_data` so a group reaches every incident, not just the
- * definition feed's 200-row scan. Success marks reset on THIS feed: the definition feed can
- * answer the invalidation first with pre-write rows and would bring a cleared button back.
- */
-export function PagedIncidentTable({
-  processDefinitionKey,
-  activityId,
-  engine,
-  vendor,
-  onAnalyze,
-}: {
-  processDefinitionKey: string
-  activityId: string
-  /** The route's engine: a page never reads the default engine. */
-  engine: string
-  vendor?: string
-  onAnalyze: (target: IncidentTarget) => void
-}) {
-  const t = useT()
-  const paged = usePagedViewData<IncidentInstance, ActivityIncidentsData>({
-    initialData: null,
-    key: ["engine:activity-incidents", engine, processDefinitionKey, activityId],
-    tool: ENGINE_ACTIVITY_INCIDENTS_DATA,
-    args: { processDefinitionKey, activityId, engine },
-    pageSize: INCIDENT_PAGE_SIZE,
-    ready: true,
-    selectItems: (d) => d.incidents,
-    selectTotal: (d) => d.totalCount,
-  })
-  const recovery = useIncidentRecovery(engine, { resetOn: paged.firstPage })
-
-  if (!paged.firstPage) {
-    return (
-      <div className={cn(GROUP_GROUND, "px-cell py-cell")}>
-        <ViewDataState
-          loading={paged.loading}
-          error={paged.error}
-          onRetry={paged.retry}
-          loadingText={t("procIncTable.loading")}
-          emptyText={t("procIncTable.noIncidents")}
-        />
-      </div>
-    )
-  }
-
-  return (
-    <div className={GROUP_GROUND}>
-      {paged.items.length === 0 ? (
-        <p className="text-muted-foreground text-dense px-cell py-cell">
-          {t("procIncTable.noIncidents")}
-        </p>
-      ) : (
-        // #396
-        <PagedRows paged={paged}>
-          <IncidentTable
-            incidents={paged.items}
-            recovery={recovery}
-            onAnalyze={onAnalyze}
-            engine={engine}
-            vendor={vendor}
-          />
-        </PagedRows>
-      )}
-      {/* The footer pads itself on the cell's role, so it lines up with the cells above. */}
-      <PagedListFooter
-        paged={paged}
-        noun={(total) => t("procIncTable.footerNoun", { count: total })}
-        labels={paged.footerLabels}
-      />
-      {/* The per-row button only requests the resolve; the actual
-          engine_resolve_incident call runs after this confirmation. The
-          dialog stays open until success so a failure is shown right here
-          (and inline at the row once dismissed). */}
-      <EngineActionDialog action={recovery.resolve} />
-    </div>
   )
 }

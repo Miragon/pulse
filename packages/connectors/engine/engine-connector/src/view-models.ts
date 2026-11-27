@@ -456,10 +456,16 @@ export interface ProcessIncidentsActivity extends IncidentActivityFacts {
 export interface ActivityIncidentsData {
   processDefinitionKey: string
   activityId: string
-  /** The requested page, newest first. */
+  /** The requested page of its open root incidents, its multi-instance body's included, newest first. */
   incidents: IncidentInstance[]
-  /** Exact total for this activity from /incident/count. */
-  totalCount: number
+  /**
+   * On the first page, its open root incidents: the rows where that page holds them all, else as
+   * its group counts them, never fewer than the rows and one more. Null on a later page (`after`),
+   * which reads no total: a list's total is its first page's.
+   */
+  totalCount: number | null
+  /** The cursor of the next page (the feed's `after`); null on the last. */
+  next: string | null
   engineId: string
 }
 

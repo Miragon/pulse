@@ -322,11 +322,8 @@
     }
   },
   "src/widgets/process-incidents/incident-table.tsx": {
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 3
+      "count": 2
     }
   },
   "src/widgets/process-incidents/kpi.tsx": {
