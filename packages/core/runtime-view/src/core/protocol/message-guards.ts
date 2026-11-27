@@ -55,7 +55,9 @@ export class MessageGuards {
     filterInstances: (fields) => MessageGuards.isFilter(fields.filter),
     filterProcesses: (fields) => MessageGuards.isProcessFilter(fields.filter),
     openProcess: (fields) =>
-      MessageGuards.isText(fields.bpmnProcessId) && typeof fields.toSide === "boolean",
+      MessageGuards.isText(fields.bpmnProcessId) &&
+      (fields.tenantId === undefined || MessageGuards.isText(fields.tenantId)) &&
+      typeof fields.toSide === "boolean",
     openInstance: (fields) =>
       MessageGuards.isText(fields.instanceId) && typeof fields.toSide === "boolean",
     openCall: (fields) =>
@@ -79,6 +81,7 @@ export class MessageGuards {
     openBoardProcess: (fields) =>
       MessageGuards.isName(fields.engine) &&
       MessageGuards.isName(fields.bpmnProcessId) &&
+      (fields.tenantId === undefined || MessageGuards.isText(fields.tenantId)) &&
       MessageGuards.isFilter(fields.filter) &&
       typeof fields.toSide === "boolean",
     openBoardEngine: (fields) =>

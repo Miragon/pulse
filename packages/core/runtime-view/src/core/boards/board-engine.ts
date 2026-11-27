@@ -1,4 +1,9 @@
-import type { BpmnProcessId, InstanceId, ProcessRuntime } from "@miragon/pulse-engine-core"
+import type {
+  BpmnProcessId,
+  InstanceId,
+  ProcessRuntime,
+  TenantId,
+} from "@miragon/pulse-engine-core"
 import type { OpenOptions } from "../panels/panel-context.js"
 import type { EngineBadge, InstanceListFilter, PanelState } from "../protocol/index.js"
 import type { SharedDefinitions } from "../refresh/shared-definitions.js"
@@ -17,7 +22,7 @@ export interface BoardNavigation {
   openInstance(engine: string, instanceId: InstanceId, options: OpenOptions): void
   openDefinition(
     engine: string,
-    bpmnProcessId: BpmnProcessId,
+    process: { readonly bpmnProcessId: BpmnProcessId; readonly tenantId?: TenantId },
     filter: InstanceListFilter,
     options: OpenOptions,
   ): void

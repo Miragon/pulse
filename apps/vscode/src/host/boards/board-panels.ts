@@ -93,9 +93,9 @@ export class BoardPanels implements vscode.Disposable {
           this.panels.openInstance(connection, instanceId, this.columnFor(options))
         })
       },
-      openDefinition: (engine, bpmnProcessId, filter, options) => {
+      openDefinition: (engine, process, filter, options) => {
         on(engine, (connection) => {
-          this.panels.openDefinition(connection, { bpmnProcessId, filter }, this.columnFor(options))
+          this.panels.openDefinition(connection, { ...process, filter }, this.columnFor(options))
         })
       },
       openEngine: (engine, options) => {

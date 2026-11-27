@@ -32,6 +32,7 @@ export const enginesDe: Readonly<Record<EnginesWordKey, Message>> = {
   "engines.verdict.none": "Pulse beurteilt den Zustand dieser Engine nicht",
   "matrix.label": "Prozesse je Engine",
   "matrix.column.process": "Prozess",
+  "matrix.column.tenant": "Mandant",
   "matrix.column.withIncident": "Mit Incident",
   "matrix.processId": "BPMN-Prozess-ID",
   "matrix.notDeployed": "auf {engine} nicht bereitgestellt",

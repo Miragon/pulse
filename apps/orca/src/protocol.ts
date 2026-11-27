@@ -67,6 +67,7 @@ export type ViewSpec =
   | {
       readonly view: "definition"
       readonly bpmnProcessId: string
+      readonly tenantId?: string
       readonly definitionId?: string
       readonly filter?: InstanceListFilter
     }

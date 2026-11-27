@@ -14,10 +14,11 @@ import type { InstanceTab } from "./screen-queries.js"
  *   address of an incident under its instance, the root incident in focus (`incident`).
  * - `incident`: an incident the page knows by its id alone (the cockpit's drill to one, an old
  *   address of one), which the page leads on to the instance that holds its root.
- * - `process`: a process in one version at the process's own address, the place of the cockpit's
- *   process view and of its list of a process's instances; the version by its number (`version`,
- *   none for the latest) and its instance list's filter (`filter`: `scope`, `element`, `key`,
- *   `var`).
+ * - `process`: a process, a key in one tenant, in one version at the process's own address, the
+ *   place of the cockpit's process view and of its list of a process's instances; its tenant
+ *   (`tenantId`, `tenant` in the address, none for the process without a tenant), the version by
+ *   its number (`version`, none for the latest) and its instance list's filter (`filter`: `scope`,
+ *   `element`, `key`, `var`).
  * - `search`: the search for an instance across engines at the search's own address, a place of
  *   the page's alone, which no view of the cockpit has; what it searches (`text`, `q` in the
  *   address, trimmed, none for an empty search).
@@ -31,6 +32,7 @@ export type PageScreen =
       readonly kind: "process"
       readonly engine: string
       readonly process: string
+      readonly tenantId?: string
       readonly version?: number
       readonly filter: InstanceListFilterData
     }

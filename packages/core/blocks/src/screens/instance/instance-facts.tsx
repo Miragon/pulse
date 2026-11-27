@@ -77,6 +77,7 @@ export function InstanceFacts({
           kind: "version",
           engine,
           bpmnProcessId: definition.bpmnProcessId,
+          ...(definition.tenantId === undefined ? {} : { tenantId: definition.tenantId }),
           version: definition.version,
           definitionId: definition.id,
         }}

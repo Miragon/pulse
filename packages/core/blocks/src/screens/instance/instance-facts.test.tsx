@@ -58,6 +58,22 @@ describe.each(SURFACES)("an instance's facts with %s", (_surface, slotsOf) => {
     ])
   })
 
+  it("open the version an instance runs in its tenant, where its version names one", () => {
+    const { slots, asked } = slotsOf()
+    const definition = { ...DISPATCH.instance.definition, tenantId: "north" }
+    const facts = factsOf({ ...DISPATCH.instance, definition }, null, slots)
+
+    fireEvent.click(within(facts).getByTitle("Show definition Dispatch order v1"))
+
+    expect(asked.opened.map(({ target }) => target)).toEqual([
+      expect.objectContaining({
+        kind: "version",
+        bpmnProcessId: "pulse-dispatch",
+        tenantId: "north",
+      }),
+    ])
+  })
+
   it("name the caller by its business key and open it, the id staying out where the title is the id", () => {
     const { slots, asked } = slotsOf()
     const facts = factsOf(LABEL.instance, LABEL.caller, slots)

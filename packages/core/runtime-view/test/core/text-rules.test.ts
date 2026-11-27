@@ -53,12 +53,23 @@ describe("the definition nodes", () => {
 
   test("group a count from a thousand on, as the engine overview's table does", async () => {
     const summary = {
-      latest: { id: "big:1", bpmnProcessId: "big", version: 3 },
+      latest: { id: "big:1", bpmnProcessId: "big", tenantId: null, version: 3 },
       running: 15_234,
       withIncident: 0,
     }
     const runtime = { listDefinitions: () => Promise.resolve([summary]) }
     const [node] = await new DefinitionNodes(runtime as never).list()
     expect(node?.description).toBe("15,234 running in all versions · latest v3")
+  })
+
+  test("name the tenant of a process deployed in one, apart from the same key without one", async () => {
+    const { state } = FakeWorld.seedWithTenants()
+    const nodes = await new DefinitionNodes(new FakeEngine(state)).list()
+    const labels = nodes.filter((node) => node.bpmnProcessId === "pulse-label")
+    expect(labels.map((node) => [node.tenantId, node.description])).toEqual([
+      [null, "1 running in all versions · latest v1"],
+      ["pulse-north", "idle · latest v1 · tenant pulse-north"],
+      ["pulse-south", "idle · latest v2 · tenant pulse-south"],
+    ])
   })
 })

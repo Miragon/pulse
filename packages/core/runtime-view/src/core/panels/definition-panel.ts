@@ -1,4 +1,4 @@
-import { DefinitionId, type BpmnProcessId } from "@miragon/pulse-engine-core"
+import { DefinitionId, type BpmnProcessId, type TenantId } from "@miragon/pulse-engine-core"
 import { DriftCheck } from "../drift/drift-check.js"
 import { ModelDrift, type LocalModel } from "../drift/model-drift.js"
 import type { DefinitionView, InstanceListFilter, WebviewIntent } from "../protocol/index.js"
@@ -21,6 +21,7 @@ import { ViewSession } from "./view-session.js"
 
 export interface DefinitionTarget {
   readonly bpmnProcessId: BpmnProcessId
+  readonly tenantId?: TenantId | null
   readonly definitionId?: DefinitionId
   readonly filter?: InstanceListFilter
   readonly localModel?: LocalModel
@@ -85,7 +86,7 @@ export class DefinitionPanel implements Panel {
         this.session.republish()
       },
     })
-    this.reads = new DefinitionReads(context, target.bpmnProcessId, {
+    this.reads = new DefinitionReads(context, target, {
       drift: this.drift,
       jumps: this.jumps,
       links: modelLinks,

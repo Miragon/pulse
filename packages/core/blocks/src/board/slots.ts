@@ -16,11 +16,16 @@ export interface BoardListFilter {
   readonly businessKey?: string
 }
 
-/** The instances of a process on an engine, or of the engine when the target names no process. */
+/**
+ * The instances of a process on an engine, or of the engine when the target names no process: a
+ * key in the tenant `tenantId` names where it has one (a summary row's, a diagram's), else the key
+ * alone, which a surface opens as engine-core's `ProcessTenants` names it.
+ */
 export interface BoardInstancesTarget {
   readonly kind: "instances"
   readonly engine: string
   readonly bpmnProcessId?: string
+  readonly tenantId?: string
   readonly filter: BoardListFilter
 }
 

@@ -60,16 +60,17 @@ ein Wort pro Zustand auf jeder Oberfläche.
 
 ## Begriffe der Screens
 
-| Sache                                        | Deutsch                                      | Englisch            |
-| -------------------------------------------- | -------------------------------------------- | ------------------- |
-| Die ID eines Prozesses im Modell             | BPMN-Prozess-ID (im Suchfeld kurz „BPMN-ID“) | BPMN process ID     |
-| Die neueste Version eines Prozesses          | Neueste Version                              | Latest version      |
-| Die laufenden Instanzen eines Prozesses      | Laufend, laufend                             | Running, running    |
-| Der Umfang einer Zählung über jede Version   | alle Versionen                               | all versions        |
-| Die Auswahl, welche Prozesse die Liste zeigt | Prozesse zeigen: Alle, Mit Incident          | Show processes      |
-| Eine Zählung mit Incident über 0             | Hat offene Incidents (für den Screenreader)  | Has open incidents  |
-| Die offenen Wurzel-Incidents eines Prozesses | Incidents (die Spalte, über alle Versionen)  | Incidents           |
-| Die Legende der Zählungen der Prozessliste   | Was die Zahlen sagen                         | What the counts say |
+| Sache                                              | Deutsch                                      | Englisch            |
+| -------------------------------------------------- | -------------------------------------------- | ------------------- |
+| Die ID eines Prozesses im Modell                   | BPMN-Prozess-ID (im Suchfeld kurz „BPMN-ID“) | BPMN process ID     |
+| Die neueste Version eines Prozesses                | Neueste Version                              | Latest version      |
+| Die laufenden Instanzen eines Prozesses            | Laufend, laufend                             | Running, running    |
+| Der Umfang einer Zählung über jede Version         | alle Versionen                               | all versions        |
+| Die Auswahl, welche Prozesse die Liste zeigt       | Prozesse zeigen: Alle, Mit Incident          | Show processes      |
+| Eine Zählung mit Incident über 0                   | Hat offene Incidents (für den Screenreader)  | Has open incidents  |
+| Die offenen Wurzel-Incidents eines Prozesses       | Incidents (die Spalte, über alle Versionen)  | Incidents           |
+| Die Legende der Zählungen der Prozessliste         | Was die Zahlen sagen                         | What the counts say |
+| Der Mandant, in dem ein Prozess bereitgestellt ist | Mandant (nie „Tenant“)                       | Tenant              |
 
 ## Begriffe einer Instanz
 

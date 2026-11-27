@@ -32,7 +32,7 @@ describe("the shared migration plan fixtures in the preview", () => {
     async (_, fixture) => {
       const opened = await openPlan(fixture.text)
 
-      expect(opened.fixture.calls[0]).toBe("listVersions")
+      expect(opened.fixture.calls.slice(0, 2)).toEqual(["listDefinitions", "listVersions"])
     },
   )
 })

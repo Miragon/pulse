@@ -7,6 +7,7 @@ import {
   type ElementStatistics,
   type InstanceId,
   type MigrationProblem,
+  type TenantId,
   type VersionSummary,
 } from "@miragon/pulse-engine-core"
 import type { MigrationView } from "../protocol/index.js"
@@ -14,6 +15,7 @@ import { MigrationElements } from "../views/migration-elements.js"
 import { MigrationPlanning } from "./migration-planning.js"
 import type { PanelContext } from "./panel-context.js"
 import { Problems } from "./problems.js"
+import { ProcessVersions } from "./process-versions.js"
 import type { Snapshot, Unavailable } from "./view-session.js"
 
 const MAX_COUNTED_ELEMENTS = 10
@@ -47,6 +49,8 @@ export interface MigrationState {
 export interface MigrationLoaded extends MigrationState, Snapshot<MigrationView> {}
 
 export class MigrationReads {
+  private tenantId: TenantId | null | undefined
+
   constructor(
     private readonly context: PanelContext,
     private readonly bpmnProcessId: BpmnProcessId,
@@ -64,7 +68,7 @@ export class MigrationReads {
     const { runtime, diagrams } = this.context
     const source = request.sourceDefinitionId
     const [versions, sourceXml, statistics, instanceIds] = await Promise.all([
-      runtime.listVersions(this.bpmnProcessId),
+      this.versionsOf(source),
       diagrams.get(source),
       runtime.getElementStatistics(source),
       this.stillOnSource(source, request.instanceIds),
@@ -143,6 +147,17 @@ export class MigrationReads {
     const mapped = new Set<string>(mappings.map((mapping) => mapping.sourceElementId))
     const unmapped = tokenElements.filter((elementId) => !mapped.has(elementId))
     return unmapped.length <= MAX_COUNTED_ELEMENTS ? unmapped : []
+  }
+
+  private async versionsOf(source: DefinitionId): Promise<readonly VersionSummary[]> {
+    const { tenantId, versions } = await ProcessVersions.of(
+      this.context.runtime,
+      this.bpmnProcessId,
+      this.tenantId,
+      source,
+    )
+    this.tenantId = tenantId
+    return versions
   }
 
   private async stillOnSource(

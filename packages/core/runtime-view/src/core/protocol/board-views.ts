@@ -31,6 +31,7 @@ export type BoardFileProblem = ProblemData | UnreadableFile
 export interface BoardTarget {
   readonly engine: string
   readonly bpmnProcessId?: string
+  readonly tenantId?: string
   readonly filter: InstanceListFilter
 }
 

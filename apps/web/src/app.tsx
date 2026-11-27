@@ -17,6 +17,7 @@ import { screenOf, screenUrlOf, type InstanceTab, type PageScreen } from "./rout
 import { EngineRoute } from "./screens/engine/engine-route.js"
 import { IncidentRoute, InstanceRoute } from "./screens/instance/instance-route.js"
 import { ProcessRoute } from "./screens/process/process-route.js"
+import { screenProcessOf } from "./screens/process/screen-process.js"
 import { SearchRoute } from "./screens/search/search-route.js"
 import { StartRoute } from "./screens/start/start-route.js"
 import type { VersionMove } from "./screens/process/process-screen.js"
@@ -145,7 +146,7 @@ function PageScreenAt({
       return (
         <ProcessRoute
           engine={screen.engine}
-          process={screen.process}
+          process={screenProcessOf(screen)}
           {...(screen.version === undefined ? {} : { version: screen.version })}
           filter={screen.filter}
           navigate={router.navigate}
@@ -157,6 +158,9 @@ function PageScreenAt({
             // A pick keeps the reader at the picker; the notice's way leads to the new heading.
             if (move === "pick") router.refine(url, "push")
             else router.navigate(url)
+          }}
+          onTenant={(tenantId: string) => {
+            router.refine(screenUrlOf({ ...screen, tenantId }))
           }}
           fallback={fallback}
         />

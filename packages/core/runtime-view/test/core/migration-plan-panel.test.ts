@@ -170,6 +170,7 @@ describe("opening a migration plan", () => {
     const opened = await openPlan(FITS)
 
     expect(opened.fixture.calls).toEqual([
+      "listDefinitions",
       "listVersions",
       "getDiagramXml",
       "getDiagramXml",
@@ -444,7 +445,7 @@ describe("an engine the plan does not fit", () => {
       canEditConnection: false,
       file: PLAN_FILE,
     })
-    expect(opened.fixture.calls).toEqual(["listVersions"])
+    expect(opened.fixture.calls).toEqual(["listDefinitions", "listVersions"])
   })
 
   test("with no version of the process at all misses the source", async () => {
@@ -461,8 +462,8 @@ describe("an engine the plan does not fit", () => {
       FITS,
       (runtime) =>
         new PatchedRuntime(runtime, {
-          listVersions: async (id) => {
-            const versions = await runtime.listVersions(id)
+          listVersions: async (id, tenantId) => {
+            const versions = await runtime.listVersions(id, tenantId)
             return [...versions, ...versions.filter((version) => version.definition.version === 1)]
           },
         }),
@@ -558,12 +559,12 @@ describe("reading the plan again", () => {
       FITS,
       (runtime) =>
         new PatchedRuntime(runtime, {
-          listVersions: async (id) => {
+          listVersions: async (id, tenantId) => {
             call += 1
             if (call === 2) {
               await first.promise
             }
-            return runtime.listVersions(id)
+            return runtime.listVersions(id, tenantId)
           },
         }),
     )
@@ -586,10 +587,10 @@ describe("reading the plan again", () => {
       FITS,
       (runtime) =>
         new PatchedRuntime(runtime, {
-          listVersions: (id) =>
+          listVersions: (id, tenantId) =>
             failing
               ? Promise.reject(new RuntimeError("unreachable", "connect ECONNREFUSED"))
-              : runtime.listVersions(id),
+              : runtime.listVersions(id, tenantId),
         }),
     )
     failing = true

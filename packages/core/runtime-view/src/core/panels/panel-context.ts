@@ -7,6 +7,7 @@ import type {
   InstanceSummary,
   ProcessCommands,
   ProcessRuntime,
+  TenantId,
 } from "@miragon/pulse-engine-core"
 import type { CodeLocator, EngineCli, ModelSource, SourceLocation } from "../../ports/index.js"
 import type { BulkKind, EngineBadge, Environment, PanelState, Problem } from "../protocol/index.js"
@@ -85,7 +86,11 @@ export interface PanelEffects {
     definitionId: DefinitionId,
     options: OpenOptions,
   ): void
-  openLatestDefinition(bpmnProcessId: BpmnProcessId, options: OpenOptions): void
+  openLatestDefinition(
+    bpmnProcessId: BpmnProcessId,
+    options: OpenOptions,
+    tenantId?: TenantId | null,
+  ): void
   openMigration(target: MigrationTarget): void
   pickInstance(title: string, choices: readonly InstanceChoice[]): Promise<InstanceId | undefined>
   openWebUi(target: WebUiTarget): void

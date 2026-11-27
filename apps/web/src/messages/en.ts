@@ -71,8 +71,11 @@ export const en = {
   "screen.instance.noIncidents": "This instance has no open incidents.",
 
   "screen.process.loading": "Loading process {process}…",
+  "screen.process.inTenant": "{engine} · Tenant {tenant}",
   "screen.process.failed": "Process {process} couldn't be loaded",
   "screen.process.unknown.title": "Process {process} isn't on engine {engine}",
+  "screen.process.unknown.inTenant":
+    "Process {process} isn't in tenant {tenant} on engine {engine}",
   "screen.process.unknown.description":
     "The engine has no version of this process. Check the address, or find the process among the engine's processes.",
   "screen.process.unknown.processes": "Processes of {engine}",

@@ -8,6 +8,7 @@ import {
   type InstanceSummary,
   type Page,
   type PageCursor,
+  type TenantId,
   type VersionSummary,
 } from "@miragon/pulse-engine-core"
 import { InstanceRows } from "@miragon/pulse-screens"
@@ -28,6 +29,7 @@ import { InstanceListQuery } from "./instance-list-query.js"
 import type { ElementLink, ModelLinks } from "./model-links.js"
 import type { PanelContext } from "./panel-context.js"
 import { Problems } from "./problems.js"
+import { ProcessVersions } from "./process-versions.js"
 import type { Snapshot, Unavailable } from "./view-session.js"
 
 export interface DefinitionLoaded extends Snapshot<DefinitionView> {
@@ -61,20 +63,35 @@ export interface DefinitionParts {
 
 type LocalSourcesOf = Pick<DefinitionLoaded, "model" | "link">
 
+export interface DefinitionProcess {
+  readonly bpmnProcessId: BpmnProcessId
+  readonly tenantId?: TenantId | null
+}
+
 export class DefinitionReads {
   private readonly instances: InstanceListQuery
+  private readonly bpmnProcessId: BpmnProcessId
+  private tenantId: TenantId | null | undefined
 
   constructor(
     private readonly context: PanelContext,
-    private readonly bpmnProcessId: BpmnProcessId,
+    process: DefinitionProcess,
     private readonly parts: DefinitionParts,
   ) {
     this.instances = new InstanceListQuery(context.runtime)
+    this.bpmnProcessId = process.bpmnProcessId
+    this.tenantId = process.tenantId
   }
 
   async load(request: DefinitionRequest): Promise<DefinitionLoaded | Unavailable> {
     const asOf = this.context.now()
-    const versions = await this.context.runtime.listVersions(this.bpmnProcessId)
+    const { tenantId, versions } = await ProcessVersions.of(
+      this.context.runtime,
+      this.bpmnProcessId,
+      this.tenantId,
+      request.selected,
+    )
+    this.tenantId = tenantId
     const drift = await this.parts.drift.resolve(versions)
     const definition = this.chosenVersion(versions, request.selected ?? drift.matchingDefinitionId)
     if (definition === undefined) {
@@ -86,7 +103,7 @@ export class DefinitionReads {
       this.context.runtime.getElementStatistics(selected),
       this.instances.page(selected, request.filter),
       this.instances.counts(selected, request.filter),
-      this.parts.jumps.calledProcessesOf(selected),
+      this.parts.jumps.calledProcessesOf(definition),
       this.localSourcesOf(definition, request.filter),
     ])
     return this.snapshot({
@@ -113,7 +130,7 @@ export class DefinitionReads {
     const withHistory = RefreshCadence.readsHistory(tick, environment)
     const [versions, statistics, page, scopeCounts] = await Promise.all([
       RefreshCadence.readsVersions(tick, environment)
-        ? this.context.runtime.listVersions(this.bpmnProcessId)
+        ? this.context.runtime.listVersions(this.bpmnProcessId, this.tenantId ?? null)
         : Promise.resolve(loaded.versions),
       this.context.runtime.getElementStatistics(loaded.selected),
       this.firstPageOf(loaded),
@@ -200,6 +217,7 @@ export class DefinitionReads {
       engine: this.context.engine,
       asOf: state.asOf,
       bpmnProcessId: this.bpmnProcessId,
+      tenantId: this.tenantId ?? null,
       versions: state.versions,
       selectedDefinitionId: state.selected,
       diagramXml: state.diagramXml,

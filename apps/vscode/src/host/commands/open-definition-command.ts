@@ -1,4 +1,4 @@
-import { BpmnProcessId } from "@miragon/pulse-engine-core"
+import { BpmnProcessId, TenantId } from "@miragon/pulse-engine-core"
 import type { Connection } from "@miragon/pulse-runtime-view/host-kit"
 import type { ConnectionRegistry } from "../connections/connection-registry.js"
 import type { PanelManager } from "../panels/panel-manager.js"
@@ -15,7 +15,10 @@ export class OpenDefinitionCommand extends EngineCommand {
     super(registry)
   }
 
-  protected runOn(connection: Connection, [bpmnProcessId = ""]: readonly string[]): void {
-    this.panels.openDefinition(connection, { bpmnProcessId: BpmnProcessId(bpmnProcessId) })
+  protected runOn(connection: Connection, [bpmnProcessId = "", tenant]: readonly string[]): void {
+    this.panels.openDefinition(connection, {
+      bpmnProcessId: BpmnProcessId(bpmnProcessId),
+      ...(tenant ? { tenantId: TenantId(tenant) } : {}),
+    })
   }
 }

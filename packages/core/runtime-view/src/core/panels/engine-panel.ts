@@ -62,7 +62,7 @@ export class EnginePanel implements Panel {
         )
         return
       case "openProcess":
-        this.openProcess(intent.bpmnProcessId, intent.toSide)
+        this.openProcess(intent.bpmnProcessId, intent.tenantId ?? null, intent.toSide)
         return
       case "openWebUi":
         this.openWebUi()
@@ -112,12 +112,15 @@ export class EnginePanel implements Panel {
     return { ...facts, order: builder.processOrder(), view: builder.build() }
   }
 
-  private openProcess(bpmnProcessId: string, toSide: boolean): void {
+  private openProcess(bpmnProcessId: string, tenantId: string | null, toSide: boolean): void {
     const shown = this.session
       .current()
-      ?.definitions.find((summary) => summary.latest.bpmnProcessId === bpmnProcessId)
+      ?.definitions.find(
+        ({ latest }) => latest.bpmnProcessId === bpmnProcessId && latest.tenantId === tenantId,
+      )
     if (shown !== undefined) {
-      this.context.effects.openLatestDefinition(shown.latest.bpmnProcessId, { toSide })
+      const { latest } = shown
+      this.context.effects.openLatestDefinition(latest.bpmnProcessId, { toSide }, latest.tenantId)
     }
   }
 

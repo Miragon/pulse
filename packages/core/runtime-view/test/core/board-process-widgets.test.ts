@@ -22,6 +22,7 @@ function incident(id: string, instanceId: string, elementId: string): Incident {
     definition: {
       id: DefinitionId("order:1"),
       bpmnProcessId: BpmnProcessId("order"),
+      tenantId: null,
       version: 1,
       name: "Order fulfillment",
     },
@@ -171,11 +172,11 @@ describe("a process diagram on a board", () => {
     expect(fixture.navigation.openDefinition.mock.calls).toEqual([
       [
         "shop",
-        BpmnProcessId("order"),
+        { bpmnProcessId: BpmnProcessId("order") },
         { scope: "withIncident", elementId: "Task_Ship" },
         { toSide: false },
       ],
-      ["shop", BpmnProcessId("order"), { scope: "running" }, { toSide: false }],
+      ["shop", { bpmnProcessId: BpmnProcessId("order") }, { scope: "running" }, { toSide: false }],
     ])
   })
 })

@@ -34,6 +34,7 @@ export const de: Readonly<Record<WordKey, Message>> = {
   "open.toSide": "{title} (Strg/Cmd+Klick: daneben)",
   "row.instance": "Instanz {id}",
   "row.instanceAt": "Instanz {id} bei {element}",
+  "summary.inTenant": "{process} · Mandant {tenant}",
   "summary.noIncident": "Keine Instanz hat einen offenen Incident.",
   "summary.noIncidentAnswered":
     "Keine Instanz hat einen offenen Incident auf den Engines, die geantwortet haben.",
@@ -82,7 +83,7 @@ export const de: Readonly<Record<WordKey, Message>> = {
     "muss ein Text sein, der Pfad oder die URL des Board-Schemas; Pulse zeigt das Board ohne ihn",
   "problem.blankText": "muss ein Text sein, der nicht leer ist",
   "problem.engineNames": "muss eine nicht leere Liste verschiedener Engine-Namen sein",
-  "problem.tenantIds": "muss eine nicht leere Liste verschiedener Tenant-IDs sein",
+  "problem.tenantIds": "muss eine nicht leere Liste verschiedener Mandanten-IDs sein",
   "problem.diagramOnOneEngine":
     "muss genau eine Engine nennen, weil ein Diagramm das Deployment einer Engine zeigt",
   "problem.notWholeNumber": "muss eine ganze Zahl ab 0 sein",
@@ -95,7 +96,7 @@ export const de: Readonly<Record<WordKey, Message>> = {
   "problem.endedWithIncident":
     'passt nur auf laufende Instanzen, weil eine beendete Instanz keinen offenen Incident hat; entferne es oder nutze state "running"',
   "problem.tenantsNotRead":
-    "ist gesetzt, aber Pulse hat keinen Tenant-Filter und würde hier jeden Tenant lesen; entferne tenants, um dieses Widget zu zeigen",
+    "ist gesetzt, aber Pulse hat keinen Mandanten-Filter und würde hier jeden Mandanten lesen; entferne tenants, um dieses Widget zu zeigen",
   "problem.diagramTooLong":
     "zeigt an einem zugeklappten Teilprozess womöglich keine Zahl für das, was darin läuft, weil das Diagramm länger ist, als Pulse liest",
   "note.tile": "„{title}“ auf {engine}",

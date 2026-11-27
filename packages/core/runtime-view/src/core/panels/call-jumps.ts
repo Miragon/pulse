@@ -1,5 +1,5 @@
 import { CallActivities } from "@miragon/pulse-board/builder"
-import type { CalledProcess, DefinitionId } from "@miragon/pulse-engine-core"
+import type { CalledProcess, CallingVersion } from "@miragon/pulse-engine-core"
 import type { CalledInstanceChoice, CallTarget } from "@miragon/pulse-screens/builder"
 import { ElementNames } from "../bpmn/element-names.js"
 import type { Notice } from "../protocol/index.js"
@@ -21,11 +21,11 @@ export class CallJumps {
     private readonly republish: () => void,
   ) {}
 
-  async calledProcessesOf(definitionId: DefinitionId): Promise<readonly CalledProcess[]> {
-    const xml = await this.context.diagrams.get(definitionId)
+  async calledProcessesOf(definition: CallingVersion): Promise<readonly CalledProcess[]> {
+    const xml = await this.context.diagrams.get(definition.id)
     return CallActivities.found(xml) === false
       ? []
-      : this.context.runtime.getCalledProcesses(definitionId)
+      : this.context.runtime.getCalledProcesses(definition)
   }
 
   notice(): Notice | undefined {

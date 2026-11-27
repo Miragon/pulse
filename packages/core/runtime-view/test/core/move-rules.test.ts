@@ -143,6 +143,7 @@ function detailOf(
       definition: {
         id: DefinitionId("moves:1"),
         bpmnProcessId: BpmnProcessId("moves"),
+        tenantId: null,
         version: 1,
       },
       state: options.state ?? "running",

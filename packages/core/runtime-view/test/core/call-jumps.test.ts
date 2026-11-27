@@ -31,11 +31,14 @@ function instanceView(state: PanelState): InstanceView {
 
 function nothingDeployed(runtime: ProcessRuntime): ProcessRuntime {
   return new PatchedRuntime(runtime, {
-    getCalledProcesses: async (definitionId) =>
-      (await runtime.getCalledProcesses(definitionId)).map(({ elementId, bpmnProcessId }) => ({
-        elementId,
-        bpmnProcessId,
-      })),
+    getCalledProcesses: async (definition) =>
+      (await runtime.getCalledProcesses(definition)).map(
+        ({ elementId, bpmnProcessId, tenantId }) => ({
+          elementId,
+          bpmnProcessId,
+          tenantId,
+        }),
+      ),
   })
 }
 
@@ -85,6 +88,7 @@ describe("jumping from a call activity in the definition view", () => {
     const fixture = panelFixture()
     const panel = new DefinitionPanel(fixture.context, {
       bpmnProcessId: BpmnProcessId("pulse-order"),
+      tenantId: null,
     })
 
     await panel.handle({ type: "ready" })
@@ -106,6 +110,7 @@ describe("jumping from a call activity in the definition view", () => {
     )
     const panel = new DefinitionPanel(fixture.context, {
       bpmnProcessId: BpmnProcessId("pulse-order"),
+      tenantId: null,
     })
 
     await panel.handle({ type: "ready" })

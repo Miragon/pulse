@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises"
 import { basename } from "node:path"
-import { BpmnProcessId, DefinitionId, InstanceId } from "@miragon/pulse-engine-core"
+import { BpmnProcessId, DefinitionId, InstanceId, TenantId } from "@miragon/pulse-engine-core"
 import {
   DefinitionPanel,
   EnginePanel,
@@ -51,6 +51,7 @@ export class PanelFactories {
   private static definitionTarget(spec: DefinitionSpec): DefinitionTarget {
     return {
       bpmnProcessId: BpmnProcessId(spec.bpmnProcessId),
+      ...(spec.tenantId === undefined ? {} : { tenantId: TenantId(spec.tenantId) }),
       ...(spec.definitionId === undefined ? {} : { definitionId: DefinitionId(spec.definitionId) }),
       ...(spec.filter === undefined ? {} : { filter: spec.filter }),
     }

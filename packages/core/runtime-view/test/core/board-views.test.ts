@@ -43,6 +43,7 @@ describe("the view of a board's model", () => {
     const latest = {
       id: DefinitionId("order:1"),
       bpmnProcessId: BpmnProcessId("order"),
+      tenantId: null,
       version: 1,
     }
     const model: BoardModel = {
@@ -71,7 +72,13 @@ describe("the view of a board's model", () => {
     const view = await views.of(model, SOURCE)
 
     expect(view.engines).toEqual([{ name: "gone", state: "notConfigured" }])
-    expect(view.rows[0]?.[0]).toMatchObject({ kind: "processDiagram", engine: "shop", latest })
+    const { id, bpmnProcessId, version } = latest
+    expect(view.rows[0]?.[0]).toMatchObject({
+      kind: "processDiagram",
+      engine: "shop",
+      latest: { id, bpmnProcessId, version },
+    })
+    expect(view.rows[0]?.[0]).not.toHaveProperty("latest.tenantId")
     expect(view.rows[0]?.[0]).not.toHaveProperty("diagramXml")
   })
 

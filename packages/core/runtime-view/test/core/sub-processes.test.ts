@@ -19,6 +19,7 @@ const AT = new Date("2026-10-21T09:00:00Z")
 const DEFINITION = {
   id: DefinitionId("parcel-return:1"),
   bpmnProcessId: BpmnProcessId("parcel-return"),
+  tenantId: null,
   version: 1,
 }
 
@@ -37,6 +38,7 @@ function badgesOf(statistics: readonly ElementStatistics[]) {
     engine: ENGINE,
     asOf: AT,
     bpmnProcessId: DEFINITION.bpmnProcessId,
+    tenantId: null,
     versions: [{ definition: DEFINITION, running: 3, withIncident: 1, incidents: 1 }],
     selectedDefinitionId: DEFINITION.id,
     diagramXml: parcelReturnXml,

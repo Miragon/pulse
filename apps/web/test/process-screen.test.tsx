@@ -105,7 +105,7 @@ function Filtered({
   return (
     <ProcessScreen
       engine="prod-a"
-      process="pulse-order"
+      process={{ key: "pulse-order" }}
       filter={filter}
       onFilter={(next) => {
         onFilter(next)

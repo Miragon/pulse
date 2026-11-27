@@ -120,8 +120,8 @@ export class BoardViews {
       openInstance: (engine, instanceId) => {
         this.host.open(engine, { view: "instance", instanceId })
       },
-      openDefinition: (engine, bpmnProcessId, filter) => {
-        this.host.open(engine, { view: "definition", bpmnProcessId, filter })
+      openDefinition: (engine, process, filter) => {
+        this.host.open(engine, { view: "definition", ...process, filter })
       },
       openEngine: (engine) => {
         this.host.open(engine, { view: "engine" })

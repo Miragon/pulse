@@ -3,6 +3,7 @@ import type {
   DefinitionId,
   IncidentDetails,
   InstanceId,
+  TenantId,
 } from "@miragon/pulse-engine-core"
 import type { EngineWebUi, SourceLocation } from "@miragon/pulse-runtime-view/ports"
 import type {
@@ -35,7 +36,11 @@ export interface PanelNavigator {
   openInstance(connection: Connection, instanceId: InstanceId, column: vscode.ViewColumn): void
   openDefinition(
     connection: Connection,
-    target: { readonly bpmnProcessId: BpmnProcessId; readonly definitionId?: DefinitionId },
+    target: {
+      readonly bpmnProcessId: BpmnProcessId
+      readonly tenantId?: TenantId
+      readonly definitionId?: DefinitionId
+    },
     column: vscode.ViewColumn,
   ): void
   openMigration(connection: Connection, target: MigrationTarget): void
@@ -75,8 +80,13 @@ export class VsCodePanelEffects implements PanelEffects {
     )
   }
 
-  openLatestDefinition(bpmnProcessId: BpmnProcessId, options: OpenOptions): void {
-    this.navigator.openDefinition(this.connection, { bpmnProcessId }, this.columnFor(options))
+  openLatestDefinition(
+    bpmnProcessId: BpmnProcessId,
+    options: OpenOptions,
+    tenantId?: TenantId | null,
+  ): void {
+    const target = tenantId ? { bpmnProcessId, tenantId } : { bpmnProcessId }
+    this.navigator.openDefinition(this.connection, target, this.columnFor(options))
   }
 
   openMigration(target: MigrationTarget): void {

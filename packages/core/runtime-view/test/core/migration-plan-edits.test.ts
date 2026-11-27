@@ -225,11 +225,11 @@ describe("editing a migration plan", () => {
       FITS,
       (runtime) =>
         new PatchedRuntime(runtime, {
-          listVersions: async (id) => {
+          listVersions: async (id, tenantId) => {
             if (held) {
               await gate.promise
             }
-            return runtime.listVersions(id)
+            return runtime.listVersions(id, tenantId)
           },
         }),
     )
@@ -323,10 +323,10 @@ describe("a change of the open document", () => {
       FITS,
       (runtime) =>
         new PatchedRuntime(runtime, {
-          listVersions: (id) =>
+          listVersions: (id, tenantId) =>
             failing
               ? Promise.reject(new RuntimeError("engineFailure", "the engine is down"))
-              : runtime.listVersions(id),
+              : runtime.listVersions(id, tenantId),
         }),
     )
     opened.source.text = planText(same(REVIEW))

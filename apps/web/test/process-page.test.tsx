@@ -16,8 +16,9 @@ import {
 /**
  * The page's process screen on the page (src/app.tsx, the router): a process's address shows it
  * for an engine the page's screens serve, the cockpit's view for any other; the old address of a
- * process's instances gives way to it; a filter names the entry anew and another version is a new
- * entry, which Back leaves again.
+ * process's instances gives way to it, and so does an address naming a key alone to the address of
+ * the tenant its screen shows; a filter names the entry anew and another version is a new entry,
+ * which Back leaves again.
  */
 
 afterEach(stopPage)
@@ -52,6 +53,9 @@ function server() {
         case "engine_list_engines":
           return Response.json(engineList(LIST))
         case PROCESS_SCREEN_FEED:
+          if (args?.process === "invoice") {
+            return result({ ...WORLD_SCREENS.process, tenantId: "north", webApp: null })
+          }
           return result(
             args?.version === 1
               ? { ...WORLD_SCREENS.olderVersion, webApp: null }
@@ -91,6 +95,19 @@ describe("the process screen on the page", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Order fulfillment" })).toBeTruthy()
     expect(env.browser.location.pathname).toBe("/app/engines/prod-a/processes/pulse-order")
     expect(env.browser.location.search).toBe("")
+  })
+
+  it("gives an address naming a key alone way to the tenant the screen shows, read once", async () => {
+    const env = await start("/app/engines/prod-a/processes/invoice?scope=ended", server(), VIEWS)
+    expect(await screen.findByText("prod-a · Tenant north")).toBeTruthy()
+    await settled()
+    expect(env.browser.writes.at(-1)).toMatchObject({
+      entry: "replace",
+      url: "/app/engines/prod-a/processes/invoice?tenant=north&scope=ended",
+    })
+    expect(callsOf(env.fetch, PROCESS_SCREEN_FEED)).toEqual([
+      { engine: "prod-a", process: "invoice" },
+    ])
   })
 
   it("names the entry anew with a scope, and opens another version in a new entry Back leaves", async () => {

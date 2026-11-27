@@ -11,6 +11,7 @@ export function instance(id: string, bpmnProcessId: string): InstanceSummary {
     definition: {
       id: DefinitionId(`${bpmnProcessId}:2`),
       bpmnProcessId: BpmnProcessId(bpmnProcessId),
+      tenantId: null,
       version: 2,
       name: "Order fulfillment",
     },

@@ -60,11 +60,13 @@ class Harness {
 describe("the effects of a view in Orca", () => {
   test("open other views of the same engine with the view as their origin", () => {
     const { effects, navigation } = new Harness()
-    const target = { bpmnProcessId: BpmnProcessId("order") } as unknown as MigrationTarget
+    const target = {
+      bpmnProcessId: BpmnProcessId("order"),
+    } as unknown as MigrationTarget
 
     effects.openInstance(InstanceId("i-1"))
     effects.openDefinition(BpmnProcessId("order"), DefinitionId("order:2"))
-    effects.openLatestDefinition(BpmnProcessId("order"))
+    effects.openLatestDefinition(BpmnProcessId("order"), { toSide: false })
     effects.openMigration(target)
     effects.goBack()
 

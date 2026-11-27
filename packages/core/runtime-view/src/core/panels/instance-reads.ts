@@ -53,7 +53,7 @@ export class InstanceReads {
     const [diagramXml, fullDetails, calledProcesses, modelLinks, model] = await Promise.all([
       this.context.diagrams.get(definition.id),
       this.completeDetailsOfFirstIncident(detail),
-      this.parts.jumps.calledProcessesOf(definition.id),
+      this.parts.jumps.calledProcessesOf(definition),
       this.parts.links.ofIncidents(detail.incidents),
       this.parts.links.modelOf(definition.bpmnProcessId),
     ])
