@@ -163,7 +163,9 @@ missing.
   than 500 goes to the history in chunks of 500, each id once, its count the sum of theirs, its
   page the merge of each chunk's rows up to the page's end, newest first and then by id, so a page
   takes one request per chunk; `historyIdChunk` of `C7RuntimeOptions` sets a smaller chunk, with
-  which the C7 adapter's engine suite runs the instance laws once more),
+  which the C7 adapter's engine suite runs the instance laws once more and pages six ids by one,
+  three per request: the first page of one asks each chunk for two of its three rows, as a page of
+  50 asks a chunk of 500 for 51),
   `VariableNameReader` (the variable names of a version's newest 50 instances),
   `InstanceDetailReader` (an instance's detail: `loadInstance`'s rounds without history and its path
   from the history, in parallel with its typed variables of every scope, which the inspection's

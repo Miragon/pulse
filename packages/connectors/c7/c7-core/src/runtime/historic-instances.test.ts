@@ -191,6 +191,28 @@ describe("the history's instances over more ids than one request carries", () =>
     expect(port.calls.map((call) => call.input.query.maxResults)).toStrictEqual(["2", "2"])
   })
 
+  it("asks a chunk for the rows up to the window's end, past its length, where it holds the newest", async () => {
+    const byStart = ["p1", "p2", "p3", "p4", "p5"].map((id, index) => rowAt(id, 9 - index))
+    const port = fakePort({ queryHistoricProcessInstances: historyOf(byStart) })
+
+    const rows = await readHistoricInstances(
+      port,
+      { processInstanceIds: ids },
+      { firstResult: 1, maxResults: 2 },
+      3,
+    )
+
+    expect(rows.map((row) => row.id)).toStrictEqual(["p2", "p3"])
+    expect(idsSent(port.calls)).toStrictEqual([
+      ["p1", "p2", "p3"],
+      ["p4", "p5"],
+    ])
+    expect(port.calls.map((call) => call.input.query)).toStrictEqual([
+      { firstResult: "0", maxResults: "3" },
+      { firstResult: "0", maxResults: "3" },
+    ])
+  })
+
   it("sends a window as it is while the query names no more ids than a chunk holds", async () => {
     const port = fakePort({ queryHistoricProcessInstances: () => [] })
 

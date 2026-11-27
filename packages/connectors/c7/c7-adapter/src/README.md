@@ -64,9 +64,11 @@ time on each at history level AUDIT, where the history keeps no incident: "with 
 runtime's open incidents, c7-core's rule, on every history level. The instance laws run once more
 with two instance ids per request to the history (`historyIdChunk`), fewer than the world's three
 with an incident, so the reads that send a longer list in chunks, summing their counts and merging
-their pages, meet the laws too. Camunda 7.24.0 ran there until its image left Docker Hub in
-November 2026. The reads are c7-core's `C7Runtime`, which the same read laws also run over a
-second wire, the MCP server's generated SDK, on both images
+their pages, meet the laws too. With three ids per request, the world's six instances are paged by
+one: the first page of one asks each chunk for two of its three rows, as a page of 50 asks a chunk
+of 500 for 51, and the six pages give the whole search in its order. Camunda 7.24.0 ran there until
+its image left Docker Hub in November 2026. The reads are c7-core's `C7Runtime`, which the same read
+laws also run over a second wire, the MCP server's generated SDK, on both images
 (`packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts`):
 one implementation, proven on both C7 wires.
 
