@@ -210,6 +210,19 @@ describe("an answer from 400 on shows no secret of its request", () => {
     expect(answer.contentType).toBe("text/plain; charset=utf-8")
   })
 
+  it("sends a credential no percent-encoding writes, and masks it in the answer", async () => {
+    // A lone surrogate, as a JSON profile file's \ud800 makes one, which encodeURIComponent
+    // refuses; Jackson echoes it as an escape in upper case, so only the value as it is matches.
+    const echo = '{"type":"X","message":"refused pass\\uD800word"}'
+    const { http, calls } = httpOf([textAnswer(echo, 500, "application/json")], {
+      credential: basicCredential("demo", "pass\ud800word"),
+    })
+    const answer = await http.send(GET)
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.headers.authorization).toMatch(/^Basic [A-Za-z0-9+/]+=*$/)
+    expect(decodeText(answer)).toBe('{"type":"X","message":"refused ***"}')
+  })
+
   it("keeps an error answer without secrets as it came", async () => {
     const { http } = httpOf([textAnswer("pw demo-secret", 400)])
     expect(decodeText(await http.send(GET))).toBe("pw demo-secret")

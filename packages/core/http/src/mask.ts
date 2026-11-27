@@ -25,14 +25,29 @@ function pathForm(core: string): string {
 /** `core` as a form writes it (application/x-www-form-urlencoded: `+` for a space). */
 const formForm = (core: string): string => new URLSearchParams([["", core]]).toString().slice(1)
 
-/** `text` as written and in each encoding a server may quote it in. */
-const encodingsOf = (text: string): readonly string[] => [
-  text,
-  encodeURIComponent(text),
-  JSON.stringify(text).slice(1, -1),
-  pathForm(text),
-  formForm(text),
+/** A text as written and each encoding a server may quote it in. */
+const ENCODINGS: readonly ((text: string) => string)[] = [
+  (text) => text,
+  encodeURIComponent,
+  (text) => JSON.stringify(text).slice(1, -1),
+  pathForm,
+  formForm,
 ]
+
+/**
+ * `text` as written and in each encoding a server may quote it in. An encoding that cannot write
+ * it gives no form, and the others still mask it: percent-encoding refuses a lone surrogate with
+ * a URIError, which would fail every request that carries the secret.
+ */
+function encodingsOf(text: string): readonly string[] {
+  return ENCODINGS.flatMap((encode) => {
+    try {
+      return [encode(text)]
+    } catch {
+      return []
+    }
+  })
+}
 
 /**
  * The forms of `values` a text may carry, longest first, so a value is masked whole before any
