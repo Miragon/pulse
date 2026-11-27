@@ -62,6 +62,17 @@ export class RestCamundaClient implements CamundaClient {
     )
   }
 
+  async latestOf(bpmnProcessIds: readonly string[]): Promise<readonly DefinitionView[]> {
+    const rows = await this.search.inChunks(bpmnProcessIds, (ids) =>
+      this.search.rowsAfter(
+        "/process-definitions/search",
+        { filter: { processDefinitionId: { $in: ids }, isLatestVersion: true } },
+        (json) => CamundaViews.definition(json),
+      ),
+    )
+    return rows.items
+  }
+
   versionsOf(bpmnProcessId: string): Promise<readonly DefinitionView[]> {
     return this.search.allAfter(
       "/process-definitions/search",

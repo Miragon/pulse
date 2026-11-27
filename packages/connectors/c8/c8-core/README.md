@@ -55,7 +55,10 @@ reads and gives one failure the same kind.
 - **The REST client (`src/rest`).** `RestCamundaClient` has one method per call of `/v2` the reads
   need, and `CamundaViews` checks each field of an answer, so an answer of another shape fails as
   an `UnexpectedAnswerError`. A search pages by its cursor up to 10,000 rows, a statistics read by
-  offset up to 10,000 rows, and a search over keys asks for at most 1,000 at a time. A lookup by
+  offset up to 10,000 rows, and a search over keys asks for at most 1,000 at a time, as does the
+  search for the latest versions of the processes a diagram's calls name (`latestOf`, by their
+  ids, never every process of the cluster), which sends nothing for no id, since a cluster reads
+  an empty `$in` as no condition. A lookup by
   key reads a 404 with the title `NOT_FOUND` as none, and so a key the transport refuses as a path
   value before sending it (`.`, `..`, an empty segment); any other failure fails the read.
 - **The readers (`src/reading`) and mappings (`src/mapping`).** One reader per question of the
@@ -169,9 +172,11 @@ version 1 with the counts of each scope (`expected.instanceList`, `InstanceListD
 C8 adapter and the MCP server's Camunda 8 wire build each exactly, with the figures of the recorded
 Camunda 7 screens. Its answers come from one run of their own, recorded by hand on 2026-11-20 as
 the board's, made anew with the process screens and the instance list, and with the board on
-2026-11-21, when the definitions and versions counted their open incidents: the world seeded with `C8WorldSeed` on
-`camunda/camunda:8.10.9` with H2 and no security, every screen built twice through a proxy in front
-of the cluster that keeps each request with what the cluster answers (the same answer both times),
+2026-11-21, when the definitions and versions counted their open incidents, and without the board
+on 2026-11-26, when the called processes were read by their ids (the board reads none): the world
+seeded with `C8WorldSeed` on `camunda/camunda:8.10.9` with H2 and no security, waited for until
+every screen held the kit world's figures, every screen built twice through a proxy in front of
+the cluster that keeps each request with what the cluster answers (the same answer both times),
 and once more over the kept answers on `startRecordedEngine`, with no request unanswered. So every
 key they name is that cluster's, and a screen built over them later reads the same instances and
 versions; one that reads more is recorded again with the others in one run, never joined from

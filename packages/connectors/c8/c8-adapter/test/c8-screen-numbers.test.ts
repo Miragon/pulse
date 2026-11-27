@@ -108,6 +108,15 @@ function without(path: string): C8RecordedAnswer[] {
   return C8_SCREEN_ENGINE.answers.filter((answer) => answer.path !== path)
 }
 
+function definitionSearches(engine: RecordedEngine): string[] {
+  return engine.seen
+    .filter(({ target }) => target === "/v2/process-definitions/search")
+    .map(({ body }) => JSON.stringify((JSON.parse(body) as { filter: unknown }).filter))
+    .sort()
+}
+
+const LATEST_LABEL = '{"processDefinitionId":{"$in":["pulse-label"]},"isLatestVersion":true}'
+
 function withoutCallerSearch(callerId: string): C8RecordedAnswer[] {
   return C8_SCREEN_ENGINE.answers.filter(
     (answer) =>
@@ -159,6 +168,14 @@ describe("the C8 adapter over c8-core's recorded instance screens", () => {
       expect(screen).toEqual(expectedInstance(name))
     },
   )
+
+  test("reads the latest version of the process DSP-3001 calls by its id, never every process", async () => {
+    const engine = await recordedEngine()
+
+    await instanceScreen(engine, "instance")
+
+    expect(definitionSearches(engine)).toEqual([LATEST_LABEL])
+  })
 
   test("reads one cluster: each instance screen shows a version the cluster's process list names", async () => {
     const engine = await recordedEngine()
@@ -247,6 +264,17 @@ describe("the C8 adapter over c8-core's recorded process screens and instance li
     const shown = PROCESSES.map((name) => expectedProcess(name).versions[0]?.definition.id ?? "")
     expect(shown.filter((id) => !latest.has(id))).toEqual([])
     expect(expectedList().definitionId).toBe(expectedProcess("olderVersion").selected?.id)
+  })
+
+  test("reads the latest versions of the processes a version calls by their ids, never every process", async () => {
+    const engine = await recordedEngine()
+
+    await processScreen(engine, "callingProcess")
+
+    expect(definitionSearches(engine)).toEqual([
+      '{"processDefinitionId":"pulse-dispatch"}',
+      LATEST_LABEL,
+    ])
   })
 
   test("keeps a version's screen without its statistics where their read fails, and names them", async () => {

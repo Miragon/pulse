@@ -10,6 +10,7 @@ import type { CamundaClient, DefinitionView } from "../rest/index.js"
 import type { Diagrams } from "./diagrams.js"
 
 const FEEL = "="
+const LATEST = "latest"
 
 interface ProcessCall extends CallActivityText {
   readonly processId: string
@@ -30,11 +31,13 @@ export class CalledProcessReader {
       (call): call is ProcessCall =>
         call.processId !== undefined && !call.processId.startsWith(FEEL),
     )
-    if (calls.length === 0) {
-      return []
-    }
-    const latest = await this.client.latestDefinitions()
+    const latest = await this.client.latestOf(CalledProcessReader.boundToTheLatest(calls))
     return Promise.all(calls.map((call) => this.calledBy(call, latest)))
+  }
+
+  private static boundToTheLatest(calls: readonly ProcessCall[]): readonly string[] {
+    const latest = calls.filter((call) => call.binding === LATEST)
+    return [...new Set(latest.map((call) => call.processId))]
   }
 
   private async calledBy(
@@ -53,7 +56,7 @@ export class CalledProcessReader {
     call: ProcessCall,
     latest: readonly DefinitionView[],
   ): Promise<DefinitionView | undefined> {
-    if (call.binding === "latest") {
+    if (call.binding === LATEST) {
       return latest
         .filter((definition) => definition.bpmnProcessId === call.processId)
         .toSorted((left, right) => right.version - left.version)[0]

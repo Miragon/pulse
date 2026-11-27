@@ -178,7 +178,11 @@ adapter once per process.
     it.
   - `calledFromElementId` comes from `parentElementInstanceKey`, a called process from
     `zeebe:calledElement` by its binding (latest, or its version tag; a deployment binding names
-    no definition, and a call whose process a FEEL expression decides is left out). `BpmnText`
+    no definition, and a call whose process a FEEL expression decides is left out). The latest
+    versions come from one definitions search over the ids the diagram's calls bound to the latest
+    name (`processDefinitionId` `$in`, at most 1,000 ids a search, each id once), never from every
+    latest version of the cluster (#691 F15); a diagram without such a call sends none, since a
+    cluster reads an empty `$in` as no condition at all (8.9.28 and 8.10.9 on H2). `BpmnText`
     reads the diagram as text, as the C7 family's reader does, but like an XML parser where it
     matters: self-closing elements, both quote styles, entities, and comments and CDATA removed
     until none is left, so a comment that a removal puts together hides nothing (557a4ce7). A

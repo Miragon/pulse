@@ -20,6 +20,7 @@ import type {
 export interface CamundaClient {
   topology(): Promise<TopologyView>
   latestDefinitions(): Promise<readonly DefinitionView[]>
+  latestOf(bpmnProcessIds: readonly string[]): Promise<readonly DefinitionView[]>
   versionsOf(bpmnProcessId: string): Promise<readonly DefinitionView[]>
   definition(key: string): Promise<DefinitionView | undefined>
   processStatistics(): Promise<readonly ProcessStatisticsView[]>
