@@ -8,7 +8,9 @@
  *   names no variable). Camunda 7 counts the body apart (`<id>#multiInstanceBody`), and only the
  *   token that waits at the body itself, never beside the items; the contract's counts, the chat's
  *   activity counts, the web app's process screen, a board's diagram and the incident search put
- *   the items' tokens and the body's root incident on the element of the diagram.
+ *   the items' tokens and the body's root incident on the element of the diagram, the chat's
+ *   process incidents count it there and list it on the element's page, and the incidents
+ *   dashboard counts the element once and names the body's row by it.
  * - An incident outside any process: a batch the case starts that sets the retries of a job no
  *   engine holds, so its own job fails until its retries are used up: an incident without
  *   element, instance or version, and nothing a board counts changes. The engine-wide incident
@@ -23,6 +25,11 @@ import { BpmnProcessId, DefinitionId, type ProcessRuntime } from "@miragon/pulse
 import { expect } from "vitest"
 import { buildActivityCountsData } from "../../data/activity-counts-data.js"
 import { buildBoardData } from "../../data/board-data.js"
+import { buildIncidentsDashboardData } from "../../data/incidents-dashboard-data.js"
+import {
+  buildActivityIncidentsData,
+  buildProcessIncidentsData,
+} from "../../data/process-incidents-data.js"
 import { buildProcessScreenData } from "../../data/screens/process-screen-data.js"
 import type { ResolvedEngine } from "../engine/resolve-engine.js"
 import { recordedBoard } from "./compared-boards.test-support.js"
@@ -166,6 +173,39 @@ function diagramBoard() {
   return { id: "multi", file: "multi.board.json", board: parsed.board, notes: parsed.notes }
 }
 
+/**
+ * The chat's incidents of the process and the element's page of them hold the body's root incident
+ * at the element; the incidents dashboard names the body's row by the element and counts it once.
+ */
+async function expectIncidentsOnElement(
+  engine: ResolvedEngine,
+  incident: IncidentAnswer,
+): Promise<void> {
+  const scope = {
+    baseUrl: engine.baseUrl,
+    cockpitUrl: engine.cockpitUrl,
+    provider: engine.provider,
+    processDefinitionKey: MULTI_PROCESS,
+  }
+  const [process, page, dashboard] = await Promise.all([
+    buildProcessIncidentsData(engine.client, scope),
+    buildActivityIncidentsData(engine.client, { ...scope, activityId: APPROVE_EACH }),
+    buildIncidentsDashboardData(engine.client, scope),
+  ])
+  const named = { activityName: "Approve each" }
+  expect(process.activities).toEqual([
+    expect.objectContaining({ ...named, activityId: APPROVE_EACH, incidentCount: 1 }),
+  ])
+  expect(process.affectedDiagramActivityCount).toBe(1)
+  const asRaised = { ...named, activityId: incident.activityId }
+  expect(page.totalCount).toBe(1)
+  expect(page.incidents).toEqual([expect.objectContaining({ ...asRaised, id: incident.id })])
+  expect(dashboard.processes.flatMap((card) => card.activities)).toEqual([
+    expect.objectContaining({ ...asRaised, scannedIncidentCount: 1 }),
+  ])
+  expect(dashboard.affectedActivityCount).toBe(1)
+}
+
 async function multiInstanceBodyOnItsElement(suite: ContractSuite): Promise<void> {
   const { url, runtime, resolve } = suite
   const { deploymentId, definitionId } = await deployMultiInstance(url)
@@ -208,6 +248,7 @@ async function multiInstanceBodyOnItsElement(suite: ContractSuite): Promise<void
     expect(found.items).toEqual([
       expect.objectContaining({ id: incident.id, elementId: APPROVE_EACH }),
     ])
+    await expectIncidentsOnElement(engine, incident)
   } finally {
     await call(`${url}/deployment/${deploymentId}?cascade=true`, "DELETE")
   }

@@ -234,13 +234,21 @@ missing.
   the status triage, the inspection, the retry plan, the runtime, the engine module and the C7
   adapter), the multi-instance body (`isMultiInstanceBody`, `elementOfActivity`,
   `multiInstanceBodyOf`: Camunda 7 names the scope a multi-instance activity runs its items in by
-  the activity's id with `#multiInstanceBody`, the diagram the activity alone; the one reading of
-  the runtime's counts, incidents and variable scopes, the engine module's views, the CLI's
-  `--until` check and the C7 adapter's move), the raw variable read flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a
-  port's query), the history timeline (`timelineOf`), the request that holds an incident's cause
-  (`CAUSE_OPERATIONS`, an operation id per built-in type) and the cause of a failure
-  (`causeOf(text, fallback)`: the root cause of a stack trace or error details by engine-core's
-  `RootCauses.of`, else the fallback, such as the incident's message).
+  the activity's id with `#multiInstanceBody`, the diagram the activity alone. The rule: a count,
+  a group or a badge of an element, and the contract's `elementId` (the runtime's element counts,
+  incident search and variable scopes), put the body on its element, as the CLI's `--until` check
+  does (the throughput counts the items' passes alone); a row or a cause the engine module keys on
+  the engine's id, of one failure (an incident, a job, a copy's root) or of a cluster read and
+  fixed by that id (the incidents dashboard rows, the health causes, the cluster detail), keeps
+  the body's own id and is named by its element; a read or a write that needs the body's own id
+  (an element's page of incidents, the C7 adapter's move) names it. Outside the rule, an
+  instance's detail (its wait states, incidents and path) and an incident's own element in its
+  detail name and mark the body by its own id), the raw variable read
+  flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a port's query), the history timeline
+  (`timelineOf`), the request that holds an incident's cause (`CAUSE_OPERATIONS`, an operation id
+  per built-in type) and the cause of a failure (`causeOf(text, fallback)`: the root cause of a
+  stack trace or error details by engine-core's `RootCauses.of`, else the fallback, such as the
+  incident's message).
 
 The routes come from one OpenAPI spec of the Camunda 7 REST API, Operaton's, vendored as it is and
 corrected with RFC 6902 patches: the same 399 operations as CIB seven's and Camunda 7's, which

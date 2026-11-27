@@ -1,5 +1,5 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import { isRootIncident, latestEngineDate } from "@miragon/pulse-c7-core"
+import { elementOfActivity, isRootIncident, latestEngineDate } from "@miragon/pulse-c7-core"
 import type {
   IncidentsDashboardActivity,
   IncidentsDashboardData,
@@ -101,7 +101,10 @@ export async function buildIncidentsDashboardData(
 
 /**
  * A card's root incidents by activity and incident type, the scope of the cluster a row opens, the
- * most incidents first; each group's rows newest first, as the scan reads them.
+ * most incidents first; each group's rows newest first, as the scan reads them. The activity is the
+ * engine's id the cluster reads and its fix's jobs are found by, so a multi-instance body's
+ * incidents (`<id>#multiInstanceBody`, its own job and its own failure) are a row of their own,
+ * named by the activity it repeats (`elementNameIn`).
  */
 function activityGroups(scanned: IncidentRow[]): IncidentRow[][] {
   return [...groupBy(scanned, (r) => `${r.activityId} ${r.incidentType}`).values()].sort(
@@ -142,8 +145,11 @@ function toProcess(
     runningInstances: stats.instances,
     incidentCount: stats.incidentCount,
     scannedIncidentCount: scanned.length,
-    // Activities, not their incident types: an activity failing two ways is one.
-    affectedActivityCount: fullyScanned ? new Set(activities.map((a) => a.activityId)).size : null,
+    // Elements of the diagram, not their incident types: an activity failing two ways is one, and
+    // so is one failing at its multi-instance body and its items (`elementOfActivity`).
+    affectedActivityCount: fullyScanned
+      ? new Set(activities.map((a) => elementOfActivity(a.activityId))).size
+      : null,
     latestIncident: facts.latestIncident,
     cockpitUrl: buildProcessCockpitUrl(
       ctx.options,

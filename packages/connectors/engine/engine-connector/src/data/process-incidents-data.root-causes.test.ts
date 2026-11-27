@@ -7,6 +7,7 @@ import {
   closeEnginesAfterEach,
   definitionRoutes,
   engines,
+  incidentsAt,
   KEY,
   row,
   V1,
@@ -52,18 +53,15 @@ describe("buildActivityIncidentsData: a call activity's copies are no row of its
     rootCauseIncidentId: root,
   })
 
-  async function page(routes: FakeRoutes) {
-    const engine = await startFakeEngine(
-      {
-        "GET /process-definition": {
-          body: [{ id: V2, key: KEY, name: "Leasing", version: 2 }],
-        },
-        [`GET /process-definition/${V2}/xml`]: { body: { id: V2, bpmn20Xml: CALLER_XML } },
-        "GET /incident/count": { body: { count: 4 } },
-        ...routes,
+  async function page(atCallCheck: readonly unknown[]) {
+    const routes: FakeRoutes = {
+      "GET /process-definition": {
+        body: [{ id: V2, key: KEY, name: "Leasing", version: 2 }],
       },
-      { body: [] },
-    )
+      [`GET /process-definition/${V2}/xml`]: { body: { id: V2, bpmn20Xml: CALLER_XML } },
+      ...incidentsAt({ callCheck: atCallCheck }),
+    }
+    const engine = await startFakeEngine(routes, { body: [] })
     engines.push(engine)
     const data = await buildActivityIncidentsData(clientFor(engine), {
       baseUrl: engine.baseUrl,
@@ -75,22 +73,26 @@ describe("buildActivityIncidentsData: a call activity's copies are no row of its
   }
 
   it("lists its own root incident alone, as its group counts it, reading no root of a copy", async () => {
-    const { data, requests } = await page({
-      "GET /incident": {
-        body: [copy(0, "root-a"), copy(1, "root-a"), copy(2, "root-b"), row(3, "callCheck", V1)],
-      },
-    })
+    const { data, requests } = await page([
+      copy(0, "root-a"),
+      copy(1, "root-a"),
+      copy(2, "root-b"),
+      row(3, "callCheck", V1),
+    ])
 
     expect(data.totalCount).toBe(1)
     expect(data.incidents.map((i) => [i.id, i.activityName, i.rootCause ?? null])).toEqual([
       [row(3, "callCheck", V1).id, "Check applicant", null],
     ])
     expect(requests.filter((r) => r.path.startsWith("/incident/root"))).toEqual([])
-    expect(requests.filter((r) => r.path === "/incident/count")).toEqual([])
+    // Never counted at the call activity (the count holds the copies), only at its body.
+    expect(
+      requests.filter((r) => r.path === "/incident/count").map((r) => r.query.activityId),
+    ).toEqual(["callCheck#multiInstanceBody"])
   })
 
   it("has no row where the call activity holds copies alone", async () => {
-    const { data } = await page({ "GET /incident": { body: [copy(0, "root-a")] } })
+    const { data } = await page([copy(0, "root-a")])
     expect(data).toMatchObject({ totalCount: 0, incidents: [] })
   })
 })

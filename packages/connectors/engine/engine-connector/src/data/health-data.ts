@@ -3,6 +3,7 @@ import {
   causeKeyOf,
   criticalIncidentsRule,
   DEFAULT_VERDICT_THRESHOLDS,
+  elementOfActivity,
   engineDateMillis,
   engineVerdict,
   isRootIncident,
@@ -93,7 +94,9 @@ function deriveIncidentFacts(
 /**
  * The causes and the affected activities come from the root incidents alone (`isRootIncident`): a
  * call activity's copy of a called instance's failure is that failure, not a cause or an activity
- * of its own without a message.
+ * of its own without a message. A multi-instance body's failure (`<id>#multiInstanceBody`, its own
+ * job) is a cause of its own, by the id its cluster reads, at the activity it repeats
+ * (`elementOfActivity`), which counts once with its items.
  */
 function clusterIncidents(
   roots: IncidentLike[],
@@ -104,7 +107,7 @@ function clusterIncidents(
 
   for (const inc of roots) {
     const facts = deriveIncidentFacts(inc, keyOf)
-    activitySet.add(facts.activityId)
+    activitySet.add(elementOfActivity(facts.activityId))
 
     const acc =
       byCluster.get(facts.clusterKey) ??

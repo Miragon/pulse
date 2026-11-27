@@ -62,21 +62,34 @@ export async function scanIncidents(
   return { rows, complete: rows.length < INCIDENT_SCAN_LIMIT }
 }
 
-/** Rows per request of a whole read (`readAllIncidents`), the size c7-core's whole reads take. */
+/** Rows per request of {@link readIncidents} at most, the size c7-core's whole reads take. */
 const WHOLE_READ_PAGE = 500
 
+/** Which rows of a list a read asks for: `size` of them from its row `first` (0-based). */
+export interface RowWindow {
+  first: number
+  size: number
+}
+
+/** Every row of a list. */
+const WHOLE: RowWindow = { first: 0, size: Number.POSITIVE_INFINITY }
+
 /**
- * EVERY open incident `filter` finds, newest first, page by page until a shorter page: for a view
- * that must tell a call activity's copies from its root incidents exactly (an activity's page at a
- * call activity), the named exception to "never a scan", since the read is whole and never a
- * capped page. Primary: a failed page fails the read.
+ * The open incidents `filter` finds, newest first, in `window` (EVERY one by default), page by page
+ * of at most {@link WHOLE_READ_PAGE} rows until the window is full or a page comes back shorter, so
+ * no request asks more, however deep the window starts. Whole, for a view that must tell a call
+ * activity's copies from its root incidents exactly (an activity's page at a call activity): the
+ * named exception to "never a scan", since the read is whole and never a capped page. Primary: a
+ * failed page fails the read.
  */
-export async function readAllIncidents(
+export async function readIncidents(
   client: Client,
   filter: { processDefinitionKeyIn: string; activityId: string },
+  window: RowWindow = WHOLE,
 ): Promise<IncidentRow[]> {
   const rows: IncidentRow[] = []
-  for (;;) {
+  while (rows.length < window.size) {
+    const maxResults = Math.min(WHOLE_READ_PAGE, window.size - rows.length)
     const page = rowsOf<IncidentRow>(
       await getIncidents({
         client,
@@ -84,14 +97,15 @@ export async function readAllIncidents(
           ...filter,
           sortBy: "incidentTimestamp",
           sortOrder: "desc",
-          firstResult: rows.length,
-          maxResults: WHOLE_READ_PAGE,
+          firstResult: window.first + rows.length,
+          maxResults,
         },
       }),
     )
     rows.push(...page)
-    if (page.length < WHOLE_READ_PAGE) return rows
+    if (page.length < maxResults) break
   }
+  return rows
 }
 
 export function groupBy<T>(rows: T[], by: (r: T) => string): Map<string, T[]> {

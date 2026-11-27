@@ -15,6 +15,7 @@ import {
   definitionRoutes,
   diagram,
   engines,
+  incidentsAt,
   KEY,
   row,
   V1,
@@ -230,8 +231,13 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
   it("pages engine-side with the exact total and links each row to its own version", async () => {
     const engine = await startFakeEngine({
       ...latestDiagram(),
-      "GET /incident": { body: [row(0, "assess", V1)] },
-      "GET /incident/count": { body: { count: 57 } },
+      // The page the engine answers at the activity, wherever it starts; none at its body.
+      "GET /incident": (r: RecordedRequest) => ({
+        body: r.query.activityId === "assess" ? [row(0, "assess", V1)] : [],
+      }),
+      "GET /incident/count": (r: RecordedRequest) => ({
+        body: { count: r.query.activityId === "assess" ? 57 : 0 },
+      }),
     })
     engines.push(engine)
 
@@ -263,10 +269,11 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
       ]),
     )
     // No statistics per expanded group: the key's latest diagram (which names the element and
-    // tells no call activity), the page, its count and the page's business keys, ONE read (#322
-    // U13).
+    // tells no call activity), the page, its count, its multi-instance body's count (none) and the
+    // page's business keys, ONE read (#322 U13).
     expect(engine.requests.map((r) => r.path).sort()).toEqual([
       "/incident",
+      "/incident/count",
       "/incident/count",
       "/process-definition",
       `/process-definition/${V2}/xml`,
@@ -284,11 +291,7 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
     )
     const engine = await startFakeEngine({
       ...latestDiagram(),
-      "GET /incident": (r: RecordedRequest) => {
-        const first = Number(r.query.firstResult ?? 0)
-        return { body: listed.slice(first, first + Number(r.query.maxResults ?? listed.length)) }
-      },
-      "GET /incident/count": { body: { count: listed.length } },
+      ...incidentsAt({ callCheck: listed }),
     })
     engines.push(engine)
 
@@ -304,7 +307,8 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
     expect(data.totalCount).toBe(23)
     expect(data.incidents.map((i) => i.id)).toEqual(roots.slice(20).map((r) => r.id))
     expect(data.incidents.every((i) => i.rootIncidentId === null)).toBe(true)
-    // Whole, in pages of 500 from the first, never the engine's count (which counts the copies).
+    // Whole, in pages of 500 from the first, never the engine's count at the call activity (which
+    // counts the copies); only its multi-instance body's, which holds none.
     expect(queriesOf(engine.requests, "/incident")).toEqual([
       {
         processDefinitionKeyIn: KEY,
@@ -315,20 +319,21 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
         maxResults: "500",
       },
     ])
-    expect(queriesOf(engine.requests, "/incident/count")).toEqual([])
+    expect(queriesOf(engine.requests, "/incident/count")).toEqual([
+      { processDefinitionKeyIn: KEY, activityId: "callCheck#multiInstanceBody" },
+    ])
   })
 
   it("reads an activity whole where the latest diagram cannot tell a call activity", async () => {
     const page = async (routes: FakeRoutes, activityId: string) => {
       const engine = await startFakeEngine({
         ...latestDiagram(),
-        "GET /incident": {
-          body: [
+        ...incidentsAt({
+          [activityId]: [
             row(0, activityId, V1),
             { ...row(1, activityId, V1), incidentMessage: null, rootCauseIncidentId: "called-1" },
           ],
-        },
-        "GET /incident/count": { body: { count: 2 } },
+        }),
         ...routes,
       })
       engines.push(engine)
@@ -338,7 +343,11 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
         processDefinitionKey: KEY,
         activityId,
       })
-      return { data, counted: queriesOf(engine.requests, "/incident/count").length }
+      // Counted at the activity itself never; only at its multi-instance body, which holds none.
+      const counted = queriesOf(engine.requests, "/incident/count").filter(
+        (query) => query.activityId === activityId,
+      )
+      return { data, counted: counted.length }
     }
 
     // An element only an older version has, and a diagram that cannot be read.
@@ -371,15 +380,13 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
   it("names each row by its instance's business key, and degrades to none", async () => {
     const engine = await startFakeEngine({
       ...latestDiagram(),
-      "GET /incident": { body: [row(0, "assess", V1), row(1, "assess", V1)] },
-      "GET /incident/count": { body: { count: 2 } },
+      ...incidentsAt({ assess: [row(0, "assess", V1), row(1, "assess", V1)] }),
       "GET /process-instance": { body: [{ id: "pi-assess-0", businessKey: "LEA-7" }] },
     })
     engines.push(engine)
     const broken = await startFakeEngine({
       ...latestDiagram(),
-      "GET /incident": { body: [row(0, "assess", V1)] },
-      "GET /incident/count": { body: { count: 1 } },
+      ...incidentsAt({ assess: [row(0, "assess", V1)] }),
       "GET /process-instance": { status: 500, body: { message: "boom" } },
     })
     engines.push(broken)
@@ -409,8 +416,7 @@ describe("buildActivityIncidentsData: one page of an activity's incidents (N67)"
     const uuid = "6f1c2a9e-0b7d-4c33-9a51-3d2e8f40b7aa"
     const engine = await startFakeEngine({
       ...latestDiagram(longKey, uuid),
-      "GET /incident": { body: [row(0, "assess", uuid)] },
-      "GET /incident/count": { body: { count: 1 } },
+      ...incidentsAt({ assess: [row(0, "assess", uuid)] }),
     })
     engines.push(engine)
 

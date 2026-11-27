@@ -1,5 +1,6 @@
 import type { Client } from "@miragon/pulse-c7-client"
 import { getProcessDefinitionStatistics, getProcessDefinitions } from "@miragon/pulse-c7-client/sdk"
+import { elementOfActivity } from "@miragon/pulse-c7-core"
 import {
   bpmnProcessNameOf,
   readBpmnNames,
@@ -159,12 +160,18 @@ export function processNameIn(
   return model && key ? bpmnProcessNameOf(model, key) : null
 }
 
+/**
+ * The name `definitionId`'s diagram gives the element an engine id stands for: a multi-instance
+ * body's id (`<id>#multiInstanceBody`, which the diagram does not draw) by the activity it repeats
+ * (`elementOfActivity`). Null where the diagram is unread or names none, so the id stands in.
+ */
 export function elementNameIn(
   names: NamesByDefinition,
   definitionId: string | null | undefined,
-  elementId: string | null | undefined,
+  activityId: string | null | undefined,
 ): string | null {
   const elements = definitionId ? names.get(definitionId)?.elements : undefined
+  const elementId = activityId ? elementOfActivity(activityId) : undefined
   return elements && elementId && Object.hasOwn(elements, elementId) ? elements[elementId] : null
 }
 
