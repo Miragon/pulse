@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest"
 import type { Client } from "@miragon/pulse-c7-client"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
-import { createCallerCache, createOwnerCache, dropAfterWrite, oneAtATime } from "./per-engine.js"
+import { EngineRequestError } from "./engine-error.js"
+import {
+  createCallerCache,
+  createHeldCache,
+  createOwnerCache,
+  dropAfterWrite,
+  oneAtATime,
+} from "./per-engine.js"
 
 // A stand-in engine client: what the module keeps per engine keys on its interceptors.
 const engineClient = () => ({ interceptors: {} }) as unknown as Client
@@ -125,6 +132,78 @@ describe("dropAfterWrite", () => {
     open.resolve()
     expect(await before).toBe(1)
     expect(await cache(owner, "a", read)).toBe(2)
+  })
+})
+
+describe("createHeldCache", () => {
+  /** A read the test answers: how often it was asked, and the answer of each ask. */
+  function reads() {
+    const asked: ReturnType<typeof deferred>[] = []
+    const read = async () => {
+      const answer = deferred()
+      asked.push(answer)
+      await answer.promise
+      return asked.length
+    }
+    return { asked, read }
+  }
+
+  it("takes a released read off the cache: the next call reads anew, a sharer still waits on it, its answer is kept nowhere", async () => {
+    const cache = createHeldCache<number>({ maxEntries: 8 })
+    const owner = {}
+    const { asked, read } = reads()
+    const cut = cache(owner, "a", read)
+    const sharer = cache(owner, "a", read)
+    cut.release()
+    const next = cache(owner, "a", read)
+    expect(asked).toHaveLength(2)
+
+    asked[0]?.resolve()
+    asked[1]?.resolve()
+    expect([await cut.read, await sharer.read, await next.read]).toEqual([2, 2, 2])
+    expect(await cache(owner, "a", read).read).toBe(2)
+    expect(asked).toHaveLength(2)
+  })
+
+  it("leaves a newer read in place when a call releases one the cache no longer holds", async () => {
+    const cache = createHeldCache<number>({ maxEntries: 8 })
+    const owner = {}
+    const { asked, read } = reads()
+    const first = cache(owner, "a", read)
+    const sharer = cache(owner, "a", read)
+    first.release()
+    const second = cache(owner, "a", read)
+    sharer.release()
+    first.release()
+    asked.forEach((answer) => answer.resolve())
+    expect(await second.read).toBe(2)
+    expect(await cache(owner, "a", read).read).toBe(2)
+    expect(asked).toHaveLength(2)
+  })
+
+  it("releases the read a sharer took again after the call that started its first was cancelled", async () => {
+    const cache = createHeldCache<number>({ maxEntries: 8 })
+    const owner = {}
+    const { asked, read } = reads()
+    const leaving = cache(owner, "a", () =>
+      Promise.reject(
+        new EngineRequestError("cancelled", {
+          kind: "cancelled",
+          engineMessage: "the caller went away",
+          engineId: "e",
+        }),
+      ),
+    )
+    const sharer = cache(owner, "a", read)
+    await expect(leaving.read).rejects.toMatchObject({ kind: "cancelled" })
+    await tick()
+    expect(asked).toHaveLength(1)
+
+    sharer.release()
+    const next = cache(owner, "a", read)
+    expect(asked).toHaveLength(2)
+    asked.forEach((answer) => answer.resolve())
+    expect([await sharer.read, await next.read]).toEqual([2, 2])
   })
 })
 

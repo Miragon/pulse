@@ -10,10 +10,19 @@
  * no profile carries shows not configured, an engine that fails to say what it is shows failed
  * with the failure of that read, as does one whose definitions read fails as misconfigured (a
  * Camunda 8 cluster without secondary storage: the board builder's rule), and any other failed
- * read leaves its number out, never 0.
+ * read leaves its number out, never 0. Each engine gets BOARD_ENGINE_DEADLINE_MS from the start of
+ * the build (the builder's deadline per engine): an engine that has not answered by then fails as
+ * unreachable, or shows its numbers not read, and the others' tiles read on time.
  *
- * A build is kept per caller and board for BOARD_FLOOR_MS (`createOwnerCache`), its `asOf` the
- * start of its reads, but never one that missed a read or holds an undecided reading. A build the
+ * Each read of a build is kept per engine on a floor of its own (`board-floor.ts`), so the next
+ * build within BOARD_FLOOR_MS reads only what this one missed, and the build's `asOf` is its own
+ * start, or, when earlier, the start of the oldest read it took from the floor. A read the deadline
+ * cut leaves that floor as the build ends (`leaveFloor`), whether or not the call's signal aborts
+ * it: the next build asks that engine anew while the others answer from the floor, and only a build
+ * that overlaps it shares it. A build is kept per caller and board for BOARD_FLOOR_MS
+ * (`createOwnerCache`), but never one that missed a read, one whose read was still out when the
+ * build ended, one that holds an undecided reading or one that took an answer an earlier build
+ * read: the floor of its reads answers the next call, so no number outlives its floor. A build the
  * caller cancelled fails, so a call that shared it reads again.
  */
 
@@ -38,10 +47,16 @@ import {
   UnknownEngineError,
 } from "../lib/engine/resolve-engine.js"
 import type { BoardStartData } from "../view-models.board.js"
-import { boardReadsOf, type ReadLog, refusedReads } from "./board-reads.js"
+import {
+  BOARD_FLOOR_MS,
+  BOARD_READ_FLOORS,
+  type BoardReadFloors,
+  NO_FLOORS,
+} from "./board-floor.js"
+import { boardReadsOf, leaveFloor, newReadLog, type ReadLog, refusedReads } from "./board-reads.js"
 
-/** How long a build answers for its caller and board: the floor under a board's engine load. */
-export const BOARD_FLOOR_MS = 30_000
+/** How long each engine of a board has to answer its reads, from the start of the build. */
+export const BOARD_ENGINE_DEADLINE_MS = 15_000
 
 /** Builds kept per board: one per caller; past it the least recently used goes. */
 const BOARD_CACHE_ENTRIES = 64
@@ -105,9 +120,14 @@ function failureOf(error: unknown): FailureData {
 }
 
 /** What the board builder reads of the engine `name`: its reads, a refusal, or nothing. */
-function sourceOf(name: string, resolve: BoardEngineResolver, log: ReadLog): EngineSource {
+function sourceOf(
+  name: string,
+  resolve: BoardEngineResolver,
+  log: ReadLog,
+  floors: BoardReadFloors,
+): EngineSource {
   try {
-    return { name, reads: boardReadsOf(resolve(name), log) }
+    return { name, reads: boardReadsOf(resolve(name), log, floors) }
   } catch (error) {
     if (error instanceof EngineProfileRefusedError) return { name, reads: refusedReads(error) }
     if (error instanceof UnknownEngineError) return { name }
@@ -122,26 +142,38 @@ const hasUndecidedReading = (model: BoardModel): boolean =>
 
 interface BoardBuild {
   readonly data: BoardStartData
-  /** Every read answered and every reading decided: only such a build is kept. */
+  /** Every read its own, answered in time, and every reading decided: only such a build is kept. */
   readonly complete: boolean
 }
 
-async function buildBoard(entry: EngineBoard, resolve: BoardEngineResolver): Promise<BoardBuild> {
-  const asOf = new Date().toISOString()
-  const log: ReadLog = { failed: false }
-  const sources = entry.board.engines.map((name) => sourceOf(name, resolve, log))
-  const model = await BoardBuilder.build(entry.board, sources)
+/** Whether every read of the build started with it, answered in time, and none failed. */
+const answeredAll = (log: ReadLog, started: number): boolean =>
+  log.out.size === 0 && !log.failed && (log.oldest ?? started) >= started
+
+async function buildBoard(
+  entry: EngineBoard,
+  resolve: BoardEngineResolver,
+  floors: BoardReadFloors,
+): Promise<BoardBuild> {
+  const started = Date.now()
+  const log = newReadLog()
+  const sources = entry.board.engines.map((name) => sourceOf(name, resolve, log, floors))
+  const model = await BoardBuilder.build(entry.board, sources, {
+    engineDeadlineMs: BOARD_ENGINE_DEADLINE_MS,
+  }).finally(() => leaveFloor(log))
   if (log.cancelled !== undefined) throw log.cancelled
   const data = BoardJson.of(model, { failureOf, notes: entry.notes })
-  return { data: { ...data, asOf }, complete: !log.failed && !hasUndecidedReading(model) }
+  const asOf = new Date(Math.min(started, log.oldest ?? started)).toISOString()
+  const complete = answeredAll(log, started) && !hasUndecidedReading(model)
+  return { data: { ...data, asOf }, complete }
 }
 
-/** The board `entry` built now, over the engines its file names. */
+/** The board `entry` built now, over the engines its file names, each of its reads made now. */
 export async function buildBoardData(
   entry: EngineBoard,
   resolve: BoardEngineResolver,
 ): Promise<BoardStartData> {
-  return (await buildBoard(entry, resolve)).data
+  return (await buildBoard(entry, resolve, NO_FLOORS)).data
 }
 
 const boards = createOwnerCache<BoardBuild>({
@@ -151,10 +183,13 @@ const boards = createOwnerCache<BoardBuild>({
   keep: ({ complete }) => complete,
 })
 
-/** The board `entry` for this caller: a build of the last BOARD_FLOOR_MS, else one built now. */
+/**
+ * The board `entry` for this caller: a build of the last BOARD_FLOOR_MS, else one built now over
+ * the reads of each engine kept as long (`BOARD_READ_FLOORS`).
+ */
 export async function cachedBoardData(
   entry: EngineBoard,
   resolve: BoardEngineResolver,
 ): Promise<BoardStartData> {
-  return (await boards(entry, entry.id, () => buildBoard(entry, resolve))).data
+  return (await boards(entry, entry.id, () => buildBoard(entry, resolve, BOARD_READ_FLOORS))).data
 }

@@ -11,7 +11,7 @@
  * kept, and neither is an answer `keep` refuses (one an enrichment is missing from).
  */
 
-import { createOwnerCache, engineClientKey } from "../../lib/engine/per-engine.js"
+import { createOwnerCache, runtimeEngineKey } from "../../lib/engine/per-engine.js"
 import type { RuntimeEngine } from "../../lib/engine/resolve-engine.js"
 
 /** How long a screen's read answers again for the same caller and arguments. */
@@ -27,11 +27,6 @@ export type ScreenFloor<T> = (
   read: () => Promise<T>,
 ) => Promise<T>
 
-/** What the module keeps per engine keys on: a Camunda 7 client's interceptors, else its backend. */
-function ownerOf(engine: RuntimeEngine): object {
-  return "client" in engine ? engineClientKey(engine.client) : engine.backend
-}
-
 /** A floor for one feed's answers, `keep` deciding which answers stay for the floor. */
 export function screenFloor<T>(keep: (value: T) => boolean = () => true): ScreenFloor<T> {
   const cached = createOwnerCache<T>({
@@ -40,5 +35,5 @@ export function screenFloor<T>(keep: (value: T) => boolean = () => true): Screen
     now: () => Date.now(),
     keep,
   })
-  return (engine, args, read) => cached(ownerOf(engine), JSON.stringify(args), read)
+  return (engine, args, read) => cached(runtimeEngineKey(engine), JSON.stringify(args), read)
 }
