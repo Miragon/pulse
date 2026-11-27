@@ -5,6 +5,7 @@ import {
   elementOfActivity,
   type ProcessStatistics,
   statisticsByKey,
+  statisticsByProcess,
 } from "@miragon/pulse-c7-core"
 import {
   bpmnProcessNameOf,
@@ -18,7 +19,8 @@ import { readStatistics } from "./statistics-floor.js"
 export { fetchDefinitionXml }
 
 // A key spans every deployed version (old ones keep running after a redeploy):
-// a view about a key sums over all of them; only a diagram is one version.
+// a view about a key sums over all of them; only a diagram is one version. A process is a key in
+// one tenant (`cockpit-process.ts`): a view of one sums over its versions in that tenant.
 
 export interface DefinitionInfo {
   id: string
@@ -65,8 +67,10 @@ function toDefinitionInfo(raw: RawDefinition, key: string): DefinitionInfo {
 }
 
 /**
- * Over EVERY tenant. `GET /process-definition/key/{key}` finds only tenant-less
- * definitions, so a tenant deployment would read as unknown.
+ * Over EVERY tenant, for a list a key filters (its instances, its jobs), which spans every tenant:
+ * whether the key is deployed and its name. A view of one process reads its tenant's latest
+ * (`readCockpitProcess`, every tenant's latest). `GET /process-definition/key/{key}` finds only
+ * tenant-less definitions, so a tenant deployment would read as unknown.
  */
 async function findLatestDefinition(client: Client, key: string): Promise<DefinitionInfo | null> {
   const [latest] = rowsOf<RawDefinition>(
@@ -94,6 +98,17 @@ export interface DefinitionVersion extends DefinitionInfo {
   tenantId: string | null
 }
 
+/** The versions of a key the engine answers, each with its history's time to live and tenant. */
+function toDefinitionVersions(rows: readonly RawDefinition[], key: string): DefinitionVersion[] {
+  return rows
+    .filter((row) => !!row.id)
+    .map((row) => ({
+      ...toDefinitionInfo(row, key),
+      historyTimeToLive: typeof row.historyTimeToLive === "number" ? row.historyTimeToLive : null,
+      tenantId: row.tenantId || null,
+    }))
+}
+
 /**
  * Every deployed version of a key over every tenant, newest first, uncapped: a view that sums per
  * version reads them all, and only the key's own versions (never the engine-wide statistics).
@@ -105,13 +120,25 @@ export async function fetchDefinitionVersions(
   const rows = rowsOf<RawDefinition>(
     await getProcessDefinitions({ client, query: { key, sortBy: "version", sortOrder: "desc" } }),
   )
-  return rows
-    .filter((row) => !!row.id)
-    .map((row) => ({
-      ...toDefinitionInfo(row, key),
-      historyTimeToLive: typeof row.historyTimeToLive === "number" ? row.historyTimeToLive : null,
-      tenantId: row.tenantId ?? null,
-    }))
+  return toDefinitionVersions(rows, key)
+}
+
+/**
+ * The latest version of a key in each tenant, newest first: `latestVersion=true`, which Camunda 7
+ * answers per tenant (the process without one included), uncapped, since a key has a row per
+ * tenant; on an engine without tenants the one row the latest read always asked for.
+ */
+export async function fetchLatestVersions(
+  client: Client,
+  key: string,
+): Promise<DefinitionVersion[]> {
+  const rows = rowsOf<RawDefinition>(
+    await getProcessDefinitions({
+      client,
+      query: { key, latestVersion: true, sortBy: "version", sortOrder: "desc" },
+    }),
+  )
+  return toDefinitionVersions(rows, key)
 }
 
 /**
@@ -212,11 +239,16 @@ export async function nameUnnamedDefinitions<T extends NameableDefinition>(
   return definitions
 }
 
+/** A version read by its id, with its tenant (null: none). */
+export interface DefinitionById extends DefinitionInfo {
+  tenantId: string | null
+}
+
 /** ONE read for the whole set; propagates, so enrichment callers wrap it in `optional(...)`. */
 export async function fetchDefinitionsById(
   client: Client,
   definitionIds: Iterable<string | null | undefined>,
-): Promise<Map<string, DefinitionInfo>> {
+): Promise<Map<string, DefinitionById>> {
   const ids = [...new Set([...definitionIds].filter((id): id is string => !!id))]
   if (ids.length === 0) return new Map()
   const rows = rowsOf<RawDefinition>(
@@ -228,7 +260,13 @@ export async function fetchDefinitionsById(
   return new Map(
     rows
       .filter((row): row is RawDefinition & { id: string } => !!row.id)
-      .map((row) => [row.id, toDefinitionInfo(row, row.key ?? definitionKeyInId(row.id) ?? "")]),
+      .map((row) => [
+        row.id,
+        {
+          ...toDefinitionInfo(row, row.key ?? definitionKeyInId(row.id) ?? ""),
+          tenantId: row.tenantId || null,
+        },
+      ]),
   )
 }
 
@@ -288,6 +326,28 @@ export function foldStatsByKey(
   return new Map(
     [...statisticsByKey(rows, incidentType)].map(([key, process]) => [key, keyStatsOf(process)]),
   )
+}
+
+/** A process's statistics, a key in one tenant: its versions' as a key's, and its tenant. */
+interface ProcessStats extends KeyStats {
+  key: string
+  /** The tenant its versions are deployed in; null for none. */
+  tenantId: string | null
+}
+
+/**
+ * The statistics per process, a key in one tenant (c7-core's `statisticsByProcess`), in the order
+ * the engine first lists each; its latest version is its tenant's newest, never another tenant's.
+ */
+export function foldStatsByProcess(
+  rows: readonly DefinitionStatisticsRow[],
+  incidentType?: string,
+): ProcessStats[] {
+  return statisticsByProcess(rows, incidentType).map((process) => ({
+    ...keyStatsOf(process),
+    key: process.key,
+    tenantId: process.tenantId,
+  }))
 }
 
 /** An id missing from the statistics (deployed since) falls back to the key it names; a bare one is null, never a UUID. */

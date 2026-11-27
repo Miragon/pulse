@@ -115,6 +115,7 @@ function EngineRoute({
         <ProcessDefinitionView
           data={seedOf(seed, "process-detail")}
           processDefinitionKey={view.processDefinitionKey}
+          tenantId={view.tenantId}
           engine={engine}
           focus={view.focus}
           title={title}
@@ -125,6 +126,7 @@ function EngineRoute({
         <ProcessInstancesWidget
           data={seedOf(seed, "process-instances")}
           processDefinitionKey={view.processDefinitionKey}
+          onlyTenant={view.onlyTenant}
           engine={engine}
         />
       )
@@ -152,6 +154,7 @@ function EngineRoute({
           data={seedOf(seed, "jobs")}
           engine={engine}
           processDefinitionKey={view.processDefinitionKey}
+          onlyTenant={view.onlyTenant}
           failedOnly={view.failedOnly}
         />
       )

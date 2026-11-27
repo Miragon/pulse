@@ -24,9 +24,11 @@ import {
   elementNameIn,
   fetchDefinitionXml,
   fetchNamesByDefinition,
+  type NamesByDefinition,
   processNameIn,
   resolveDefinitionKeys,
 } from "./definition-info.js"
+import { clusterProcessOf } from "./cluster-process.js"
 import { countOf, optional, rowsOf } from "./engine-reads.js"
 import { fetchBusinessKeys, isOnOrAfter } from "./incident-scan.js"
 
@@ -46,42 +48,18 @@ export type ClusterDetailArgs = ClusterDetailFilters & PagingArgs
  * cluster gets drilled into) its length is no total: counts come from `/incident/count`, which
  * counts a call activity's copies too, so only without a message filter, where the scan holds no
  * copy and the cluster's element is no call activity on its newest root incident's diagram (read
- * through the one XML cache, as its names are; `countableAt`), else they are null.
+ * through the one XML cache, as its names are; `countableAt`), else they are null. The process it
+ * lies in, which its View process opens, is its key's in its versions' tenant (`clusterProcessOf`).
  */
 export async function buildClusterDetailData(
   client: Client,
   engineId: string,
   args: ClusterDetailArgs,
 ): Promise<ClusterDetailData> {
-  // Primary fetch: failures propagate as tool errors (no silent []).
-  const [incidentsRaw, searchHitsRaw] = await Promise.all([
-    getIncidents({
-      client,
-      query: {
-        activityId: args.activityId,
-        incidentType: args.incidentType,
-        maxResults: CLUSTER_SCAN_LIMIT,
-        sortBy: "incidentTimestamp",
-        sortOrder: "desc",
-      },
-    }).then((rows) => rowsOf<IncidentLike>(rows)),
-    args.businessKeyLike
-      ? getProcessInstances({
-          client,
-          query: {
-            businessKeyLike: engineLike(args.businessKeyLike),
-            maxResults: CLUSTER_SCAN_LIMIT,
-          },
-        }).then((rows) => rowsOf<{ id?: string | null }>(rows))
-      : Promise.resolve(null),
-  ])
-
+  const { incidentsRaw, searchHitsRaw } = await readClusterScan(client, args)
   const coverage = scanCoverage(incidentsRaw)
   const roots = incidentsRaw.filter(isRootIncident)
-  const matching =
-    args.messageSignature === undefined
-      ? roots
-      : roots.filter((i) => messageSignature(i.incidentMessage ?? null) === args.messageSignature)
+  const matching = withSignature(roots, args.messageSignature)
 
   const listed = filterToSearch(matching, args.businessKeyLike, searchHitsRaw)
 
@@ -90,9 +68,7 @@ export async function buildClusterDetailData(
   // Paging slices the listed set in memory: the signature/business-key filters
   // are resolved here, so an engine offset would change semantics.
   // `scannedIncidentCount` discloses that the list is bounded by the scan.
-  const first = Math.max(0, args.firstResult ?? 0)
-  const pageSize = args.maxResults ?? LIST_PAGE_SIZE
-  const page = listed.slice(first, first + pageSize)
+  const page = pageOf(listed, args)
 
   const [counts, businessKeyById, keyOf, names] = await Promise.all([
     clusterCounts(client, args, {
@@ -125,15 +101,6 @@ export async function buildClusterDetailData(
     (i.processDefinitionId ? keyOf(i.processDefinitionId) : null) ?? UNKNOWN
   const kpis = aggregateClusterKpis(matching, defKey)
 
-  const incidents: ClusterIncidentRow[] = page.map((i) => ({
-    incidentId: i.id ?? "",
-    processInstanceId: i.processInstanceId ?? "",
-    businessKey: i.processInstanceId ? (businessKeyById.get(i.processInstanceId) ?? null) : null,
-    processDefinitionKey: defKey(i),
-    processDefinitionName: processNameIn(names, i.processDefinitionId, defKey(i)),
-    incidentTimestamp: i.incidentTimestamp ?? "",
-  }))
-
   return {
     activityId: args.activityId,
     activityName: elementNameIn(names, matching[0]?.processDefinitionId, args.activityId),
@@ -144,14 +111,77 @@ export async function buildClusterDetailData(
     // Its oldest row is the cluster's first only when the scan holds the whole cluster.
     firstSeen: coverage.complete ? earliestEngineDate(kpis.timestamps) : null,
     latestIncident: latestEngineDate(kpis.timestamps),
-    processDefinitionKeys: [...kpis.defCounts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([k]) => k),
+    processDefinitionKeys: kpis.keys,
+    process: await clusterProcessOf(client, matching, defKey),
     representativeMessage: truncateMessage(matching[0]?.incidentMessage ?? null, 600),
-    incidents,
+    incidents: page.map((i) => clusterRowOf(i, { businessKeyById, defKey, names })),
     totalMatching: listed.length,
     fetchedAt: new Date(nowMs).toISOString(),
     engineId,
+  }
+}
+
+/** The root incidents of the message signature `signature`; every one without. */
+function withSignature(roots: IncidentLike[], signature: string | undefined): IncidentLike[] {
+  return signature === undefined
+    ? roots
+    : roots.filter((i) => messageSignature(i.incidentMessage ?? null) === signature)
+}
+
+/** The page of `listed` the paging asks for. */
+function pageOf(listed: IncidentLike[], args: PagingArgs): IncidentLike[] {
+  const first = Math.max(0, args.firstResult ?? 0)
+  return listed.slice(first, first + (args.maxResults ?? LIST_PAGE_SIZE))
+}
+
+/**
+ * The cluster's scan (primary: failures propagate as tool errors, no silent []), its activity and
+ * type newest first, and the instances a business-key search names.
+ */
+async function readClusterScan(client: Client, args: ClusterDetailArgs) {
+  const [incidentsRaw, searchHitsRaw] = await Promise.all([
+    getIncidents({
+      client,
+      query: {
+        activityId: args.activityId,
+        incidentType: args.incidentType,
+        maxResults: CLUSTER_SCAN_LIMIT,
+        sortBy: "incidentTimestamp",
+        sortOrder: "desc",
+      },
+    }).then((rows) => rowsOf<IncidentLike>(rows)),
+    args.businessKeyLike
+      ? getProcessInstances({
+          client,
+          query: {
+            businessKeyLike: engineLike(args.businessKeyLike),
+            maxResults: CLUSTER_SCAN_LIMIT,
+          },
+        }).then((rows) => rowsOf<{ id?: string | null }>(rows))
+      : Promise.resolve(null),
+  ])
+  return { incidentsRaw, searchHitsRaw }
+}
+
+/** A row of the cluster's list: its instance by its business key, its process by its name. */
+function clusterRowOf(
+  i: IncidentLike,
+  read: {
+    businessKeyById: ReadonlyMap<string, string | null>
+    defKey: (incident: IncidentLike) => string
+    names: NamesByDefinition
+  },
+): ClusterIncidentRow {
+  const key = read.defKey(i)
+  return {
+    incidentId: i.id ?? "",
+    processInstanceId: i.processInstanceId ?? "",
+    businessKey: i.processInstanceId
+      ? (read.businessKeyById.get(i.processInstanceId) ?? null)
+      : null,
+    processDefinitionKey: key,
+    processDefinitionName: processNameIn(read.names, i.processDefinitionId, key),
+    incidentTimestamp: i.incidentTimestamp ?? "",
   }
 }
 
@@ -204,19 +234,21 @@ function matchesLikeParts(id: string, parts: readonly string[]): boolean {
   return true
 }
 
+/** The cluster's timestamps, and its keys, the most affected first. */
 function aggregateClusterKpis(
   matching: IncidentLike[],
   keyOf: (incident: IncidentLike) => string,
 ): {
   timestamps: Array<string | null | undefined>
-  defCounts: Map<string, number>
+  keys: string[]
 } {
   const defCounts = new Map<string, number>()
   for (const inc of matching) {
     const defKey = keyOf(inc)
     defCounts.set(defKey, (defCounts.get(defKey) ?? 0) + 1)
   }
-  return { timestamps: matching.map((inc) => inc.incidentTimestamp), defCounts }
+  const keys = [...defCounts.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k)
+  return { timestamps: matching.map((inc) => inc.incidentTimestamp), keys }
 }
 
 type ClusterWindowCounts = Pick<ClusterDetailData, "incidentCount" | "lastHourCount">

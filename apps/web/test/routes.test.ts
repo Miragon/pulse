@@ -67,6 +67,11 @@ const PLACES: readonly (readonly [Place, string])[] = [
     { view: "process-detail", engine: E, processDefinitionKey: "invoice", focus: "incidents" },
     "/app/engines/prod-a/processes/invoice?scope=incident",
   ],
+  // A process in a tenant (F17b): the cockpit's drill names it, the address carries it.
+  [
+    { view: "process-detail", engine: E, processDefinitionKey: "invoice", tenantId: "north" },
+    "/app/engines/prod-a/processes/invoice?tenant=north",
+  ],
   [{ view: "process-instances", engine: E }, "/app/engines/prod-a/instances"],
   [
     { view: "process-instances", engine: E, processDefinitionKey: "invoice" },

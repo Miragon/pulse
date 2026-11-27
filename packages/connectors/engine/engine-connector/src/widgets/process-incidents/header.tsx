@@ -18,7 +18,7 @@ import { useNav } from "../navigation.js"
 import { useHandOff, type HandOff } from "../lib/hand-off.js"
 import { useT } from "../../messages/use-t.js"
 import { diagramActivityFraction } from "./activity-scope.js"
-import { useDefinitionData, type DefinitionScope } from "./feed.js"
+import { listsOf, useDefinitionData, type DefinitionScope } from "./feed.js"
 
 /** The definition's name is the deployer's text: quoted. */
 export function triageProcessHandOff(
@@ -28,7 +28,7 @@ export function triageProcessHandOff(
   const fraction = diagramActivityFraction(data)
   return {
     intent: "askAi.process.triage",
-    ids: { engine, processDefinitionKey: data.processDefinitionKey },
+    ids: { engine, processDefinitionKey: data.processDefinitionKey, tenantId: data.tenantId },
     // Counts span all versions; only the diagram is one version (#335 N60).
     facts: {
       countScope: "allVersions",
@@ -46,15 +46,22 @@ export function triageProcessHandOff(
 }
 
 /**
- * The bar's facts say what no tile under it says (one home per number): the key, the version
- * scope of every count on the view, named once here, and when the last incident came in, as a
- * time ago with its instant in the title. The counts and their alarm are the KPI tiles'.
+ * The bar's facts say what no tile under it says (one home per number): the key and its tenant
+ * where it has one, the version scope of every count on the view, named once here, and when the
+ * last incident came in, as a time ago with its instant in the title. The counts and their alarm
+ * are the KPI tiles'.
  */
 function HeaderSub({ data }: { data: ProcessIncidentsData }) {
   const t = useT()
   return (
     <>
       <span className="font-mono">{data.processDefinitionKey}</span>
+      {data.tenantId !== undefined && (
+        <>
+          <span className="text-muted-foreground">·</span>
+          <span>{t("procIncHeader.tenant", { tenant: data.tenantId })}</span>
+        </>
+      )}
       <span className="text-muted-foreground">·</span>
       <span>{t("procIncHeader.allVersions")}</span>
       {data.latestIncident && (
@@ -113,9 +120,7 @@ export function ProcessDetailHeader({
                 type="button"
                 variant="toolbar"
                 size="sm"
-                onClick={() =>
-                  go({ type: "process-instances", processDefinitionKey: data.processDefinitionKey })
-                }
+                onClick={() => go({ type: "process-instances", ...listsOf(data) })}
               >
                 <Icon icon={CircleDot} />
                 {t("procIncHeader.viewRunningInstances")}

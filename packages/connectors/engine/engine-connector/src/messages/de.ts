@@ -13,6 +13,8 @@ export const de: MessageCatalog = {
   "cockpit.crumb.instance": ({ id }) => `Instanz ${String(id)}`,
   "cockpit.crumb.incident": ({ id }) => `Incident ${String(id)}`,
   "cockpit.crumb.cluster": ({ activity }) => String(activity),
+  "cockpit.crumb.processInTenant": ({ process, tenant }) =>
+    `${String(process)} · Mandant ${String(tenant)}`,
   "cockpit.crumb.incidentAt": ({ activity }) => `Incident bei ${String(activity)}`,
   "cockpit.crumb.history": "Verlauf",
   "cockpit.loading.engines": "Engines werden geladen…",

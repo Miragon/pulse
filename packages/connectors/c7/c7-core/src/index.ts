@@ -11,9 +11,10 @@
  * planning rules (`definitionsAtVersion`, `proposeMigrationPlan`, `checkMigrationPlan`,
  * `migrationInstructions`) are the one home of a plan's requests and bodies, for the CLI's plan
  * file and the contract's `MigrationReader` alike; an answer they cannot read fails as the reason
- * `unexpected-answer`. The definition statistics (`readDefinitionStatistics`, `statisticsByKey`)
- * are the one read and fold of a process key's numbers, for the status triage, the contract's
- * processes and the MCP server's views alike. Runs on a caller's `EnginePort`; returns data and
+ * `unexpected-answer`. The definition statistics (`readDefinitionStatistics`, `statisticsByKey`,
+ * `statisticsByProcess`) are the one read and fold of a process key's numbers and a process's, a
+ * key in one tenant, for the status triage, the contract's processes and the MCP server's views
+ * alike. Runs on a caller's `EnginePort`; returns data and
  * throws `WorkflowError` reasons, and names no command, flag or tool: next steps and error reasons
  * are structured, the caller words them. The pure rules behind these functions that only tests
  * reach are exported from `@miragon/pulse-c7-core/testing`.
@@ -75,7 +76,16 @@ export {
   UTC_WITHOUT_OFFSET,
 } from "./dates.js"
 export { engineSorting, historySorting, INSTANCE_HISTORY_ORDER } from "./sorting.js"
-export { complementaryFlags, engineKeyList, engineLike, trueOnly } from "./filters.js"
+export {
+  complementaryFlags,
+  engineKeyList,
+  engineLike,
+  tenantBody,
+  type TenantBody,
+  tenantQuery,
+  type TenantQuery,
+  trueOnly,
+} from "./filters.js"
 export {
   autoTypedValue,
   type EngineVariableInput,
@@ -160,6 +170,8 @@ export {
   readDefinitionStatistics,
   type StatisticsOptions,
   statisticsByKey,
+  statisticsByProcess,
+  type TenantProcessStatistics,
 } from "./definition-statistics.js"
 export type {
   DefinitionStatus,

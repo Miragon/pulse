@@ -28,6 +28,7 @@ import {
 } from "@miragon/pulse-engine-core/testing"
 import { expect } from "vitest"
 import { buildProcessScreenData } from "../../data/screens/process-screen-data.js"
+import { cockpitBeforeTenants, cockpitPerTenant } from "./cockpit-tenants.test-support.js"
 import type { ContractSuite } from "./contract-cases.test-support.js"
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -88,13 +89,29 @@ async function deployTenantWorld(engine: C7SeedEngine) {
   return { definitionIds, deploymentIds: seeded.deploymentIds }
 }
 
+/** The seeded engine of `suite`, as the seeds reach it. */
+function seedEngineOf(suite: ContractSuite): C7SeedEngine {
+  return { url: suite.url, send: (target, request) => fetch(target, request), wait }
+}
+
+/**
+ * The chat cockpit's process route, flow, an activity's incidents and overview per tenant
+ * (cockpit-tenants.test-support.ts, F17b), the key alone read before and after the tenants came.
+ */
+async function cockpitTenantsApart(suite: ContractSuite): Promise<void> {
+  const engine = seedEngineOf(suite)
+  const before = await cockpitBeforeTenants(suite)
+  const tenants = await deployTenantWorld(engine)
+  try {
+    await cockpitPerTenant(suite, before, tenants.definitionIds)
+  } finally {
+    await removeC7Deployments(engine, tenants.deploymentIds)
+  }
+}
+
 /** The tenant laws over the server's wire, then the process screen feed in each tenant. */
 async function tenantsApartOnEverySurface(suite: ContractSuite): Promise<void> {
-  const engine: C7SeedEngine = {
-    url: suite.url,
-    send: (target, request) => fetch(target, request),
-    wait,
-  }
+  const engine = seedEngineOf(suite)
   const tenants = await deployTenantWorld(engine)
   try {
     const harness = { runtime: suite.runtime, world: suite.world, tenantWorld: tenants }
@@ -133,5 +150,9 @@ export const TENANT_CASES: ReadonlyArray<
   [
     "tenants: a key in two tenants is a process in each over the server's wire and its process screen feed, a call resolved in its caller's tenant, a key in tenants alone opened by its key",
     tenantsApartOnEverySurface,
+  ],
+  [
+    "tenants: the chat cockpit opens a key in two tenants per tenant, each its latest version and numbers, the key alone its process without a tenant as before the tenants came",
+    cockpitTenantsApart,
   ],
 ]

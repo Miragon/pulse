@@ -31,24 +31,24 @@
       "requests": {
         "prod-1": {
           "GET /incident": 17,
-          "GET /process-definition": 2,
+          "GET /process-definition": 1,
           "GET /process-definition/statistics": 1,
           "GET /process-definition/{id}/statistics": 19,
           "GET /process-definition/{id}/xml": 17
         }
       },
-      "total": 56
+      "total": 55
     },
     "engine_activity_statistics_data:history": {
       "requests": {
         "prod-1": {
           "GET /history/process-definition/{id}/statistics": 8,
           "GET /history/process-instance/count": 9,
-          "GET /process-definition": 3,
+          "GET /process-definition": 2,
           "GET /process-definition/{id}/xml": 1
         }
       },
-      "total": 21
+      "total": 20
     },
     "engine_board_data": {
       "requests": {

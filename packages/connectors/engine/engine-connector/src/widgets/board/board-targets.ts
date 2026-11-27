@@ -64,11 +64,24 @@ function incidentLabel(data: BoardStartData, engine: string, incidentId: string)
   return incident === undefined ? {} : { label: incident.elementId }
 }
 
-/** The crumb's name of a process: its name where a tile of the board gives one. */
-function processLabel(data: BoardStartData, engine: string, bpmnProcessId: string) {
+/**
+ * The crumb's name of a process: its name where a tile of the board gives one, of its version in
+ * the tenant the target names (any where it names none).
+ */
+function processLabel(
+  data: BoardStartData,
+  engine: string,
+  bpmnProcessId: string,
+  tenantId: string | undefined,
+) {
   const name = tilesOf(data)
     .flatMap((tile) => definitionsOn(tile, engine))
-    .find((definition) => definition.bpmnProcessId === bpmnProcessId && definition.name)?.name
+    .find(
+      (definition) =>
+        definition.bpmnProcessId === bpmnProcessId &&
+        (tenantId === undefined || definition.tenantId === tenantId) &&
+        definition.name,
+    )?.name
   return name === undefined ? {} : { label: name }
 }
 
@@ -104,8 +117,10 @@ function instancesView(
   return {
     section: "process-detail",
     processDefinitionKey: target.bpmnProcessId,
+    // The tile's process in its tenant where it names one (a summary row of a key in a tenant).
+    ...(target.tenantId === undefined ? {} : { tenantId: target.tenantId }),
     ...(incidents ? { focus: "incidents" as const } : {}),
-    ...processLabel(data, target.engine, target.bpmnProcessId),
+    ...processLabel(data, target.engine, target.bpmnProcessId, target.tenantId),
   }
 }
 

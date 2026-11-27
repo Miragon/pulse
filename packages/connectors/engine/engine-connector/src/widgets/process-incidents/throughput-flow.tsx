@@ -24,11 +24,20 @@ const NO_SECONDS = { seconds: false }
  * Read once per mount and kept: no stale refetch, no automatic retry (a timed-out read keeps
  * running in the engine's database), and outside the cockpit's Refresh.
  */
-function useThroughputData(processDefinitionKey: string, engine: string) {
+function useThroughputData(
+  processDefinitionKey: string,
+  tenantId: string | undefined,
+  engine: string,
+) {
   return useToolQuery<ActivityThroughputData>(
-    [THROUGHPUT_QUERY_ROOT, engine, processDefinitionKey],
+    [THROUGHPUT_QUERY_ROOT, engine, processDefinitionKey, tenantId ?? null],
     ENGINE_ACTIVITY_STATISTICS_DATA,
-    { processDefinitionKey, source: "history", engine },
+    {
+      processDefinitionKey,
+      ...(tenantId === undefined ? {} : { tenantId }),
+      source: "history",
+      engine,
+    },
     { staleTime: Infinity, retry: false },
   )
 }
@@ -41,17 +50,20 @@ function useThroughputData(processDefinitionKey: string, engine: string) {
  */
 export function ThroughputFlow({
   processDefinitionKey,
+  tenantId,
   engine,
   toolbar,
 }: {
   processDefinitionKey: string
+  /** The process's tenant, where it has one. */
+  tenantId?: string | undefined
   engine: string
   /** The flow's mode switch with this mode's caption. */
   toolbar: (caption: string) => ReactNode
 }) {
   const t = useT()
   const { context } = useHandOff()
-  const query = useThroughputData(processDefinitionKey, engine)
+  const query = useThroughputData(processDefinitionKey, tenantId, engine)
   const data = query.data
   const values = useMemo(() => passesByElement(data?.activities ?? []), [data?.activities])
 

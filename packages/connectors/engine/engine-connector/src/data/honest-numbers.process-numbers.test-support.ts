@@ -8,14 +8,11 @@
 
 import { WORLD } from "../tools/test-support/engine-world.js"
 import { buildActivityCountsData } from "./activity-counts-data.js"
-import { type Case, V1_CALL_ACTIVITIES } from "./honest-numbers.test-support.js"
+import { type Case, V1_CALL_ACTIVITIES, VERSIONS_LOOKUP } from "./honest-numbers.test-support.js"
 import { buildProcessStatsData } from "./process-stats-floor.js"
 
 /** Every version of a key, newest first (`fetchDefinitionVersions`): none is an unknown key. */
-const UNKNOWN_KEY = {
-  read: "GET /process-definition?key&sortBy&sortOrder",
-  reply: { body: [] },
-}
+const UNKNOWN_KEY = { read: VERSIONS_LOOKUP, reply: { body: [] } }
 
 /**
  * The stats' range: yesterday and today. Two days make every kind of read 14 days make (the

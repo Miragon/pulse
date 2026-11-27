@@ -28,6 +28,11 @@ export interface IncidentLike {
    * deep it was called; the counts keep every incident.
    */
   rootCauseIncidentId?: string | null
+  /**
+   * The tenant of the run it was raised in: its version's, or one a tenant id provider gave a
+   * shared version's run, so never a process's tenant on its own.
+   */
+  tenantId?: string | null
 }
 
 /**

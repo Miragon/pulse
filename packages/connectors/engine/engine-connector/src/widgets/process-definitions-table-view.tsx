@@ -4,10 +4,14 @@ import { ListRow, ListTable, type ListTableColumn } from "@miragon/pulse-widget-
 import { useT } from "../messages/use-t.js"
 import { AlarmCount } from "./lib/alarm-count.js"
 
-// One row per deployed definition key: its counts span every version.
+// One row per deployed process, a key in one tenant: its counts span every version of it.
 export interface ProcessDefinitionsTableRow {
   id: string
   key: string
+  /** Its tenant, where it has one. */
+  tenantId?: string
+  /** Where its key is deployed in other tenants too: its lists open in its tenant. */
+  sharesKey?: true
   name: string | null
   version: number
   counts: { instances: number; failedJobs: number; totalIncidents: number }
@@ -16,7 +20,9 @@ export interface ProcessDefinitionsTableRow {
 /**
  * The overview's process definitions table: with `onOpen` a row opens its process on a click or
  * Enter and copies its key on Ctrl or Cmd with C (one row convention, as the webview's process
- * list); the actions column, at the row's end, is there when a renderer is.
+ * list); the actions column, at the row's end, is there when a renderer is. A key in two tenants is
+ * two rows: the tenant column, there where a row has a tenant (as the shared screens' process
+ * table), names each row's, and so does its label.
  */
 export function ProcessDefinitionsTableView({
   rows,
@@ -37,8 +43,11 @@ export function ProcessDefinitionsTableView({
     return <TableEmptyState>{emptyText}</TableEmptyState>
   }
 
+  const withTenants = rows.some((row) => row.tenantId !== undefined)
   const columns: ListTableColumn[] = [
     { label: t("cockpitDefs.colProcess") },
+    // The tenant tells two rows of one key apart: it stays in view, as the process does.
+    ...(withTenants ? [{ label: t("cockpitDefs.colTenant") }] : []),
     // A narrow region drops by importance, never by position: the version first (the counts sum
     // every version, so the chip is not theirs, #322 U2), then the running instances, so the
     // name and the alarms (jobs without retries, incidents) stay in view.
@@ -59,7 +68,14 @@ export function ProcessDefinitionsTableView({
       {rows.map((row) => (
         <ListRow
           key={row.id}
-          label={t("cockpitDefs.rowLabel", { name: row.name ?? row.key })}
+          label={
+            row.tenantId === undefined
+              ? t("cockpitDefs.rowLabel", { name: row.name ?? row.key })
+              : t("cockpitDefs.rowLabelInTenant", {
+                  name: row.name ?? row.key,
+                  tenant: row.tenantId,
+                })
+          }
           onOpen={onOpen && (() => onOpen(row))}
           copy={row.key}
         >
@@ -67,6 +83,7 @@ export function ProcessDefinitionsTableView({
             {/* Name first, the key quiet beside it (#322 U13). */}
             <NamedId name={row.name} id={row.key} />
           </Td>
+          {withTenants && <Td>{row.tenantId ?? ""}</Td>}
           <Td>
             <VersionChip version={row.version} className="ml-0" />
           </Td>

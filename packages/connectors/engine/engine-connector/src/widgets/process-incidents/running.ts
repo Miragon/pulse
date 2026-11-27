@@ -40,6 +40,7 @@ export function describeRunningFlow(data: ActivityStatisticsData): ViewContext {
     ids: {
       engine: data.engineId,
       processDefinitionKey: data.processDefinitionKey,
+      tenantId: data.tenantId,
       diagramDefinitionId: data.diagramDefinitionId,
     },
     facts: {

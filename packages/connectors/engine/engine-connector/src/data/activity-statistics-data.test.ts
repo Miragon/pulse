@@ -13,7 +13,7 @@ import { buildActivityStatisticsData } from "./activity-statistics-data.js"
 import { buildProcessScreenData } from "./screens/process-screen-data.js"
 
 // #335 N60: old versions keep running after a redeploy. Fixture: `leasing` v1 still runs next
-// to v2 (a tenant's), and only v1 has the element `legacyCheck`. Each version's counts are the
+// to v2, and only v1 has the element `legacyCheck`. Each version's counts are the
 // shared process screen's: its activity statistics with `failedJobs` and `incidents` (its jobs
 // without retries and every incident at an element from the same one read) and the incidents at its
 // call activities read whole, a root incident holding its token, a call activity's copy of a called
@@ -82,9 +82,9 @@ function routes(overrides: FakeRoutes = {}): FakeRoutes {
   return {
     "GET /process-definition": (r: RecordedRequest) => ({
       body: r.query.latestVersion
-        ? [{ id: V2, key: KEY, name: "Leasing", version: 2, tenantId: "acme" }]
+        ? [{ id: V2, key: KEY, name: "Leasing", version: 2 }]
         : [
-            { id: V2, key: KEY, name: "Leasing", version: 2, tenantId: "acme" },
+            { id: V2, key: KEY, name: "Leasing", version: 2 },
             { id: V1, key: KEY, name: "Leasing", version: 1 },
           ],
     }),

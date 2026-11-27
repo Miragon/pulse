@@ -9,16 +9,16 @@ import type { EngineProvider } from "../engine-provider.js"
 import type { IncidentsDashboardFilters } from "../feed-contracts.js"
 import { buildProcessCockpitUrl } from "../lib/engine/cockpit-url.js"
 import {
-  definitionKeyResolver,
+  definitionKeyInId,
   elementNameIn,
   fetchNamesByDefinition,
-  fetchStatsRead,
+  foldStatsByProcess,
   nameUnnamedDefinitions,
   unknownKeyError,
-  type KeyStats,
   type NamesByDefinition,
 } from "./definition-info.js"
 import { groupBy, scanFacts, scanIncidents, type IncidentRow } from "./incident-scan.js"
+import { readStatistics } from "./statistics-floor.js"
 
 export interface IncidentsDashboardOptions extends IncidentsDashboardFilters {
   baseUrl: string
@@ -26,14 +26,39 @@ export interface IncidentsDashboardOptions extends IncidentsDashboardFilters {
   provider: EngineProvider
 }
 
+/** A card's process: its key in one tenant, its statistics over its versions there. */
+type ProcessStats = ReturnType<typeof foldStatsByProcess>[number]
+
+/** A process's id among the cards: its key and its tenant. */
+const cardIdOf = ({ key, tenantId }: ProcessStats) => JSON.stringify([key, tenantId])
+
 /**
- * The open ROOT incidents by process (owner decision D2, amended on 2026-11-19): a call activity's
- * copy of a called instance's incident counts where it was raised, in the called process, never at
- * the caller, and is never a row. Counts are exact and KEY-wide from the definition statistics
- * (`rootIncidents=true`), the total their sum; the scan's root incidents (`isRootIncident`, c7-core's
- * one rule) only add the per-activity breakdown and timestamps, so a process whose incidents lie
- * beyond the scan keeps its exact count (#335 N61). Rows join cards through the statistics'
- * version ids (bare ids carry no key).
+ * The card a version's root incident joins, by the statistics' version ids: its process's. A
+ * version missing from them (deployed since) joins the card of the key its id names where the key
+ * is one process; else none ("").
+ */
+function cardResolver(processes: readonly ProcessStats[]): (definitionId: string) => string {
+  const byVersion = new Map<string, string>()
+  for (const process of processes) {
+    for (const id of process.versionIds) byVersion.set(id, cardIdOf(process))
+  }
+  return (definitionId) => {
+    const known = byVersion.get(definitionId)
+    if (known !== undefined) return known
+    const ofKey = processes.filter(({ key }) => key === definitionKeyInId(definitionId))
+    return ofKey.length === 1 ? cardIdOf(ofKey[0]) : ""
+  }
+}
+
+/**
+ * The open ROOT incidents by process, a key in one tenant (owner decisions D2, amended on
+ * 2026-11-19, and 2026-11-26): a call activity's copy of a called instance's incident counts where
+ * it was raised, in the called process, never at the caller, and is never a row. Counts are exact
+ * and process-wide from the definition statistics (`rootIncidents=true`, folded per process), the
+ * total their sum; the scan's root incidents (`isRootIncident`, c7-core's one rule) only add the
+ * per-activity breakdown and timestamps, so a process whose incidents lie beyond the scan keeps its
+ * exact count (#335 N61). Rows join cards through the statistics' version ids (bare ids carry no
+ * key), so a key in two tenants is two cards, each naming its tenant and opening its process.
  */
 export async function buildIncidentsDashboardData(
   client: Client,
@@ -44,52 +69,37 @@ export async function buildIncidentsDashboardData(
     processDefinitionKeyIn: options.processDefinitionKey,
     incidentType: options.incidentType,
   }
-  const [scan, { statsByKey, readAt }] = await Promise.all([
+  const [scan, { rows, readAt }] = await Promise.all([
     scanIncidents(client, filter),
-    fetchStatsRead(client, { incidentType: options.incidentType }),
+    readStatistics(client),
   ])
-
-  if (options.processDefinitionKey !== undefined && !statsByKey.has(options.processDefinitionKey)) {
+  const processes = foldStatsByProcess(rows, options.incidentType)
+  if (options.processDefinitionKey !== undefined && !processes.some(matchesKey(options))) {
     throw unknownKeyError(options.processDefinitionKey)
   }
 
-  const keyOf = definitionKeyResolver(statsByKey)
   const roots = scan.rows.filter(isRootIncident)
-  // A row whose key resolves to nothing ("") joins no card.
-  const scannedByKey = groupBy(roots, (r) => keyOf(r.processDefinitionId) ?? "")
-  const shown = [...statsByKey.entries()]
-    .filter(([key, stats]) => stats.incidentCount > 0 && matchesKey(key, options))
-    .sort((a, b) => b[1].incidentCount - a[1].incidentCount)
-  const groupsByKey = new Map(
-    shown.map(([key]) => [key, activityGroups(scannedByKey.get(key) ?? [])] as const),
-  )
-  const newestRows = [...groupsByKey.values()].flat().map((rows) => rows[0])
-  const [, names] = await Promise.all([
-    // A Modeler pool around an unnamed process names its card, as every view names it.
-    nameUnnamedDefinitions(
-      client,
-      shown.map(([, stats]) => stats.latest),
-    ),
-    // ENRICHMENT: an activity is named in the diagram of its newest incident's version, the
-    // busiest cards first; a diagram past the cap or unread leaves its activities' ids.
-    fetchNamesByDefinition(
-      client,
-      newestRows.map((row) => row.processDefinitionId),
-    ),
-  ])
-  const ctx = { options, names }
-  const processes = shown.map(([key, stats]) =>
-    toProcess(key, stats, scannedByKey.get(key) ?? [], groupsByKey.get(key) ?? [], ctx),
-  )
+  // A row whose version joins no card ("") is none of its rows.
+  const cardOf = cardResolver(processes)
+  const scannedByCard = groupBy(roots, (r) => cardOf(r.processDefinitionId))
+  const shown = processes
+    .filter((stats) => stats.incidentCount > 0 && matchesKey(options)(stats))
+    .sort((a, b) => b.incidentCount - a.incidentCount)
+  const cards = shown.map((stats) => {
+    const scanned = scannedByCard.get(cardIdOf(stats)) ?? []
+    return { stats, scanned, groups: activityGroups(scanned) }
+  })
+  const names = await namesOf(client, cards)
+  const processesShown = cards.map((card) => toProcess(card, { options, names }))
 
   return {
-    totalCount: processes.reduce((sum, p) => sum + p.incidentCount, 0),
-    processCount: processes.length,
-    affectedActivityCount: processes.every((p) => p.affectedActivityCount !== null)
-      ? processes.reduce((sum, p) => sum + (p.affectedActivityCount ?? 0), 0)
+    totalCount: processesShown.reduce((sum, p) => sum + p.incidentCount, 0),
+    processCount: processesShown.length,
+    affectedActivityCount: processesShown.every((p) => p.affectedActivityCount !== null)
+      ? processesShown.reduce((sum, p) => sum + (p.affectedActivityCount ?? 0), 0)
       : null,
     latestIncident: latestEngineDate(roots.map((r) => r.incidentTimestamp)),
-    processes,
+    processes: processesShown,
     filters: {
       processDefinitionKey: options.processDefinitionKey,
       incidentType: options.incidentType,
@@ -98,6 +108,33 @@ export async function buildIncidentsDashboardData(
     fetchedAt: new Date(Math.min(startedAt, readAt)).toISOString(),
     engineVendor: options.provider.branding.displayName,
   }
+}
+
+/** A card: its process's statistics, its scanned root incidents and their groups per activity. */
+interface Card {
+  stats: ProcessStats
+  scanned: IncidentRow[]
+  groups: IncidentRow[][]
+}
+
+/**
+ * ENRICHMENT: a Modeler pool around an unnamed process names its card, as every view names it; an
+ * activity is named in the diagram of its newest incident's version, the busiest cards first; a
+ * diagram past the cap or unread leaves its activities' ids.
+ */
+async function namesOf(client: Client, cards: readonly Card[]): Promise<NamesByDefinition> {
+  const newestRows = cards.flatMap((card) => card.groups).map((rows) => rows[0])
+  const [, names] = await Promise.all([
+    nameUnnamedDefinitions(
+      client,
+      cards.map((card) => card.stats.latest),
+    ),
+    fetchNamesByDefinition(
+      client,
+      newestRows.map((row) => row.processDefinitionId),
+    ),
+  ])
+  return names
 }
 
 /**
@@ -113,19 +150,18 @@ function activityGroups(scanned: IncidentRow[]): IncidentRow[][] {
   )
 }
 
-function matchesKey(key: string, options: IncidentsDashboardOptions): boolean {
-  return options.processDefinitionKey === undefined || key === options.processDefinitionKey
+/** Whether a process is of the key the dashboard is filtered to (any without a filter). */
+function matchesKey(options: IncidentsDashboardOptions) {
+  return ({ key }: { key: string }) =>
+    options.processDefinitionKey === undefined || key === options.processDefinitionKey
 }
 
 function toProcess(
-  key: string,
-  stats: KeyStats,
-  scanned: IncidentRow[],
-  groups: IncidentRow[][],
+  { stats, scanned, groups }: Card,
   ctx: { options: IncidentsDashboardOptions; names: NamesByDefinition },
 ): IncidentsDashboardProcess {
-  // Complete only when the scan holds every root incident of the key (vs. the exact count), so a
-  // card never reports confident zeros next to its N incidents.
+  // Complete only when the scan holds every root incident of the process (vs. the exact count), so
+  // a card never reports confident zeros next to its N incidents.
   const fullyScanned = scanned.length >= stats.incidentCount
   const facts = scanFacts(scanned, { fullyScanned })
   const activities: IncidentsDashboardActivity[] = groups.map((rows) => {
@@ -140,7 +176,8 @@ function toProcess(
   })
 
   return {
-    processDefinitionKey: key,
+    processDefinitionKey: stats.key,
+    ...(stats.tenantId === null ? {} : { tenantId: stats.tenantId }),
     processDefinitionName: stats.latest.name,
     latestVersion: stats.latest.version,
     runningInstances: stats.instances,
@@ -154,7 +191,7 @@ function toProcess(
     latestIncident: facts.latestIncident,
     cockpitUrl: buildProcessCockpitUrl(
       ctx.options,
-      { key, version: stats.latest.version, definitionId: stats.latest.id || null },
+      { key: stats.key, version: stats.latest.version, definitionId: stats.latest.id || null },
       { tab: "incidents" },
     ),
     activities,

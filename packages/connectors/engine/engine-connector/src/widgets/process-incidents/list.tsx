@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { GroupCard, SectionHeading, TableEmptyState } from "@miragon/pulse-ui"
 import { ViewDataState, WidgetShell } from "@miragon/pulse-widget-shell/widgets"
-import type { ProcessIncidentsData } from "../../view-models.js"
+import type { IncidentsByProcess, ProcessIncidentsData } from "../../view-models.js"
 import { useNav } from "../navigation.js"
 import { ActivitySummary, ActivityTitle } from "./activity-summary.js"
 import { useDefinitionData, type DefinitionScope } from "./feed.js"
@@ -16,7 +16,7 @@ function NoIncidentsState({
 }: {
   data: ProcessIncidentsData
   emptyVariant: "siblings" | "note"
-  onJumpTo: (processDefinitionKey: string, label?: string) => void
+  onJumpTo: (sibling: IncidentsByProcess) => void
 }) {
   const t = useT()
   const processName = data.processDefinitionName ?? data.processDefinitionKey
@@ -61,8 +61,17 @@ export function ActivityIncidentList({
     )
   }
 
-  function jumpToProcess(processDefinitionKey: string, label?: string) {
-    go({ type: "process-incidents", processDefinitionKey, label })
+  function jumpToProcess({
+    processDefinitionKey,
+    tenantId,
+    processDefinitionName,
+  }: IncidentsByProcess) {
+    go({
+      type: "process-incidents",
+      processDefinitionKey,
+      ...(tenantId === undefined ? {} : { tenantId }),
+      label: processDefinitionName ?? undefined,
+    })
   }
 
   function analyzeIncident(incidentId: string, activityName: string | null) {
@@ -101,6 +110,7 @@ export function ActivityIncidentList({
                   the rows' remedies, keyed on that feed. */}
               <PagedIncidentTable
                 processDefinitionKey={data.processDefinitionKey}
+                tenantId={data.tenantId}
                 activityId={activity.activityId}
                 engine={scope.engine}
                 vendor={data.engineVendor}

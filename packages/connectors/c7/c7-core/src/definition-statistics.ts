@@ -8,10 +8,9 @@
  * over every version and the versions that hold a root incident, of one incident type where one is
  * named. Per process (`statisticsByProcess`): the same fold over a key's versions in one tenant,
  * the tenant a version names (`tenantId`, null for none, never ""), as the engine contract names a
- * process by its key and its tenant: the contract's processes and versions read it. The status
- * triage and the MCP server's overview, incidents dashboard and process incidents take a key's
- * numbers from the fold per key, which spans the versions of every tenant, as they take a key
- * alone. The answer is read through `JsonView`, so an unusable one fails as
+ * process by its key and its tenant: the contract's processes and versions read it, and so do the
+ * MCP server's overview, incidents dashboard and process view. The status triage takes a key's
+ * numbers from the fold per key, which spans the versions of every tenant, as it takes a key alone. The answer is read through `JsonView`, so an unusable one fails as
  * `RuntimeError("unexpectedResponse")`, never as a row left out or counted under another key.
  */
 

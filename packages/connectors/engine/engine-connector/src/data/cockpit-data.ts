@@ -7,6 +7,8 @@ import {
   type InstanceBodyReads,
   pageSearchedInstances,
   searchedInstances,
+  tenantBody,
+  tenantQuery,
   withIncidentAmong,
   withIncidentBody,
 } from "@miragon/pulse-c7-core"
@@ -33,29 +35,37 @@ import {
   definitionKeyInId,
   definitionVersionFromId,
   elementNameIn,
-  fetchDefinitionsById,
-  fetchLatestDefinition,
   fetchNamesByDefinition,
-  fetchStatsByKey,
+  foldStatsByProcess,
   nameUnnamedDefinitions,
   processNameIn,
   resolveDefinitionKeys,
-  type DefinitionInfo,
 } from "./definition-info.js"
 import { enginePortFor } from "../lib/core-adapter/engine-port.js"
 import { countOf, optional, rowsOf } from "./engine-reads.js"
 import { instanceReads, type RawInstance } from "./instance-list-reads.js"
+import { latestOfList, rowDefinitions, tenantField, tenantOfList } from "./list-tenants.js"
+import { readStatistics } from "./statistics-floor.js"
 
-/** One row per KEY, summed over every version; the statistics call's failure is the view's (no "0 instances"). */
+/**
+ * One row per PROCESS, a key in one tenant, summed over its versions there (c7-core's fold per
+ * process), so a key in two tenants is two rows, each saying it shares its key (`sharesKey`), and an
+ * engine without tenants one row per key; the statistics call's failure is the view's (no "0
+ * instances").
+ */
 export async function buildCockpitDashboardData(
   client: Client,
   engineId: string,
 ): Promise<CockpitDashboardData> {
-  const statsByKey = await fetchStatsByKey(client)
+  const { rows } = await readStatistics(client)
+  const processes = foldStatsByProcess(rows)
+  const ofKey = (key: string) => processes.filter((stats) => stats.key === key).length
 
-  const definitions: DefinitionStat[] = [...statsByKey.entries()].map(([key, stats]) => ({
+  const definitions: DefinitionStat[] = processes.map((stats) => ({
     id: stats.latest.id,
-    key,
+    key: stats.key,
+    ...(stats.tenantId === null ? {} : { tenantId: stats.tenantId }),
+    ...(ofKey(stats.key) === 1 ? {} : { sharesKey: true as const }),
     name: stats.latest.name,
     latestVersion: stats.latest.version,
     instances: stats.instances,
@@ -97,8 +107,10 @@ export type ProcessInstancesArgs = ProcessInstancesFilters & InstanceSearchArgs 
 // (`withIncidentBody`), which never sends a false flag. The search box joins
 // these filters in c7-core's bodies only (`searchedInstances`, #717).
 function toProcessInstanceFilter(args: ProcessInstancesArgs): InstanceBodyFilters {
+  const tenant = tenantOfList(args)
   return {
     processDefinitionKey: args.processDefinitionKey,
+    ...(tenant === undefined ? {} : tenantBody(tenant)),
     ...complementaryFlags(args, "active", "suspended"),
     ...withIncidentBody(args.withIncidents),
     businessKeyLike: engineLike(args.businessKeyLike),
@@ -164,26 +176,6 @@ async function rowKeyResolver(
   return (await optional(keys)) ?? definitionKeyInId
 }
 
-/** ENRICHMENT: a failed read leaves the names null; the rows then show their keys. */
-async function rowNameResolver(
-  client: Client,
-  page: RawInstance[],
-  scoped: DefinitionInfo | null,
-): Promise<(definitionId: string) => string | null> {
-  if (scoped) {
-    await nameUnnamedDefinitions(client, [scoped])
-    return () => scoped.name
-  }
-  const byId = await optional(
-    fetchDefinitionsById(
-      client,
-      page.map((i) => i.definitionId),
-    ),
-  )
-  if (byId) await nameUnnamedDefinitions(client, [...byId.values()])
-  return (definitionId) => byId?.get(definitionId)?.name ?? null
-}
-
 /**
  * ENRICHMENT: when each instance of the page started, ONE history read over the page's ids. The
  * runtime's instance carries no start; a failed read, or an engine that records no history (level
@@ -216,6 +208,7 @@ export async function buildProcessInstancesData(
   const reads = instanceReads(client)
   const searched = searchedInstances(filter, args.search)
 
+  const tenant = tenantOfList(args)
   const [raw, totals, definition] = await Promise.all([
     pageSearchedInstances(reads, searched, {
       firstResult: args.firstResult ?? 0,
@@ -223,24 +216,23 @@ export async function buildProcessInstancesData(
     }),
     filteredTotals(reads, filter, args.search),
     // An unknown key is the engine's 404, not "0 running instances".
-    args.processDefinitionKey
-      ? fetchLatestDefinition(client, args.processDefinitionKey)
-      : Promise.resolve(null),
+    latestOfList(client, args.processDefinitionKey, tenant),
   ])
 
   const page = raw.filter((i): i is RawInstance & { id: string } => !!i.id)
   const pageIds = page.map((i) => i.id)
-  const [flagged, keyOf, nameOf, startOf] = await Promise.all([
+  const [flagged, keyOf, rowsSay, startOf] = await Promise.all([
     instancesWithIncident(client, pageIds, filter),
     rowKeyResolver(client, page, args.processDefinitionKey),
-    rowNameResolver(client, page, definition),
+    rowDefinitions(client, page, definition),
     startTimesOf(client, pageIds),
   ])
   const instances: ProcessInstanceRow[] = page.map((i) => ({
     id: i.id,
     businessKey: i.businessKey ?? null,
     processDefinitionKey: i.definitionId ? keyOf(i.definitionId) : null,
-    processDefinitionName: i.definitionId ? nameOf(i.definitionId) : null,
+    ...tenantField(rowsSay.tenantOf(i)),
+    processDefinitionName: i.definitionId ? rowsSay.nameOf(i.definitionId) : null,
     version: definitionVersionFromId(i.definitionId),
     suspended: i.suspended ?? false,
     hasIncident: flagged.has(i.id),
@@ -249,6 +241,7 @@ export async function buildProcessInstancesData(
 
   return {
     processDefinitionKey: args.processDefinitionKey ?? null,
+    ...(tenant === undefined ? {} : { onlyTenant: tenant }),
     processDefinitionName: definition?.name ?? null,
     totalCount: totals.totalCount,
     returnedCount: instances.length,
@@ -303,13 +296,16 @@ export async function buildJobPanelData(
   args: JobsFilters & PagingArgs,
 ): Promise<JobPanelData> {
   const fetchedAt = new Date().toISOString()
-  const baseQuery = { processDefinitionKey: args.processDefinitionKey }
+  const tenant = tenantOfList(args)
+  const inTenant = tenant === undefined ? {} : tenantQuery(tenant)
+  const baseQuery = { processDefinitionKey: args.processDefinitionKey, ...inTenant }
   const [raw, failedCount, allCount] = await Promise.all([
     queryJobs({
       client,
       query: { firstResult: args.firstResult ?? 0, maxResults: args.maxResults ?? LIST_PAGE_SIZE },
       body: {
-        ...baseQuery,
+        processDefinitionKey: args.processDefinitionKey,
+        ...(tenant === undefined ? {} : tenantBody(tenant)),
         noRetriesLeft: args.failedOnly ? true : undefined,
         sorting: [...JOB_PANEL_ORDER],
       },
@@ -317,9 +313,7 @@ export async function buildJobPanelData(
     getJobsCount({ client, query: { ...baseQuery, noRetriesLeft: true } }).then(countOf),
     getJobsCount({ client, query: baseQuery }).then(countOf),
     // A scoped panel for an unknown key is the engine's 404, not "0 jobs".
-    args.processDefinitionKey
-      ? fetchLatestDefinition(client, args.processDefinitionKey)
-      : Promise.resolve(null),
+    latestOfList(client, args.processDefinitionKey, tenant),
   ])
 
   // Names before ids (#322 U13); enrichment, ids stand in for unreadable diagrams.
@@ -350,6 +344,7 @@ export async function buildJobPanelData(
     })),
     filters: {
       processDefinitionKey: args.processDefinitionKey,
+      ...(tenant === undefined ? {} : { onlyTenant: tenant }),
       failedOnly: args.failedOnly,
     },
     fetchedAt,

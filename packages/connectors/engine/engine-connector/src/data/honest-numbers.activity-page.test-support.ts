@@ -14,7 +14,7 @@ import { INCIDENT_SCAN_LIMIT } from "./engine-reads.js"
 import {
   type Case,
   incidentScan,
-  KEY_LOOKUP,
+  LATEST_LOOKUP,
   V1_CALL_ACTIVITIES,
 } from "./honest-numbers.test-support.js"
 
@@ -61,7 +61,7 @@ const ENRICHMENT = {
 export const ACTIVITY_PAGE_CASES: Record<string, Case> = {
   buildActivityIncidentsData: {
     run: firstPage(),
-    unknown: { read: KEY_LOOKUP, reply: { body: [] } },
+    unknown: { read: LATEST_LOOKUP, reply: { body: [] } },
     enrichment: ENRICHMENT,
   },
   "buildActivityIncidentsData (more than a page)": {

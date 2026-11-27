@@ -213,13 +213,12 @@ describe("what a version's element statistics count lives on its running instanc
 
 describe("the cockpit's process route on a key with idle versions", () => {
   // The world's key `order`: v1 holds a root incident and a job without retries, v2 a caller
-  // waiting at its call activity with the copy; 30 more versions of other tenants run nothing.
+  // waiting at its call activity with the copy; 30 older versions of the process run nothing.
   const IDLE = Array.from({ length: 30 }, (_, i) => ({
-    id: `order:1:t${String(i)}`,
+    id: `order:0:idle-${String(i)}`,
     key: WORLD.key,
     name: "Order",
-    version: 1,
-    tenantId: `t${String(i)}`,
+    version: 0,
   }))
 
   function idleWorld(request: RecordedRequest): FakeReply {

@@ -15,14 +15,6 @@
       "count": 1
     }
   },
-  "src/data/cluster-detail-data.ts": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/data/incident-detail-data.ts": {
     "complexity": {
       "count": 2
@@ -31,21 +23,11 @@
       "count": 1
     }
   },
-  "src/data/incidents-dashboard-data.ts": {
-    "max-params": {
-      "count": 1
-    }
-  },
   "src/data/instance-detail-data.ts": {
     "complexity": {
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/data/process-incidents-data.ts": {
-    "complexity": {
       "count": 1
     }
   },
@@ -230,9 +212,6 @@
     }
   },
   "src/widgets/incidents-dashboard/process-list.tsx": {
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 2
     }
@@ -287,11 +266,6 @@
     }
   },
   "src/widgets/process-incidents/flow.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/widgets/process-incidents/header.tsx": {
     "max-lines-per-function": {
       "count": 1
     }

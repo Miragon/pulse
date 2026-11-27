@@ -5,8 +5,8 @@
  * one statistics read (`readDefinitionStatistics`); a process, a key in one tenant (the
  * contract's `tenantId`, null for none), by its latest version with the sums over its versions in
  * that tenant, as the fold of the statistics per process gives them (`statisticsByProcess`, the
- * fold per key of the status triage and the MCP server's overview over a key in each tenant), so
- * a tenant's newer version is never another tenant's latest; processes in the order of their keys
+ * fold the MCP server's overview, incidents dashboard and process view read too), so a tenant's
+ * newer version is never another tenant's latest; processes in the order of their keys
  * (`localeCompare`, as the editors always read them), a key's process without a tenant first, then
  * its tenants in the order of their ids. "With incident" counts per version what
  * the list shows (`withIncidentPerVersion`): the whole engine's for the processes, one process's

@@ -4,9 +4,9 @@ import {
   activityStatisticsShape,
   clusterDetailFilterShape,
   incidentsDashboardFilterShape,
-  instanceSearchShape,
   jobsFilterShape,
-  processInstancesFilterShape,
+  processInstancesFeedShape,
+  processScopeShape,
 } from "../feed-contracts.js"
 import { diagramXmlOf } from "../lib/engine/diagram-xml.js"
 import {
@@ -191,7 +191,7 @@ export const processInstancesFeed = dataFeed({
   description:
     "Internal JSON feed (no UI) for a definition's running instances. Prefer engine_open_cockpit.",
   dialects: ["c7"],
-  shape: { ...processInstancesFilterShape, ...instanceSearchShape, ...pagingShape },
+  shape: processInstancesFeedShape,
   read: (args, { client, engineId }) => buildProcessInstancesData(client, engineId, args),
 })
 
@@ -277,9 +277,9 @@ export const processIncidentsFeed = dataFeed({
   name: ENGINE_PROCESS_INCIDENTS_DATA,
   title: "Process incidents data (internal)",
   description:
-    "Internal JSON feed (no UI) for the unified definition view: header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer engine_open_cockpit.",
+    "Internal JSON feed (no UI) for the unified definition view of one process, a key in one tenant: header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer engine_open_cockpit.",
   dialects: ["c7"],
-  shape: { processDefinitionKey: z.string().describe("Process definition key to drill into") },
+  shape: processScopeShape,
   read: async (target, { client, engineId, ...urls }) => ({
     ...(await buildProcessIncidentsData(client, { ...urls, ...target })),
     engineId,
@@ -303,7 +303,7 @@ const activityStatisticsFeed = dataFeed({
   name: ENGINE_ACTIVITY_STATISTICS_DATA,
   title: "Activity statistics data (internal)",
   description:
-    "Internal JSON feed (no UI) for the process flow: what runs at each element of a process now, or what the instances started in the last 30 days passed there, over every deployed version. Prefer engine_open_cockpit.",
+    "Internal JSON feed (no UI) for the process flow: what runs at each element of a process (a key in one tenant) now, or what the instances started in the last 30 days passed there, over every deployed version. Prefer engine_open_cockpit.",
   dialects: ["c7"],
   shape: activityStatisticsShape,
   read: async (args, { client, engineId }): Promise<ActivityStatisticsFeedData> => ({

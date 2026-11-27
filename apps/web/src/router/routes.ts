@@ -7,6 +7,7 @@ import {
 import { PAGES } from "../pages.js"
 import { isSegment, paramsOn, withQuery } from "./paths.js"
 import type { PageScreen } from "./page-screen.js"
+import { instanceScreenOf, PROCESS_PLACES, processScreenOf } from "./place-screens.js"
 import { SEARCH_VIEW, searchedIn, searchUrlOf } from "./search-address.js"
 import {
   EVERY_PROCESS,
@@ -14,7 +15,6 @@ import {
   filterQueryOf,
   processQueryOf,
   processStateOf,
-  RUNNING_LIST,
   tabOf,
   tabQueryOf,
 } from "./screen-queries.js"
@@ -125,6 +125,18 @@ const flag = (id: string, name: string): QueryParam => ({
   read: (value) => (value === "true" ? true : undefined),
 })
 
+/**
+ * A process's tenant (`tenant`): its id in the address, the process without one (a list a process
+ * opened in none, `onlyTenant: null`) left out, as the process screen reads a key without a
+ * tenant: the key's process without one where it has one.
+ */
+const tenant = (id: string, name: string): QueryParam => ({
+  id,
+  name,
+  write: (value) => (typeof value === "string" ? value : value === null ? null : undefined),
+  read: (value) => (value === "" ? undefined : value),
+})
+
 /** One value of an id, which the address spells as a word of its own. */
 const word = (id: string, name: string, value: string, spelled: string): QueryParam => ({
   id,
@@ -173,13 +185,13 @@ const ADDRESSES: readonly Address[] = [
     page: PAGES.process,
     view: "process-detail",
     params: { ...ENGINE, process: "processDefinitionKey" },
-    query: [word("focus", "scope", "incidents", "incident")],
+    query: [tenant("tenantId", "tenant"), word("focus", "scope", "incidents", "incident")],
   },
   {
     page: PAGES.instances,
     view: "process-instances",
     params: ENGINE,
-    query: [text("processDefinitionKey", "process")],
+    query: [text("processDefinitionKey", "process"), tenant("onlyTenant", "tenant")],
   },
   { page: PAGES.instance, view: "history", params: INSTANCE, query: [], mark: ["tab", "history"] },
   { page: PAGES.instance, view: "instance-detail", params: INSTANCE, query: [] },
@@ -400,16 +412,15 @@ function startOf(place: Place): PageStart {
  */
 export function screenOf(place: Place): PageScreen | undefined {
   const { view, engine, incidentId } = place
-  if (shapeOf(place) === "view" && (view === LANDING.view || view === FLEET)) {
+  const shape = shapeOf(place)
+  if (shape === "view" && (view === LANDING.view || view === FLEET)) {
     return { kind: "start" }
   }
   if (!isSegment(engine)) return undefined
-  switch (shapeOf(place)) {
+  if (PROCESS_PLACES.has(shape)) return processScreenOf(engine, place)
+  switch (shape) {
     case "engine,view":
       return view === "overview" ? { kind: "engine", engine, filter: EVERY_PROCESS } : undefined
-    case "engine,processDefinitionKey,view":
-    case "engine,focus,processDefinitionKey,view":
-      return processScreenOf(engine, place)
     case "engine,processInstanceId,view":
       return instanceScreenOf(engine, place)
     case "engine,incidentId,view":
@@ -419,30 +430,6 @@ export function screenOf(place: Place): PageScreen | undefined {
     default:
       return undefined
   }
-}
-
-/** The instance screen at an instance's view or its history (its tab) on `engine`. */
-function instanceScreenOf(engine: string, place: Place): PageScreen | undefined {
-  const { view, processInstanceId: instance } = place
-  if (!isSegment(instance)) return undefined
-  if (view === "history") return { kind: "instance", engine, instance, tab: "history" }
-  return view === "instance-detail" ? { kind: "instance", engine, instance } : undefined
-}
-
-/**
- * The process screen at a process's view or the list of its instances on `engine`, where the
- * process's id can be a segment of its address: its running instances listed, with its incidents in
- * focus those with incident.
- */
-function processScreenOf(engine: string, place: Place): PageScreen | undefined {
-  const { view, focus, processDefinitionKey: process } = place
-  if (!isSegment(process)) return undefined
-  const instances = view === "process-instances" && focus === undefined
-  if (view !== "process-detail" && !instances) return undefined
-  if (focus === undefined) return { kind: "process", engine, process, filter: RUNNING_LIST }
-  return focus === "incidents"
-    ? { kind: "process", engine, process, filter: { scope: "withIncident" } }
-    : undefined
 }
 
 /**

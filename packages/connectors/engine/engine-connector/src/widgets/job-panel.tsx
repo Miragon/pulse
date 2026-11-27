@@ -10,7 +10,7 @@ import {
   type SegmentedControlOption,
 } from "@miragon/pulse-ui"
 
-import { LIST_PAGE_SIZE, type JobPanelData } from "../view-models.js"
+import { LIST_PAGE_SIZE, type JobPanelData, type ListTenant } from "../view-models.js"
 import {
   type AskAiPrompt,
   HandOffButton,
@@ -41,14 +41,17 @@ type JobScope = typeof SCOPE_ALL | typeof SCOPE_WITHOUT_RETRIES
 interface JobsRoute {
   engine: string
   processDefinitionKey?: string
+  /** The tenant a process opened its jobs in (null: none); absent, every tenant's. */
+  onlyTenant?: ListTenant
   failedOnly?: boolean
 }
 
 /** The scope's flag goes out only when it narrows: every job is the feed's default. */
-function jobsFeedArgs({ engine, processDefinitionKey, failedOnly }: JobsRoute) {
+function jobsFeedArgs({ engine, processDefinitionKey, onlyTenant, failedOnly }: JobsRoute) {
   const args: Record<string, unknown> = { engine }
   if (failedOnly) args.failedOnly = true
   if (processDefinitionKey) args.processDefinitionKey = processDefinitionKey
+  if (processDefinitionKey && onlyTenant !== undefined) args.onlyTenant = onlyTenant
   return args
 }
 
@@ -192,7 +195,7 @@ export function JobPanelWidget({
   const { ask, context } = useHandOff()
   const handOffs = useHandOffsShown()
   const go = useNav()
-  const { engine, processDefinitionKey } = route
+  const { engine, processDefinitionKey, onlyTenant } = route
   // The scope is the route's, part of the cockpit's place: a drill to the jobs without retries
   // checks it, and a click on the segment moves the cockpit to the other one (the same view in
   // another scope), so a page's address, its memo and Back keep the scope on screen.
@@ -202,6 +205,7 @@ export function JobPanelWidget({
     go({
       type: "jobs",
       processDefinitionKey,
+      ...(onlyTenant === undefined ? {} : { onlyTenant }),
       failedOnly: next === SCOPE_WITHOUT_RETRIES ? true : undefined,
     })
   // The handed-in page is its own scope's page 0: the other scope reads its own.
@@ -210,9 +214,14 @@ export function JobPanelWidget({
     initialData: seed,
     // One list in either scope (the scope goes out in `args`): while the other scope's page loads,
     // the page on screen stays with its segment, busy, instead of the loading guard.
-    key: ["engine:jobs", engine, processDefinitionKey ?? null],
+    key: [
+      "engine:jobs",
+      engine,
+      processDefinitionKey ?? null,
+      onlyTenant === undefined ? "*" : onlyTenant,
+    ],
     tool: ENGINE_JOBS_DATA,
-    args: jobsFeedArgs({ engine, processDefinitionKey, failedOnly }),
+    args: jobsFeedArgs({ engine, processDefinitionKey, onlyTenant, failedOnly }),
     ready: true,
     selectItems: (d) => d.jobs,
     selectTotal: (d) => d.totalCount,

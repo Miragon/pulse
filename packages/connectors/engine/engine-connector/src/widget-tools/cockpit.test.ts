@@ -271,7 +271,7 @@ describe("engine_open_cockpit: the input rules", () => {
     const issues = await parse({ processDefinitionId: "order:1:x" })
     expect(issues).toHaveLength(1)
     expect(issues[0][1]).toBe(
-      'Unknown key "processDefinitionId". Valid keys: "view", "processDefinitionKey", "focus", "activityId", "incidentType", "messageSignature", "processInstanceId", "incidentId", "failedOnly", "board", "engine".',
+      'Unknown key "processDefinitionId". Valid keys: "view", "processDefinitionKey", "tenantId", "focus", "activityId", "incidentType", "messageSignature", "processInstanceId", "incidentId", "failedOnly", "board", "engine".',
     )
   })
 

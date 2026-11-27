@@ -142,6 +142,7 @@ const CLUSTER: ClusterDetailData = {
   firstSeen: "2026-10-09T08:00:00.000Z",
   latestIncident: "2026-10-09T09:30:00.000Z",
   processDefinitionKeys: ["invoice"],
+  process: { processDefinitionKey: "invoice" },
   representativeMessage: LONG,
   incidents: INSTANCE_IDS.map((id, index) => ({
     incidentId: `inc-${index}`,

@@ -158,6 +158,7 @@ function InstanceBar({
               go({
                 type: "process-detail",
                 processDefinitionKey: processKey,
+                ...(data.tenantId === undefined ? {} : { tenantId: data.tenantId }),
                 label: data.processDefinitionName ?? undefined,
               })
           : undefined

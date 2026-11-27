@@ -116,12 +116,14 @@ export function ProcessDefinitionFlow(scope: DefinitionScope) {
         ) : mode === "running" ? (
           <RunningFlow
             processDefinitionKey={data.processDefinitionKey}
+            tenantId={data.tenantId}
             engine={engine}
             toolbar={toolbar}
           />
         ) : (
           <ThroughputFlow
             processDefinitionKey={data.processDefinitionKey}
+            tenantId={data.tenantId}
             engine={engine}
             toolbar={toolbar}
           />

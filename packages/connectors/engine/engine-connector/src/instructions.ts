@@ -59,7 +59,7 @@ const HAND_OFF_RULE =
 const FILTER_RULE =
   "- Filters mean the same on every tool: processDefinitionKey spans every version of a key in " +
   "every tenant, processDefinitionId names one version; tenantId names a process's tenant " +
-  "(engine_get_screen without it: none, else the key's first tenant by id); activityId is the " +
+  "(without it: none, else the key's first tenant by id); activityId is the " +
   "BPMN element id; incidentType is " +
   "failedJob, failedExternalTask or a custom type; a …Like filter matches a substring (% wildcards " +
   "allowed), without Like it matches exactly."

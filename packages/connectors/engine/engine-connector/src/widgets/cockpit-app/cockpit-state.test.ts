@@ -5,7 +5,7 @@ import {
   type CockpitAction,
   cockpitReducer,
   type CockpitState,
-  keptProcessKeys,
+  keptProcesses,
   startViewOf,
 } from "./cockpit-state.js"
 
@@ -139,7 +139,7 @@ describe("an engine switch keeps the section and the process (N7)", () => {
       "process-instances",
       "instance-detail",
     ])
-    expect(keptProcessKeys(state.stack)).toEqual(["invoice"])
+    expect(keptProcesses(state.stack)).toEqual([{ key: "invoice" }])
     const switched = cockpitReducer(state, { type: "switch-engine", id: "prod-b" })
     expect(switched.stack).toEqual([{ section: "overview" }, detail, instances])
     expect(switched.seededKey).toBeNull()
@@ -147,7 +147,7 @@ describe("an engine switch keeps the section and the process (N7)", () => {
 
   it("leaves an id-addressed view for its section: an incident's ids are another engine's", () => {
     const state = booted("prod-a", { section: "incident-detail", incidentId: "inc-1" })
-    expect(keptProcessKeys(state.stack)).toEqual([])
+    expect(keptProcesses(state.stack)).toEqual([])
     expect(sections(cockpitReducer(state, { type: "switch-engine", id: "prod-b" }))).toEqual([
       "incidents",
     ])
@@ -182,7 +182,7 @@ describe("an engine switch keeps the section and the process (N7)", () => {
     const gone = cockpitReducer(switched, {
       type: "process-gone",
       engineId: "prod-b",
-      processDefinitionKey: "invoice",
+      process: { key: "invoice" },
     })
     expect(sections(gone)).toEqual(["overview"])
     expect(gone.processGone).toEqual({ engineId: "prod-b", process: "Invoice" })
@@ -197,7 +197,7 @@ describe("an engine switch keeps the section and the process (N7)", () => {
       cockpitReducer(switched, {
         type: "process-gone",
         engineId: "prod-a",
-        processDefinitionKey: "invoice",
+        process: { key: "invoice" },
       }),
     ).toBe(switched)
     const moved = cockpitReducer(switched, { type: "incidents" })
@@ -205,7 +205,7 @@ describe("an engine switch keeps the section and the process (N7)", () => {
       cockpitReducer(moved, {
         type: "process-gone",
         engineId: "prod-b",
-        processDefinitionKey: "invoice",
+        process: { key: "invoice" },
       }),
     ).toBe(moved)
   })

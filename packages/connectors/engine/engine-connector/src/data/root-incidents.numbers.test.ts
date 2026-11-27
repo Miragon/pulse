@@ -214,6 +214,8 @@ function keyAnswers(key: string): RecordedAnswer[] {
     get("/process-definition", { key, latestVersion: "true", ...latest, maxResults: "1" }, [
       versions[0],
     ]),
+    // The latest per tenant, the process view's read: one, in a world without tenants.
+    get("/process-definition", { key, latestVersion: "true", ...latest }, [versions[0]]),
     get("/process-definition", { key, ...latest }, versions),
     get(
       "/process-instance/count",

@@ -87,9 +87,9 @@ exactly their laws (the package's `test/`).
   300 characters; `lineOf` is the line a viewer opens the text at, none without a `Caused by:`
   line; and `ProcessTenants`, the process a key names without a tenant on every surface: the
   key's process without a tenant where the key has a version without one, else its first tenant in
-  the order of the tenant ids by code unit (`summaryOf` among a list's processes, `versionsOf`
-  with its versions over `listVersions` and `listDefinitions`, given a version's id the tenant
-  that holds it).
+  the order of the tenant ids by code unit (`summaryOf` among a list's processes, `tenantOf`
+  among the tenants a key's versions name, `versionsOf` with its versions over `listVersions` and
+  `listDefinitions`, given a version's id the tenant that holds it).
 - **`./testing`:** the conformance kit (`ConformanceKit` with 55 read laws, 15 command laws and
   3 tenant laws), its fixed world (`WORLD_*`, the three neutral diagrams `NEUTRAL_DIAGRAMS` with
   fixed element ids), its tenant world (`WORLD_TENANT`, `WORLD_TENANT_DEPLOYMENTS`) and

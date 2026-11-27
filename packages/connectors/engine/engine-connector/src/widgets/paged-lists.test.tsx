@@ -73,6 +73,7 @@ const CLUSTER: ClusterDetailData = {
   firstSeen: "2026-06-11T08:00:00.000Z",
   latestIncident: "2026-06-11T14:00:00.000Z",
   processDefinitionKeys: ["shipping"],
+  process: { processDefinitionKey: "shipping" },
   representativeMessage: "Connection timeout",
   incidents: [
     {

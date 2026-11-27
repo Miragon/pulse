@@ -15,11 +15,17 @@ export class ProcessTenants {
     bpmnProcessId: BpmnProcessId,
   ): DefinitionSummary | undefined {
     const deployed = summaries.filter(({ latest }) => latest.bpmnProcessId === bpmnProcessId)
-    const [first] = ProcessTenants.tenantsOf(summaries, bpmnProcessId)
-    return (
-      deployed.find(({ latest }) => latest.tenantId === null) ??
-      deployed.find(({ latest }) => latest.tenantId === first)
-    )
+    const tenantId = ProcessTenants.tenantOf(deployed.map(({ latest }) => latest.tenantId))
+    return deployed.find(({ latest }) => latest.tenantId === tenantId)
+  }
+
+  static tenantOf(tenants: Iterable<TenantId | null>): TenantId | null | undefined {
+    const listed = [...tenants]
+    if (listed.includes(null)) {
+      return null
+    }
+    const [first] = ProcessTenants.ordered(listed.filter((tenant) => tenant !== null))
+    return first
   }
 
   static async versionsOf(
@@ -49,6 +55,10 @@ export class ProcessTenants {
     const tenants = summaries.flatMap(({ latest }) =>
       latest.bpmnProcessId === bpmnProcessId && latest.tenantId !== null ? [latest.tenantId] : [],
     )
+    return ProcessTenants.ordered(tenants)
+  }
+
+  private static ordered(tenants: readonly TenantId[]): TenantId[] {
     return [...new Set(tenants)].toSorted((left, right) => ProcessTenants.byCodeUnits(left, right))
   }
 

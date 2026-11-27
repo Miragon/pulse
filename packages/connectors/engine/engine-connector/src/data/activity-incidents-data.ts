@@ -12,11 +12,15 @@
  * The total is honest (invariant 7) and the first page's alone, since a list's total is its first
  * page's: a later page reads none. A first page read whole totals its rows, root incidents alone
  * over every version. A first page with more counts the element as its group counts it
- * (`activityIncidentCounts`): the key's scan where it holds every incident of the key, else the
- * element counts of the versions that hold a root incident, on their floor of 30 s per caller; and
- * never fewer than the rows read and one more, so no total the page disproves. Each row links to
- * its OWN definition version, so no definition lookup runs per page (N67). An unknown key is a
- * not-found error, and a cursor of another paging fails the call.
+ * (`activityIncidentCounts`): the process's scan where it holds every incident of the process,
+ * else the element counts of the versions that hold a root incident, on their floor of 30 s per
+ * caller; and never fewer than the rows read and one more, so no total the page disproves. Each row
+ * links to its OWN definition version, so no definition lookup runs per page (N67). The page is one
+ * process's, a key in one tenant (`readCockpitProcess`): where the key is deployed in other tenants
+ * too, the rows and the scan are read by the ids of the process's versions that hold a root
+ * incident (the floored statistics name them), so another tenant's incidents are never read, and
+ * the counts are its versions'. An unknown key or tenant is a not-found error, and a cursor of
+ * another paging fails the call.
  */
 
 import type { Client } from "@miragon/pulse-c7-client"
@@ -28,15 +32,18 @@ import type { ActivityIncidentsData } from "../view-models.js"
 import type { ActivityIncidentsPageArgs } from "../feed-contracts.js"
 import type { EngineProvider } from "../engine-provider.js"
 import { c7RuntimeOf } from "../lib/engine/engine-runtime.js"
-import { fetchDefinitionXml, fetchLatestDefinition, fetchStatsByKey } from "./definition-info.js"
-import { optional } from "./engine-reads.js"
 import {
-  fetchBusinessKeys,
-  type IncidentRow,
-  scanIncidents,
-  toIncidentInstance,
-} from "./incident-scan.js"
+  type CockpitProcess,
+  incidentVersionsOf,
+  readCockpitProcess,
+  scanOfProcess,
+  statsOfProcess,
+} from "./cockpit-process.js"
+import { fetchDefinitionXml, type KeyStats } from "./definition-info.js"
+import { optional } from "./engine-reads.js"
+import { fetchBusinessKeys, type IncidentRow, toIncidentInstance } from "./incident-scan.js"
 import { activityIncidentCounts } from "./process-incidents-data.js"
+import { readStatistics } from "./statistics-floor.js"
 
 /** The rows of a page without `maxResults`; the widget asks the same. */
 const ACTIVITY_INCIDENTS_PAGE = 10
@@ -48,20 +55,25 @@ export interface ActivityIncidentsOptions extends ActivityIncidentsPageArgs {
   provider: EngineProvider
 }
 
-/** An activity of a key: where a page's root incidents lie. */
+/** An activity of a process: where a page's root incidents lie, and the process's statistics. */
 interface ActivityRef {
-  readonly key: string
+  readonly process: CockpitProcess
   readonly activityId: string
+  /** Its statistics of the floored read; read only where its key holds other processes. */
+  readonly stats: KeyStats | undefined
 }
 
 /**
  * The element's open root incidents as its group on the process route counts them, by the same
- * read (`activityIncidentCounts`): the key's scan where it holds every incident of the key, else
- * the element counts of the key's versions that hold a root incident, which only then are read.
+ * read (`activityIncidentCounts`): the process's scan where it holds every incident of the process,
+ * else the element counts of the process's versions that hold a root incident, which only then are
+ * read.
  */
-async function rootsAsGrouped(client: Client, { key, activityId }: ActivityRef): Promise<number> {
-  const scan = await scanIncidents(client, { processDefinitionKeyIn: key })
-  const stats = scan.complete ? undefined : (await fetchStatsByKey(client)).get(key)
+async function rootsAsGrouped(client: Client, activity: ActivityRef): Promise<number> {
+  const { process, activityId } = activity
+  const scan = await scanOfProcess(client, process, activity.stats)
+  const stats =
+    activity.stats ?? (scan.complete ? undefined : await statsRead(client, process, true))
   const roots = scan.rows.filter(isRootIncident)
   return (await activityIncidentCounts(client, { scan, roots, stats })).get(activityId) ?? 0
 }
@@ -81,18 +93,37 @@ async function totalOf(
   return Math.max(await rootsAsGrouped(client, activity), page.items.length + 1)
 }
 
-/** The page of root incidents `options` asks for, by c7-core's paging of the element's two lists. */
+/**
+ * The page of root incidents `options` asks for, by c7-core's paging of the element's two lists:
+ * the key's, or, where its key holds other processes, those of the process's versions that hold a
+ * root incident, each by its id.
+ */
 function rootsPage(
   client: Client,
   options: ActivityIncidentsOptions,
+  activity: ActivityRef,
 ): Promise<Page<ElementIncident>> {
+  const definitionIds = incidentVersionsOf(activity.process, activity.stats)
   const element = {
     bpmnProcessId: BpmnProcessId(options.processDefinitionKey),
     elementId: ElementId(options.activityId),
+    ...(definitionIds === undefined ? {} : { definitionIds }),
   }
   const limit = options.maxResults ?? ACTIVITY_INCIDENTS_PAGE
   const page = options.after === undefined ? { limit } : { limit, after: PageCursor(options.after) }
   return c7RuntimeOf(client).searchElementRootIncidents(element, page)
+}
+
+/**
+ * The process's statistics of the floored read where `needed`: a process whose key holds others
+ * names the versions its incidents are read by, one alone only where its scan falls short.
+ */
+async function statsRead(
+  client: Client,
+  process: CockpitProcess,
+  needed: boolean,
+): Promise<KeyStats | undefined> {
+  return needed ? statsOfProcess((await readStatistics(client)).rows, process) : undefined
 }
 
 /** A root incident as the connector's incident views read a row. */
@@ -115,13 +146,14 @@ export async function buildActivityIncidentsData(
   client: Client,
   options: ActivityIncidentsOptions,
 ): Promise<Omit<ActivityIncidentsData, "engineId">> {
-  const activity = { key: options.processDefinitionKey, activityId: options.activityId }
-  // Primary: an unknown key is a not-found error, never a page of zeros.
-  const latest = await fetchLatestDefinition(client, activity.key)
+  // Primary: an unknown key or tenant is a not-found error, never a page of zeros.
+  const process = await readCockpitProcess(client, options.processDefinitionKey, options.tenantId)
+  const stats = await statsRead(client, process, !process.alone)
+  const activity = { process, activityId: options.activityId, stats }
   const [bpmnXml, page] = await Promise.all([
     // Enrichment: an unread diagram names no element.
-    latest.id ? optional(fetchDefinitionXml(client, latest.id)) : Promise.resolve(null),
-    rootsPage(client, options),
+    optional(fetchDefinitionXml(client, process.latest.id)),
+    rootsPage(client, options, activity),
   ])
   const rows = page.items.map(rowOf)
   const names = readBpmnNames(bpmnXml ?? "").elements
@@ -137,7 +169,8 @@ export async function buildActivityIncidentsData(
     ),
   ])
   return {
-    processDefinitionKey: activity.key,
+    processDefinitionKey: process.key,
+    ...(process.tenantId === null ? {} : { tenantId: process.tenantId }),
     activityId: activity.activityId,
     incidents: rows.map((r) => toIncidentInstance(r, options, businessKeys, activityName)),
     totalCount,

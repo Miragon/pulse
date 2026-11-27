@@ -7,7 +7,7 @@ import type {
 } from "../view-models.js"
 import { placeOnDiagram, readDiagramXml } from "./activity-diagram.js"
 import { readActivityThroughput } from "./activity-throughput.js"
-import { fetchDefinitionVersions, fetchLatestDefinition } from "./definition-info.js"
+import { readProcessVersions } from "./cockpit-process.js"
 import { readElementCounts, type ElementCounts } from "./element-counts.js"
 
 type Counts = Pick<
@@ -36,9 +36,10 @@ function countsPerElement(elements: Map<string, ElementCounts>): Map<string, Cou
 }
 
 /**
- * The process flow's "Running": what runs at each element of a key now. Old versions keep running
- * after a redeploy, so every version is read (#335 N60) and summed per element onto the latest
- * version's diagram; an element only an older version has says so (`inDiagram: false`). Each
+ * The process flow's "Running": what runs at each element of a process (a key in one tenant,
+ * `readProcessVersions`, its every version and its latest in one read) now. Old versions keep running after a redeploy, so every version of the
+ * process is read (#335 N60) and summed per element onto its latest version's diagram; an element
+ * only an older version has says so (`inDiagram: false`). Each
  * version's counts are the shared process screen's (`readElementCounts`, one statistics read with
  * the jobs without retries and every incident at an element, and the incidents at its call
  * activities whole, four versions at once, on the floor of 30 s per caller): the tokens without
@@ -48,12 +49,11 @@ function countsPerElement(elements: Map<string, ElementCounts>): Map<string, Cou
 async function readRunning(
   client: Client,
   key: string,
+  tenantId: string | undefined,
 ): Promise<Omit<ActivityStatisticsData, "engineId">> {
-  const [diagram, versions] = await Promise.all([
-    // Primary: an unknown key is a not-found error, never a view of zeros.
-    fetchLatestDefinition(client, key),
-    fetchDefinitionVersions(client, key),
-  ])
+  // Primary: an unknown key or tenant is a not-found error, never a view of zeros.
+  const process = await readProcessVersions(client, key, tenantId)
+  const { latest: diagram, versions } = process
   const versionIds = versions.map((version) => version.id)
   const [elements, bpmnXml] = await Promise.all([
     readElementCounts(client, versionIds),
@@ -71,8 +71,9 @@ async function readRunning(
     )
   return {
     processDefinitionKey: key,
+    ...(process.tenantId === null ? {} : { tenantId: process.tenantId }),
     source: "runtime",
-    diagramDefinitionId: diagram.id || null,
+    diagramDefinitionId: diagram.id,
     diagramVersion: diagram.version,
     versionCount: versions.length,
     activities,
@@ -86,16 +87,16 @@ export type ActivityStatisticsFeedData = ActivityStatisticsData | ActivityThroug
 type WithoutEngineId<T> = T extends unknown ? Omit<T, "engineId"> : never
 
 /**
- * The process flow's element counts, read from the engine REST API: what runs at each element now
- * (`runtime`), or what the instances started in the last 30 days passed there (`history`, kept per
- * engine client, caller and key for the hour).
+ * The process flow's element counts of one process, read from the engine REST API: what runs at
+ * each element now (`runtime`), or what the instances started in the last 30 days passed there
+ * (`history`, kept per engine client, caller, key and tenant for the hour).
  */
 export function buildActivityStatisticsData(
   client: Client,
-  { processDefinitionKey, source }: ActivityStatisticsArgs,
+  { processDefinitionKey, tenantId, source }: ActivityStatisticsArgs,
   nowMs: number = Date.now(),
 ): Promise<WithoutEngineId<ActivityStatisticsFeedData>> {
   return source === "history"
-    ? readActivityThroughput(client, processDefinitionKey, nowMs)
-    : readRunning(client, processDefinitionKey)
+    ? readActivityThroughput(client, { key: processDefinitionKey, tenantId }, nowMs)
+    : readRunning(client, processDefinitionKey, tenantId)
 }

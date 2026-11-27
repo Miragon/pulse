@@ -40,8 +40,14 @@ import { landingDataOf, landingFacts } from "./landing-data.js"
 
 type ViewOf<S extends CockpitSection> = Extract<CockpitView, { section: S }>
 
-/** A start param of one route: a field of its view, besides its section and its display label. */
-type ParamOf<S extends CockpitSection> = Exclude<keyof ViewOf<S>, "section" | "label">
+/**
+ * A start param of one route: a field of its view, besides its section, its display label and a
+ * list's narrowing to a tenant (`onlyTenant`), which only a process's drill opens.
+ */
+type ParamOf<S extends CockpitSection> = Exclude<
+  keyof ViewOf<S>,
+  "section" | "label" | "onlyTenant"
+>
 
 /**
  * The ids a start view may carry, besides `view` itself: every route's params, read off
@@ -196,11 +202,17 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
   "process-detail": {
     scope: "engine",
     needs: ["processDefinitionKey"],
-    takes: ["focus"],
+    takes: ["tenantId", "focus"],
     start: (view, engine, ctx) =>
-      processIncidentsFeed.read({ processDefinitionKey: view.processDefinitionKey }, engine, ctx),
+      processIncidentsFeed.read(
+        { processDefinitionKey: view.processDefinitionKey, tenantId: view.tenantId },
+        engine,
+        ctx,
+      ),
+    // The tenant it read: the one asked for, else the one the key names; none left out.
     facts: (view, data) => ({
       processDefinitionKey: data.processDefinitionKey,
+      tenantId: data.tenantId,
       focus: view.focus,
       diagramVersion: data.diagramVersion,
       runningInstances: data.runningInstances,

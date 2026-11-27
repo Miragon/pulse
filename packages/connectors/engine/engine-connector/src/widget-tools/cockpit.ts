@@ -48,6 +48,7 @@ const startViewShape = {
     .string()
     .optional()
     .describe("process-detail (required), process-instances, jobs."),
+  tenantId: z.string().min(1).optional().describe("process-detail."),
   focus: z
     .enum(["incidents"])
     .optional()
