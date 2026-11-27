@@ -82,9 +82,12 @@ one), seeds the conformance world of `@miragon/pulse-engine-core/testing` throug
 that world, every tile read with the numbers of the kit's fake world. Beside it, two engines of
 the same image (history level FULL and NONE) seeded with c7-core's status world give through
 `engine_status`, the verdict feed and the health feed the figures c7-core's recorded status
-engine expects (`src/lib/core-adapter/status-world.engine.test.ts`). CI runs it on Operaton and
-CIB seven when a file it runs changes. `record:status-world` (Docker; `pnpm record:status-world`
-from the root runs it with the CLI's half) records that status engine anew
+engine expects, at the default thresholds and at the two on the world's edge, and the one at FULL
+gives through the process screen's, the instance screen's and the board's feeds the figures of the
+status world's recorded screens (`src/lib/core-adapter/status-world.engine.test.ts`). CI runs it on
+Operaton and CIB seven when a file it runs changes. `record:status-world` (Docker;
+`pnpm record:status-world` from the root runs it with the CLI's half, then checks the C7 adapter's
+build of the screens) records that status engine and those screens anew
 (`src/lib/core-adapter/status-world.record.test.ts`, which records only with
 `RECORD_STATUS_WORLD=1`: `pnpm test` skips it, `test:engines` does not load it).
 

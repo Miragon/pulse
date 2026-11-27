@@ -47,7 +47,7 @@
     "docs:build": "pnpm --fail-if-no-match --filter @miragon/pulse-docs build",
     "docs:preview": "pnpm --fail-if-no-match --filter @miragon/pulse-docs preview",
     "fitness": "node scripts/fitness-report.mjs",
-    "record:status-world": "pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector record:status-world && pnpm --fail-if-no-match --filter @miragon/pulse-cli record:status-world",
+    "record:status-world": "pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector record:status-world && pnpm --fail-if-no-match --filter @miragon/pulse-cli record:status-world && pnpm --fail-if-no-match --filter @miragon/pulse-c7-core build && pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter exec vitest run test/c7-status-screens-numbers.test.ts --coverage.enabled=false",
     "lint:deadcode": "knip --exclude exports,types",
     "lint:deadcode:exports": "knip --include exports,types"
   },

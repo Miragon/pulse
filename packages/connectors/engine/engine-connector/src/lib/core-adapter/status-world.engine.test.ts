@@ -7,15 +7,27 @@
  * and the chat overview's health feed, read live, the figures the recording expects of each: the
  * verdict, every count and every row's numbers, the copy at a call activity, the multi-instance
  * body's incident and the batch's incident outside any process alike, and the verdicts at the two
- * thresholds on the world's edge. Ids, instants, the engine's version and the engine's own texts
- * are each engine's own and stay out.
+ * thresholds on the world's edge; and the engine at FULL gives through the process screen's, the
+ * instance screen's and the board's feeds the figures of the status world's recorded screens
+ * (`C7_STATUS_SCREENS`), the body's root incident on the element it repeats. Ids, instants, the
+ * engine's version and the engine's own texts are each engine's own and stay out.
  *
  * `pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` (Docker).
  */
 
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
-import { C7_STATUS_ENGINE } from "@miragon/pulse-c7-core/testing"
+import type { BoardData } from "@miragon/pulse-board"
+import { BoardFigures } from "@miragon/pulse-board/testing"
+import {
+  C7_STATUS_ENGINE,
+  C7_STATUS_SCREENS,
+  type C7ExpectedStatusScreens,
+  type C7StatusWorldIds,
+} from "@miragon/pulse-c7-core/testing"
+import type { InstanceScreenData, ProcessScreenData } from "@miragon/pulse-screens"
+import { ScreenFigures } from "@miragon/pulse-screens/testing"
 import { engineImageOf } from "./engine-image.test-support.js"
+import { readStatusScreens } from "./status-screens.test-support.js"
 import { judgedAt, statusServer, type StatusSurfaces } from "./status-surfaces.test-support.js"
 import {
   seedStatusEngines,
@@ -84,6 +96,15 @@ function healthFigures({ status, summary, clusters }: HealthLike) {
   }
 }
 
+/** The figures of the status world's screens, without ids and instants. */
+function screenFigures({ process, instance, board }: C7ExpectedStatusScreens) {
+  return {
+    process: ScreenFigures.process(process as ProcessScreenData),
+    instance: ScreenFigures.instance(instance as InstanceScreenData),
+    board: BoardFigures.of(board as BoardData),
+  }
+}
+
 /** The figures of what each surface gives of one engine. */
 function figures(surfaces: StatusSurfaces) {
   return {
@@ -97,10 +118,11 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
   `c7-core's recorded status engines on ${ENGINE_IMAGE.name}`,
   () => {
     let engines: StatusEngine[] = []
+    let ids: C7StatusWorldIds[] = []
 
     beforeAll(async () => {
       engines = await startStatusEngines(ENGINE_IMAGE.name)
-      await seedStatusEngines(engines)
+      ids = await seedStatusEngines(engines)
     })
 
     afterAll(async () => {
@@ -123,6 +145,18 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
         }
       }
       expect(live).toEqual(C7_STATUS_ENGINE.engines.flatMap(({ expected }) => expected.atEdges))
+    })
+
+    test("the screens at full give the recorded figures, the body's incident on its element", async () => {
+      const [full] = engines
+      const [fullIds] = ids
+      if (full === undefined || fullIds === undefined) throw new Error("no engine at full")
+      const live = await readStatusScreens(
+        { engine: full.engine, url: full.url, flavor: FLAVOR },
+        C7_STATUS_SCREENS.text,
+        fullIds.instanceIds.failing,
+      )
+      expect(screenFigures(live)).toEqual(screenFigures(C7_STATUS_SCREENS.expected))
     })
   },
 )

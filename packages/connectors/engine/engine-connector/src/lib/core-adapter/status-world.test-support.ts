@@ -7,7 +7,11 @@
  */
 
 import { GenericContainer, Wait } from "testcontainers"
-import { type C7SeedEngine, seedC7StatusWorld } from "@miragon/pulse-c7-core/testing"
+import {
+  type C7SeedEngine,
+  type C7StatusWorldIds,
+  seedC7StatusWorld,
+} from "@miragon/pulse-c7-core/testing"
 
 const ENGINE_PORT = 8080
 const REST_ROOT = "/engine-rest"
@@ -67,9 +71,9 @@ export async function startStatusEngines(image: string): Promise<StatusEngine[]>
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
-/** Seeds the status world into each engine, all at once, over the global fetch. */
-export async function seedStatusEngines(engines: readonly StatusEngine[]): Promise<void> {
-  await Promise.all(
+/** Seeds the status world into each engine, all at once, over the global fetch; each one's ids. */
+export function seedStatusEngines(engines: readonly StatusEngine[]): Promise<C7StatusWorldIds[]> {
+  return Promise.all(
     engines.map(({ url }) => {
       const engine: C7SeedEngine = { url, send: (target, request) => fetch(target, request), wait }
       return seedC7StatusWorld(engine)

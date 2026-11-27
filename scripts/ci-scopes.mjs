@@ -148,8 +148,9 @@ export const ALSO_READ_BY = [
   // world's suite holds to C7_STATUS_ENGINE (engine_status in src/tools/engines.ts; the health feed
   // and the verdict feed, their builders, floors, the incident scan, the verdict over it, the
   // statistics read and the day's history counts, and src/data/feeds.ts and screen-feeds.ts, which
-  // register them), its manifest and its vitest configs. Any other change of these packages leaves
-  // the suite off.
+  // register them), the screens it holds to C7_STATUS_SCREENS (the process and the instance
+  // screen's feeds and the screens package's builders), its manifest and its vitest configs. Any
+  // other change of these packages leaves the suite off.
   {
     pattern: new RegExp(
       "^packages/(?:" +
@@ -161,9 +162,10 @@ export const ALSO_READ_BY = [
           "core/http/src/",
           "core/profile/src/",
           "core/board/src/",
+          "core/screens/src/",
           "connectors/engine/engine-connector/(?:src/lib/(?:core-adapter|engine)/|src/providers/|src/engine-provider\\.ts$|package\\.json$|vitest\\.(?:engines\\.)?config\\.ts$)",
           "connectors/engine/engine-connector/src/(?:board-files\\.ts|data/(?:board-[\\w.-]+|cockpit-data|definition-info|engine-reads)\\.ts|lib/bpmn/definition-xml\\.ts)$",
-          "connectors/engine/engine-connector/src/(?:tools/engines|data/(?:health-data|health-floor|cluster-scan|scan-verdict|statistics-floor|started-completed|history-recorded|answer-parts|feeds|screen-feeds|screens/(?:verdict-data|engine-screen-data|screen-floor)))\\.ts$",
+          "connectors/engine/engine-connector/src/(?:tools/engines|data/(?:health-data|health-floor|cluster-scan|scan-verdict|statistics-floor|started-completed|history-recorded|answer-parts|feeds|screen-feeds|screens/(?:verdict-data|engine-screen-data|screen-floor|process-screen-data|instance-screen-data)))\\.ts$",
         ].join("|") +
         ")",
     ),

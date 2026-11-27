@@ -31,6 +31,11 @@ export { C7_BOARD_ENGINE, type C7BoardEngine, type C7RecordedAnswer } from "./bo
 export { C7_SCREEN_ENGINE, type C7ExpectedScreens, type C7ScreenEngine } from "./screen-engine.js"
 export { C7_STATUS_WORLD, type C7StatusWorldIds, seedC7StatusWorld } from "./status-world.js"
 export {
+  C7_STATUS_SCREENS,
+  type C7ExpectedStatusScreens,
+  type C7StatusScreens,
+} from "./status-screens.js"
+export {
   C7_STATUS_ENGINE,
   type C7EdgeVerdict,
   type C7ExpectedStatus,

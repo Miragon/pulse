@@ -496,8 +496,22 @@ outside any process apart) and each case to what it means, and the engine connec
 holds the world seeded on CIB seven or Operaton to the recorded figures
 (`packages/connectors/engine/engine-connector/src/lib/core-adapter/status-world.engine.test.ts`).
 Capped reads (more than 2,000 open incidents, more than 100 batches with failed jobs) stay cases
-of a fake port. Unlike the board's and the screens' recordings, a script records it, after
-`pnpm build`, with Docker, from the repository's root:
+of a fake port.
+
+`C7_STATUS_SCREENS` holds the screens the multi-instance body changes, Camunda 7's alone (Camunda
+8 has no such body, so the conformance world's `C7_SCREEN_ENGINE` and `C7_BOARD_ENGINE` stay
+without it): the answers of the status world's engine at FULL, from the same run and instant as
+`C7_STATUS_ENGINE`, to the reads of the process screen of `pulse-status-approval`
+(`expected.process`), the instance screen of APR-139-2, whose body holds the root incident
+(`expected.instance`), and a board with a diagram of that process (its file in `text`,
+`expected.board`). The editors' C7 adapter and the MCP server's feeds over the generated SDK build
+each exactly (the adapter's `test/c7-status-screens-numbers.test.ts`, the connector's
+`src/data/screens/status-screens.numbers.test.ts`); `src/testing/status-screens.test.ts` holds
+that each puts the body's root incident on the element it repeats, beside the items waiting there,
+and the engine suite holds a world seeded on CIB seven or Operaton to their figures.
+
+Unlike the board's and the screens' recordings of the conformance world, a script records both,
+after `pnpm build`, with Docker, from the repository's root:
 
 ```sh
 pnpm record:status-world
@@ -508,11 +522,15 @@ world into both, puts a recording proxy in front of each, reads the three server
 clock held at the second after the seeds, by default and at the two edges, and writes the answers
 and what the surfaces gave into `packages/connectors/c7/c7-core/src/testing/status-engine.json`,
 failing on an answer the recorded engine could not replay (no 200, a parameter twice, a body that
-is no JSON, a request answered otherwise when asked again). It sorts the answers by their method,
-their path with the engine's ids masked and their query's names, so a recording made anew moves
-only what changed. Its second half, the CLI's, runs `pulse status` over the answers just written,
-fails on a request they do not answer and writes what it printed. Two runs give the same
-expectations but for the engines' ids and instants.
+is no JSON, a request answered otherwise when asked again), then reads the three screens of the
+engine at FULL through a proxy of their own and writes their answers and what the feeds gave into
+`packages/connectors/c7/c7-core/src/testing/status-screens.json`. It sorts the answers by their
+method, their path with the engine's ids masked and their query's names, so a recording made anew
+moves only what changed. Its second half, the CLI's, runs `pulse status` over the answers just
+written, fails on a request they do not answer and writes what it printed; then the script builds
+this package and checks that the C7 adapter builds the screens over their answers exactly. Two runs
+give the same expectations but for the engines' ids, instants and the milliseconds a step took (the
+instance screen's path durations).
 
 ## Help and feedback
 
