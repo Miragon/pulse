@@ -42,7 +42,14 @@ export const STATUS_LABEL_DIAGRAM = diagram(
   ].join("\n"),
 )
 
-/** The process whose call activity waits for the label's incident and holds a copy of it. */
+/** The tenant the dispatch's call activity names, so its call starts the label deployed there. */
+export const STATUS_CALLED_TENANT = "pulse-north"
+
+/**
+ * The process whose call activity waits for the label's incident and holds a copy of it: the
+ * dispatch has no tenant, its call names the tenant of the label it starts
+ * (`calledElementTenantId`), so the chain's root incident is raised on a tenant's version.
+ */
 export const STATUS_DISPATCH_DIAGRAM = diagram(
   "pulse-status-dispatch",
   "Ship parcel",
@@ -50,7 +57,7 @@ export const STATUS_DISPATCH_DIAGRAM = diagram(
     '    <bpmn:startEvent id="Event_Start" />',
     flow("Event_Start", "Activity_PrintLabel"),
     '    <bpmn:callActivity id="Activity_PrintLabel" name="Print label" ' +
-      'calledElement="pulse-status-label" />',
+      `calledElement="pulse-status-label" camunda:calledElementTenantId="${STATUS_CALLED_TENANT}" />`,
     flow("Activity_PrintLabel", "Event_End"),
     '    <bpmn:endEvent id="Event_End" />',
   ].join("\n"),

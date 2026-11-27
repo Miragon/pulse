@@ -5,6 +5,7 @@ export interface EngineInfoData {
 
 export interface ProcessRowData {
   readonly bpmnProcessId: string
+  readonly tenantId?: string
   readonly name?: string
   readonly latestVersion: number
   readonly running: number

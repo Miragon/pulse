@@ -6,4 +6,8 @@ export class Fields {
       Object.entries(fields).filter(([, value]) => value !== undefined),
     ) as Present<Given>
   }
+
+  static tenant(tenantId: string | null): { readonly tenantId?: string } {
+    return tenantId === null ? {} : { tenantId }
+  }
 }

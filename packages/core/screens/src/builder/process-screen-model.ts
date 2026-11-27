@@ -5,6 +5,7 @@ import type {
   DefinitionRef,
   ElementStatistics,
   ProcessRuntime,
+  TenantId,
   VersionSummary,
 } from "@miragon/pulse-engine-core"
 import type { ProcessReadCode } from "../format/process-screen-data.js"
@@ -17,6 +18,7 @@ export type ProcessScreenReads = Pick<
 
 export interface ProcessScreenRequest {
   readonly bpmnProcessId: BpmnProcessId
+  readonly tenantId: TenantId | null
   readonly definitionId?: DefinitionId
   readonly version?: number
 }
@@ -25,6 +27,7 @@ export interface ProcessFacts {
   readonly engine: string
   readonly asOf: Date
   readonly bpmnProcessId: BpmnProcessId
+  readonly tenantId: TenantId | null
   readonly versions: readonly VersionSummary[]
   readonly selected: DefinitionId | undefined
   readonly diagramXml: string | undefined
@@ -45,6 +48,7 @@ export interface ProcessScreenModel {
   readonly engine: string
   readonly asOf: Date
   readonly bpmnProcessId: BpmnProcessId
+  readonly tenantId: TenantId | null
   readonly selected: VersionSummary | undefined
   readonly versions: readonly VersionSummary[]
   readonly badges: readonly ElementStatistics[]

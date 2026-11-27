@@ -8,6 +8,7 @@ export {
   InstanceId,
   IsoTimestamp,
   PageCursor,
+  TenantId,
 } from "./model/ids.js"
 export type { BulkFailure, BulkOperation, BulkOperationKind } from "./model/bulk-operations.js"
 export type {
@@ -47,6 +48,8 @@ export type {
   WaitStateKind,
 } from "./model/read-models.js"
 export { MoveReasons } from "./model/move-reasons.js"
+export { ProcessTenants } from "./model/process-tenants.js"
+export type { TenantReads, TenantVersions } from "./model/process-tenants.js"
 export { RootCauses } from "./model/root-causes.js"
 export { RuntimeError } from "./model/runtime-error.js"
 export type { RuntimeFailure } from "./model/runtime-error.js"
@@ -57,4 +60,4 @@ export type {
   TokenMove,
   VariableChange,
 } from "./ports/process-commands.js"
-export type { ProcessRuntime } from "./ports/process-runtime.js"
+export type { CallingVersion, ProcessRuntime } from "./ports/process-runtime.js"

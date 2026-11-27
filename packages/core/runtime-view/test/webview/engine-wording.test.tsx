@@ -20,6 +20,7 @@ function summary(
     latest: {
       id: DefinitionId(`${bpmnProcessId}:7`),
       bpmnProcessId: BpmnProcessId(bpmnProcessId),
+      tenantId: null,
       version: 7,
       ...(name === undefined ? {} : { name }),
     },

@@ -17,6 +17,7 @@ import {
 } from "@miragon/pulse-ui/bpmn"
 import { useT } from "../../messages/index.js"
 import { targetUrl } from "../slots.js"
+import { tenantFieldOf } from "./screen-process.js"
 
 /** The class of the element the list is filtered to: the page's ring in the interaction's colour. */
 const SELECTED_CLASS = "pulse-selected"
@@ -96,6 +97,7 @@ function callHref(engine: string, call: CallLinkData): string | undefined {
     kind: "version",
     engine,
     bpmnProcessId: definition.bpmnProcessId,
+    ...tenantFieldOf(definition.tenantId),
     version: definition.version,
     definitionId: definition.id,
   })

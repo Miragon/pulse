@@ -19,6 +19,7 @@
               "bpmnProcessId": "order",
               "id": "order:2:6f1e8a",
               "name": "Order",
+              "tenantId": null,
               "version": 2
             },
             "hasIncident": false,

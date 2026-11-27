@@ -1,6 +1,6 @@
 import { BoardParser, type BoardDefinition } from "@miragon/pulse-board"
 import { BoardBuilder } from "@miragon/pulse-board/builder"
-import { BpmnProcessId, InstanceId } from "@miragon/pulse-engine-core"
+import { BpmnProcessId, InstanceId, TenantId } from "@miragon/pulse-engine-core"
 import type { Panel } from "../panels/panel.js"
 import type { BoardView, WebviewIntent } from "../protocol/index.js"
 import type { BoardContext } from "./board-engine.js"
@@ -120,8 +120,12 @@ export class BoardPanel implements Panel {
         }
         return
       case "openBoardProcess":
-        if (targets.showsProcess(intent.engine, intent.bpmnProcessId, intent.filter)) {
-          const process = BpmnProcessId(intent.bpmnProcessId)
+        if (targets.showsProcess(intent.engine, intent, intent.filter)) {
+          const { bpmnProcessId, tenantId } = intent
+          const process = {
+            bpmnProcessId: BpmnProcessId(bpmnProcessId),
+            ...(tenantId === undefined ? {} : { tenantId: TenantId(tenantId) }),
+          }
           navigation.openDefinition(intent.engine, process, intent.filter, {
             toSide: intent.toSide,
           })

@@ -24,6 +24,7 @@ import {
 } from "./process-feed.js"
 import { ProcessBody } from "./process-body.js"
 import { ProcessBar, ProcessStrips, UnknownProcess } from "./process-head.js"
+import { processArgsOf, type ScreenProcess } from "./screen-process.js"
 
 /** How many times a failed read runs again by itself: TanStack's three, never for a refusal. */
 const READ_RETRIES = 3
@@ -45,8 +46,8 @@ export type VersionMove = "pick" | "show"
 
 export interface ProcessScreenProps {
   readonly engine: string
-  /** The process's BPMN process ID. */
-  readonly process: string
+  /** The process: its BPMN process ID in one tenant. */
+  readonly process: ScreenProcess
   /** The version's number the address names; none for the latest. */
   readonly version?: number
   /** The instance list's filter, which the page's address carries. */
@@ -106,7 +107,7 @@ export function ProcessScreen(props: ProcessScreenProps) {
           <>
             <ProcessBar
               engine={engine}
-              process={process}
+              process={process.key}
               data={read.bar}
               refreshing={refreshing}
               onRefresh={ready ? read.refetch : undefined}
@@ -221,7 +222,7 @@ function countsAfter(screen: ProcessScreenFeed, list: InstancePages) {
  */
 function useProcessScreen(
   engine: string,
-  process: string,
+  process: ScreenProcess,
   version: number | undefined,
   filter: InstanceListFilterData,
   ready: boolean,
@@ -319,14 +320,14 @@ function keptAcrossVersions({ variables }: InstanceListFilterData): InstanceList
  */
 function useProcessRead(
   engine: string,
-  process: string,
+  process: ScreenProcess,
   version: number | undefined,
   ready: boolean,
 ) {
   return useToolQuery<ProcessScreenFeed>(
     processScreenKey(engine, process),
     PROCESS_SCREEN_FEED,
-    version === undefined ? { engine, process } : { engine, process, version },
+    processArgsOf(engine, process, version),
     {
       staleTime: READ_AGAIN_AFTER_MS,
       enabled: ready,
@@ -391,7 +392,7 @@ function ProcessState({
   navigate,
 }: {
   readonly engine: string
-  readonly process: string
+  readonly process: ScreenProcess
   readonly error: Error | null
   readonly onRetry: () => void
   readonly navigate: Navigate
@@ -407,8 +408,8 @@ function ProcessState({
       error={error}
       onRetry={onRetry}
       emptyText=""
-      loadingText={t("screen.process.loading", { process })}
-      errorTitle={t("screen.process.failed", { process })}
+      loadingText={t("screen.process.loading", { process: process.key })}
+      errorTitle={t("screen.process.failed", { process: process.key })}
       retryLabel={t("action.tryAgain")}
     />
   )

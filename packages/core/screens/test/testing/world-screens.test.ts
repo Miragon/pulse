@@ -53,6 +53,7 @@ describe("the process screens and the instance list of the kit's fixed world", (
         expected.engine,
         {
           bpmnProcessId: BpmnProcessId(expected.bpmnProcessId),
+          tenantId: null,
           ...(wanted === undefined ? {} : { definitionId: DefinitionId(wanted) }),
         },
         ScreenWorld.world(),

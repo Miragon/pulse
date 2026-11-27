@@ -55,7 +55,9 @@ export class ViewHandles {
       case "engine":
         return `${request.engine} processes`
       case "definition":
-        return request.definitionId === undefined && request.filter === undefined
+        return request.definitionId === undefined &&
+          request.filter === undefined &&
+          request.tenantId === undefined
           ? request.bpmnProcessId
           : `${request.bpmnProcessId} ${ViewHandles.hash(request)}`
       case "instance":

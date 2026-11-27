@@ -26,6 +26,7 @@ export class CamundaViews {
       bpmnProcessId: json.requiredString("processDefinitionId"),
       version: json.requiredNumber("version"),
       ...Present.fields({
+        tenantId: json.optionalString("tenantId"),
         name: json.optionalString("name"),
         versionTag: json.optionalString("versionTag"),
         state: json.optionalString("state"),
@@ -38,6 +39,7 @@ export class CamundaViews {
       bpmnProcessId: json.requiredString("processDefinitionId"),
       withoutIncident: json.requiredNumber("activeInstancesWithoutIncidentCount"),
       withIncident: json.requiredNumber("activeInstancesWithIncidentCount"),
+      ...Present.fields({ tenantId: json.optionalString("tenantId") }),
     }
   }
 
@@ -66,6 +68,7 @@ export class CamundaViews {
       state: json.requiredString("state"),
       hasIncident: json.flag("hasIncident"),
       ...Present.fields({
+        tenantId: json.optionalString("tenantId"),
         definitionName: json.optionalString("processDefinitionName"),
         startedAt: json.optionalString("startDate"),
         endedAt: json.optionalString("endDate"),

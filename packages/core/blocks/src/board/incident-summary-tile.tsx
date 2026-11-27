@@ -9,6 +9,7 @@ import {
   entryCount,
   openTitle,
   partial,
+  summaryKey,
   summaryLabel,
   tileTitle,
   totalCount,
@@ -32,7 +33,7 @@ function RowText({ row, byProcess }: RowProps) {
   const t = useWords()
   return (
     <>
-      <span className="min-w-0 flex-1 truncate">{summaryLabel(row)}</span>
+      <span className="min-w-0 flex-1 truncate">{summaryLabel(t, row)}</span>
       {byProcess && <span className="text-muted-foreground">{row.engine}</span>}
       <BoardFigure
         text={entryCount(
@@ -110,12 +111,7 @@ export function IncidentSummaryTile({ tile, slots }: IncidentSummaryTileProps) {
       ) : (
         <ul className="flex flex-col" aria-label={t(byProcess ? "perProcess" : "perEngine")}>
           {tile.rows.map((row) => (
-            <SummaryRow
-              key={`${row.engine}|${row.process?.bpmnProcessId ?? ""}`}
-              row={row}
-              byProcess={byProcess}
-              slots={slots}
-            />
+            <SummaryRow key={summaryKey(row)} row={row} byProcess={byProcess} slots={slots} />
           ))}
         </ul>
       )}

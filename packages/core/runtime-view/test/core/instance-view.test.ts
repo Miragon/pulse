@@ -30,6 +30,7 @@ function detailWith(changes: Partial<InstanceDetail>): InstanceDetail {
       definition: {
         id: DefinitionId("order:1"),
         bpmnProcessId: BpmnProcessId("order"),
+        tenantId: null,
         version: 1,
       },
       state: "running",
@@ -66,7 +67,12 @@ function incident(id: string, changes: Partial<Incident> = {}): Incident {
   return {
     id: IncidentId(id),
     instanceId: ROOT,
-    definition: { id: DefinitionId("order:1"), bpmnProcessId: BpmnProcessId("order"), version: 1 },
+    definition: {
+      id: DefinitionId("order:1"),
+      bpmnProcessId: BpmnProcessId("order"),
+      tenantId: null,
+      version: 1,
+    },
     elementId: ELEMENT,
     type: "failedJob",
     message: "boom",
@@ -160,6 +166,7 @@ describe("the instance view", () => {
             id: CHILD,
             parentInstanceId: ROOT,
             bpmnProcessId: BpmnProcessId("child"),
+            tenantId: null,
             state: "running",
             calledFromElementId: ElementId("Activity_CallChild"),
           },
@@ -167,6 +174,7 @@ describe("the instance view", () => {
             id: GRANDCHILD,
             parentInstanceId: CHILD,
             bpmnProcessId: BpmnProcessId("grandchild"),
+            tenantId: null,
             state: "running",
           },
         ],
@@ -195,6 +203,7 @@ describe("the instance view", () => {
             definition: {
               id: DefinitionId("order:1"),
               bpmnProcessId: BpmnProcessId("order"),
+              tenantId: null,
               version: 1,
             },
             elementId: ELEMENT,
@@ -208,6 +217,7 @@ describe("the instance view", () => {
             definition: {
               id: DefinitionId("order:1"),
               bpmnProcessId: BpmnProcessId("order"),
+              tenantId: null,
               version: 1,
             },
             elementId: ELEMENT,
@@ -312,6 +322,7 @@ describe("the cause of an incident", () => {
       uri: "file:///shop/order.bpmn",
       fileName: "order.bpmn",
       bpmnProcessId: BpmnProcessId("order"),
+      tenantId: null,
       xml: "<definitions/>",
     }
     const configuration = {

@@ -183,7 +183,7 @@ describe("the runtime operations", () => {
     await definitions.list()
     await definitions.diagramXml(id)
     await new ElementStatisticsReader(port).of(id)
-    await new CalledProcessReader(port).read(id)
+    await new CalledProcessReader(port).read({ id, tenantId: null })
     await instances.search({}, { limit: 5 })
     await instances.count({ withIncident: true })
     await instances.count({ withIncident: true, activeElementId: ElementId("a") })

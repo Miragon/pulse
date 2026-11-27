@@ -26,28 +26,38 @@ import type {
   InstanceState,
   InstanceView,
 } from "./types.js"
-import { compact } from "./util.js"
+import { compact, nonEmpty } from "./util.js"
 import { plainVariables } from "./variables.js"
 import { waitStates } from "./waits.js"
 
 function definitionView(dto: Rec | undefined, id: string): DefinitionView {
   return {
     key: str(dto, "key") ?? definitionKeyOf(id) ?? "",
-    ...compact({ version: num(dto, "version"), name: str(dto, "name") }),
+    ...compact({
+      version: num(dto, "version"),
+      name: str(dto, "name"),
+      tenantId: nonEmpty(str(dto, "tenantId")),
+    }),
     id,
   }
 }
 
-/** From the history record, else from the definition list, else from the definition id. */
+/**
+ * From the history record, else from the definition list, else from the definition id; its tenant
+ * always the version's (its definition row's), never the instance's: a shared definition (none)
+ * runs instances a tenant id provider gave a tenant.
+ */
 function definitionOf(data: InstanceData): DefinitionView {
   const { history, runtime } = data
   const historyId = str(history, "processDefinitionId")
   if (historyId !== undefined) {
+    const version = data.definitions.find((definition) => str(definition, "id") === historyId)
     return {
       key: str(history, "processDefinitionKey") ?? definitionKeyOf(historyId) ?? "",
       ...compact({
         version: num(history, "processDefinitionVersion"),
         name: str(history, "processDefinitionName"),
+        tenantId: nonEmpty(str(version, "tenantId")),
       }),
       id: historyId,
     }
@@ -140,7 +150,11 @@ function children(data: InstanceData): ChildView[] {
         id: node.id,
         parentId: node.parentId ?? data.id,
         key: node.definitionKey ?? field(definition, "key"),
-        ...compact({ version: num(definition, "version"), businessKey: node.businessKey }),
+        ...compact({
+          version: num(definition, "version"),
+          tenantId: nonEmpty(str(definition, "tenantId")),
+          businessKey: node.businessKey,
+        }),
         state: node.suspended ? "SUSPENDED" : "ACTIVE",
       }
     })

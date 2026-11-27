@@ -12,15 +12,18 @@ import { Instances } from "./support/instances.js"
 const SCORING: CalledProcess = {
   elementId: Instances.CALL,
   bpmnProcessId: BpmnProcessId("scoring"),
+  tenantId: null,
   definition: Instances.SCORING,
 }
 const ARCHIVE: CalledProcess = {
   elementId: ElementId("Activity_Archive"),
   bpmnProcessId: BpmnProcessId("archive"),
+  tenantId: null,
 }
 const NOTIFY: CalledProcess = {
   elementId: ElementId("Activity_Notify"),
   bpmnProcessId: BpmnProcessId("notify"),
+  tenantId: null,
   definition: { ...Instances.SCORING, bpmnProcessId: BpmnProcessId("notify") },
 }
 

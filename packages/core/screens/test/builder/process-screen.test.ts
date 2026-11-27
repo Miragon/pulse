@@ -23,6 +23,9 @@ const SUB_PROCESS = `<process id="order">
   <callActivity id="Call_Label" calledElement="label" />
 </process>`
 
+const idOf = (arg: unknown): unknown =>
+  typeof arg === "object" && arg !== null && "id" in arg ? arg.id : arg
+
 function counted(runtime: ProcessRuntime): {
   readonly reads: ProcessScreenReads
   readonly calls: string[]
@@ -31,16 +34,18 @@ function counted(runtime: ProcessRuntime): {
   const log =
     <Args extends unknown[], Value>(name: string, read: (...args: Args) => Promise<Value>) =>
     (...args: Args): Promise<Value> => {
-      calls.push(`${name} ${args.map(String).join(" ")}`)
+      calls.push(`${name} ${args.map((arg) => String(idOf(arg))).join(" ")}`)
       return read(...args)
     }
   return {
     calls,
     reads: {
-      listVersions: log("listVersions", (id) => runtime.listVersions(id)),
+      listVersions: log("listVersions", (id, tenantId) => runtime.listVersions(id, tenantId)),
       getDiagramXml: log("getDiagramXml", (id) => runtime.getDiagramXml(id)),
       getElementStatistics: log("getElementStatistics", (id) => runtime.getElementStatistics(id)),
-      getCalledProcesses: log("getCalledProcesses", (id) => runtime.getCalledProcesses(id)),
+      getCalledProcesses: log("getCalledProcesses", (version) =>
+        runtime.getCalledProcesses(version),
+      ),
     },
   }
 }
@@ -52,7 +57,11 @@ async function screenOf(
 ) {
   const model = await ProcessScreen.read(
     "conformance",
-    { bpmnProcessId, ...(wanted === undefined ? {} : { definitionId: DefinitionId(wanted) }) },
+    {
+      bpmnProcessId,
+      tenantId: null,
+      ...(wanted === undefined ? {} : { definitionId: DefinitionId(wanted) }),
+    },
     ScreenWorld.world(patch),
     () => ScreenWorld.AS_OF,
   )
@@ -64,13 +73,13 @@ describe("the process screen's reads", () => {
     const { reads, calls } = counted(ScreenWorld.world())
     const times: number[] = []
 
-    await ProcessScreen.read("conformance", { bpmnProcessId: ORDER }, reads, () => {
+    await ProcessScreen.read("conformance", { bpmnProcessId: ORDER, tenantId: null }, reads, () => {
       times.push(calls.length)
       return ScreenWorld.AS_OF
     })
 
     expect(times).toEqual([0])
-    expect(calls[0]).toBe("listVersions pulse-order")
+    expect(calls[0]).toBe("listVersions pulse-order null")
     expect(calls.slice(1).sort()).toEqual([
       "getDiagramXml pulse-order:2",
       "getElementStatistics pulse-order:2",
@@ -82,7 +91,7 @@ describe("the process screen's reads", () => {
 
     await ProcessScreen.read(
       "conformance",
-      { bpmnProcessId: DISPATCH },
+      { bpmnProcessId: DISPATCH, tenantId: null },
       reads,
       () => ScreenWorld.AS_OF,
     )
@@ -96,11 +105,13 @@ describe("the process screen's reads", () => {
   })
 
   test("read the version an address names by its number, its definition id first, else the latest", async () => {
-    const selectedOf = async (request: Omit<ProcessScreenRequest, "bpmnProcessId">) => {
+    const selectedOf = async (
+      request: Omit<ProcessScreenRequest, "bpmnProcessId" | "tenantId">,
+    ) => {
       const { reads, calls } = counted(ScreenWorld.world())
       const model = await ProcessScreen.read(
         "conformance",
-        { bpmnProcessId: ORDER, ...request },
+        { bpmnProcessId: ORDER, tenantId: null, ...request },
         reads,
         () => ScreenWorld.AS_OF,
       )
@@ -110,7 +121,7 @@ describe("the process screen's reads", () => {
     const byNumber = await selectedOf({ version: 1 })
     expect(byNumber.id).toBe("pulse-order:1")
     expect(byNumber.calls.filter((call) => call.startsWith("listVersions"))).toEqual([
-      "listVersions pulse-order",
+      "listVersions pulse-order null",
     ])
     expect(byNumber.calls).toContain("getDiagramXml pulse-order:1")
     expect((await selectedOf({ version: 9 })).id).toBe("pulse-order:2")
@@ -127,13 +138,13 @@ describe("the process screen's reads", () => {
 
     const model = await ProcessScreen.read(
       "conformance",
-      { bpmnProcessId: BpmnProcessId("unknown") },
+      { bpmnProcessId: BpmnProcessId("unknown"), tenantId: null },
       reads,
       () => ScreenWorld.AS_OF,
     )
 
     expect(model).toBeUndefined()
-    expect(calls).toEqual(["listVersions unknown"])
+    expect(calls).toEqual(["listVersions unknown null"])
   })
 
   test("fail as the versions fail: they are the screen", async () => {
@@ -167,7 +178,7 @@ describe("the process screen's reads", () => {
       )
       const model = await ProcessScreen.read(
         "conformance",
-        { bpmnProcessId: ORDER },
+        { bpmnProcessId: ORDER, tenantId: null },
         reads,
         () => ScreenWorld.AS_OF,
       )
@@ -184,7 +195,7 @@ describe("the process screen's reads", () => {
 
     const model = await ProcessScreen.read(
       "conformance",
-      { bpmnProcessId: ORDER },
+      { bpmnProcessId: ORDER, tenantId: null },
       reads,
       () => ScreenWorld.AS_OF,
     )
@@ -254,10 +265,11 @@ describe("a process screen built from what a surface read", () => {
     const model = ProcessScreen.of(
       Processes.facts({
         calledProcesses: [
-          { elementId: "A" as never, bpmnProcessId: BpmnProcessId("x") },
+          { elementId: "A" as never, bpmnProcessId: BpmnProcessId("x"), tenantId: null },
           {
             elementId: "B" as never,
             bpmnProcessId: Processes.ORDER,
+            tenantId: null,
             definition: Processes.definition(3),
           },
         ],

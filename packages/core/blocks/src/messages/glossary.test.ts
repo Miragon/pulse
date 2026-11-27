@@ -36,6 +36,7 @@ import { screenTranslate } from "./screen-words.js"
  */
 const DE_RULES: readonly GlossaryRule[] = [
   { pattern: /[Ff]ortsetz|[Ff]ortgesetzt/, use: "aktivieren", probe: "Instanz fortsetzen" },
+  { pattern: /(?<![\p{L}])Tenants?(?![\p{L}])/u, use: "Mandant", probe: "Tenant wählen" },
   { pattern: /^Laden…$/, use: "Wird geladen…", probe: "Laden…" },
   {
     pattern: /(?<![\p{L}])[Aa]ktiv(e|em|en|er|es)?(?![\p{L}])/u,

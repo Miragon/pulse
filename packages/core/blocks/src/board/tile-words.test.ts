@@ -120,7 +120,7 @@ describe("the other words of a tile", () => {
   })
 
   it("name a summary row by its engine without a process, a total that is missing by a dash", () => {
-    expect(summaryLabel({ engine: "local", withIncident: 2 })).toBe("local")
+    expect(summaryLabel(t, { engine: "local", withIncident: 2 })).toBe("local")
     expect(totalCount(undefined)).toBe("—")
     expect(totalCount({ count: 10000, atLeast: true })).toBe("≥ 10,000")
   })

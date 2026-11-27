@@ -109,6 +109,7 @@ const detailCalledInstance: ConformanceCase = {
     const called = Ensure.defined(detail.calledInstances[0], this.name, "no called instance")
     Ensure.that(
       called.bpmnProcessId === BpmnProcessId(WORLD_PROCESS.label) &&
+        called.tenantId === null &&
         called.parentInstanceId === parentId,
       this.name,
       `called instance ${Ensure.describe(called)}`,

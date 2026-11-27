@@ -155,7 +155,7 @@ describe("with incident in the C7 adapter: an open incident the runtime holds no
         ...routes,
       ])
 
-      const versions = await runtime.listVersions(BpmnProcessId("pulse-order"))
+      const versions = await runtime.listVersions(BpmnProcessId("pulse-order"), null)
 
       expect(versions.map((version) => [version.definition.version, version.withIncident])).toEqual(
         [

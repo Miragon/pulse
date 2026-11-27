@@ -14,6 +14,7 @@ import type { FindModel } from "./finder-model.js"
 import { InstanceJson } from "./instance-json.js"
 import type { InstanceListModel } from "./instance-list-model.js"
 import type { CallLinkModel, InstanceScreenModel } from "./instance-screen-model.js"
+import { Fields } from "./present.js"
 import { ProcessJson } from "./process-json.js"
 import type { ProcessScreenModel } from "./process-screen-model.js"
 
@@ -57,6 +58,7 @@ export class ScreenJson {
     const { latest, running, withIncident, incidents, incidentsAtLeast } = summary
     return {
       bpmnProcessId: latest.bpmnProcessId,
+      ...Fields.tenant(latest.tenantId),
       ...(latest.name === undefined ? {} : { name: latest.name }),
       latestVersion: latest.version,
       running,

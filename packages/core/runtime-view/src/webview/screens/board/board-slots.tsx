@@ -22,6 +22,7 @@ class BoardIntents {
       type: "openBoardProcess",
       engine: target.engine,
       bpmnProcessId: target.bpmnProcessId,
+      ...(target.tenantId === undefined ? {} : { tenantId: target.tenantId }),
       filter: target.filter,
       toSide,
     }

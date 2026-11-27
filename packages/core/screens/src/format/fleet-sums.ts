@@ -24,6 +24,7 @@ export interface FleetCellData {
 
 export interface FleetProcessData {
   readonly bpmnProcessId: string
+  readonly tenantId?: string
   readonly name?: string
   readonly running: number
   readonly withIncident: number
@@ -72,8 +73,8 @@ export class FleetSums {
     const rows = new Map<string, FleetProcessData>()
     for (const { engine, processes } of screens) {
       for (const row of processes) {
-        const known = rows.get(row.bpmnProcessId)
-        rows.set(row.bpmnProcessId, FleetSums.joined(known, row, engine))
+        const process = JSON.stringify([row.bpmnProcessId, row.tenantId ?? null])
+        rows.set(process, FleetSums.joined(rows.get(process), row, engine))
       }
     }
     return [...rows.values()].sort((left, right) => ProcessOrder.compare(left, right))
@@ -87,12 +88,16 @@ export class FleetSums {
     const cell = { engine, running: row.running, withIncident: row.withIncident }
     const name = known?.name ?? row.name
     return {
-      bpmnProcessId: row.bpmnProcessId,
+      ...FleetSums.processOf(row),
       ...(name === undefined ? {} : { name }),
       running: (known?.running ?? 0) + cell.running,
       withIncident: (known?.withIncident ?? 0) + cell.withIncident,
       engines: [...(known?.engines ?? []), cell],
     }
+  }
+
+  private static processOf({ bpmnProcessId, tenantId }: ProcessRowData) {
+    return tenantId === undefined ? { bpmnProcessId } : { bpmnProcessId, tenantId }
   }
 
   private static sum(counts: readonly number[]): number {

@@ -86,9 +86,22 @@ export function processName(definition: DefinitionData): string {
   return definition.name ?? definition.bpmnProcessId
 }
 
-/** A summary row by its process, or by its engine when the summary groups by engine. */
-export function summaryLabel(row: IncidentSummaryRowData): string {
-  return row.process === undefined ? row.engine : processName(row.process)
+/**
+ * A summary row by its process, named with its tenant where it has one (a key in two tenants is a
+ * row each), or by its engine when the summary groups by engine.
+ */
+export function summaryLabel(t: Words, row: IncidentSummaryRowData): string {
+  const { process } = row
+  if (process === undefined) return row.engine
+  const name = processName(process)
+  return process.tenantId === undefined
+    ? name
+    : t("summary.inTenant", { process: name, tenant: process.tenantId })
+}
+
+/** The key of a summary row among the tile's rows: its engine, its process's key and tenant. */
+export function summaryKey(row: IncidentSummaryRowData): string {
+  return JSON.stringify([row.engine, row.process?.bpmnProcessId ?? "", row.process?.tenantId ?? ""])
 }
 
 /** How many engines a total comes from, when some were not read. */

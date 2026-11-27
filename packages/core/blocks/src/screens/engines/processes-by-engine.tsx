@@ -39,7 +39,8 @@ function RunningOn({
  * engine read (all versions) and its instances with incident over all of them; an empty cell where
  * it is not deployed. Counts only, never a rate: engines run different processes, so a rate summed
  * across them would measure their mix, which the note above the table says. An engine not read has
- * no column, the line under the table names it.
+ * no column, the line under the table names it. A key deployed in several tenants is a process in
+ * each, a row of its own, and where any row names a tenant a column names each row's.
  */
 export function ProcessesByEngine({
   processes,
@@ -61,6 +62,15 @@ export function ProcessesByEngine({
         />
       ),
     },
+    ...(processes.some(({ tenantId }) => tenantId !== undefined)
+      ? [
+          {
+            key: "tenant",
+            label: t("matrix.column.tenant"),
+            cell: (process: FleetProcessData) => process.tenantId ?? "",
+          },
+        ]
+      : []),
     ...engines.map((engine): ScreenTableColumn<FleetProcessData> => ({
       key: `engine:${engine}`,
       label: engine,
@@ -85,7 +95,7 @@ export function ProcessesByEngine({
         label={t("matrix.label")}
         columns={columns}
         rows={processes}
-        rowKey={(process) => process.bpmnProcessId}
+        rowKey={(process) => JSON.stringify([process.bpmnProcessId, process.tenantId ?? null])}
         empty={t("matrix.none")}
       />
       {unread.length > 0 && (

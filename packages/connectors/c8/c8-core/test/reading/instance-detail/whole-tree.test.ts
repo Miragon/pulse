@@ -60,6 +60,7 @@ describe("the instance detail", () => {
         id: "2",
         parentInstanceId: "1",
         bpmnProcessId: "label",
+        tenantId: null,
         state: "running",
         calledFromElementId: "Call",
       },
@@ -68,7 +69,13 @@ describe("the instance detail", () => {
       expect.objectContaining({
         id: "7",
         instanceId: "2",
-        definition: { id: "300", bpmnProcessId: "label", version: 3, name: "Label" },
+        definition: {
+          id: "300",
+          bpmnProcessId: "label",
+          tenantId: null,
+          version: 3,
+          name: "Label",
+        },
         retriesLeft: 0,
         job: { id: "70", type: "render-label" },
       }),

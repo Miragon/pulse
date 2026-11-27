@@ -11,6 +11,7 @@ import type {
   InstanceId,
   InstanceSummary,
   ProcessRuntime,
+  TenantId,
   Variable,
   WaitState,
 } from "@miragon/pulse-engine-core"
@@ -51,7 +52,11 @@ export interface CalledInstanceChoice {
 export type CallTarget =
   | { readonly kind: "instances"; readonly choices: readonly CalledInstanceChoice[] }
   | { readonly kind: "definition"; readonly definition: DefinitionRef }
-  | { readonly kind: "missing"; readonly bpmnProcessId: BpmnProcessId }
+  | {
+      readonly kind: "missing"
+      readonly bpmnProcessId: BpmnProcessId
+      readonly tenantId: TenantId | null
+    }
 
 export interface CallLinkModel {
   readonly elementId: string

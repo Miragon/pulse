@@ -297,9 +297,15 @@ describe("the history's instances over more ids than one request carries", () =>
 
 describe("instanceSummaryOf", () => {
   it("reads a row as the contract's instance with its version, state, key, times and parent", () => {
-    expect(instanceSummaryOf(FULL, true)).toStrictEqual({
+    expect(instanceSummaryOf(FULL, true, new Map())).toStrictEqual({
       id: "p1",
-      definition: { id: "order:1:a", bpmnProcessId: "order", version: 1, name: "Order" },
+      definition: {
+        id: "order:1:a",
+        bpmnProcessId: "order",
+        tenantId: null,
+        version: 1,
+        name: "Order",
+      },
       state: "running",
       hasIncident: true,
       businessKey: "ORD-1",
@@ -310,16 +316,16 @@ describe("instanceSummaryOf", () => {
   })
 
   it("leaves out what the row does not name", () => {
-    expect(instanceSummaryOf({ ...REQUIRED, state: "COMPLETED" }, false)).toStrictEqual({
+    expect(instanceSummaryOf({ ...REQUIRED, state: "COMPLETED" }, false, new Map())).toStrictEqual({
       id: "p1",
-      definition: { id: "order:1:a", bpmnProcessId: "order", version: 1 },
+      definition: { id: "order:1:a", bpmnProcessId: "order", tenantId: null, version: 1 },
       state: "completed",
       hasIncident: false,
     })
   })
 
   it("fails a state no engine of the family writes", () => {
-    expect(() => instanceSummaryOf({ ...REQUIRED, state: "PAUSED" }, false)).toThrow(
+    expect(() => instanceSummaryOf({ ...REQUIRED, state: "PAUSED" }, false, new Map())).toThrow(
       "Unknown process instance state PAUSED",
     )
   })

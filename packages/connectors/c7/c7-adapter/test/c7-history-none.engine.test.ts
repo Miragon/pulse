@@ -286,7 +286,7 @@ describe.skipIf(!RUNS_ON_CAMUNDA_7)(
 
       test("the runtime counts the instances of each version, which no count over every lifecycle finds", async () => {
         const { runtime, world } = seededWorld()
-        const versions = await runtime.listVersions(ORDER)
+        const versions = await runtime.listVersions(ORDER, null)
         const counted = await runtime.countInstances({
           definitionId: world.definitionIds["order@1"],
         })

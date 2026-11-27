@@ -35,17 +35,27 @@ export class BoardTargets {
     })
   }
 
-  showsProcess(engine: string, bpmnProcessId: string, filter: InstanceListFilter): boolean {
+  showsProcess(
+    engine: string,
+    process: Pick<BoardTarget, "bpmnProcessId" | "tenantId">,
+    filter: InstanceListFilter,
+  ): boolean {
     if (filter.variables !== undefined) {
       return false
     }
+    const { bpmnProcessId, tenantId } = process
     const listed = this.targets().some(
       (target) =>
         target.engine === engine &&
         target.bpmnProcessId === bpmnProcessId &&
+        target.tenantId === tenantId &&
         BoardTargets.sameFilter(target.filter, filter),
     )
-    return listed || this.diagrams(engine, bpmnProcessId).some((tile) => this.draws(tile, filter))
+    const drawn = tenantId === undefined && bpmnProcessId !== undefined
+    return (
+      listed ||
+      (drawn && this.diagrams(engine, bpmnProcessId).some((tile) => this.draws(tile, filter)))
+    )
   }
 
   reaches(engine: string): boolean {

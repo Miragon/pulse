@@ -4,6 +4,7 @@ import type {
   DefinitionId,
   ElementStatistics,
   InstanceSummary,
+  TenantId,
   VersionSummary,
 } from "@miragon/pulse-engine-core"
 import type {
@@ -33,6 +34,7 @@ export interface DefinitionSnapshot {
   readonly engine: EngineBadge
   readonly asOf: Date
   readonly bpmnProcessId: BpmnProcessId
+  readonly tenantId: TenantId | null
   readonly versions: readonly VersionSummary[]
   readonly selectedDefinitionId: DefinitionId
   readonly diagramXml: string
@@ -84,6 +86,7 @@ export class DefinitionViewBuilder {
         engine: snapshot.engine.name,
         asOf: snapshot.asOf,
         bpmnProcessId: snapshot.bpmnProcessId,
+        tenantId: snapshot.tenantId,
         versions: snapshot.versions,
         selected: snapshot.selectedDefinitionId,
         diagramXml: snapshot.diagramXml,

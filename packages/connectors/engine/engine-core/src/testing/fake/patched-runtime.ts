@@ -5,6 +5,7 @@ import type {
   DefinitionId,
   IncidentId,
   InstanceId,
+  TenantId,
 } from "../../model/ids.js"
 import type {
   IncidentFilter,
@@ -24,7 +25,7 @@ import type {
   InstanceSummary,
   VersionSummary,
 } from "../../model/read-models.js"
-import type { ProcessRuntime } from "../../ports/process-runtime.js"
+import type { CallingVersion, ProcessRuntime } from "../../ports/process-runtime.js"
 
 export class PatchedRuntime implements ProcessRuntime {
   readonly refusedVariableConditions?: NonNullable<ProcessRuntime["refusedVariableConditions"]>
@@ -59,8 +60,14 @@ export class PatchedRuntime implements ProcessRuntime {
     return this.patch.listDefinitions?.() ?? this.base.listDefinitions()
   }
 
-  listVersions(bpmnProcessId: BpmnProcessId): Promise<readonly VersionSummary[]> {
-    return this.patch.listVersions?.(bpmnProcessId) ?? this.base.listVersions(bpmnProcessId)
+  listVersions(
+    bpmnProcessId: BpmnProcessId,
+    tenantId: TenantId | null,
+  ): Promise<readonly VersionSummary[]> {
+    return (
+      this.patch.listVersions?.(bpmnProcessId, tenantId) ??
+      this.base.listVersions(bpmnProcessId, tenantId)
+    )
   }
 
   getDiagramXml(definitionId: DefinitionId): Promise<string | undefined> {
@@ -74,10 +81,8 @@ export class PatchedRuntime implements ProcessRuntime {
     )
   }
 
-  getCalledProcesses(definitionId: DefinitionId): Promise<readonly CalledProcess[]> {
-    return (
-      this.patch.getCalledProcesses?.(definitionId) ?? this.base.getCalledProcesses(definitionId)
-    )
+  getCalledProcesses(definition: CallingVersion): Promise<readonly CalledProcess[]> {
+    return this.patch.getCalledProcesses?.(definition) ?? this.base.getCalledProcesses(definition)
   }
 
   listVariableNames(definitionId: DefinitionId): Promise<readonly string[]> {

@@ -47,6 +47,7 @@ export function summary(
     latest: {
       id: DefinitionId(`${bpmnProcessId}:1`),
       bpmnProcessId: BpmnProcessId(bpmnProcessId),
+      tenantId: null,
       version: 1,
       ...(name === undefined ? {} : { name }),
     },
@@ -62,6 +63,7 @@ export function instance(id: string, bpmnProcessId: string, businessKey?: string
     definition: {
       id: DefinitionId(`${bpmnProcessId}:2`),
       bpmnProcessId: BpmnProcessId(bpmnProcessId),
+      tenantId: null,
       version: 2,
       name: "Order fulfillment",
     },

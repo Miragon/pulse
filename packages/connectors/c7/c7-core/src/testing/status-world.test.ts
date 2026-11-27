@@ -97,6 +97,8 @@ describe("seedC7StatusWorld", () => {
       "POST /deployment/create",
       "POST /deployment/create",
       "POST /deployment/create",
+      "POST /deployment/create",
+      "POST /deployment/create",
       "POST /process-definition/pulse-status-dispatch%3A1%3Ad/start",
       "GET /incident",
       "POST /process-definition/pulse-status-approval%3A1%3Ad/start",
@@ -114,6 +116,7 @@ describe("seedC7StatusWorld", () => {
         dispatch: "pulse-status-dispatch:1:d",
         approval: "pulse-status-approval:1:d",
       },
+      tenantLabelIds: { north: "pulse-status-label:1:d", south: "pulse-status-label:1:d" },
       instanceIds: { dispatch: "pi-DSP-139", approving: "pi-APR-139-1", failing: "pi-APR-139-2" },
       batchId: "batch-1",
     })
@@ -130,17 +133,25 @@ describe("seedC7StatusWorld", () => {
     expect(bodies[1]).toContain(STATUS_DISPATCH_DIAGRAM)
     expect(bodies[2]).toContain(STATUS_APPROVAL_DIAGRAM)
     expect(bodies[0]).toContain("pulse-world-pulse-status-label@1")
-    expect(JSON.parse(bodies[3] ?? "")).toStrictEqual({ businessKey: "DSP-139", variables: {} })
-    expect(JSON.parse(bodies[5] ?? "")).toStrictEqual({
+    expect(bodies[1]).toContain('calledElementTenantId="pulse-north"')
+    for (const [index, tenant] of [
+      [3, "pulse-north"],
+      [4, "pulse-south"],
+    ] as const) {
+      expect(bodies[index]).toContain(STATUS_LABEL_DIAGRAM)
+      expect(bodies[index]).toContain(`name="tenant-id"\r\n\r\n${tenant}\r\n`)
+    }
+    expect(JSON.parse(bodies[5] ?? "")).toStrictEqual({ businessKey: "DSP-139", variables: {} })
+    expect(JSON.parse(bodies[7] ?? "")).toStrictEqual({
       businessKey: "APR-139-1",
       variables: { copies: { value: C7_STATUS_WORLD.items, type: "Integer" } },
     })
-    expect(JSON.parse(bodies[7] ?? "")).toStrictEqual({ businessKey: "APR-139-2", variables: {} })
-    expect(JSON.parse(bodies[9] ?? "")).toStrictEqual({
+    expect(JSON.parse(bodies[9] ?? "")).toStrictEqual({ businessKey: "APR-139-2", variables: {} })
+    expect(JSON.parse(bodies[11] ?? "")).toStrictEqual({
       jobIds: [C7_STATUS_WORLD.unknownJob],
       retries: 1,
     })
-    expect(engine.sent[11]?.request).toStrictEqual({
+    expect(engine.sent[13]?.request).toStrictEqual({
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: '{"suspended":true}',

@@ -38,7 +38,13 @@ describe("the incident search", () => {
     expect(items[0]).toEqual({
       id: "7",
       instanceId: "1",
-      definition: { id: "100", bpmnProcessId: "order", version: 4, name: "order name" },
+      definition: {
+        id: "100",
+        bpmnProcessId: "order",
+        tenantId: null,
+        version: 4,
+        name: "order name",
+      },
       elementId: "Task",
       type: "JOB_NO_RETRIES",
       message: INCIDENT.errorMessage,

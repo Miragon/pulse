@@ -697,7 +697,7 @@ describe("navigating from a board", () => {
     })
 
     expect(fixture.navigation.openDefinition.mock.calls).toEqual([
-      ["shop", BpmnProcessId("order"), filter, { toSide: false }],
+      ["shop", { bpmnProcessId: BpmnProcessId("order") }, filter, { toSide: false }],
     ])
   })
 
@@ -728,7 +728,7 @@ describe("navigating from a board", () => {
     expect(fixture.navigation.openDefinition.mock.calls).toEqual([
       [
         "shop",
-        BpmnProcessId("order"),
+        { bpmnProcessId: BpmnProcessId("order") },
         { businessKey: "B-1", elementId: "Task_Pay", scope: "running" },
         { toSide: false },
       ],

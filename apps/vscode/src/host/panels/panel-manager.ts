@@ -66,7 +66,8 @@ export class PanelManager implements vscode.Disposable {
     origin?: string,
   ): void {
     const filter = target.filter
-    const variant = `${target.definitionId ?? "latest"}|${filter?.elementId ?? ""}|${filter?.scope ?? ""}|${filter?.businessKey ?? ""}`
+    const version = target.definitionId ?? `latest${target.tenantId ? `@${target.tenantId}` : ""}`
+    const variant = `${version}|${filter?.elementId ?? ""}|${filter?.scope ?? ""}|${filter?.businessKey ?? ""}`
     const key = `${connection.target.name}|definition|${target.bpmnProcessId}|${variant}`
     const focus = { engineName: connection.target.name, bpmnProcessId: target.bpmnProcessId }
     this.open(

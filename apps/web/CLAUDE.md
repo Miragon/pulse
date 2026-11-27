@@ -42,9 +42,13 @@ server image builds the page beside the server and serves it from `/app/web`.
   where the landing's start data does not name the engine, the engine connector's
   `cockpitNamesEngine`, so the cockpit never falls back from it and the address stays),
   `processes/<key>` (the page's process screen below;
-  `?version=<n>&scope=incident|ended|all&element=<id>&key=<key>&var=<name~operator~value>`: the
-  version, the instance list's scope, element, exact business key and variable conditions (a date
-  as its instant with its offset),
+  `?tenant=<id>&version=<n>&scope=incident|ended|all&element=<id>&key=<key>&var=<name~operator~value>`:
+  the process's tenant (a process is a key in one tenant, F17: only where it has one, so a process
+  without a tenant keeps its address; the screen's `ScreenProcess`, `src/screens/process/screen-process.ts`;
+  a key alone reads as engine-core's `ProcessTenants` names it, and where that is a tenant's process
+  the address gives way to its `?tenant=` in its entry, `src/screens/process/tenant-address.ts`),
+  the version, the instance list's scope, element, exact business key and variable conditions (a
+  date as its instant with its offset),
   `scope=incident` the old address of its incidents in focus too), `instances` (the engine's
   instances; `?process=<key>`, the old address of a process's instances, gives way to the process's
   own), `instances/<id>` (the page's instance screen below;

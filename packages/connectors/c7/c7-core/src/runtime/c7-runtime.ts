@@ -14,6 +14,7 @@ import {
   type BulkOperation,
   type BulkOperationId,
   type CalledProcess,
+  type CallingVersion,
   type DefinitionId,
   type DefinitionSummary,
   type ElementStatistics,
@@ -32,6 +33,7 @@ import {
   type Page,
   type PageRequest,
   type ProcessRuntime,
+  type TenantId,
   type VersionSummary,
 } from "@miragon/pulse-engine-core"
 import type { EnginePort } from "../port.js"
@@ -142,8 +144,11 @@ export class C7Runtime implements ProcessRuntime {
     return this.answered(() => this.readers.definitions.list())
   }
 
-  listVersions(bpmnProcessId: BpmnProcessId): Promise<readonly VersionSummary[]> {
-    return this.answered(() => this.readers.definitions.versions(bpmnProcessId))
+  listVersions(
+    bpmnProcessId: BpmnProcessId,
+    tenantId: TenantId | null,
+  ): Promise<readonly VersionSummary[]> {
+    return this.answered(() => this.readers.definitions.versions(bpmnProcessId, tenantId))
   }
 
   getDiagramXml(definitionId: DefinitionId): Promise<string | undefined> {
@@ -164,8 +169,8 @@ export class C7Runtime implements ProcessRuntime {
     return this.answered(() => this.readers.statistics.withFailedJobs(definitionId))
   }
 
-  getCalledProcesses(definitionId: DefinitionId): Promise<readonly CalledProcess[]> {
-    return this.answered(() => this.readers.calls.read(definitionId))
+  getCalledProcesses(definition: CallingVersion): Promise<readonly CalledProcess[]> {
+    return this.answered(() => this.readers.calls.read(definition))
   }
 
   searchInstances(filter: InstanceFilter, page: PageRequest): Promise<Page<InstanceSummary>> {

@@ -15,6 +15,7 @@ import { PageLink, type Navigate } from "../../router/page-link.js"
 import { screenUrlOf } from "../../router/routes.js"
 import { RefreshButton } from "../screen-chrome.js"
 import type { ProcessScreenFeed } from "./process-feed.js"
+import type { ScreenProcess } from "./screen-process.js"
 
 /** The process's name as the engine gives it, else its BPMN process ID. */
 export function processNameOf(screen: ProcessScreenFeed | undefined, process: string): string {
@@ -60,7 +61,7 @@ export function ProcessBar({
     <WidgetHeader
       title={processNameOf(data, process)}
       icon={<Icon icon={Workflow} />}
-      sub={<span className="text-muted-foreground">{engine}</span>}
+      sub={<ProcessPlace engine={engine} screen={data} />}
       actions={
         (picker || onRefresh) && (
           <>
@@ -74,6 +75,23 @@ export function ProcessBar({
       }
       freshness={<FreshnessStamp at={data?.asOf} />}
     />
+  )
+}
+
+/** Where the process runs, the bar's fact: its engine, and its tenant where it has one. */
+function ProcessPlace({
+  engine,
+  screen,
+}: {
+  engine: string
+  screen: ProcessScreenFeed | undefined
+}) {
+  const t = useT()
+  const tenantId = screen?.tenantId
+  return (
+    <span className="text-muted-foreground">
+      {tenantId === undefined ? engine : t("screen.process.inTenant", { engine, tenant: tenantId })}
+    </span>
   )
 }
 
@@ -133,8 +151,9 @@ export function ProcessStrips({
 }
 
 /**
- * A process the engine has no version of, in the view's place: what happened and the way to the
- * engine's processes. No retry changes it, so it offers no Try again.
+ * A process the engine has no version of, in the view's place: what happened, in the tenant the
+ * address names where it names one, and the way to the engine's processes. No retry changes it, so
+ * it offers no Try again.
  */
 export function UnknownProcess({
   engine,
@@ -142,14 +161,19 @@ export function UnknownProcess({
   navigate,
 }: {
   readonly engine: string
-  readonly process: string
+  readonly process: ScreenProcess
   readonly navigate: Navigate
 }) {
   const t = useT()
   const href = screenUrlOf({ kind: "engine", engine, filter: { scope: "all" } })
+  const { key, tenantId } = process
   return (
     <ErrorState
-      title={t("screen.process.unknown.title", { process, engine })}
+      title={
+        tenantId === undefined
+          ? t("screen.process.unknown.title", { process: key, engine })
+          : t("screen.process.unknown.inTenant", { process: key, tenant: tenantId, engine })
+      }
       titleAs="h2"
       description={t("screen.process.unknown.description")}
       actions={

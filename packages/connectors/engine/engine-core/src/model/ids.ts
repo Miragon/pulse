@@ -10,6 +10,7 @@ export type ElementId = Opaque<"ElementId">
 export type IsoTimestamp = Opaque<"IsoTimestamp">
 export type PageCursor = Opaque<"PageCursor">
 export type BulkOperationId = Opaque<"BulkOperationId">
+export type TenantId = Opaque<"TenantId">
 
 export const BpmnProcessId = (value: string): BpmnProcessId => value as BpmnProcessId
 export const DefinitionId = (value: string): DefinitionId => value as DefinitionId
@@ -18,6 +19,7 @@ export const IncidentId = (value: string): IncidentId => value as IncidentId
 export const ElementId = (value: string): ElementId => value as ElementId
 export const PageCursor = (value: string): PageCursor => value as PageCursor
 export const BulkOperationId = (value: string): BulkOperationId => value as BulkOperationId
+export const TenantId = (value: string): TenantId => value as TenantId
 
 export function IsoTimestamp(value: string): IsoTimestamp {
   const epochMillis = Date.parse(value)

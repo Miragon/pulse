@@ -23,6 +23,7 @@ import { PlanEdits } from "./plan-edits.js"
 import { PlanMappings } from "./plan-mappings.js"
 import { PlanProblems, type PlanPlace } from "./plan-problems.js"
 import { PlanViewBuilder, type PlanState } from "./plan-view-builder.js"
+import { ProcessVersions } from "../panels/process-versions.js"
 
 export interface PlanLoaded extends PlanState, Snapshot<MigrationPlanView> {}
 
@@ -151,7 +152,10 @@ export class PlanReads {
     context: PlanContext,
     plan: MigrationPlanDefinition,
   ): Promise<PlanVersions | Unavailable> {
-    const versions = await context.runtime.listVersions(BpmnProcessId(plan.bpmnProcessId))
+    const versions = await ProcessVersions.inEveryTenant(
+      context.runtime,
+      BpmnProcessId(plan.bpmnProcessId),
+    )
     const place: PlanPlace = {
       fileName: context.source.fileName,
       bpmnProcessId: plan.bpmnProcessId,

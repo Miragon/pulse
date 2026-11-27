@@ -18,6 +18,7 @@ export class ProcessJson {
       engine: model.engine,
       asOf: model.asOf.toISOString(),
       bpmnProcessId: model.bpmnProcessId,
+      ...Fields.tenant(model.tenantId),
       selected: model.selected === undefined ? null : DefinitionJson.of(model.selected.definition),
       versions: model.versions.map((version) => ProcessJson.version(version)),
       badges: model.badges.map((badge) => ProcessJson.badge(badge)),

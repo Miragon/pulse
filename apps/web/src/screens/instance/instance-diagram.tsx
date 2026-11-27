@@ -7,6 +7,7 @@ import { BpmnZoomControls, useBpmnViewer, type BpmnViewerWithGet } from "@mirago
 import { ArrowUpRight } from "lucide-react"
 import { useT } from "../../messages/index.js"
 import { PageLink, type Navigate } from "../../router/page-link.js"
+import { tenantFieldOf } from "../process/screen-process.js"
 import { targetUrl } from "../slots.js"
 
 /**
@@ -109,6 +110,7 @@ function CallControl({
       kind: "version",
       engine,
       bpmnProcessId: definition.bpmnProcessId,
+      ...tenantFieldOf(definition.tenantId),
       version: definition.version,
       definitionId: definition.id,
     }

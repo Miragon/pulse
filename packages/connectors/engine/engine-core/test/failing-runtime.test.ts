@@ -17,10 +17,11 @@ const EVERY_METHOD: Readonly<
 > = {
   describeEngine: (runtime) => runtime.describeEngine(),
   listDefinitions: (runtime) => runtime.listDefinitions(),
-  listVersions: (runtime) => runtime.listVersions(BpmnProcessId("order")),
+  listVersions: (runtime) => runtime.listVersions(BpmnProcessId("order"), null),
   getDiagramXml: (runtime) => runtime.getDiagramXml(DefinitionId("order:1")),
   getElementStatistics: (runtime) => runtime.getElementStatistics(DefinitionId("order:1")),
-  getCalledProcesses: (runtime) => runtime.getCalledProcesses(DefinitionId("order:1")),
+  getCalledProcesses: (runtime) =>
+    runtime.getCalledProcesses({ id: DefinitionId("order:1"), tenantId: null }),
   searchInstances: (runtime) => runtime.searchInstances({}, { limit: 1 }),
   listVariableNames: (runtime) => runtime.listVariableNames(DefinitionId("order:1")),
   countInstances: (runtime) => runtime.countInstances({}),

@@ -19,6 +19,7 @@ import { instanceDetailOf } from "./instance-detail.js"
 import { incidentCausesOf } from "./instance-incidents.js"
 import { type InspectView, type Inspection, InstanceInspection } from "./instance-inspection.js"
 import type { DefinitionsByInstance } from "./tree-versions.js"
+import { versionTenantsOf } from "./version-tenants.js"
 import { readVariableInstances, type VariableRow } from "./variable-instances.js"
 
 /** The ids of the called instances the root incidents of `view` were raised in, once each. */
@@ -94,8 +95,9 @@ export class InstanceDetailReader {
         { processInstanceIds: called },
         { firstResult: 0, maxResults: called.length },
       )
+      const tenants = await versionTenantsOf(this.port, rows)
       for (const row of rows) {
-        definitions.set(row.id, definitionRefOfInstance(row))
+        definitions.set(row.id, definitionRefOfInstance(row, tenants))
       }
     }
     return definitions

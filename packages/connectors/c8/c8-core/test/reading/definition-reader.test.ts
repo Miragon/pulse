@@ -45,7 +45,7 @@ function heldIncidentSearches() {
 const MANY = Array.from({ length: 20 }, (_, index) => index + 1)
 
 describe("the definitions", () => {
-  test("list an idle process with zero counts, sum tenants and skip deleted ones", async () => {
+  test("list an idle process with zero counts, sum the rows of a process and skip deleted ones", async () => {
     const { definitions } = readerWith([
       {
         route: "POST /process-definitions/search",
@@ -67,6 +67,7 @@ describe("the definitions", () => {
         latest: {
           id: DefinitionId("200"),
           bpmnProcessId: BpmnProcessId("order"),
+          tenantId: null,
           version: 2,
           name: "order name",
         },
@@ -78,6 +79,7 @@ describe("the definitions", () => {
         latest: {
           id: DefinitionId("300"),
           bpmnProcessId: BpmnProcessId("idle"),
+          tenantId: null,
           version: 1,
           name: "idle name",
         },
@@ -157,7 +159,7 @@ describe("the definitions", () => {
     expect(order).toMatchObject({ incidents: 10_000, incidentsAtLeast: true })
   })
 
-  test("list the newest of the latest versions that tenants hold of one process", async () => {
+  test("list the newest of the latest versions the search holds of one process", async () => {
     const { definitions } = readerWith([
       {
         route: "POST /process-definitions/search",
@@ -172,7 +174,7 @@ describe("the definitions", () => {
 
     expect(await definitions.list()).toEqual([
       {
-        latest: { id: "300", bpmnProcessId: "order", version: 3 },
+        latest: { id: "300", bpmnProcessId: "order", tenantId: null, version: 3 },
         running: 0,
         withIncident: 0,
         incidents: 0,
@@ -205,7 +207,7 @@ describe("the definitions", () => {
       incidentsOf("processDefinitionKey", "100", 3),
     ])
 
-    const versions = await definitions.versions(BpmnProcessId("order"))
+    const versions = await definitions.versions(BpmnProcessId("order"), null)
 
     expect(
       versions.map((row) => [row.definition.version, row.running, row.withIncident, row.incidents]),
@@ -241,7 +243,7 @@ describe("the definitions", () => {
       searches.route,
     ])
 
-    const versions = await definitions.versions(BpmnProcessId("order"))
+    const versions = await definitions.versions(BpmnProcessId("order"), null)
 
     expect(versions.map((row) => [row.definition.version, row.incidents])).toEqual(
       MANY.toReversed().map((version) => [version, 1]),
@@ -268,7 +270,7 @@ describe("the definitions", () => {
       incidentsOf("processDefinitionKey", "100", 10_000, true),
     ])
 
-    const [version] = await definitions.versions(BpmnProcessId("order"))
+    const [version] = await definitions.versions(BpmnProcessId("order"), null)
 
     expect(version).toMatchObject({ incidents: 10_000, incidentsAtLeast: true })
   })

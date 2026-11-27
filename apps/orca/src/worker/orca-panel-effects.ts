@@ -3,6 +3,7 @@ import type {
   DefinitionId,
   IncidentDetails,
   InstanceId,
+  TenantId,
 } from "@miragon/pulse-engine-core"
 import type { EngineWebUi, SourceLocation } from "@miragon/pulse-runtime-view/ports"
 import type {
@@ -11,6 +12,7 @@ import type {
   BulkRequest,
   InstanceChoice,
   MigrationTarget,
+  OpenOptions,
   PanelEffects,
   WebUiTarget,
   WriteRequest,
@@ -43,8 +45,15 @@ export class OrcaPanelEffects implements PanelEffects {
     )
   }
 
-  openLatestDefinition(bpmnProcessId: BpmnProcessId): void {
-    this.host.navigation.open(this.engine, { view: "definition", bpmnProcessId }, this.key)
+  openLatestDefinition(
+    bpmnProcessId: BpmnProcessId,
+    _options: OpenOptions,
+    tenantId?: TenantId | null,
+  ): void {
+    const spec = tenantId
+      ? { view: "definition" as const, bpmnProcessId, tenantId }
+      : { view: "definition" as const, bpmnProcessId }
+    this.host.navigation.open(this.engine, spec, this.key)
   }
 
   openMigration(target: MigrationTarget): void {

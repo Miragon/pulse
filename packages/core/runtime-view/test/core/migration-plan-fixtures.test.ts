@@ -30,6 +30,7 @@ function ref(version: number) {
       version === 7 ? "order-fulfillment:7:4a1c" : `order-fulfillment:${version}:91e0`,
     ),
     bpmnProcessId: BpmnProcessId("order-fulfillment"),
+    tenantId: null,
     version,
     name: "Order fulfillment",
   }

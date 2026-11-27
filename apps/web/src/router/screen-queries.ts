@@ -12,8 +12,9 @@ import { instantOf, wallClockOf } from "./wall-clock.js"
  * The state of the page's own screens that rides in their address's query (the plan's address
  * scheme), each both ways, a value the page does not read left out, so the canonical address drops
  * it, and the defaults left out too. The engine screen's list filter: `scope=incident` and `q`. The
- * instance screen's tab: `tab`. The process screen beside the path of the process: `version`, the
- * number of the version shown (none for the latest), and the instance list's filter, `scope`
+ * instance screen's tab: `tab`. The process screen beside the path of the process: `tenant`, the
+ * tenant of the process (none for the process without a tenant, F17), `version`, the number of the
+ * version shown (none for the latest), and the instance list's filter, `scope`
  * (running, the default, left out), `element`, `key` (the exact business key) and `var` once per
  * variable condition, `name~operator~value` (`operator.type` where the condition names the type it
  * compares as, a `~` or `%` of the name escaped, a date the instant it names with its offset, read
@@ -78,6 +79,7 @@ export function filterQueryOf(filter: ProcessFilterData): URLSearchParams {
  * out), the element it is filtered to, the exact business key and each variable condition.
  */
 const PROCESS_QUERY = {
+  tenant: "tenant",
   version: "version",
   scope: "scope",
   element: "element",
@@ -155,10 +157,20 @@ function versionOf(text: string | null): number | undefined {
   return text !== null && /^[1-9]\d{0,8}$/.test(text) ? Number(text) : undefined
 }
 
-/** The process screen's state its address carries: the version's number and the list's filter. */
+/**
+ * The process screen's state its address carries: the process's tenant, the version's number and
+ * the list's filter.
+ */
 export interface ProcessState {
+  readonly tenantId?: string
   readonly version?: number
   readonly filter: InstanceListFilterData
+}
+
+/** The tenant an address's query names; none for no tenant or an empty one. */
+function tenantOf(query: URLSearchParams): { readonly tenantId?: string } {
+  const tenant = query.get(PROCESS_QUERY.tenant) ?? ""
+  return tenant === "" ? {} : { tenantId: tenant }
 }
 
 /**
@@ -185,15 +197,16 @@ export function processStateOf(search: string, scope: InstanceScopeCode): Proces
     ...(businessKey === "" ? {} : { businessKey }),
     ...(variables.length === 0 ? {} : { variables }),
   }
-  return version === undefined ? { filter } : { version, filter }
+  return { ...tenantOf(query), ...(version === undefined ? {} : { version }), filter }
 }
 
-/** The process screen's query: its version and its list's filter, the defaults left out. */
-export function processQueryOf(
-  version: number | undefined,
-  filter: InstanceListFilterData,
-): URLSearchParams {
+/**
+ * The process screen's query: its tenant where it has one, its version and its list's filter, the
+ * defaults left out.
+ */
+export function processQueryOf({ tenantId, version, filter }: ProcessState): URLSearchParams {
   const query = new URLSearchParams()
+  if (tenantId !== undefined) query.set(PROCESS_QUERY.tenant, tenantId)
   if (version !== undefined) query.set(PROCESS_QUERY.version, String(version))
   if (filter.scope !== RUNNING_LIST.scope) {
     query.set(PROCESS_QUERY.scope, SCOPE_WORDS[filter.scope])

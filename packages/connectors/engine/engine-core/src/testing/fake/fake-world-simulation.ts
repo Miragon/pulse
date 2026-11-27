@@ -11,8 +11,10 @@ import {
   type DeploymentAlias,
   type InstanceAlias,
   type MigrationInstanceAlias,
+  type WorldDeployment,
   type WorldInstance,
 } from "../conformance/world/world.js"
+import { WORLD_TENANT, type WorldTenantDeployment } from "../conformance/world/tenant-world.js"
 import {
   BpmnProcessId,
   DefinitionId,
@@ -20,6 +22,7 @@ import {
   IncidentId,
   InstanceId,
   IsoTimestamp,
+  TenantId,
 } from "../../model/ids.js"
 import type {
   DefinitionRef,
@@ -74,24 +77,17 @@ export class FakeWorldSimulation {
       throw new RangeError(`unknown deployment ${alias}`)
     }
     const bpmnProcessId = WORLD_PROCESS[deployment.process]
-    return {
-      ref: {
-        id: DefinitionId(`${bpmnProcessId}:${deployment.version}`),
-        bpmnProcessId: BpmnProcessId(bpmnProcessId),
-        version: deployment.version,
-        name: PROCESS_NAMES[deployment.process],
-      },
-      xml: NEUTRAL_DIAGRAMS[deployment.process],
-      calls:
-        deployment.process === WORLD_CALL.caller
-          ? [
-              {
-                elementId: ElementId(WORLD_CALL.elementId),
-                bpmnProcessId: BpmnProcessId(WORLD_PROCESS[WORLD_CALL.called]),
-              },
-            ]
-          : [],
-    }
+    return FakeWorldSimulation.deployed(deployment, `${bpmnProcessId}:${deployment.version}`, null)
+  }
+
+  static tenantDefinitionOf(deployment: WorldTenantDeployment): FakeDefinition {
+    const tenantId = WORLD_TENANT[deployment.tenant]
+    const bpmnProcessId = WORLD_PROCESS[deployment.process]
+    return FakeWorldSimulation.deployed(
+      deployment,
+      `${tenantId}:${bpmnProcessId}:${deployment.version}`,
+      TenantId(tenantId),
+    )
   }
 
   simulate(world: AnyWorldInstance): Simulated {
@@ -281,6 +277,32 @@ export class FakeWorldSimulation {
         },
       ],
       incidents: [incident],
+    }
+  }
+
+  private static deployed(
+    deployment: Pick<WorldDeployment, "process" | "version">,
+    id: string,
+    tenantId: TenantId | null,
+  ): FakeDefinition {
+    return {
+      ref: {
+        id: DefinitionId(id),
+        bpmnProcessId: BpmnProcessId(WORLD_PROCESS[deployment.process]),
+        tenantId,
+        version: deployment.version,
+        name: PROCESS_NAMES[deployment.process],
+      },
+      xml: NEUTRAL_DIAGRAMS[deployment.process],
+      calls:
+        deployment.process === WORLD_CALL.caller
+          ? [
+              {
+                elementId: ElementId(WORLD_CALL.elementId),
+                bpmnProcessId: BpmnProcessId(WORLD_PROCESS[WORLD_CALL.called]),
+              },
+            ]
+          : [],
     }
   }
 }

@@ -74,8 +74,11 @@ export const de = {
   "screen.instance.noIncidents": "Diese Instanz hat keine offenen Incidents.",
 
   "screen.process.loading": "Der Prozess {process} wird geladen…",
+  "screen.process.inTenant": "{engine} · Mandant {tenant}",
   "screen.process.failed": "Der Prozess {process} konnte nicht geladen werden",
   "screen.process.unknown.title": "Den Prozess {process} gibt es auf der Engine {engine} nicht",
+  "screen.process.unknown.inTenant":
+    "Den Prozess {process} gibt es im Mandanten {tenant} auf der Engine {engine} nicht",
   "screen.process.unknown.description":
     "Die Engine hat keine Version dieses Prozesses. Prüfe die Adresse oder such den Prozess bei den Prozessen der Engine.",
   "screen.process.unknown.processes": "Prozesse von {engine}",

@@ -19,7 +19,7 @@ function xmlRoute(definitionId: string, bpmn20Xml: string): RestRoute {
 }
 
 function ref(id: string, bpmnProcessId: string, version: number, name: string) {
-  return { id, bpmnProcessId, version, name }
+  return { id, bpmnProcessId, tenantId: null, version, name }
 }
 
 describe("the processes a C7 call activity calls", () => {
@@ -29,12 +29,16 @@ describe("the processes a C7 call activity calls", () => {
       definitionsNamed("keysIn", ["pulse-label"]),
     ])
 
-    const calls = await runtime.getCalledProcesses(DefinitionId(WORLD_IDS.dispatch1))
+    const calls = await runtime.getCalledProcesses({
+      id: DefinitionId(WORLD_IDS.dispatch1),
+      tenantId: null,
+    })
 
     expect(calls).toEqual([
       {
         elementId: "Activity_PrintShippingLabel",
         bpmnProcessId: "pulse-label",
+        tenantId: null,
         definition: ref(WORLD_IDS.label1, "pulse-label", 1, "Print label"),
       },
     ])
@@ -48,30 +52,34 @@ describe("the processes a C7 call activity calls", () => {
       definitionsNamed("processDefinitionIdIn", [INVOICE_V1]),
     ])
 
-    const calls = await runtime.getCalledProcesses(DefinitionId(INVOICE_V1))
+    const calls = await runtime.getCalledProcesses({ id: DefinitionId(INVOICE_V1), tenantId: null })
 
     expect(calls).toEqual([
       {
         elementId: "Activity_LatestInvoice",
         bpmnProcessId: "invoice",
+        tenantId: null,
         definition: ref(INVOICE_V2, "invoice", 2, "Invoice Receipt"),
       },
       {
         elementId: "Activity_SameDeployment",
         bpmnProcessId: "ReviewInvoice",
+        tenantId: null,
         definition: ref(REVIEW_V1, "ReviewInvoice", 1, "Review Invoice"),
       },
       {
         elementId: "Activity_VersionOne",
         bpmnProcessId: "invoice",
+        tenantId: null,
         definition: ref(INVOICE_V1, "invoice", 1, "Invoice Receipt"),
       },
       {
         elementId: "Activity_Tagged",
         bpmnProcessId: "invoice",
+        tenantId: null,
         definition: ref(INVOICE_V2, "invoice", 2, "Invoice Receipt"),
       },
-      { elementId: "Activity_NotDeployed", bpmnProcessId: "refund" },
+      { elementId: "Activity_NotDeployed", bpmnProcessId: "refund", tenantId: null },
     ])
   })
 
@@ -82,11 +90,12 @@ describe("the processes a C7 call activity calls", () => {
       definitionsNamed("processDefinitionIdIn", [INVOICE_V2]),
     ])
 
-    const calls = await runtime.getCalledProcesses(DefinitionId(INVOICE_V2))
+    const calls = await runtime.getCalledProcesses({ id: DefinitionId(INVOICE_V2), tenantId: null })
 
     expect(calls.find((call) => call.elementId === "Activity_SameDeployment")).toEqual({
       elementId: "Activity_SameDeployment",
       bpmnProcessId: "ReviewInvoice",
+      tenantId: null,
     })
   })
 
@@ -102,6 +111,8 @@ describe("the processes a C7 call activity calls", () => {
       },
     ])
 
-    expect(await runtime.getCalledProcesses(DefinitionId("nope:1:x"))).toEqual([])
+    expect(
+      await runtime.getCalledProcesses({ id: DefinitionId("nope:1:x"), tenantId: null }),
+    ).toEqual([])
   })
 })

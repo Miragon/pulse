@@ -1,6 +1,9 @@
 /**
- * The web app's process screen over the engine a call resolved, in any dialect: a process in one
- * version (the one its number names, else the latest) with every version and its counts, the
+ * The web app's process screen over the engine a call resolved, in any dialect: a process, a key in
+ * one tenant (where the request names none, the one engine-core's `ProcessTenants` names on every
+ * surface: the key's process without a tenant, else its first tenant by id, which the answer
+ * names), in one version (the one its number names among that tenant's, else the latest) with
+ * every version and its counts, the
  * badges on the version's diagram, its call targets and the notice that older versions still run,
  * by the screens' builder (`ProcessScreen` of @miragon/pulse-screens/builder) over the engine
  * contract's runtime of the engine (`runtimeOf`), the diagram through the one XML cache
@@ -14,7 +17,13 @@
  * selected version in the engine's own web app where the provider's routes know it.
  */
 
-import { BpmnProcessId } from "@miragon/pulse-engine-core"
+import {
+  BpmnProcessId,
+  ProcessTenants,
+  TenantId,
+  type ProcessRuntime,
+  type TenantVersions,
+} from "@miragon/pulse-engine-core"
 import type { ProcessScreenData } from "@miragon/pulse-screens"
 import { ProcessScreen, type ProcessScreenReads, ScreenJson } from "@miragon/pulse-screens/builder"
 import { buildProcessCockpitUrl } from "../../lib/engine/cockpit-url.js"
@@ -34,9 +43,13 @@ export interface ProcessScreenFeedData extends ProcessScreenData {
   readonly webApp: ProcessWebAppData | null
 }
 
-/** What the feed takes: the process's BPMN process ID and the number of the version to show. */
+/**
+ * What the feed takes: the process's BPMN process ID, its tenant (none without it) and the number
+ * of the version to show.
+ */
 export interface ProcessScreenRequestData {
   readonly process: string
+  readonly tenantId?: string | undefined
   readonly version?: number | undefined
 }
 
@@ -47,22 +60,42 @@ export interface ProcessScreenRequestData {
 class UnknownProcessError extends Error {
   readonly code = "UNKNOWN_PROCESS" as const
 
-  constructor(process: string, engineId: string) {
-    super(`Process "${process}" has no version on engine "${engineId}".`)
+  constructor(process: string, tenantId: string | undefined, engineId: string) {
+    const tenant = tenantId === undefined ? "" : ` in tenant "${tenantId}"`
+    super(`Process "${process}" has no version${tenant} on engine "${engineId}".`)
     this.name = "UnknownProcessError"
   }
 }
 
 /**
- * The reads the builder takes of `engine`: its runtime's, the diagram through the one XML cache
- * (per engine and caller), none where the engine has none.
+ * The process `request` names on `runtime` with its versions: its tenant's, else the one the key
+ * names without a tenant (`ProcessTenants.versionsOf`, the key's process without a tenant where it
+ * has a version without one, so a process without a tenant reads as it did).
  */
-function readsOf(engine: RuntimeEngine): ProcessScreenReads {
-  const runtime = runtimeOf(engine)
+async function processOf(
+  runtime: ProcessRuntime,
+  { process, tenantId }: ProcessScreenRequestData,
+): Promise<TenantVersions> {
+  const bpmnProcessId = BpmnProcessId(process)
+  if (tenantId === undefined) return ProcessTenants.versionsOf(runtime, bpmnProcessId)
+  const tenant = TenantId(tenantId)
+  return { tenantId: tenant, versions: await runtime.listVersions(bpmnProcessId, tenant) }
+}
+
+/**
+ * The reads the builder takes of `engine`: the versions of the process already read, its runtime's
+ * other reads, the diagram through the one XML cache (per engine and caller), none where the
+ * engine has none.
+ */
+function readsOf(
+  engine: RuntimeEngine,
+  runtime: ProcessRuntime,
+  { versions }: TenantVersions,
+): ProcessScreenReads {
   return {
-    listVersions: (id) => runtime.listVersions(id),
+    listVersions: () => Promise.resolve(versions),
     getElementStatistics: (id) => runtime.getElementStatistics(id),
-    getCalledProcesses: (id) => runtime.getCalledProcesses(id),
+    getCalledProcesses: (version) => runtime.getCalledProcesses(version),
     getDiagramXml: async (id) => (await diagramXmlOf(engine, id)) ?? undefined,
   }
 }
@@ -82,16 +115,23 @@ function webAppOf(engine: RuntimeEngine, screen: ProcessScreenData): ProcessWebA
 /** The process screen of `request` on `engine`, read at `now`. */
 async function readProcessScreen(
   engine: RuntimeEngine,
-  { process, version }: ProcessScreenRequestData,
+  request: ProcessScreenRequestData,
   now: () => Date,
 ): Promise<ProcessScreenFeedData> {
+  const { process, tenantId, version } = request
+  const runtime = runtimeOf(engine)
+  const named = await processOf(runtime, request)
   const model = await ProcessScreen.read(
     engine.engineId,
-    { bpmnProcessId: BpmnProcessId(process), ...(version === undefined ? {} : { version }) },
-    readsOf(engine),
+    {
+      bpmnProcessId: BpmnProcessId(process),
+      tenantId: named.tenantId,
+      ...(version === undefined ? {} : { version }),
+    },
+    readsOf(engine, runtime, named),
     now,
   )
-  if (model === undefined) throw new UnknownProcessError(process, engine.engineId)
+  if (model === undefined) throw new UnknownProcessError(process, tenantId, engine.engineId)
   const screen = ScreenJson.process(model)
   return { ...screen, webApp: webAppOf(engine, screen) }
 }
@@ -105,6 +145,10 @@ export function buildProcessScreenData(
   request: ProcessScreenRequestData,
   now: () => Date = () => new Date(),
 ): Promise<ProcessScreenFeedData> {
-  const args = { process: request.process, version: request.version ?? null }
+  const args = {
+    process: request.process,
+    tenantId: request.tenantId ?? null,
+    version: request.version ?? null,
+  }
   return processFloor(engine, args, () => readProcessScreen(engine, request, now))
 }

@@ -37,6 +37,7 @@ export const enginesEn = {
   "engines.verdict.none": "Pulse judges no state for this engine",
   "matrix.label": "Processes by engine",
   "matrix.column.process": "Process",
+  "matrix.column.tenant": "Tenant",
   "matrix.column.withIncident": "With incident",
   "matrix.processId": "BPMN process ID",
   "matrix.notDeployed": "not deployed on {engine}",

@@ -15,7 +15,12 @@ import { InstanceViewBuilder } from "../../src/core/views/instance-view-builder.
 
 const ROOT = InstanceId("8f3c2a1e-0000-4000-8000-000000000001")
 const SINCE = IsoTimestamp("2026-10-21T08:00:00Z")
-const ORDER = { id: DefinitionId("order:1"), bpmnProcessId: BpmnProcessId("order"), version: 1 }
+const ORDER = {
+  id: DefinitionId("order:1"),
+  bpmnProcessId: BpmnProcessId("order"),
+  tenantId: null,
+  version: 1,
+}
 
 function incident(id: string): Incident {
   return {

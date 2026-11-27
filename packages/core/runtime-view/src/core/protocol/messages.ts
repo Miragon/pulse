@@ -10,7 +10,12 @@ export type WebviewIntent =
   | { readonly type: "filterInstances"; readonly filter: InstanceListFilter }
   | { readonly type: "loadMoreInstances" }
   | { readonly type: "filterProcesses"; readonly filter: ProcessListFilter }
-  | { readonly type: "openProcess"; readonly bpmnProcessId: string; readonly toSide: boolean }
+  | {
+      readonly type: "openProcess"
+      readonly bpmnProcessId: string
+      readonly tenantId?: string
+      readonly toSide: boolean
+    }
   | { readonly type: "openInstance"; readonly instanceId: string; readonly toSide: boolean }
   | { readonly type: "openCall"; readonly elementId: string; readonly toSide: boolean }
   | {
@@ -69,6 +74,7 @@ export type WebviewIntent =
       readonly type: "openBoardProcess"
       readonly engine: string
       readonly bpmnProcessId: string
+      readonly tenantId?: string
       readonly filter: InstanceListFilter
       readonly toSide: boolean
     }

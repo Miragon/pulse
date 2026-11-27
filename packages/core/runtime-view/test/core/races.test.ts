@@ -96,13 +96,13 @@ describe("overlapping loads", () => {
     const fixture = panelFixture(
       (runtime): ProcessRuntime =>
         new PatchedRuntime(runtime, {
-          listVersions: async (bpmnProcessId) => {
+          listVersions: async (bpmnProcessId, tenantId) => {
             calls += 1
             if (calls === 2) {
               await slow.opened
               return []
             }
-            return runtime.listVersions(bpmnProcessId)
+            return runtime.listVersions(bpmnProcessId, tenantId)
           },
         }),
     )

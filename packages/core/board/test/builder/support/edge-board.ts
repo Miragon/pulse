@@ -33,7 +33,12 @@ export const DIAGRAM: ProcessDiagramWidget = {
   process: "order",
 }
 export const INCIDENTS: IncidentListWidget = { widget: "incidentList", engines: ["slow"] }
-const UNNAMED = { id: DefinitionId("order:3"), bpmnProcessId: BpmnProcessId("order"), version: 3 }
+const UNNAMED = {
+  id: DefinitionId("order:3"),
+  bpmnProcessId: BpmnProcessId("order"),
+  tenantId: null,
+  version: 3,
+}
 const FIELD_THE_MODEL_MAY_GAIN = { readAt: "2026-10-21T09:00:00Z" }
 
 export const EDGES: BoardModel = {

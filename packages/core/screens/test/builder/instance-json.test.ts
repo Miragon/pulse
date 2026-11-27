@@ -118,7 +118,7 @@ describe("the JSON form of an instance screen", () => {
   })
 
   test("keeps of the read models only the fields the form names", () => {
-    const extra = { deployedAt: "2026-11-01", tenantId: "t1" }
+    const extra = { deployedAt: "2026-11-01", deploymentId: "d1" }
     const detail = {
       ...Instances.detail({
         instance: { ...Instances.summary(), ...extra },
@@ -159,7 +159,9 @@ describe("the JSON form of an instance screen", () => {
     const data = ScreenJson.instance(
       InstanceScreen.of(
         Instances.facts(detail, {
-          calledProcesses: [{ elementId: ElementId("X"), bpmnProcessId: BpmnProcessId("x") }],
+          calledProcesses: [
+            { elementId: ElementId("X"), bpmnProcessId: BpmnProcessId("x"), tenantId: null },
+          ],
         }),
       ),
     )

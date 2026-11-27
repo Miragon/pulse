@@ -54,7 +54,9 @@ which it asks once, before it reads. A surface that holds the reads already (a c
 a tree, the engine's description kept from an earlier read) hands them to `EngineScreen.of` instead.
 Both return an `EngineScreenModel`:
 
-- every process with its latest version and its counts over every version (its running instances,
+- every process, a key in one tenant (a key deployed in two tenants is a row each, its tenant in
+  `tenantId`, which a row without a tenant leaves out), with its latest version and its counts
+  over every version (its running instances,
   those with incident and its open root incidents, the last a lower bound, `incidentsAtLeast`, where
   the engine stopped counting), the most instances with incident first, then the busiest, then by name in English collation (a process without a name by
   its id) and, between two of the same name, by id, so every surface lists them alike;
@@ -75,12 +77,18 @@ keeps each field the form names, so `JSON.parse(JSON.stringify(data))` equals `d
 ```ts
 import { ProcessScreen, ScreenJson } from "@miragon/pulse-screens/builder"
 
-const model = await ProcessScreen.read("prod-a", { bpmnProcessId }, runtime, () => new Date())
+const model = await ProcessScreen.read(
+  "prod-a",
+  { bpmnProcessId, tenantId: null },
+  runtime,
+  () => new Date(),
+)
 const screen = model === undefined ? undefined : ScreenJson.process(model)
 ```
 
-`ProcessScreen.read(engine, { bpmnProcessId, definitionId, version }, reads, now)` asks the clock
-once, then reads the process's versions (`listVersions`), selects the one asked for (by its
+`ProcessScreen.read(engine, { bpmnProcessId, tenantId, definitionId, version }, reads, now)` asks
+the clock once, then reads the process's versions, the key's in the tenant `tenantId` names (null
+for the process without a tenant; `listVersions`), selects the one asked for (by its
 definition id, else by its number, as an address names it, else the latest; the model's `selected`
 says which) and reads that version's diagram (`getDiagramXml`), its element statistics
 (`getElementStatistics`) and, unless `CallActivities.found` finds no call activity in a diagram it
@@ -100,8 +108,11 @@ and its JSON form `ProcessScreenData` (`ScreenJson.process`), hold:
   incidents in called instances rolled up onto every collapsed sub-process around the element, as
   a board and the instance screen roll theirs up, while a sub-process's running count stays the
   one the engine counts there;
-- the call targets (`calls`), per call activity the version it starts or the process the engine
-  lacks;
+- the call targets (`calls`), per call activity the version it starts in the tenant the call
+  resolves in (the selected version's, which it names to `getCalledProcesses`, unless the call
+  names its own) or the process the engine lacks there;
+- the process's tenant (`tenantId`), and each version's, left out where the process has none, so
+  the form of a process without a tenant is the form it was;
 - the notice that instances still run on older versions (`olderVersionsRun`, on the latest version
   only): how many run there, how many of them have an incident, and the newest older version that
   runs, which a surface offers to show.

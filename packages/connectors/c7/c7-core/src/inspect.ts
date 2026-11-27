@@ -88,16 +88,29 @@ function emptyData(id: string, options: InspectOptions): InstanceData {
   }
 }
 
+/**
+ * The definition row of the version an ended instance ran, whose tenant the version names: read
+ * only where the instance names a tenant, which a shared definition (none) does not have.
+ */
+function versionOfTenant(port: EnginePort, history: Rec): Promise<Rec[]> {
+  const definitionId = str(history, "processDefinitionId")
+  if (definitionId === undefined || !str(history, "tenantId")) return Promise.resolve([])
+  const key = "processDefinitionIdIn"
+  return listByIds(port, { operationId: "getProcessDefinitions", key, ids: [definitionId] })
+}
+
 async function endedData(port: EnginePort, id: string, history: Rec, options: InspectOptions) {
-  const [variables, past] = await Promise.all([
+  const [variables, past, definitions] = await Promise.all([
     options.variables
       ? port.list("getHistoricVariableInstances", { processInstanceId: id, ...RAW_VARIABLES_QUERY })
       : undefined,
     options.history ? timeline(port, id) : undefined,
+    versionOfTenant(port, history),
   ])
   return {
     ...emptyData(id, options),
     history,
+    definitions,
     ...compact({ variables: variables && historicVariableMap(variables.items, id) }),
     ...past,
   }

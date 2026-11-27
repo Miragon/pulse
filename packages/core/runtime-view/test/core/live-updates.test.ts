@@ -243,8 +243,8 @@ describe("a live definition panel", () => {
     const fixture = panelFixture(
       (runtime): ProcessRuntime =>
         new PatchedRuntime(runtime, {
-          listVersions: async (bpmnProcessId): Promise<readonly VersionSummary[]> => {
-            const versions = await runtime.listVersions(bpmnProcessId)
+          listVersions: async (bpmnProcessId, tenantId): Promise<readonly VersionSummary[]> => {
+            const versions = await runtime.listVersions(bpmnProcessId, tenantId)
             const newest = versions[0]
             if (!deployed || newest === undefined) {
               return versions
@@ -477,8 +477,8 @@ describe("the edges of a live panel", () => {
     const fixture = panelFixture(
       (runtime): ProcessRuntime =>
         new PatchedRuntime(runtime, {
-          listVersions: async (bpmnProcessId) =>
-            removed ? [] : runtime.listVersions(bpmnProcessId),
+          listVersions: async (bpmnProcessId, tenantId) =>
+            removed ? [] : runtime.listVersions(bpmnProcessId, tenantId),
         }),
       { live: "on" },
     )

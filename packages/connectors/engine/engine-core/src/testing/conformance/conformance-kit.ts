@@ -1,6 +1,7 @@
 import type { CommandConformanceCase, PrepareCommandHarness } from "./command-harness.js"
 import type { ConformanceCase } from "./conformance-case.js"
 import type { PrepareHarness } from "./harness.js"
+import type { PrepareTenantHarness, TenantConformanceCase } from "./tenant-harness.js"
 import { BULK_LAWS } from "./laws/bulk-laws.js"
 import { CALL_LAWS } from "./laws/call-laws.js"
 import { COMMAND_LAWS } from "./laws/command-laws.js"
@@ -13,6 +14,7 @@ import { MIGRATION_LAWS } from "./laws/migration-laws.js"
 import { MIGRATION_PLAN_LAWS } from "./laws/migration-plan-laws.js"
 import { MOVE_LAWS } from "./laws/move-laws.js"
 import { INSTANCE_PAGE_LAWS, PAGE_LAWS } from "./laws/page-laws.js"
+import { TENANT_LAWS } from "./laws/tenant-laws.js"
 import { VARIABLE_LAWS } from "./laws/variable-laws.js"
 
 export type TestRunner = (name: string, body: () => Promise<void>) => unknown
@@ -47,6 +49,10 @@ export class ConformanceKit {
     return [...COMMAND_LAWS, ...MOVE_LAWS, ...BULK_LAWS, ...MIGRATION_LAWS]
   }
 
+  static tenantLaws(): readonly TenantConformanceCase[] {
+    return TENANT_LAWS
+  }
+
   registerRuntimeLaws(
     prepare: PrepareHarness,
     laws: readonly ConformanceCase[] = ConformanceKit.runtimeLaws(),
@@ -56,6 +62,10 @@ export class ConformanceKit {
 
   registerCommandLaws(prepare: PrepareCommandHarness): void {
     this.register(ConformanceKit.commandLaws(), prepare)
+  }
+
+  registerTenantLaws(prepare: PrepareTenantHarness): void {
+    this.register(ConformanceKit.tenantLaws(), prepare)
   }
 
   private register<Harness>(laws: readonly Law<Harness>[], prepare: () => Promise<Harness>): void {

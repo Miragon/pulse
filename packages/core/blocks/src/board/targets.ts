@@ -1,4 +1,9 @@
-import type { BoardFilter, IncidentSummaryRowData, ProcessDiagramData } from "@miragon/pulse-board"
+import type {
+  BoardFilter,
+  DefinitionData,
+  IncidentSummaryRowData,
+  ProcessDiagramData,
+} from "@miragon/pulse-board"
 import type { BoardInstancesTarget, BoardScope, BoardSlots, BoardTarget } from "./slots.js"
 
 /** `target` where the surface opens it (`BoardSlots.opens`), else nothing to offer. */
@@ -33,17 +38,31 @@ export function counterTarget(
   }
 }
 
-/** What a summary row opens: the instances with incident of its process, or of its engine. */
+/** A version's process as a target names it: its key, and its tenant where it has one. */
+function processOf(
+  definition: DefinitionData,
+): Pick<BoardInstancesTarget, "bpmnProcessId" | "tenantId"> {
+  const { bpmnProcessId, tenantId } = definition
+  return tenantId === undefined ? { bpmnProcessId } : { bpmnProcessId, tenantId }
+}
+
+/**
+ * What a summary row opens: the instances with incident of its process (a key in its tenant), or
+ * of its engine.
+ */
 export function summaryTarget(row: IncidentSummaryRowData): BoardInstancesTarget {
   return {
     kind: "instances",
     engine: row.engine,
-    ...(row.process === undefined ? {} : { bpmnProcessId: row.process.bpmnProcessId }),
+    ...(row.process === undefined ? {} : processOf(row.process)),
     filter: { scope: "withIncident" },
   }
 }
 
-/** What a diagram opens: the process, at an element when a count of it was chosen. */
+/**
+ * What a diagram opens: the process it draws (its key alone, which names the process the diagram
+ * draws by the same rule), at an element when a count of it was chosen.
+ */
 export function diagramTarget(
   tile: ProcessDiagramData,
   scope: "running" | "withIncident",

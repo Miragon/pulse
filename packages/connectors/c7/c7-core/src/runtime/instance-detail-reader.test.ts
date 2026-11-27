@@ -10,6 +10,7 @@ const SINCE = "2026-10-21T18:44:04.613+0000"
 const CHILD_REF = {
   id: DefinitionId(CHILD_DEF),
   bpmnProcessId: BpmnProcessId("workflow-child"),
+  tenantId: null,
   version: 1,
   name: "Child",
 }
@@ -81,12 +82,24 @@ describe("InstanceDetailReader.read", () => {
       {
         id: "i1",
         instanceId: C,
-        definition: { id: CHILD_DEF, bpmnProcessId: "workflow-child", version: 1, name: "Child" },
+        definition: {
+          id: CHILD_DEF,
+          bpmnProcessId: "workflow-child",
+          tenantId: null,
+          version: 1,
+          name: "Child",
+        },
         details: { kind: "stacktrace", rootCause: "PropertyNotFoundException: missingBean" },
       },
     ])
     expect(detail?.calledInstances).toStrictEqual([
-      { id: C, parentInstanceId: P, bpmnProcessId: "workflow-child", state: "running" },
+      {
+        id: C,
+        parentInstanceId: P,
+        bpmnProcessId: "workflow-child",
+        tenantId: null,
+        state: "running",
+      },
     ])
     expect(detail?.path.map((step) => step.elementId)).toStrictEqual(["start"])
     expect(detail?.variables).toStrictEqual([
@@ -264,6 +277,7 @@ describe("InstanceDetailReader.read", () => {
     expect((await reader.read(InstanceId("p1")))?.incidents[0]?.definition).toStrictEqual({
       id: "order:1:d1",
       bpmnProcessId: "order",
+      tenantId: null,
       version: 1,
     })
   })

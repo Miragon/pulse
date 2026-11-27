@@ -216,9 +216,9 @@ async function resolved(
 function processReads(engine: RuntimeEngine): ProcessScreenReads {
   const runtime = runtimeOf(engine)
   return {
-    listVersions: (id) => runtime.listVersions(id),
+    listVersions: (id, tenantId) => runtime.listVersions(id, tenantId),
     getElementStatistics: (id) => runtime.getElementStatistics(id),
-    getCalledProcesses: (id) => runtime.getCalledProcesses(id),
+    getCalledProcesses: (version) => runtime.getCalledProcesses(version),
     getDiagramXml: async (id) => (await diagramXmlOf(engine, id)) ?? undefined,
   }
 }
@@ -245,6 +245,7 @@ describe.each([
         recorded.screen.engine,
         {
           bpmnProcessId: BpmnProcessId(bpmnProcessId),
+          tenantId: null,
           ...(name === "olderVersion" && selected !== null
             ? { definitionId: DefinitionId(selected.id) }
             : {}),
@@ -286,7 +287,7 @@ describe.each([
     await expect(
       ProcessScreen.read(
         recorded.screen.engine,
-        { bpmnProcessId: BpmnProcessId("pulse-order") },
+        { bpmnProcessId: BpmnProcessId("pulse-order"), tenantId: null },
         processReads(on),
         asOf,
       ),

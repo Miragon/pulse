@@ -45,21 +45,33 @@ kit.registerCommandLaws(async () => ({
   commands: myCommands,
   world: await seedCommandWorld(myEngine),
 }))
+kit.registerTenantLaws(async () => ({
+  runtime: myRuntime,
+  world: await seededWorld,
+  tenantWorld: await seedTenantWorld(myEngine),
+}))
 ```
 
 The kit binds every law to any `(name, fn)` runner and throws an `Error` naming the law and what
 it found when one fails. Your harness deploys diagrams with the world's element ids into your engine and seeds the
 world's instances; the fake seeds it in memory. An engine whose reads lag behind its writes
-declares `writeVisibility`, one whose bulk work runs in the background `asyncWork`. The kit
-proves itself: 93 saboteurs, each the fake with one flaw, fail exactly their laws (the package's
-`test/`).
+declares `writeVisibility`, one whose bulk work runs in the background `asyncWork`. The tenant
+laws read the tenant world beside the read world: the world's keys deployed in two tenants
+(`WORLD_TENANT_DEPLOYMENTS`, no instance), which your harness deploys after the read laws ran or
+into an engine of its own, since the read world's other readers (a recorded board, the screens)
+count every process. The kit proves itself: 98 saboteurs, each the fake with one flaw, fail
+exactly their laws (the package's `test/`).
 
 ## What it provides
 
 - **`.`:** the ports `ProcessRuntime` (17 methods, from `describeEngine` to `checkMigration?`,
   three of them optional) and `ProcessCommands` (6 writes: retry an incident, set a variable, move a
   token, cancel and migrate instances in bulk, stop a bulk operation); the branded ids
-  (`InstanceId("…")`, `DefinitionId`, `BpmnProcessId`, `ElementId` and more); the read models
+  (`InstanceId("…")`, `DefinitionId`, `BpmnProcessId`, `TenantId`, `ElementId` and more); the
+  read models, every one that names a version or a process key with its tenant (`tenantId`, null
+  for none, never `""` or a default id: a process is a key in one tenant, owner decision of
+  2026-11-26, so `listVersions` takes the key and the tenant and `getCalledProcesses` the calling
+  version's id and tenant, `CallingVersion`); the read models
   (`DefinitionSummary` and `VersionSummary` with their counts of running instances, instances with
   an incident and open root incidents, `InstanceSummary`, `InstanceDetail`, `Incident`,
   `ElementStatistics`, `Variable` …), the queries
@@ -73,11 +85,16 @@ proves itself: 93 saboteurs, each the fake with one flaw, fail exactly their law
   failure text in every dialect: `of` takes the last `Caused by:` line of a stack trace, else its
   first non-blank line, a leading class name shortened to its simple name, in one line of at most
   300 characters; `lineOf` is the line a viewer opens the text at, none without a `Caused by:`
-  line.
-- **`./testing`:** the conformance kit (`ConformanceKit` with 55 read laws and 15 command laws),
-  its fixed world (`WORLD_*`, the three neutral diagrams `NEUTRAL_DIAGRAMS` with fixed element
-  ids) and `FakeEngine`, an in-memory engine that passes every law, with `PatchedRuntime` and
-  `PatchedCommands` to change one answer of it in a test.
+  line; and `ProcessTenants`, the process a key names without a tenant on every surface: the
+  key's process without a tenant where the key has a version without one, else its first tenant in
+  the order of the tenant ids by code unit (`summaryOf` among a list's processes, `versionsOf`
+  with its versions over `listVersions` and `listDefinitions`, given a version's id the tenant
+  that holds it).
+- **`./testing`:** the conformance kit (`ConformanceKit` with 55 read laws, 15 command laws and
+  3 tenant laws), its fixed world (`WORLD_*`, the three neutral diagrams `NEUTRAL_DIAGRAMS` with
+  fixed element ids), its tenant world (`WORLD_TENANT`, `WORLD_TENANT_DEPLOYMENTS`) and
+  `FakeEngine`, an in-memory engine that passes every law (`FakeWorld.seedWithTenants` adds the
+  tenant world), with `PatchedRuntime` and `PatchedCommands` to change one answer of it in a test.
 
 A board reads lists by these laws: instances and incidents come newest first, in the same order
 on every read, incidents also across pages of one, and every page but the last holds its limit,
@@ -182,19 +199,28 @@ The open root incidents of a process and a version (`incidents`) entered by the 
 Operaton and CIB seven over the C7 adapter's and the MCP server's wires, and on a local Camunda 8
 cluster over the C8 adapter's and the MCP server's wires.
 
-Two admissions came ahead of their second dialect, by the owner's decision, on the evidence of the
-Camunda 8 adapter's branch (#543):
+Three admissions came ahead of the rule, by the owner's decision:
 
 - The four answers Camunda 8 needs (a count that may be a lower bound, the failure `unsupported`,
   the declared variable conditions and migration planning as an optional pair) entered before
-  the first release, so that adapter lands without a break. Here the laws run them on the fake
-  and the C7 adapter, which count exactly, answer every condition and plan migrations; the
-  saboteurs prove the other side.
+  the first release, on the evidence of the Camunda 8 adapter's branch (#543), so that adapter
+  lands without a break. Here the laws run them on the fake and the C7 adapter, which count
+  exactly, answer every condition and plan migrations; the saboteurs prove the other side.
 - `RootCauses` moved here from c7-core, since that branch copies its `of` character for
   character. Its `lineOf` keeps c7-core's reading, no line without a `Caused by:` line (by the
   owner's decision), where the copy points at the first non-blank line; the law "incidents: details
   name their root cause in one line and point at a line of their text" holds every adapter to
   the bounds both readings keep.
+- The tenant of a version, a process and a call (`tenantId`, `TenantId`) and `ProcessTenants`,
+  by the decision of 2026-11-26 that the tenant is part of a process's identity: Camunda 7 names a
+  version's tenant id or none, Camunda 8 its tenant id, its default tenant (`<default>`) read as
+  none, and a call resolves in its caller's tenant (Camunda 7 unless the call activity names its
+  own, `calledElementTenantId`). The tenant laws pass on the fake and on Operaton and CIB seven
+  over the C7 adapter's and the MCP server's wires; c8-core maps the tenants over a fake transport
+  only. The admission stays open until the tenant laws pass on a Camunda 8 cluster that runs with
+  tenants in the C8 adapter's suite (#531). A breaking change for an implementation outside this
+  repository: `DefinitionRef`, `CalledProcess` and `CalledInstance` require `tenantId`,
+  `listVersions` and `getCalledProcesses` take the tenant.
 
 The repository holds that to its import graph (`engine-core-consumers` in its
 dependency-cruiser config) and the package to its own modules (`family-core-is-a-leaf`).

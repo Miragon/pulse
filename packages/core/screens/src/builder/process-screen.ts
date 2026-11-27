@@ -19,22 +19,24 @@ export class ProcessScreen {
     now: () => Date,
   ): Promise<ProcessScreenModel | undefined> {
     const asOf = now()
-    const { bpmnProcessId } = request
-    const versions = await reads.listVersions(bpmnProcessId)
-    const selected = ProcessScreen.requestedOf(versions, request)?.definition.id
-    if (selected === undefined) {
+    const { bpmnProcessId, tenantId } = request
+    const versions = await reads.listVersions(bpmnProcessId, tenantId)
+    const requested = ProcessScreen.requestedOf(versions, request)?.definition
+    if (requested === undefined) {
       return undefined
     }
+    const selected = requested.id
     const diagram = reads.getDiagramXml(selected).catch(() => undefined)
     const [diagramXml, statistics, calledProcesses] = await Promise.all([
       diagram,
       reads.getElementStatistics(selected).catch(() => undefined),
-      CalledProcesses.read(reads, selected, diagram),
+      CalledProcesses.read(reads, requested, diagram),
     ])
     return ProcessScreen.of({
       engine,
       asOf,
       bpmnProcessId,
+      tenantId,
       versions,
       selected,
       diagramXml,
@@ -50,6 +52,7 @@ export class ProcessScreen {
       engine: facts.engine,
       asOf: facts.asOf,
       bpmnProcessId: facts.bpmnProcessId,
+      tenantId: facts.tenantId,
       selected,
       versions: facts.versions,
       badges:

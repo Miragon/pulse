@@ -51,7 +51,13 @@ export function useProcessSlots(): ScreenSlots {
     Id: ScreenId,
     onOpen: (target, how) => {
       if (target.kind === "process") {
-        host.post({ type: "openProcess", bpmnProcessId: target.bpmnProcessId, toSide: how.toSide })
+        const { bpmnProcessId, tenantId } = target
+        host.post({
+          type: "openProcess",
+          bpmnProcessId,
+          ...(tenantId === undefined ? {} : { tenantId }),
+          toSide: how.toSide,
+        })
       } else if (target.kind === "instance") {
         host.post({ type: "openInstance", instanceId: target.instanceId, toSide: how.toSide })
       }

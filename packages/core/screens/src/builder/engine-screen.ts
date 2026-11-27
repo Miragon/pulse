@@ -33,7 +33,8 @@ export class EngineScreen {
   }
 
   private static rankOf({ latest, running, withIncident }: DefinitionSummary): ProcessRank {
-    return { bpmnProcessId: latest.bpmnProcessId, name: latest.name, running, withIncident }
+    const { bpmnProcessId, tenantId, name } = latest
+    return { bpmnProcessId, tenantId, name, running, withIncident }
   }
 
   private static sum(

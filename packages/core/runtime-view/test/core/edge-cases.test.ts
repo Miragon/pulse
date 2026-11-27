@@ -16,7 +16,12 @@ describe("labels without optional facts", () => {
       listDefinitions: () =>
         Promise.resolve([
           {
-            latest: { id: DefinitionId("p:1"), bpmnProcessId: BpmnProcessId("p"), version: 1 },
+            latest: {
+              id: DefinitionId("p:1"),
+              bpmnProcessId: BpmnProcessId("p"),
+              tenantId: null,
+              version: 1,
+            },
             running: 0,
             withIncident: 0,
             incidents: 0,
@@ -40,6 +45,7 @@ describe("labels without optional facts", () => {
       engine: { name: "local", environment: "local", host: "localhost" },
       asOf: NOW,
       bpmnProcessId: BpmnProcessId("p"),
+      tenantId: null,
       versions: [],
       selectedDefinitionId: DefinitionId("p:1"),
       diagramXml: "",
@@ -48,7 +54,12 @@ describe("labels without optional facts", () => {
       instances: [
         {
           id: InstanceId("i"),
-          definition: { id: DefinitionId("p:1"), bpmnProcessId: BpmnProcessId("p"), version: 1 },
+          definition: {
+            id: DefinitionId("p:1"),
+            bpmnProcessId: BpmnProcessId("p"),
+            tenantId: null,
+            version: 1,
+          },
           state: "suspended",
           hasIncident: false,
         },

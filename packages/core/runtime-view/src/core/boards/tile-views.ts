@@ -51,6 +51,7 @@ export class TileViews {
       targets: tile.rows.map(({ engine, process }) => ({
         engine,
         ...(process === undefined ? {} : { bpmnProcessId: process.bpmnProcessId }),
+        ...(process?.tenantId === undefined ? {} : { tenantId: process.tenantId }),
         filter: WITH_INCIDENT,
       })),
     }

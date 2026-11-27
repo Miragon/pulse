@@ -14,7 +14,15 @@ const POLL_INTERVAL_MS = 1_000
 const BOUNDARY = "pulse-c7-world"
 
 interface DeploymentAnswer {
+  readonly id?: string
   readonly deployedProcessDefinitions?: Readonly<Record<string, { readonly id: string }>>
+}
+
+/** A deployment the seed sends: its alias, its process and, in a tenant, the tenant's id. */
+interface SeedDeployment {
+  readonly alias: string
+  readonly process: string
+  readonly tenantId?: string
 }
 
 interface IncidentAnswer {
@@ -48,13 +56,21 @@ export async function engineCall<Body>(
   return (await (await sent(engine, path, request)).json()) as Body
 }
 
+/** The multipart part of a deployment's tenant, none for a deployment without one. */
+function tenantPart(deployment: SeedDeployment): string[] {
+  return deployment.tenantId === undefined
+    ? []
+    : [`--${BOUNDARY}`, 'Content-Disposition: form-data; name="tenant-id"', "", deployment.tenantId]
+}
+
 /** The multipart body of a deployment of one diagram, as `FormData` would send it. */
-function deploymentRequest(deployment: C7WorldDeployment, diagram: string): C7SeedRequest {
+function deploymentRequest(deployment: SeedDeployment, diagram: string): C7SeedRequest {
   const body = [
     `--${BOUNDARY}`,
     'Content-Disposition: form-data; name="deployment-name"',
     "",
     `pulse-world-${deployment.alias}`,
+    ...tenantPart(deployment),
     `--${BOUNDARY}`,
     `Content-Disposition: form-data; name="model"; filename="${deployment.process}.bpmn"`,
     "Content-Type: text/xml",
@@ -70,12 +86,15 @@ function deploymentRequest(deployment: C7WorldDeployment, diagram: string): C7Se
   }
 }
 
-/** Deploys `diagram` as `deployment` and answers the id of the process definition it created. */
-export async function deploy(
+/**
+ * Deploys `diagram` as `deployment`, into its tenant where it names one, and answers the ids of the
+ * process definition and of the deployment it created.
+ */
+export async function deployed(
   engine: C7SeedEngine,
-  deployment: C7WorldDeployment,
+  deployment: SeedDeployment,
   diagram: string,
-): Promise<string> {
+): Promise<{ readonly definitionId: string; readonly deploymentId?: string }> {
   const created = await engineCall<DeploymentAnswer>(
     engine,
     "/deployment/create",
@@ -85,7 +104,27 @@ export async function deploy(
   if (definition === undefined) {
     throw new Error(`deploying ${deployment.alias} created no process definition`)
   }
-  return definition.id
+  return created.id === undefined
+    ? { definitionId: definition.id }
+    : { definitionId: definition.id, deploymentId: created.id }
+}
+
+/** Deploys `diagram` as `deployment` and answers the id of the process definition it created. */
+export async function deploy(
+  engine: C7SeedEngine,
+  deployment: C7WorldDeployment,
+  diagram: string,
+): Promise<string> {
+  return (await deployed(engine, deployment, diagram)).definitionId
+}
+
+/** Deletes the deployment `deploymentId` with everything that runs on it. */
+export async function undeploy(engine: C7SeedEngine, deploymentId: string): Promise<void> {
+  await sent(engine, `/deployment/${encodeURIComponent(deploymentId)}?cascade=true`, {
+    method: "DELETE",
+    headers: {},
+    body: "",
+  })
 }
 
 function typedValue(value: C7WorldValue) {

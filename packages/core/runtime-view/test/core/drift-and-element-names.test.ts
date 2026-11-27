@@ -110,6 +110,7 @@ describe("the drift between the open file and the engine", () => {
     const fixture = panelFixture()
     const panel = new DefinitionPanel(fixture.context, {
       bpmnProcessId: BpmnProcessId("new-process"),
+      tenantId: null,
       localModel: { fileName: "new.bpmn", xml: "<definitions/>" },
     })
 
@@ -176,7 +177,7 @@ describe("the drift between the open file and the engine", () => {
     const fixture = panelFixture(
       () =>
         new PatchedRuntime(new FakeEngine(state), {
-          listVersions: (id) => new FakeEngine(current).listVersions(id),
+          listVersions: (id, tenantId) => new FakeEngine(current).listVersions(id, tenantId),
           getDiagramXml: (id) => new FakeEngine(current).getDiagramXml(id),
           getElementStatistics: (id) => new FakeEngine(current).getElementStatistics(id),
           searchInstances: (filter, page) => new FakeEngine(current).searchInstances(filter, page),

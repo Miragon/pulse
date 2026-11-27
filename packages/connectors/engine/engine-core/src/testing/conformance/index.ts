@@ -4,6 +4,19 @@ export { CASE } from "./conformance-case.js"
 export type { CaseName } from "./conformance-case.js"
 export { ConformanceKit } from "./conformance-kit.js"
 export type { ConformanceHarness, SeededWorld } from "./harness.js"
+export { TENANT_CASE } from "./tenant-harness.js"
+export type {
+  SeededTenantWorld,
+  TenantCaseName,
+  TenantConformanceCase,
+  TenantHarness,
+} from "./tenant-harness.js"
+export { WORLD_TENANT, WORLD_TENANT_DEPLOYMENTS } from "./world/tenant-world.js"
+export type {
+  TenantDeploymentAlias,
+  WorldTenant,
+  WorldTenantDeployment,
+} from "./world/tenant-world.js"
 export {
   NEUTRAL_DIAGRAMS,
   WORLD_BULK_INSTANCES,

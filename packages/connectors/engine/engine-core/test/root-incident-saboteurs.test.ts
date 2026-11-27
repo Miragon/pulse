@@ -21,8 +21,8 @@ const copiesAtTheCaller: Sabotage = (runtime) => {
     summary.incidents + (processOf(summary) === WORLD_PROCESS.dispatch ? summary.withIncident : 0)
   return {
     listDefinitions: async () => counted(await runtime.listDefinitions(), withCopy),
-    listVersions: async (bpmnProcessId) =>
-      counted(await runtime.listVersions(bpmnProcessId), withCopy),
+    listVersions: async (bpmnProcessId, tenantId) =>
+      counted(await runtime.listVersions(bpmnProcessId, tenantId), withCopy),
   }
 }
 
@@ -39,7 +39,10 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
         const summaries = await runtime.listDefinitions()
         const latest = await Promise.all(
           summaries.map(async (summary) => {
-            const [newest] = await runtime.listVersions(summary.latest.bpmnProcessId)
+            const [newest] = await runtime.listVersions(
+              summary.latest.bpmnProcessId,
+              summary.latest.tenantId,
+            )
             return newest?.incidents ?? 0
           }),
         )
@@ -51,8 +54,8 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
   [
     "each version counts the incidents of every version of its process",
     (runtime) => ({
-      listVersions: async (bpmnProcessId) => {
-        const versions = await runtime.listVersions(bpmnProcessId)
+      listVersions: async (bpmnProcessId, tenantId) => {
+        const versions = await runtime.listVersions(bpmnProcessId, tenantId)
         const total = versions.reduce((sum, version) => sum + version.incidents, 0)
         return counted(versions, () => total)
       },
@@ -75,8 +78,8 @@ const SABOTAGES: readonly (readonly [string, Sabotage, readonly CaseName[]])[] =
           ...summary,
           incidentsAtLeast: true as const,
         })),
-      listVersions: async (bpmnProcessId) =>
-        (await runtime.listVersions(bpmnProcessId)).map((summary) => ({
+      listVersions: async (bpmnProcessId, tenantId) =>
+        (await runtime.listVersions(bpmnProcessId, tenantId)).map((summary) => ({
           ...summary,
           incidentsAtLeast: true as const,
         })),

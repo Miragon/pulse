@@ -112,7 +112,10 @@ missing.
   a key's numbers from it, so a key counts the same on every surface. An answer it cannot read
   fails (`RuntimeError("unexpectedResponse")`, in the status triage the reason
   `unexpected-answer`), never as a row left out or put under a guessed key. A key sums over the
-  versions of every tenant.
+  versions of every tenant; `statisticsByProcess(rows, type?)` is the same fold per process, a key
+  in one tenant (each row's `tenantId`, null for none, never `""`), its latest version its own
+  tenant's, which the runtime's `DefinitionReader` reads, so another tenant's newer version is
+  never a process's latest (F17).
 - **With incident:** one reading of "an instance with an incident" for every caller: an open
   incident the runtime holds now, which every history level answers alike (`WITH_INCIDENT`, the
   runtime's process-instance filter, and `withIncidentBody(flag)`, its typed form for a search
@@ -187,9 +190,11 @@ missing.
   version, the call activities of its element statistics; the MCP server's one XML cache), else over
   your port. It asks one reader per
   question: `EngineReader` (the product and version telemetry names, else the REST API's version),
-  `DefinitionReader` (every process by its latest version, its versions newest first, each with its
+  `DefinitionReader` (every process, a key in one tenant, by its latest version, a key's process
+  without a tenant before its tenants', its versions in its tenant newest first, each with its
   running instances, those "with incident" and its open root incidents, from the one statistics
-  read and its fold per key, "with incident" per version as the bullet above says; with
+  read and its fold per process, "with incident" per version as the bullet above says, the same
+  requests as on an engine without tenants; with
   `withIncidentCounting` of `C7RuntimeOptions` a list reads pages of fewer of those instances and
   takes the path it is told past a full one, with which the C7 adapter's engine suite runs the
   definition laws once more per path in pages of one; a version's BPMN XML), `ElementStatisticsReader` (per
@@ -202,10 +207,18 @@ missing.
   element of the diagram, as Camunda 8 reports it: a multi-instance body's token, failed jobs and
   incidents, which Camunda 7 counts apart, only while its own token waits there, on the activity
   it repeats), `CalledProcessReader` (each call activity of a version with the version its binding
-  starts: after the diagram, every version of the called processes by their keys, and the caller's
-  own by its id where a call is bound to its deployment, never the statistics of the whole engine),
+  starts in the tenant it resolves in, as the engine resolves it: the tenant its
+  `calledElementTenantId` names, else the caller's, which the caller names as the contract's
+  `CallingVersion`, a caller without one calling a process without one, a `deployment` binding the
+  version of the caller's deployment; a tenant only an expression decides leaves the call out:
+  after the diagram, every version of the called processes by their keys, and the caller's own by
+  its id where a call is bound to its deployment, never the statistics of the whole engine),
   `InstanceSearch` (the history's instances newest first, paged by offset behind the
-  contract's cursor, each flagged with "with incident", and their count; a variable condition's
+  contract's cursor, each flagged with "with incident", its version in the version's tenant, never
+  the instance's (a shared definition, none, runs instances a tenant id provider gave a tenant):
+  the definition rows of a page's versions by their ids, read only where a row names a tenant,
+  as the instance detail's called instances and an ended instance's version, and their count; a
+  variable condition's
   value as the engine reads it, every integer beyond 2^53 in it digit for digit; without an
   incident it counts the history's instances minus those of them the runtime holds an open incident
   for, the history's count of the runtime's ids, so the count is what the search lists and never
@@ -402,7 +415,10 @@ exports the rules behind the entry's functions that tests reach directly, and `I
 composite and the runtime's readers send: a port that maps operations one by one holds its table
 equal to them in a test.
 
-`seedC7World` and `seedC7CommandWorld` seed the conformance world of
+`seedC7TenantWorld` deploys the kit's tenant world (`WORLD_TENANT_DEPLOYMENTS`, each deployment
+with its `tenant-id`) and `removeC7Deployments` deletes deployments again with what runs on them;
+the C7 adapter's suite seeds it into an engine of its own, the engine connector's beside its world
+for one case and removes it. `seedC7World` and `seedC7CommandWorld` seed the conformance world of
 `@miragon/pulse-engine-core/testing` into a Camunda 7 engine of the family over its REST API: they
 take the engine's REST root, a fetch-shaped `send` (`fetch` itself fits), a `wait` between polls,
 the world's plan (engine-core's `WORLD_*` values fit its types as they are) and the diagram text of
@@ -471,8 +487,12 @@ fails, so the label holds the root incident and the call activity a copy. A mult
 task, `Activity_ApproveEach`: one instance's three items wait there, another's body
 (`Activity_ApproveEach#multiInstanceBody`) fails. A batch that sets the retries of a job no engine
 holds, whose incident lies outside any process; the seed suspends it once its incident stands, so
-its monitor job is no executable job and the jobs the status counts hold still. Each case is
-seeded once the one before settled, so the incidents come in one order.
+its monitor job is no executable job and the jobs the status counts hold still. The same key in
+three processes: `pulse-status-label` deployed once more in each of the tenants `pulse-north` and
+`pulse-south` (`C7_STATUS_WORLD.tenants`); the dispatch, which has no tenant, calls the label in
+`pulse-north` (its `calledElementTenantId`), so the chain's root incident stands on a tenant's
+version, and the status triage, whose rows are keys, counts that key's three versions and its
+incident. Each case is seeded once the one before settled, so the incidents come in one order.
 
 `C7_STATUS_ENGINE` is that world recorded on operaton/operaton:2.1.5 twice, at history level FULL
 and at NONE (`engines`, named `full` and `none`): each engine's answers to the reads of

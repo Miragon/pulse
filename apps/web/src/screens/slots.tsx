@@ -10,6 +10,7 @@ import { Button, NamedId, TableEmptyState, Td } from "@miragon/pulse-ui"
 import { ListRow, ListTable } from "@miragon/pulse-widget-shell/widgets"
 import type { Navigate } from "../router/page-link.js"
 import { screenUrlOf, urlOf } from "../router/routes.js"
+import { tenantFieldOf } from "./process/screen-process.js"
 
 /**
  * The page's table of a screen's block: widget-shell's `ListTable` (its named scroll region, the
@@ -148,6 +149,7 @@ export function targetUrl(target: ScreenTarget): string {
         kind: "process",
         engine: target.engine,
         process: target.bpmnProcessId,
+        ...tenantFieldOf(target.tenantId),
         filter: { scope: "running" },
       })
     case "version":
@@ -155,6 +157,7 @@ export function targetUrl(target: ScreenTarget): string {
         kind: "process",
         engine: target.engine,
         process: target.bpmnProcessId,
+        ...tenantFieldOf(target.tenantId),
         version: target.version,
         filter: { scope: "running" },
       })

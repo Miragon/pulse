@@ -35,6 +35,7 @@ const DEFINITIONS = [INVOICE_1, INVOICE_3, CALLER, REVIEW_1, INVOICE_2, REVIEW_2
 const ref = (definition: { id: string; key: string; version: number; name?: string }) => ({
   id: definition.id,
   bpmnProcessId: definition.key,
+  tenantId: null,
   version: definition.version,
   ...(definition.name === undefined ? {} : { name: definition.name }),
 })
@@ -71,7 +72,10 @@ function callsOf(
     getProcessDefinitionBpmn20Xml: () => ({ id: caller, bpmn20Xml: xml }),
     getProcessDefinitions: definitionsOf(definitions),
   })
-  return { port, calls: new CalledProcessReader(port).read(DefinitionId(caller)) }
+  return {
+    port,
+    calls: new CalledProcessReader(port).read({ id: DefinitionId(caller), tenantId: null }),
+  }
 }
 
 /** The query of each definitions read `port` sent. */
@@ -94,11 +98,36 @@ describe("CalledProcessReader", () => {
       ),
     )
     expect(await calls).toStrictEqual([
-      { elementId: "Call_Latest", bpmnProcessId: "invoice", definition: ref(INVOICE_3) },
-      { elementId: "Call_Unprefixed", bpmnProcessId: "invoice", definition: ref(INVOICE_3) },
-      { elementId: "Call_Deployment", bpmnProcessId: "ReviewInvoice", definition: ref(REVIEW_1) },
-      { elementId: "Call_Version", bpmnProcessId: "invoice", definition: ref(INVOICE_2) },
-      { elementId: "Call_Tagged", bpmnProcessId: "invoice", definition: ref(INVOICE_1) },
+      {
+        elementId: "Call_Latest",
+        bpmnProcessId: "invoice",
+        tenantId: null,
+        definition: ref(INVOICE_3),
+      },
+      {
+        elementId: "Call_Unprefixed",
+        bpmnProcessId: "invoice",
+        tenantId: null,
+        definition: ref(INVOICE_3),
+      },
+      {
+        elementId: "Call_Deployment",
+        bpmnProcessId: "ReviewInvoice",
+        tenantId: null,
+        definition: ref(REVIEW_1),
+      },
+      {
+        elementId: "Call_Version",
+        bpmnProcessId: "invoice",
+        tenantId: null,
+        definition: ref(INVOICE_2),
+      },
+      {
+        elementId: "Call_Tagged",
+        bpmnProcessId: "invoice",
+        tenantId: null,
+        definition: ref(INVOICE_1),
+      },
     ])
   })
 
@@ -131,10 +160,10 @@ describe("CalledProcessReader", () => {
       ),
     )
     expect(await calls).toStrictEqual([
-      { elementId: "Call_NotDeployed", bpmnProcessId: "refund" },
-      { elementId: "Call_NoSuchVersion", bpmnProcessId: "invoice" },
-      { elementId: "Call_NoSuchTag", bpmnProcessId: "invoice" },
-      { elementId: "Call_OtherDeployment", bpmnProcessId: "lonely" },
+      { elementId: "Call_NotDeployed", bpmnProcessId: "refund", tenantId: null },
+      { elementId: "Call_NoSuchVersion", bpmnProcessId: "invoice", tenantId: null },
+      { elementId: "Call_NoSuchTag", bpmnProcessId: "invoice", tenantId: null },
+      { elementId: "Call_OtherDeployment", bpmnProcessId: "lonely", tenantId: null },
     ])
   })
 
@@ -144,8 +173,8 @@ describe("CalledProcessReader", () => {
       '<bpmn:callActivity id="Call_Review" calledElement="ReviewInvoice" camunda:calledElementBinding="deployment" />',
     )
     const unbound = [
-      { elementId: "Call_Lonely", bpmnProcessId: "lonely" },
-      { elementId: "Call_Review", bpmnProcessId: "ReviewInvoice" },
+      { elementId: "Call_Lonely", bpmnProcessId: "lonely", tenantId: null },
+      { elementId: "Call_Review", bpmnProcessId: "ReviewInvoice", tenantId: null },
     ]
     const unlisted = callsOf(xml, LONELY.id, [LONELY, REVIEW_1])
     expect(await unlisted.calls).toStrictEqual(unbound)
@@ -172,7 +201,12 @@ describe("CalledProcessReader", () => {
       ),
     )
     expect(await calls).toStrictEqual([
-      { elementId: "Call_Kept", bpmnProcessId: "invoice", definition: ref(INVOICE_3) },
+      {
+        elementId: "Call_Kept",
+        bpmnProcessId: "invoice",
+        tenantId: null,
+        definition: ref(INVOICE_3),
+      },
     ])
   })
 
@@ -184,8 +218,18 @@ describe("CalledProcessReader", () => {
       ),
     )
     expect(await calls).toStrictEqual([
-      { elementId: "Call_Inch", bpmnProcessId: "invoice", definition: ref(INVOICE_3) },
-      { elementId: "Call_Review", bpmnProcessId: "ReviewInvoice", definition: ref(REVIEW_2) },
+      {
+        elementId: "Call_Inch",
+        bpmnProcessId: "invoice",
+        tenantId: null,
+        definition: ref(INVOICE_3),
+      },
+      {
+        elementId: "Call_Review",
+        bpmnProcessId: "ReviewInvoice",
+        tenantId: null,
+        definition: ref(REVIEW_2),
+      },
     ])
   })
 
@@ -198,8 +242,13 @@ describe("CalledProcessReader", () => {
         xmlOf('<bpmn:callActivity id="Call_Review" calledElement="ReviewInvoice" />'),
       )
     })
-    expect(await reader.read(DefinitionId(CALLER.id))).toStrictEqual([
-      { elementId: "Call_Review", bpmnProcessId: "ReviewInvoice", definition: ref(REVIEW_2) },
+    expect(await reader.read({ id: DefinitionId(CALLER.id), tenantId: null })).toStrictEqual([
+      {
+        elementId: "Call_Review",
+        bpmnProcessId: "ReviewInvoice",
+        tenantId: null,
+        definition: ref(REVIEW_2),
+      },
     ])
     expect(asked).toEqual([CALLER.id])
     expect(port.calls.map((call) => call.operationId)).toEqual(["getProcessDefinitions"])
@@ -222,13 +271,17 @@ describe("CalledProcessReader", () => {
         throw fakeFailure(404, "InvalidRequestException")
       },
     })
-    expect(await new CalledProcessReader(port).read(DefinitionId("nope:1:x"))).toEqual([])
+    expect(
+      await new CalledProcessReader(port).read({ id: DefinitionId("nope:1:x"), tenantId: null }),
+    ).toEqual([])
     expect(port.calls.map((call) => call.operationId)).toEqual(["getProcessDefinitionBpmn20Xml"])
   })
 
   it("has no calls for an id no engine assigns, which it never sends", async () => {
     const port = fakePort({})
-    expect(await new CalledProcessReader(port).read(DefinitionId("../x"))).toEqual([])
+    expect(
+      await new CalledProcessReader(port).read({ id: DefinitionId("../x"), tenantId: null }),
+    ).toEqual([])
     expect(port.calls).toEqual([])
   })
 
@@ -242,6 +295,8 @@ describe("CalledProcessReader", () => {
         throw failure
       },
     })
-    await expect(new CalledProcessReader(port).read(DefinitionId(CALLER.id))).rejects.toBe(failure)
+    await expect(
+      new CalledProcessReader(port).read({ id: DefinitionId(CALLER.id), tenantId: null }),
+    ).rejects.toBe(failure)
   })
 })

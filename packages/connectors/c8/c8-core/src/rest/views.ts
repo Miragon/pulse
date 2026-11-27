@@ -9,16 +9,19 @@ export type DefinitionView = {
   readonly bpmnProcessId: string
   readonly version: number
 } & PresentFields<{
+  readonly tenantId: string | undefined
   readonly name: string | undefined
   readonly versionTag: string | undefined
   readonly state: string | undefined
 }>
 
-export interface ProcessStatisticsView {
+export type ProcessStatisticsView = {
   readonly bpmnProcessId: string
   readonly withoutIncident: number
   readonly withIncident: number
-}
+} & PresentFields<{
+  readonly tenantId: string | undefined
+}>
 
 export interface VersionStatisticsView {
   readonly key: string
@@ -40,6 +43,7 @@ export type InstanceView = {
   readonly state: string
   readonly hasIncident: boolean
 } & PresentFields<{
+  readonly tenantId: string | undefined
   readonly definitionName: string | undefined
   readonly startedAt: string | undefined
   readonly endedAt: string | undefined

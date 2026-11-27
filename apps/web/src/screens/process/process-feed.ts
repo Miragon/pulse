@@ -6,6 +6,7 @@ import type {
   VariableConditionKindCode,
 } from "@miragon/pulse-screens"
 import { instantOf } from "../../router/wall-clock.js"
+import type { ScreenProcess } from "./screen-process.js"
 
 /**
  * The process screen's feeds (the engine module's `SCREEN_FEEDS`): app-only reads of the engine
@@ -17,11 +18,12 @@ export const PROCESS_SCREEN_FEED = "engine_screen_process_data"
 export const INSTANCES_FEED = "engine_screen_instances_data"
 export const VARIABLE_NAMES_FEED = "engine_screen_variable_names_data"
 
-/** The process screen's cache key, per engine, process and version: one read it and its Refresh share. */
-export const processScreenKey = (engine: string, process: string): readonly unknown[] => [
+/** The process screen's cache key, per engine and process (a key in one tenant): one read it and its Refresh share. */
+export const processScreenKey = (engine: string, process: ScreenProcess): readonly unknown[] => [
   "web:process-screen",
   engine,
-  process,
+  process.key,
+  process.tenantId ?? null,
 ]
 
 /** The instance list's cache key, per engine and version: its first page by its filter. */

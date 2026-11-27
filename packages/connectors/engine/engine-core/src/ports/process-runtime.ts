@@ -5,6 +5,7 @@ import type {
   DefinitionId,
   IncidentId,
   InstanceId,
+  TenantId,
 } from "../model/ids.js"
 import type { MigrationCheck, MigrationPlan } from "../model/migrations.js"
 import type {
@@ -17,6 +18,7 @@ import type {
 } from "../model/queries.js"
 import type {
   CalledProcess,
+  DefinitionRef,
   DefinitionSummary,
   ElementStatistics,
   EngineInfo,
@@ -27,13 +29,18 @@ import type {
   VersionSummary,
 } from "../model/read-models.js"
 
+export type CallingVersion = Pick<DefinitionRef, "id" | "tenantId">
+
 export interface ProcessRuntime {
   describeEngine(): Promise<EngineInfo>
   listDefinitions(): Promise<readonly DefinitionSummary[]>
-  listVersions(bpmnProcessId: BpmnProcessId): Promise<readonly VersionSummary[]>
+  listVersions(
+    bpmnProcessId: BpmnProcessId,
+    tenantId: TenantId | null,
+  ): Promise<readonly VersionSummary[]>
   getDiagramXml(definitionId: DefinitionId): Promise<string | undefined>
   getElementStatistics(definitionId: DefinitionId): Promise<readonly ElementStatistics[]>
-  getCalledProcesses(definitionId: DefinitionId): Promise<readonly CalledProcess[]>
+  getCalledProcesses(definition: CallingVersion): Promise<readonly CalledProcess[]>
   searchInstances(filter: InstanceFilter, page: PageRequest): Promise<Page<InstanceSummary>>
   countInstances(filter: InstanceFilter): Promise<InstanceCount>
   refusedVariableConditions?(): readonly VariableConditionKind[]

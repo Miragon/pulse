@@ -27,6 +27,7 @@ function summary(
     latest: {
       id: DefinitionId(`${bpmnProcessId}:4`),
       bpmnProcessId: BpmnProcessId(bpmnProcessId),
+      tenantId: null,
       version: 4,
       ...(name === undefined ? {} : { name }),
     },
@@ -249,7 +250,7 @@ describe("the engine panel", () => {
     await panel.handle({ type: "openProcess", bpmnProcessId: "unknown", toSide: false })
 
     expect(fixture.effects.openLatestDefinition.mock.calls).toEqual([
-      ["pulse-order", { toSide: true }],
+      ["pulse-order", { toSide: true }, null],
     ])
   })
 

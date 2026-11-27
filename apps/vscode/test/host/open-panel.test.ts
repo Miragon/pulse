@@ -66,6 +66,7 @@ const BEHIND_A_GATEWAY: InstanceDetail = {
     definition: {
       id: DefinitionId("order:1:a"),
       bpmnProcessId: BpmnProcessId("order"),
+      tenantId: null,
       version: 1,
     },
     state: "running",

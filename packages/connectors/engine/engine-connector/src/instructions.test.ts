@@ -128,8 +128,10 @@ describe("engineModule.instructions", () => {
     (toolset) => {
       const text = snippet(TWO, toolset)
       expect(text).toContain(
-        "- Filters mean the same on every tool: processDefinitionKey spans every version of a key, " +
-          "processDefinitionId names one version; activityId is the BPMN element id; incidentType is " +
+        "- Filters mean the same on every tool: processDefinitionKey spans every version of a key in " +
+          "every tenant, processDefinitionId names one version; tenantId names a process's tenant " +
+          "(engine_get_screen without it: none, else the key's first tenant by id); activityId is the " +
+          "BPMN element id; incidentType is " +
           "failedJob, failedExternalTask or a custom type; a …Like filter matches a substring (% wildcards " +
           "allowed), without Like it matches exactly.\n",
       )

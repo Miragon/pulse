@@ -236,10 +236,10 @@ describe("the definition panel", () => {
     const fixture = panelFixture(
       (runtime) =>
         new PatchedRuntime(runtime, {
-          listVersions: (bpmnProcessId) =>
+          listVersions: (bpmnProcessId, tenantId) =>
             failing
               ? Promise.reject(new RuntimeError("unreachable", "connect ECONNREFUSED"))
-              : runtime.listVersions(bpmnProcessId),
+              : runtime.listVersions(bpmnProcessId, tenantId),
         }),
     )
     const panel = new DefinitionPanel(fixture.context, { bpmnProcessId: ORDER })

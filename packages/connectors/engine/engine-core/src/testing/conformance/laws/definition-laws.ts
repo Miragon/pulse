@@ -16,11 +16,14 @@ class DefinitionReads {
     law: string,
   ): Promise<DefinitionSummary> {
     const summaries = await harness.runtime.listDefinitions()
-    const matching = summaries.filter((summary) => summary.latest.bpmnProcessId === bpmnProcessId)
+    const matching = summaries.filter(
+      (summary) =>
+        summary.latest.bpmnProcessId === bpmnProcessId && summary.latest.tenantId === null,
+    )
     Ensure.that(
       matching.length === 1,
       law,
-      `expected one summary of ${bpmnProcessId}, got ${matching.length}`,
+      `expected one summary of ${bpmnProcessId} without a tenant, got ${matching.length}`,
     )
     return Ensure.defined(matching[0], law, `no summary of ${bpmnProcessId}`)
   }
@@ -83,7 +86,7 @@ const definitionsCounts: ConformanceCase = {
 const versionsCounts: ConformanceCase = {
   name: CASE.versionsCounts,
   async run(harness) {
-    const versions = await harness.runtime.listVersions(BpmnProcessId(WORLD_PROCESS.order))
+    const versions = await harness.runtime.listVersions(BpmnProcessId(WORLD_PROCESS.order), null)
     const actual = versions.map((version) => ({
       id: version.definition.id,
       version: version.definition.version,
@@ -132,7 +135,7 @@ const versionsIncidents: ConformanceCase = {
       [WORLD_PROCESS.label, "label@1", 1],
     ]
     for (const [process, alias, incidents] of expected) {
-      const versions = await harness.runtime.listVersions(BpmnProcessId(process))
+      const versions = await harness.runtime.listVersions(BpmnProcessId(process), null)
       const id = harness.world.definitionIds[alias]
       const version = Ensure.defined(
         versions.find((summary) => summary.definition.id === id),

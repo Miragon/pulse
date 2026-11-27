@@ -25,7 +25,7 @@ const READS: readonly (readonly [string, string, Read])[] = [
   [
     "listVersions",
     "getProcessDefinitionStatistics",
-    (runtime) => runtime.listVersions(BpmnProcessId("order")),
+    (runtime) => runtime.listVersions(BpmnProcessId("order"), null),
   ],
   [
     "getDiagramXml",
@@ -45,7 +45,7 @@ const READS: readonly (readonly [string, string, Read])[] = [
   [
     "getCalledProcesses",
     "getProcessDefinitionBpmn20Xml",
-    (runtime) => runtime.getCalledProcesses(DEFINITION),
+    (runtime) => runtime.getCalledProcesses({ id: DEFINITION, tenantId: null }),
   ],
   [
     "searchInstances",
@@ -195,11 +195,12 @@ describe("C7Runtime", () => {
     })
 
     expect(await runtime.getDiagramXml(DEFINITION)).toBe(xml)
-    expect(await runtime.getCalledProcesses(DEFINITION)).toStrictEqual([
+    expect(await runtime.getCalledProcesses({ id: DEFINITION, tenantId: null })).toStrictEqual([
       {
         elementId: "Call",
         bpmnProcessId: "label",
-        definition: { id: "label:1:l", bpmnProcessId: "label", version: 1 },
+        tenantId: null,
+        definition: { id: "label:1:l", bpmnProcessId: "label", tenantId: null, version: 1 },
       },
     ])
     expect(await runtime.getElementStatistics(DEFINITION)).toStrictEqual([
@@ -238,7 +239,9 @@ describe("C7Runtime", () => {
     await expect(runtime.getDiagramXml(DEFINITION)).rejects.toMatchObject({
       failure: "unreachable",
     })
-    await expect(runtime.getCalledProcesses(DEFINITION)).rejects.toMatchObject({
+    await expect(
+      runtime.getCalledProcesses({ id: DEFINITION, tenantId: null }),
+    ).rejects.toMatchObject({
       failure: "unreachable",
     })
     expect(await runtime.getElementStatistics(DEFINITION)).toStrictEqual([
@@ -277,7 +280,7 @@ describe("C7Runtime", () => {
         withIncidentCounting: path === undefined ? { pageSize: 1 } : { pageSize: 1, path },
       })
 
-      expect(await runtime.listVersions(BpmnProcessId("order"))).toMatchObject([
+      expect(await runtime.listVersions(BpmnProcessId("order"), null)).toMatchObject([
         { running: 3, withIncident: 2 },
       ])
       expect(port.calls.map(({ operationId, input }) => [operationId, input.query])).toStrictEqual([

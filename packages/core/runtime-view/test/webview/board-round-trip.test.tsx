@@ -28,6 +28,7 @@ const SHIP_INCIDENT: Incident = {
   definition: {
     id: DefinitionId(`${PROCESS}:1`),
     bpmnProcessId: BpmnProcessId(PROCESS),
+    tenantId: null,
     version: 1,
     name: "Order fulfillment",
   },
@@ -154,7 +155,7 @@ describe("the clicks on a board the core built", () => {
     }
 
     const navigation = fixture.navigation
-    const process = BpmnProcessId(PROCESS)
+    const process = { bpmnProcessId: BpmnProcessId(PROCESS) }
     const here = { toSide: false }
     expect(typesOf(harness.posted)).toEqual([
       ...Array.from({ length: 2 }, () => "openBoardProcess"),

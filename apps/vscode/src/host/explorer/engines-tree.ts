@@ -191,7 +191,8 @@ export class EnginesTree
 
   private definitionItem(connection: Connection, node: DefinitionNode): vscode.TreeItem {
     const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.None)
-    item.id = `definition|${connection.target.name}|${node.bpmnProcessId}`
+    const tenant = node.tenantId === null ? "" : `|${node.tenantId}`
+    item.id = `definition|${connection.target.name}|${node.bpmnProcessId}${tenant}`
     item.description = node.description
     item.iconPath = new vscode.ThemeIcon("type-hierarchy-sub")
     item.resourceUri = IncidentDecorations.definitionUri(
@@ -207,7 +208,11 @@ export class EnginesTree
     item.command = {
       command: COMMAND.openDefinition,
       title: "Open Process Definition",
-      arguments: [connection.target.name, node.bpmnProcessId],
+      arguments: [
+        connection.target.name,
+        node.bpmnProcessId,
+        ...(node.tenantId === null ? [] : [node.tenantId]),
+      ],
     }
     return item
   }

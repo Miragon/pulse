@@ -206,8 +206,10 @@ describe("a process diagram", () => {
         getDiagramXml: async (id) => padded(await world.getDiagramXml(id), length),
         listDefinitions: async () =>
           (await world.listDefinitions()).map((summary) => {
-            const { id, bpmnProcessId, version } = summary.latest
-            return named ? summary : { ...summary, latest: { id, bpmnProcessId, version } }
+            const { id, bpmnProcessId, tenantId, version } = summary.latest
+            return named
+              ? summary
+              : { ...summary, latest: { id, bpmnProcessId, tenantId, version } }
           }),
       })
     }

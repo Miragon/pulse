@@ -27,20 +27,26 @@ import { EVERY_DIALECT } from "../view-models.dialects.js"
 interface ScreenArgs {
   readonly screen: ScreenKind
   readonly processDefinitionKey?: string | undefined
+  readonly tenantId?: string | undefined
   readonly version?: number | undefined
   readonly processInstanceId?: string | undefined
 }
 
-type ScreenId = "processDefinitionKey" | "version" | "processInstanceId"
+type ScreenId = "processDefinitionKey" | "tenantId" | "version" | "processInstanceId"
 
 /** The ids each screen takes. */
 const TAKES: Readonly<Record<ScreenKind, readonly ScreenId[]>> = {
   engine: [],
-  process: ["processDefinitionKey", "version"],
+  process: ["processDefinitionKey", "tenantId", "version"],
   instance: ["processInstanceId"],
 }
 
-const SCREEN_IDS: readonly ScreenId[] = ["processDefinitionKey", "version", "processInstanceId"]
+const SCREEN_IDS: readonly ScreenId[] = [
+  "processDefinitionKey",
+  "tenantId",
+  "version",
+  "processInstanceId",
+]
 
 /** Arguments a screen does not take, or without the id it needs: no retry changes them. */
 class ScreenSelectionError extends Error {
@@ -73,6 +79,7 @@ function targetOf(args: ScreenArgs): ScreenFormTarget {
       return {
         screen: "process",
         process: needed(args, "processDefinitionKey", args.processDefinitionKey),
+        tenantId: args.tenantId,
         version: args.version,
       }
     case "instance":

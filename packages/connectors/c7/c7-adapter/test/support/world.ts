@@ -1,5 +1,6 @@
 import {
   seedC7CommandWorld,
+  seedC7TenantWorld,
   seedC7World,
   type C7SeedEngine,
   type C7UnknownIds,
@@ -13,7 +14,10 @@ import {
   WORLD_LOCAL_VARIABLE,
   WORLD_MIGRATION_INSTANCES,
   WORLD_SECOND_TOKEN,
+  WORLD_TENANT,
+  WORLD_TENANT_DEPLOYMENTS,
   type CommandWorld,
+  type SeededTenantWorld,
   type SeededWorld,
 } from "@miragon/pulse-engine-core/testing"
 import { worldDiagram } from "./fixtures.js"
@@ -85,4 +89,17 @@ export async function seedCommandWorld(
     definitionIds: seeded.definitionIds,
     unknown: unknownOf(world.unknown),
   }
+}
+
+export async function seedTenantWorld(engineUrl: string): Promise<SeededTenantWorld> {
+  const deployments = WORLD_TENANT_DEPLOYMENTS.map(({ alias, process, tenant }) => ({
+    alias,
+    process,
+    tenantId: WORLD_TENANT[tenant],
+  }))
+  const diagrams = Object.fromEntries(
+    deployments.map(({ process }) => [process, worldDiagram(process)]),
+  )
+  const world = await seedC7TenantWorld(engineAt(engineUrl), { deployments, diagrams })
+  return { definitionIds: branded(world.definitionIds, DefinitionId) }
 }

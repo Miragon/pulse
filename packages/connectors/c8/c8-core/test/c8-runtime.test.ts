@@ -166,7 +166,13 @@ describe("the questions of the C8 runtime", () => {
 
     expect(await runtime.listDefinitions()).toEqual([
       {
-        latest: { id: "100", bpmnProcessId: "order", version: 1, name: "order name" },
+        latest: {
+          id: "100",
+          bpmnProcessId: "order",
+          tenantId: null,
+          version: 1,
+          name: "order name",
+        },
         running: 4,
         withIncident: 1,
         incidents: 1,
@@ -184,9 +190,15 @@ describe("the questions of the C8 runtime", () => {
       },
     ])
 
-    expect(await runtime.listVersions(BpmnProcessId("order"))).toEqual([
+    expect(await runtime.listVersions(BpmnProcessId("order"), null)).toEqual([
       {
-        definition: { id: "100", bpmnProcessId: "order", version: 1, name: "order name" },
+        definition: {
+          id: "100",
+          bpmnProcessId: "order",
+          tenantId: null,
+          version: 1,
+          name: "order name",
+        },
         running: 0,
         withIncident: 0,
         incidents: 0,
@@ -210,7 +222,7 @@ describe("the questions of the C8 runtime", () => {
     expect(await runtime.getElementStatistics(id)).toEqual([
       { elementId: "Charge", active: 2, incidents: 0, incidentsInCalledInstances: 0 },
     ])
-    expect(await runtime.getCalledProcesses(id)).toEqual([])
+    expect(await runtime.getCalledProcesses({ id, tenantId: null })).toEqual([])
     expect(routesOf(camunda).filter((route) => route.endsWith("/xml"))).toHaveLength(1)
   })
 

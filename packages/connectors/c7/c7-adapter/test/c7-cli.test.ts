@@ -40,6 +40,7 @@ function detailOf(waitStates: readonly WaitState[], instanceId = INSTANCE): Inst
       definition: {
         id: DefinitionId("return-handling:2:7a1c"),
         bpmnProcessId: BpmnProcessId("return-handling"),
+        tenantId: null,
         version: 2,
       },
       state: "running",

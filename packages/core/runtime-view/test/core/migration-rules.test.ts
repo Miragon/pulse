@@ -38,6 +38,7 @@ function ref(version: number): DefinitionRef {
   return {
     id: DefinitionId(`shop:${version}`),
     bpmnProcessId: BpmnProcessId("shop"),
+    tenantId: null,
     version,
     name: "Shop",
   }

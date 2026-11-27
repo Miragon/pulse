@@ -50,6 +50,7 @@ export class ScreenWorld {
       latest: {
         id: DefinitionId(`${bpmnProcessId}:4`),
         bpmnProcessId: BpmnProcessId(bpmnProcessId),
+        tenantId: null,
         version: 4,
         ...(name === undefined ? {} : { name }),
       },

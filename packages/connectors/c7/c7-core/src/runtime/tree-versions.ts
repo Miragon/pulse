@@ -26,7 +26,9 @@ function listedOf(definitions: InstanceData["definitions"]): ReadonlyMap<string,
         return []
       }
       const name = str(definition, "name")
-      return [[id, definitionRefOf({ id, key, version, ...compact({ name }) })] as const]
+      const tenantId = str(definition, "tenantId")
+      const ref = definitionRefOf({ id, key, version, ...compact({ name, tenantId }) })
+      return [[id, ref] as const]
     }),
   )
 }

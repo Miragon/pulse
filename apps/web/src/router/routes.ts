@@ -508,9 +508,7 @@ export function screenUrlOf(screen: PageScreen): string {
       const { engine, process } = screen
       const path = urlOf({ view: "process-detail", engine, processDefinitionKey: process })
       // An id no segment takes keeps the cockpit's process view, which takes no screen state.
-      return path.startsWith(PAGES.cockpit)
-        ? path
-        : withQuery(path, processQueryOf(screen.version, screen.filter))
+      return path.startsWith(PAGES.cockpit) ? path : withQuery(path, processQueryOf(screen))
     }
     case "instance": {
       const { engine, instance, tab, incident } = screen

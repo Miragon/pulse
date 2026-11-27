@@ -1,5 +1,11 @@
-import type { BpmnProcessId, DefinitionSummary, VersionSummary } from "@miragon/pulse-engine-core"
+import type {
+  BpmnProcessId,
+  DefinitionSummary,
+  TenantId,
+  VersionSummary,
+} from "@miragon/pulse-engine-core"
 import { DefinitionRefs } from "../mapping/definition-refs.js"
+import { Tenants } from "../mapping/tenants.js"
 import type { CamundaClient, DefinitionView, SearchFilter } from "../rest/index.js"
 import { FewAtOnce } from "./few-at-once.js"
 
@@ -28,33 +34,42 @@ export class DefinitionReader {
     ])
     const counts = new Map<string, Counts>()
     for (const row of statistics) {
-      const known = counts.get(row.bpmnProcessId) ?? NO_INSTANCES
-      counts.set(row.bpmnProcessId, {
+      const process = DefinitionReader.processOf(row.bpmnProcessId, row.tenantId)
+      const known = counts.get(process) ?? NO_INSTANCES
+      counts.set(process, {
         running: known.running + row.withoutIncident + row.withIncident,
         withIncident: known.withIncident + row.withIncident,
       })
     }
-    return FewAtOnce.map([...DefinitionReader.newestOf(latest).values()], async (definition) => {
-      const instances = counts.get(definition.bpmnProcessId) ?? NO_INSTANCES
+    const newest = [...DefinitionReader.newestOf(latest).values()]
+    const shared = DefinitionReader.keysInSeveralTenants(newest)
+    return FewAtOnce.map(newest, async (definition) => {
+      const process = DefinitionReader.processOf(definition.bpmnProcessId, definition.tenantId)
+      const instances = counts.get(process) ?? NO_INSTANCES
       return {
         latest: DefinitionRefs.of(definition),
         ...instances,
         ...(await this.incidentsOf(
-          { processDefinitionId: definition.bpmnProcessId },
+          DefinitionReader.processFilter(definition, shared),
           instances.withIncident,
         )),
       }
     })
   }
 
-  async versions(bpmnProcessId: BpmnProcessId): Promise<VersionSummary[]> {
+  async versions(
+    bpmnProcessId: BpmnProcessId,
+    tenantId: TenantId | null,
+  ): Promise<VersionSummary[]> {
     const [definitions, statistics] = await Promise.all([
       this.client.versionsOf(bpmnProcessId),
       this.client.versionStatistics(bpmnProcessId),
     ])
     const rows = new Map(statistics.map((row) => [row.key, row]))
     const kept = definitions
-      .filter((definition) => definition.state !== DELETED)
+      .filter(
+        (definition) => definition.state !== DELETED && Tenants.same(definition.tenantId, tenantId),
+      )
       .toSorted((left, right) => right.version - left.version)
     return FewAtOnce.map(kept, async (definition) => {
       const row = rows.get(definition.key)
@@ -78,12 +93,37 @@ export class DefinitionReader {
       : { incidents: found.total }
   }
 
+  private static processOf(bpmnProcessId: string, tenantId: string | undefined): string {
+    return JSON.stringify([bpmnProcessId, Tenants.of(tenantId)])
+  }
+
+  private static processFilter(
+    definition: DefinitionView,
+    shared: ReadonlySet<string>,
+  ): SearchFilter {
+    const process = { processDefinitionId: definition.bpmnProcessId }
+    return shared.has(definition.bpmnProcessId)
+      ? { ...process, tenantId: Tenants.clusterIdOf(Tenants.of(definition.tenantId)) }
+      : process
+  }
+
+  private static keysInSeveralTenants(definitions: readonly DefinitionView[]): Set<string> {
+    const seen = new Set<string>()
+    const shared = new Set<string>()
+    for (const { bpmnProcessId } of definitions) {
+      if (seen.has(bpmnProcessId)) shared.add(bpmnProcessId)
+      seen.add(bpmnProcessId)
+    }
+    return shared
+  }
+
   private static newestOf(definitions: readonly DefinitionView[]): Map<string, DefinitionView> {
     const newest = new Map<string, DefinitionView>()
     for (const definition of definitions) {
-      const known = newest.get(definition.bpmnProcessId)
+      const process = DefinitionReader.processOf(definition.bpmnProcessId, definition.tenantId)
+      const known = newest.get(process)
       if (definition.state !== DELETED && (known?.version ?? 0) < definition.version) {
-        newest.set(definition.bpmnProcessId, definition)
+        newest.set(process, definition)
       }
     }
     return newest
