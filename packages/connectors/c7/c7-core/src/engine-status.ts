@@ -14,6 +14,7 @@ import { type EnginePort, PARALLEL, type PlannedRequest, pageQuery, type Query }
 import { engineFormat } from "./dates.js"
 import { amount, countOf, records, str } from "./records.js"
 import { queryInput } from "./requests.js"
+import { newestIncidents, newestIncidentsRequest } from "./status-incidents.js"
 import {
   type DefinitionStatus,
   definitionStatus,
@@ -146,7 +147,7 @@ function requests(options: Resolved, now: number): Requests {
     incidentCount: request("getIncidentsCount", filter),
     externalTaskCount: request("getExternalTasksCount", filter),
     taskCount: request("getTasksCount", filter),
-    incidents: { sortBy: "incidentTimestamp", sortOrder: "desc", ...filter },
+    incidents: filter,
     externalTasks: filter,
     jobCounts: perKey.map((key) =>
       request("getJobsCount", { ...EXECUTABLE, processDefinitionKey: key }),
@@ -169,7 +170,7 @@ export function statusRequests(options: StatusOptions, now: number): PlannedRequ
   return [
     all.version,
     all.statistics,
-    request("getIncidents", pageQuery(all.incidents, 0, PAGE)),
+    newestIncidentsRequest(all.incidents),
     all.incidentCount,
     request("getExternalTasks", pageQuery(all.externalTasks, 0, PAGE)),
     all.externalTaskCount,
@@ -211,7 +212,7 @@ async function roundOne(deps: StatusDeps, all: Requests) {
   ] = await Promise.all([
     timedVersion(deps, all.version),
     value(port, all.statistics),
-    port.list("getIncidents", all.incidents, LIST_CAP),
+    newestIncidents(port, all.incidents, LIST_CAP),
     value(port, all.incidentCount),
     port.list("getExternalTasks", all.externalTasks, LIST_CAP),
     value(port, all.externalTaskCount),

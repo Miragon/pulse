@@ -62,6 +62,8 @@ export const BY_KEY = ["--business-key", BUSINESS_KEY]
 export interface WorkflowScenario {
   /** Runs the built CLI against the engine (bound once the engine has started). */
   readonly cli: Cli
+  /** The engine's REST root, for a step that seeds what no command writes. */
+  readonly url: () => string
   /** The suite's temporary directory, and the directory with the workflow fixture in it. */
   readonly workdir: () => string
   readonly bpmnDir: () => string

@@ -22,6 +22,7 @@ import { FIXTURES } from "./support/fixtures.js"
 import { makeTempDir, removeTempDir } from "./support/temp.js"
 import { registerDeployAndAdvance } from "./workflow-scenario/deploy-and-advance.js"
 import { registerStatusAndRetry } from "./workflow-scenario/status-and-retry.js"
+import { registerStatusIncidents } from "./workflow-scenario/status-incidents.js"
 import { BY_KEY, type InstanceOutput, type WorkflowScenario } from "./workflow-scenario/suite.js"
 
 /** Another team's file with the same resource name (`workflow.bpmn`) and another process. */
@@ -70,6 +71,7 @@ export function registerWorkflowScenario(engineName: EngineName): void {
 
     const scenario: WorkflowScenario = {
       cli: (args, options) => cli(args, options),
+      url: () => required(engine, "engine").url,
       workdir: () => required(workdir, "workdir"),
       bpmnDir,
       state,
@@ -77,5 +79,6 @@ export function registerWorkflowScenario(engineName: EngineName): void {
     }
     registerDeployAndAdvance(scenario)
     registerStatusAndRetry(scenario)
+    registerStatusIncidents(scenario)
   })
 }
