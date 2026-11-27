@@ -32,6 +32,17 @@ describe("secretForms", () => {
     expect(secretForms(["abc", "   ", "", undefined, " abc ", "a b", "é"])).toEqual([])
   })
 
+  it("leaves out an encoding that cannot write a value, and keeps the others", () => {
+    // A lone surrogate, as a JSON file's \ud800 makes one: encodeURIComponent refuses it (a
+    // URIError), and a URL and a form write U+FFFD in its place.
+    expect(secretForms(["pass\ud800word", "demo-secret"])).toEqual([
+      "pass%EF%BF%BDword",
+      "pass\\ud800word",
+      "demo-secret",
+      "pass\ud800word",
+    ])
+  })
+
   it("leaves out a form the URL parser shortened below four characters", () => {
     expect(secretForms(["x/../yz"])).toEqual(["x%2F..%2Fyz", "x/../yz"])
     expect(secretForms(["abcd"])).toEqual(["abcd"])
