@@ -247,6 +247,32 @@ async function causes(port: EnginePort, incidents: readonly Rec[], options: Insp
 }
 
 /**
+ * What the rounds load of `id`, which `instanceView` turns into its view; `instance-missing` when
+ * neither runtime nor history know it. An instance that ends while the rounds run (a job executor
+ * finished it) is loaded once more, then as ended.
+ */
+export async function loadInstanceData(
+  port: EnginePort,
+  id: string,
+  options: InspectOptions,
+  attempts = 2,
+): Promise<InstanceData> {
+  const [runtime, history] = await Promise.all(
+    instanceRequests(id).map(
+      async (request) => records([await port.find(request.operationId, request.input)])[0],
+    ),
+  )
+  if (runtime === undefined && history === undefined) throw instanceMissing(id)
+  if (runtime === undefined) return endedData(port, id, history ?? {}, options)
+  const data = await activeData(port, { id, runtime, ...compact({ history }) }, options)
+  if (data === undefined) {
+    if (attempts > 1) return loadInstanceData(port, id, options, attempts - 1)
+    throw instanceMissing(id)
+  }
+  return { ...data, causes: await causes(port, data.incidents, options) }
+}
+
+/**
  * The instance view of `id`; `instance-missing` when neither runtime nor history know it. An instance that
  * ends while the rounds run (a job executor finished it) is loaded once more, then as ended.
  */
@@ -256,19 +282,7 @@ export async function loadInstance(
   options: InspectOptions,
   attempts = 2,
 ): Promise<InstanceView> {
-  const [runtime, history] = await Promise.all(
-    instanceRequests(id).map(
-      async (request) => records([await port.find(request.operationId, request.input)])[0],
-    ),
-  )
-  if (runtime === undefined && history === undefined) throw instanceMissing(id)
-  if (runtime === undefined) return instanceView(await endedData(port, id, history ?? {}, options))
-  const data = await activeData(port, { id, runtime, ...compact({ history }) }, options)
-  if (data === undefined) {
-    if (attempts > 1) return loadInstance(port, id, options, attempts - 1)
-    throw instanceMissing(id)
-  }
-  return instanceView({ ...data, causes: await causes(port, data.incidents, options) })
+  return instanceView(await loadInstanceData(port, id, options, attempts))
 }
 
 /**

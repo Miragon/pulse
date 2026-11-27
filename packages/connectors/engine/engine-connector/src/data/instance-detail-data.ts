@@ -1,5 +1,5 @@
 import { readProcessInstanceVariables, type Client } from "@miragon/pulse-c7-client"
-import { incidentRecovery, rootIdOfCopy } from "@miragon/pulse-c7-core"
+import { elementOfActivity, incidentRecovery, rootIdOfCopy } from "@miragon/pulse-c7-core"
 import type { InstanceDetailData, TaskData } from "../view-models.js"
 import {
   getActivityInstanceTree,
@@ -83,6 +83,21 @@ async function instanceDefinitionKey(
 }
 
 /**
+ * The diagram's name of the element `activityId` stands for: a multi-instance body's is the
+ * activity it repeats (c7-core's `elementOfActivity`), whose row keeps the body's own id; null
+ * without a diagram, an activity or a name.
+ */
+function elementNameOf(
+  names: ReturnType<typeof readBpmnNames> | null,
+  activityId: string | null | undefined,
+): string | null {
+  const element = activityId ? elementOfActivity(activityId) : undefined
+  return names && element && Object.hasOwn(names.elements, element)
+    ? (names.elements[element] ?? null)
+    : null
+}
+
+/**
  * State, tokens, variables, incidents and tasks are PRIMARY; diagram, names, forms, the process
  * key, cockpit links, the caller, the start and a copy's root incident are enrichment.
  */
@@ -122,10 +137,6 @@ export async function buildInstanceDetailData(
   ])
   // The diagram names the process and each incident's element (no extra read).
   const diagramNames = bpmnXml ? readBpmnNames(bpmnXml) : null
-  const elementName = (activityId: string | null) =>
-    diagramNames && activityId && Object.hasOwn(diagramNames.elements, activityId)
-      ? diagramNames.elements[activityId]
-      : null
 
   const openTasks: InstanceDetailData["openTasks"] = await Promise.all(
     openTasksRaw.map(async (task) => ({
@@ -147,7 +158,7 @@ export async function buildInstanceDetailData(
     incidentMessage: i.incidentMessage ?? null,
     incidentTimestamp: i.incidentTimestamp ?? "",
     activityId: i.activityId ?? null,
-    activityName: elementName(i.activityId ?? null),
+    activityName: elementNameOf(diagramNames, i.activityId),
     recovery: incidentRecovery(i),
     cockpitInstanceUrl:
       urls && defKey

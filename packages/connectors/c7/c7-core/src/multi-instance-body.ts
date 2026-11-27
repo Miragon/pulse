@@ -14,9 +14,13 @@
  * a job, a copy's root) or of a cluster read and fixed by that id (the incidents dashboard rows,
  * the health causes, the cluster detail), keeps the body's own id and is named by its element. A
  * read or a write that needs the body's own id (an element's page of incidents, the C7 adapter's
- * move) names it with `multiInstanceBodyOf`. Outside the rule, an instance's detail (its wait
- * states, incidents and path, the contract's `elementId` there too) and an incident's own element
- * in its detail name and mark the body by its own id, which the diagram does not draw. Pure.
+ * move) names it with `multiInstanceBodyOf`. An instance's detail puts its wait states and root
+ * incidents on the element too (the contract's `elementId` there), so its screens mark and name
+ * them there, while each root incident's cause keeps the body's own id. Outside the rule, an
+ * instance's path keeps the body's run under its own id beside its items' runs, which name the
+ * element, since the editors' move rules count an element's unfinished runs as its tokens, and an
+ * incident's own element in its detail names and marks the body by its own id, which the diagram
+ * does not draw. Pure.
  */
 
 /** What follows the activity's id in the id of its multi-instance body. */

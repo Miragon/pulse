@@ -189,8 +189,13 @@ missing.
   from the history, read whole in `INSTANCE_HISTORY_ORDER`, in parallel with its typed variables
   of every scope, which the inspection's
   variable map stands in for when they cannot be read, then the version of each called instance one
-  of its root incidents was raised in; each value as `JSON.stringify` writes it, so an integer the
-  wire kept as raw JSON keeps its digits), `IncidentSearch` (the root incidents newest first, then by
+  of its root incidents was raised in, as the runtime lists it while that instance runs and else from
+  the history, which holds no instance at history level NONE or after its cleanup; its wait states
+  and root incidents at the element of the diagram, a multi-instance body's at the activity it
+  repeats; each value as `JSON.stringify` writes it, so an integer the wire kept as raw JSON keeps
+  its digits; beyond the contract, `getInstanceDetailWithCauses` gives the same detail with each root
+  incident's cause as the cockpit's cause view takes it, `causeKeyOf` over the incident as the
+  engine names it, a body's by its own id), `IncidentSearch` (the root incidents newest first, then by
   id, across pages too, since up to 500 incident rows raised at one instant are read whole, copies
   and the other rows it drops counted, with the version each was raised in, the element of the
   diagram, a multi-instance body's incident on its activity, and the job or external task
@@ -280,9 +285,12 @@ missing.
   the engine's id, of one failure (an incident, a job, a copy's root) or of a cluster read and
   fixed by that id (the incidents dashboard rows, the health causes, the cluster detail), keeps
   the body's own id and is named by its element; a read or a write that needs the body's own id
-  (an element's page of incidents, the C7 adapter's move) names it. Outside the rule, an
-  instance's detail (its wait states, incidents and path) and an incident's own element in its
-  detail name and mark the body by its own id), the raw variable read
+  (an element's page of incidents, the C7 adapter's move) names it. An instance's detail puts its
+  wait states and root incidents on the element too, so its screens mark and name them there, while
+  each root incident's cause keeps the body's own id (`getInstanceDetailWithCauses`). Outside the
+  rule, an instance's path keeps the body's run under its own id beside its items' runs, which name
+  the element, since the editors' move rules count an element's unfinished runs as its tokens, and
+  an incident's own element in its detail names and marks the body by its own id), the raw variable read
   flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a port's query), the history timeline
   (`timelineOf`), the request that holds an incident's cause (`CAUSE_OPERATIONS`, an operation id
   per built-in type) and the cause of a failure (`causeOf(text, fallback)`: the root cause of a

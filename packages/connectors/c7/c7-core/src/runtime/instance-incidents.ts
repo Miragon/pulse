@@ -2,11 +2,11 @@
  * A root incident of an instance's detail as the engine contract's `Incident`: raised in the
  * inspected instance or one it called, with the version that instance runs, the retries left of
  * the wait it blocks, the job or external task it names (an external task with its topic) and its
- * stack trace with the root cause, as far as the inspection read it. Pure.
+ * stack trace with the root cause, as far as the inspection read it; and the cause of each as the
+ * cockpit's cause view takes it. Pure.
  */
 
 import {
-  type DefinitionRef,
   ElementId,
   type Incident,
   type IncidentDetails,
@@ -16,14 +16,14 @@ import {
   type WaitState,
 } from "@miragon/pulse-engine-core"
 import { MAX_STACKTRACE_LINES } from "../inspect.js"
+import { elementOfActivity } from "../multi-instance-body.js"
 import type { IncidentView, WaitState as InspectedWait } from "../types.js"
 import { compact } from "../util.js"
+import { causeKeyOf, type IncidentCauseKey } from "../verdict.js"
 import { incidentDetailsOf } from "./incident-texts.js"
 import type { InspectView } from "./instance-inspection.js"
 import { timestampOf } from "./timestamps.js"
-
-/** The version each instance of the inspected tree runs, by instance id. */
-export type DefinitionsByInstance = ReadonlyMap<string, DefinitionRef>
+import type { DefinitionsByInstance } from "./tree-versions.js"
 
 /** What an incident of the detail is read with: the view, the versions, the wait states. */
 export interface IncidentFacts {
@@ -68,8 +68,9 @@ function retriesLeftOf(
 }
 
 /**
- * `incident` as the contract's, raised in the instance it names or else the inspected one;
- * undefined when the version that instance runs is unknown.
+ * `incident` as the contract's, raised in the instance it names or else the inspected one, at the
+ * element of the diagram (a multi-instance body's, at the activity it repeats); undefined when the
+ * version that instance runs is unknown.
  */
 export function incidentOf(incident: IncidentView, facts: IncidentFacts): Incident | undefined {
   const instanceId = incident.processInstanceId ?? facts.view.id
@@ -81,7 +82,7 @@ export function incidentOf(incident: IncidentView, facts: IncidentFacts): Incide
     id: IncidentId(incident.id),
     instanceId: InstanceId(instanceId),
     definition,
-    elementId: ElementId(incident.activityId),
+    elementId: ElementId(elementOfActivity(incident.activityId)),
     type: incident.type,
     message: incident.message ?? "",
     createdAt: timestampOf(incident.since),
@@ -91,4 +92,22 @@ export function incidentOf(incident: IncidentView, facts: IncidentFacts): Incide
       details: detailsOf(incident.stacktrace),
     }),
   }
+}
+
+/**
+ * The cause of each root incident of `view` as the cockpit's cause view takes it (`causeKeyOf`),
+ * by incident id: the activity as the engine names it (a multi-instance body's by its own id), the
+ * incident type and its message's signature.
+ */
+export function incidentCausesOf(view: InspectView): ReadonlyMap<IncidentId, IncidentCauseKey> {
+  return new Map(
+    view.incidents.map((incident) => [
+      IncidentId(incident.id),
+      causeKeyOf({
+        activityId: incident.activityId,
+        incidentType: incident.type,
+        incidentMessage: incident.message,
+      }),
+    ]),
+  )
 }

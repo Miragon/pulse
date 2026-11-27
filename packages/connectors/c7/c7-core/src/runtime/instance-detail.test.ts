@@ -16,6 +16,7 @@ const ORDER: DefinitionRef = {
 const VIEW: InspectView = {
   id: "p1",
   definition: { id: "order:1:d1", key: "order", version: 1, name: "Order" },
+  versions: new Map(),
   state: "ACTIVE",
   waitingAt: [],
   incidents: [],

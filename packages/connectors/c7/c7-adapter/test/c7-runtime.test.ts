@@ -276,19 +276,6 @@ const DETAIL_ROUTES: readonly RestRoute[] = [
       '[{"name":"ledger","type":"Long","value":9007199254740993,"activityInstanceId":"p1","processInstanceId":"p1"}]',
     ),
   ),
-  {
-    route: "POST /history/process-instance",
-    answer: [
-      {
-        id: "c1",
-        processDefinitionId: CALLED_DEFINITION,
-        processDefinitionKey: "label",
-        processDefinitionVersion: 2,
-        processDefinitionName: "Print label",
-        state: "ACTIVE",
-      },
-    ],
-  },
 ]
 
 describe("the C7 runtime over recorded engine answers", () => {
@@ -631,7 +618,7 @@ describe("the C7 runtime over recorded engine answers", () => {
     expect(count).toEqual({ count: 0 })
   })
 
-  test("details an instance through the inspection's reads, its typed variables and the history of a called instance", async () => {
+  test("details an instance through the inspection's reads and its typed variables, a running called instance by the runtime's version", async () => {
     const { runtime, engine } = fakeRuntime(DETAIL_ROUTES)
 
     const detail = await runtime.getInstanceDetail(InstanceId("p1"))
@@ -704,7 +691,7 @@ describe("the C7 runtime over recorded engine answers", () => {
     expect(routesOf(engine)).toHaveLength(DETAIL_ROUTES.length + 2)
   })
 
-  test("reads an instance's detail in one round of four reads in any order, then the history of a called instance", async () => {
+  test("reads an instance's detail in one round of four reads in any order, and no history of a running called instance", async () => {
     const { runtime, engine } = fakeRuntime(DETAIL_ROUTES)
 
     await runtime.getInstanceDetail(InstanceId("p1"))
@@ -712,7 +699,6 @@ describe("the C7 runtime over recorded engine answers", () => {
     const round = engine.requests.slice(0, 4)
     const timeline = round.find(({ route }) => route === "POST /history/activity-instance")
     const variables = round.find(({ route }) => route === "GET /variable-instance")
-    const history = engine.requests.at(-1)
     expect(routesOf(engine).slice(0, 4).sort()).toEqual([
       "GET /history/process-instance/p1",
       "GET /process-instance/p1",
@@ -733,9 +719,7 @@ describe("the C7 runtime over recorded engine answers", () => {
       ["deserializeValues", "false"],
       ["maxResults", "500"],
     ])
-    expect(history?.route).toBe("POST /history/process-instance")
-    expect(history?.query).toEqual({ firstResult: "0", maxResults: "1" })
-    expect(JSON.parse(history?.body ?? "")).toMatchObject({ processInstanceIds: ["c1"] })
+    expect(routesOf(engine)).not.toContain("POST /history/process-instance")
   })
 
   test("returns undefined for an unknown instance", async () => {

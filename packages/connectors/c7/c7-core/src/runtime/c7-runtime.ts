@@ -46,7 +46,7 @@ import {
 import { EngineReader } from "./engine-reader.js"
 import { IncidentDetailsReader } from "./incident-details-reader.js"
 import { IncidentSearch } from "./incident-search.js"
-import { InstanceDetailReader } from "./instance-detail-reader.js"
+import { InstanceDetailReader, type InstanceDetailWithCauses } from "./instance-detail-reader.js"
 import { InstanceSearch } from "./instance-search.js"
 import { MigrationReader } from "./migration-reader.js"
 import { VariableNameReader } from "./variable-name-reader.js"
@@ -165,6 +165,17 @@ export class C7Runtime implements ProcessRuntime {
 
   getInstanceDetail(instanceId: InstanceId): Promise<InstanceDetail | undefined> {
     return this.answered(() => this.readers.instanceDetails.read(instanceId))
+  }
+
+  /**
+   * Beyond the contract: the detail of `getInstanceDetail` with the cause of each of its root
+   * incidents as the cockpit's cause view takes it, from the same reads, for the web app's
+   * instance screen (every incident of a card's cause).
+   */
+  getInstanceDetailWithCauses(
+    instanceId: InstanceId,
+  ): Promise<InstanceDetailWithCauses | undefined> {
+    return this.answered(() => this.readers.instanceDetails.readWithCauses(instanceId))
   }
 
   searchIncidents(filter: IncidentFilter, page: PageRequest): Promise<Page<Incident>> {

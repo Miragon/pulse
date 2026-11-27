@@ -135,6 +135,41 @@ describe("moving a token", () => {
     expect(engine.requests.map((request) => request.route)).toEqual([TREE])
   })
 
+  test.each([
+    [
+      "runs its items",
+      [
+        {
+          id: "body",
+          activityId: "Activity_ReviewOrder#multiInstanceBody",
+          childActivityInstances: [{ id: "a1", activityId: "Activity_ReviewOrder" }],
+        },
+      ],
+      [],
+    ],
+    [
+      "waits for its own job",
+      [],
+      [{ id: "t1", activityId: "Activity_ReviewOrder#multiInstanceBody" }],
+    ],
+  ])(
+    "refuses the element whose multi-instance body %s, by its name",
+    async (_what, scopes, waits) => {
+      const { commands } = fakeCommands([treeWith(scopes, waits)])
+
+      await expect(
+        commands.moveToken(REVIEW, {
+          fromElementId: REVIEW_ORDER,
+          toElementId: REVIEW_ORDER,
+          reason: REASON,
+        }),
+      ).rejects.toMatchObject({
+        failure: "rejected",
+        message: "Activity_ReviewOrder runs as multi-instance; Pulse moves only a single token.",
+      })
+    },
+  )
+
   test("finds a single token inside a sub-process", async () => {
     const { commands, engine } = fakeCommands([
       treeWith([

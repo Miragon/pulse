@@ -223,8 +223,10 @@ One write per panel at a time. The view carries the write state (`pending`, `don
 `cancelled`, `failed` with the reason) so the webview can show "Retrying…", keep the
 editor open on failure and close it when done. After a retry the panel reloads and keeps
 checking for a minute (2, 5, 10, 20, 40, 60 s) until the instance settles: "Failed
-again" with the new root cause, "Moved on", or "Waiting … for the next attempt". The C7
-job executor can take up to a minute to pick a retried job up; checking stops when the
+again" with the new root cause, "Moved on", or "Waiting … for the next attempt" while the
+element still waits as it did when the retry was asked for (a wait of another kind or a later
+since there, the user task after an asynchronous continuation or the items of a multi-instance
+body, is moving on). The C7 job executor can take up to a minute to pick a retried job up; checking stops when the
 user refreshes or writes again. The outcome is a strip of its own under the header. After
 a variable change the panel offers "Retry now" when exactly one incident can be retried:
 the change happens on the Variables tab, the incident card's Retry sits on another. A warning marks a process variable

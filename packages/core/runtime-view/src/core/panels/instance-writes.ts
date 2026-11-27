@@ -13,7 +13,6 @@ import {
 } from "@miragon/pulse-engine-core"
 import type { ModelFile } from "../../ports/index.js"
 import type {
-  IncidentRow,
   InstanceView,
   LiveUpdates,
   Notice,
@@ -24,7 +23,7 @@ import type {
 import { InstanceViewElements } from "../views/instance-view-elements.js"
 import { MoveOutcomes } from "../views/move-outcomes.js"
 import { VariableValues } from "../views/variable-values.js"
-import { WriteOutcomes } from "../views/write-outcomes.js"
+import { type RetriedIncident, WriteOutcomes } from "../views/write-outcomes.js"
 import { WriteRequests, type ChosenMove, type DataFreshness } from "../views/write-requests.js"
 import type { ElementLinks } from "./model-links.js"
 import type { PanelContext, WriteRequest } from "./panel-context.js"
@@ -104,7 +103,7 @@ export class InstanceWrites {
     if (retried) {
       this.rechecking = true
       try {
-        await this.recheck(row, this.generation)
+        await this.recheck(WriteOutcomes.retried(row, loaded.view), this.generation)
       } finally {
         this.rechecking = false
       }
@@ -195,7 +194,7 @@ export class InstanceWrites {
     throw new RuntimeError("rejected", `Nothing was changed. ${error.message}`, { cause: error })
   }
 
-  private async recheck(row: IncidentRow, generation: number): Promise<void> {
+  private async recheck(retried: RetriedIncident, generation: number): Promise<void> {
     for (const [index, delay] of RECHECKS_MS.entries()) {
       await this.context.wait(delay)
       if (generation !== this.generation || this.context.live?.lane.isBlocked === true) {
@@ -205,9 +204,9 @@ export class InstanceWrites {
       const after = this.host.current()?.view
       const stillChecking = index < RECHECKS_MS.length - 1
       this.outcome =
-        after === undefined ? undefined : WriteOutcomes.afterRetry(row, after, stillChecking)
+        after === undefined ? undefined : WriteOutcomes.afterRetry(retried, after, stillChecking)
       this.host.republish()
-      if (after === undefined || WriteOutcomes.isSettled(row, after)) {
+      if (after === undefined || WriteOutcomes.isSettled(retried, after)) {
         return
       }
     }

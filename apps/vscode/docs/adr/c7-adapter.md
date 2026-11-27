@@ -498,8 +498,9 @@ run test:engines`, two cases of its own on a bulk operation, which no read law r
   without an incident (it subtracts only the instances with one the history holds, so no count
   falls below 0, the read law the suite runs there too); the counts of the processes and
   versions, the statistics and the incidents still answer from the runtime, while an instance's
-  detail lacks its path and the incident raised in a called instance, an ended instance has none
-  and a version names no variables
+  detail lacks its path but holds the root incident raised in a called instance, by the version the
+  runtime lists while that instance runs, an ended instance has none and a version names no
+  variables
   (`packages/connectors/c7/c7-adapter/test/c7-history-none.engine.test.ts`, which pins each of
   these answers; [runtime-contract.md](runtime-contract.md)). JSON and object variables cannot be
   searched: the engine keeps their value serialized. A text value written in the engine's

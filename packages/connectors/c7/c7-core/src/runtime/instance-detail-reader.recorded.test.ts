@@ -3,12 +3,17 @@ import { describe, expect, it } from "vitest"
 import { fakePort, type Route } from "../testing/fake-port.js"
 import { InstanceDetailReader } from "./instance-detail-reader.js"
 import type { InspectView } from "./instance-inspection.js"
+import { type DefinitionsByInstance, treeVersionsOf } from "./tree-versions.js"
 import { parseExact } from "../raw-json.js"
+import type { TreeNode } from "../types.js"
 
 /**
  * The detail of instances of the Pulse world as recorded engine answers: what the inspection
  * gave on Operaton (`test-support/inspect-*.json`, read digit for digit), and the typed variables
- * and the history the reader asks for besides.
+ * and the history the reader asks for besides. The recordings hold no version of a running called
+ * instance, which the inspection hands on from what its rounds read of the runtime (`versions`,
+ * `treeVersionsOf`): the reader derives it the same way from the tree a recording names and the
+ * definitions of the run it was recorded in.
  */
 
 declare global {
@@ -49,6 +54,20 @@ const ORDER_V1 = {
   name: "Order fulfillment",
 }
 const LABEL_V1 = { id: IDS.label1, bpmnProcessId: "pulse-label", version: 1, name: "Print label" }
+const DISPATCH_V1 = {
+  id: IDS.dispatch1,
+  bpmnProcessId: "pulse-dispatch",
+  version: 1,
+  name: "Dispatch order",
+}
+
+/**
+ * The definitions the runtime of the recorded run lists, as the inspection's rounds read them: the
+ * one version of each process its recorded instances run.
+ */
+const RUN_DEFINITIONS = [ORDER_V1, LABEL_V1, DISPATCH_V1].map(
+  ({ id, bpmnProcessId, version, name }) => ({ id, key: bpmnProcessId, version, name }),
+)
 const CHARGE_MESSAGE =
   "Unknown property used in expression: ${paymentService.charge(amount)}. Cause: Cannot resolve identifier 'paymentService'"
 const LABEL_MESSAGE =
@@ -70,10 +89,39 @@ function stacktraceDetails(identifier: string) {
   }
 }
 
-/** A reader whose inspection gives the recorded view `inspection`, its port the `routes`. */
-function readerOver(inspection: string, routes: Readonly<Record<string, Route>> = {}) {
+/**
+ * The version each running instance of the recorded `view` runs, as the inspection derives it:
+ * `treeVersionsOf` over its tree (the instance and the instances it called, each of the run's
+ * definition of its process) and the run's definitions.
+ */
+function runVersionsOf(view: Omit<InspectView, "versions">): DefinitionsByInstance {
+  const definitionOf = (key: string | undefined) =>
+    RUN_DEFINITIONS.find((definition) => definition.key === key)?.id ?? ""
+  const tree: TreeNode[] = [
+    { id: view.id, definitionId: view.definition.id, suspended: false, depth: 0 },
+    ...view.children.map((child) => ({
+      id: child.id,
+      parentId: child.parentId,
+      definitionId: definitionOf(child.key),
+      suspended: false,
+      depth: 1,
+    })),
+  ]
+  return treeVersionsOf({ tree, definitions: RUN_DEFINITIONS })
+}
+
+/**
+ * A reader whose inspection gives the recorded view `inspection` with the runtime's `versions` of
+ * its tree (by default the run's, `runVersionsOf`), its port the `routes`.
+ */
+function readerOver(
+  inspection: string,
+  routes: Readonly<Record<string, Route>> = {},
+  versions?: DefinitionsByInstance,
+) {
   const port = fakePort(routes)
-  const view = recorded(inspection) as InspectView
+  const shown = recorded(inspection) as Omit<InspectView, "versions">
+  const view: InspectView = { ...shown, versions: versions ?? runVersionsOf(shown) }
   return { port, reader: new InstanceDetailReader(port, { inspect: () => Promise.resolve(view) }) }
 }
 
@@ -82,23 +130,10 @@ function operationsOf(port: ReturnType<typeof fakePort>): string[] {
 }
 
 describe("the instance detail over recorded engine answers", () => {
-  it("details a parent with the wait states and the root incident of its called instance", async () => {
-    const { port, reader } = readerOver("inspect-dispatch", {
-      queryHistoricProcessInstances: (input) =>
-        JSON.stringify(input.body).includes(IDS.label)
-          ? [
-              {
-                id: IDS.label,
-                processDefinitionId: IDS.label1,
-                processDefinitionKey: "pulse-label",
-                processDefinitionVersion: 1,
-                processDefinitionName: "Print label",
-                state: "ACTIVE",
-                startTime: "2026-10-21T18:44:04.587+0000",
-              },
-            ]
-          : [],
-    })
+  it("details a parent with the wait states and the root incident of its called instance, by the runtime's version", async () => {
+    // No route to the history: at history level NONE, or once the cleanup removed it, it knows no
+    // instance, and the detail of a running called instance asks it for none.
+    const { port, reader } = readerOver("inspect-dispatch")
 
     const detail = await reader.read(InstanceId(IDS.dispatch))
 
@@ -159,6 +194,40 @@ describe("the instance detail over recorded engine answers", () => {
       },
     ])
     expect(detail?.truncated).toBe(false)
+    expect(operationsOf(port)).toEqual(["getVariableInstances"])
+  })
+
+  it("names the version of a called instance the runtime does not list from the history", async () => {
+    const { port, reader } = readerOver(
+      "inspect-dispatch",
+      {
+        queryHistoricProcessInstances: (input) =>
+          JSON.stringify(input.body).includes(IDS.label)
+            ? [
+                {
+                  id: IDS.label,
+                  processDefinitionId: IDS.label1,
+                  processDefinitionKey: "pulse-label",
+                  processDefinitionVersion: 1,
+                  processDefinitionName: "Print label",
+                  state: "ACTIVE",
+                  startTime: "2026-10-21T18:44:04.587+0000",
+                },
+              ]
+            : [],
+      },
+      new Map(),
+    )
+
+    const detail = await reader.read(InstanceId(IDS.dispatch))
+
+    expect(detail?.incidents).toEqual([
+      expect.objectContaining({
+        id: IDS.labelIncident,
+        instanceId: IDS.label,
+        definition: LABEL_V1,
+      }),
+    ])
     expect(operationsOf(port)).toEqual(["getVariableInstances", "queryHistoricProcessInstances"])
   })
 

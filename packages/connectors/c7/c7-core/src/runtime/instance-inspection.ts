@@ -6,23 +6,30 @@
  * The history option of `loadInstance` would read every historic incident of the instance on each
  * live refresh too, so the path is read here. The path of an instance that no longer runs is read
  * once more after the rounds, so one that ended during them shows its whole path. The view
- * guarantees the version of the instance's definition.
+ * guarantees the version of the instance's definition and names the version of each running
+ * instance of its tree the runtime lists.
  */
 
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import { isWorkflowError } from "../errors.js"
-import { type InspectOptions, loadInstance } from "../inspect.js"
+import { type InspectOptions, loadInstanceData } from "../inspect.js"
 import type { EnginePort } from "../port.js"
 import { records } from "../records.js"
+import { instanceView } from "../snapshot.js"
 import { instanceHistoryQuery } from "../sorting.js"
 import { timelineOf } from "../timeline.js"
 import type { DefinitionView, InstanceView, TimelineEntry } from "../types.js"
 import { JsonView } from "../json-view.js"
 import { readAll } from "./read-all.js"
+import { type DefinitionsByInstance, treeVersionsOf } from "./tree-versions.js"
 
-/** The instance view of `loadInstance` with the version of its definition and its path. */
+/**
+ * The instance view of `loadInstance` with the version of its definition, the version each running
+ * instance of its tree runs as the runtime lists it (`versions`, by instance id) and its path.
+ */
 export type InspectView = InstanceView & {
   readonly definition: DefinitionView & { readonly version: number }
+  readonly versions: DefinitionsByInstance
   readonly timeline: readonly TimelineEntry[]
 }
 
@@ -70,9 +77,12 @@ export class InstanceInspection implements Inspection {
     }
   }
 
-  private async instanceView(id: string): Promise<InstanceView | undefined> {
+  private async instanceView(
+    id: string,
+  ): Promise<(InstanceView & Pick<InspectView, "versions">) | undefined> {
     try {
-      return await loadInstance(this.port, id, WITHOUT_HISTORY)
+      const data = await loadInstanceData(this.port, id, WITHOUT_HISTORY)
+      return { ...instanceView(data), versions: treeVersionsOf(data) }
     } catch (error: unknown) {
       if (isWorkflowError(error) && error.reason.kind === "instance-missing") {
         return undefined

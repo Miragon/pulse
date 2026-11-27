@@ -28,6 +28,7 @@ export {
 export { C7Runtime, type C7RuntimeOptions } from "./c7-runtime.js"
 export type { ElementStatisticsWithFailedJobs } from "./element-statistics-reader.js"
 export { isEngineId } from "./engine-ids.js"
+export type { InstanceDetailWithCauses } from "./instance-detail-reader.js"
 export {
   type HistoricInstanceQuery,
   type HistoricInstanceRow,

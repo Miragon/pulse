@@ -28,11 +28,10 @@ light or dark theme (its diagrams too), and is compact on a desktop, comfortable
 ## Navigation
 
 The side navigation holds the search for an instance (its ID or exact business key, on every
-engine), **Start**, the
-engines by environment, the open one with its sections (processes, incidents, jobs; an engine's
-entry opens its processes), and the boards; at its foot who is signed in and **Sign out**. A
-[Camunda 8](../mcp/camunda8.md) engine has its processes alone (its incidents show at their
-instances); a refused profile says so and opens its one state.
+engine), **Start**, the engines by environment, the open one with its sections (processes,
+incidents, jobs; an engine's entry opens its processes), and the boards; at its foot who is signed
+in and **Sign out**. A [Camunda 8](../mcp/camunda8.md) engine has its processes alone (its incidents
+show at their instances); a refused profile says so and opens its one state.
 Every entry is a link, so Ctrl or Cmd+click and a middle click open a new tab. Under 64rem it is a
 drawer behind the menu button, the first of each view's bar. It shows no numbers: the views do.
 **Start** lists each engine with its state and the figures of its processes page and what runs
@@ -50,10 +49,11 @@ instances apart) and its instances, 50 at a time with **Load more**, by scope, e
 business key and variable conditions; a count's click filters to its element, Escape clears it
 (Camunda 8: a count it stopped at reads 10k+, titled ≥ 10,000; a condition it refuses is disabled).
 An instance shows where it stands and why, its diagram with what it did, where it waits and its
-incidents, and the tabs History, Incidents, Waiting and Variables (from 64rem on under the diagram
-at the window's height, the split movable by mouse or keyboard). An incident in an instance it
-called says where it lies and opens there in focus: its stack trace read in place, the root cause's
-line marked, copy and wrap; **Open caller** leads back. It is the instance Pulse for VS Code shows.
+incidents, a multi-instance activity's own at its shape, and the tabs History, Incidents, Waiting
+and Variables (from 64rem on under the diagram at the window's height, the split movable by mouse or
+keyboard). An incident in an instance it called says where it lies and opens there in focus: its
+stack trace read in place, the root cause's line marked, copy and wrap; **Open caller** leads back.
+It is the instance Pulse for VS Code shows.
 The search asks every engine at once for the instance with that ID and up to 20 with that exact
 business key (never a part of one, at most 256 characters), running and ended. An engine it could
 not search, refused or down, says so at once above the others' hits, and "nothing found" then speaks
