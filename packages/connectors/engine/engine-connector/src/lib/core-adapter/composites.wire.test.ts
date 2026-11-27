@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
+import { INSTANCE_HISTORY_ORDER } from "@miragon/pulse-c7-core"
 import {
   APPROVE_INCIDENT,
   approveRoutes,
@@ -99,6 +100,15 @@ describe("inspectForModel", () => {
         startTime: "2026-01-01T00:00:00.000+0000",
       },
     ])
+    // The path goes by POST in c7-core's one order of an instance's history.
+    const path = engine.requests.filter((request) => request.path === "/history/activity-instance")
+    expect(path.map(({ method, query, body }) => ({ method, query, body }))).toEqual([
+      {
+        method: "POST",
+        query: { firstResult: "0", maxResults: "500" },
+        body: { processInstanceId: P, sorting: [...INSTANCE_HISTORY_ORDER] },
+      },
+    ])
   })
 
   it("keeps the newest 100 timeline entries and names the total in truncated", async () => {
@@ -109,7 +119,7 @@ describe("inspectForModel", () => {
     }))
     const engine = await engineWith(
       {},
-      fixtureEngine({ ...approveRoutes(), getHistoricActivityInstances: () => activities }),
+      fixtureEngine({ ...approveRoutes(), queryHistoricActivityInstances: () => activities }),
     )
     const view = await inspect(engine, { processInstanceId: P, includeHistory: true })
     expect(view.timeline).toHaveLength(MAX_TIMELINE_ENTRIES)

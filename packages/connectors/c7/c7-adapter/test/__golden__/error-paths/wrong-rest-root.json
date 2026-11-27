@@ -27,10 +27,10 @@
         "message": "HTTP 404 Not Found"
       },
       "sent": [
-        "GET /history/activity-instance?processInstanceId=pi-1&sortBy=occurrence&sortOrder=asc&firstResult=0&maxResults=500",
         "GET /history/process-instance/pi-1",
         "GET /process-instance/pi-1",
-        "GET /variable-instance?processInstanceIdIn=pi-1&deserializeValues=false&maxResults=500"
+        "GET /variable-instance?processInstanceIdIn=pi-1&deserializeValues=false&maxResults=500",
+        "POST /history/activity-instance?firstResult=0&maxResults=500"
       ]
     }
   ]

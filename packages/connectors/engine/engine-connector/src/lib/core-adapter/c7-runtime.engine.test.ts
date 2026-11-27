@@ -20,8 +20,10 @@
  * Under a search the cockpit's "With incident" chip counts and lists the search's matches the
  * runtime holds an open incident for, as the engine answers them (cockpit-search.test-support.ts).
  * Last, on what they deploy or start themselves and remove again, a multi-instance body's counts
- * lie on its element on every surface, and an incident outside any process fails no engine-wide
- * incident search (contract-cases.test-support.ts).
+ * lie on its element on every surface, an incident outside any process fails no engine-wide
+ * incident search (contract-cases.test-support.ts), and an instance's history of more steps than
+ * a page, started within milliseconds, comes in one total order, each step once across pages
+ * (history-order.test-support.ts).
  *
  * `pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` (Docker); its
  * own container start, since no package shares a Node test helper with another.
@@ -70,6 +72,7 @@ import {
 import { engineStatusForModel } from "./composites.js"
 import { fakeWorldBoard, recordedBoard } from "./compared-boards.test-support.js"
 import { CONTRACT_CASES } from "./contract-cases.test-support.js"
+import { HISTORY_ORDER_CASES } from "./history-order.test-support.js"
 import { engineImageOf } from "./engine-image.test-support.js"
 import { COCKPIT_SEARCH_CHECKS } from "./cockpit-search.test-support.js"
 import { PROCESS_NUMBER_CHECKS } from "./process-numbers.test-support.js"
@@ -391,7 +394,7 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
       expect(await runtime.getBulkFailures(world.unknown.bulkOperationId)).toEqual([])
     })
 
-    for (const [name, check] of CONTRACT_CASES) {
+    for (const [name, check] of [...CONTRACT_CASES, ...HISTORY_ORDER_CASES]) {
       test(name, () => {
         const { url, harness } = prepared()
         return check({ url, runtime: harness.runtime, resolve: boardEngineAt(url) })

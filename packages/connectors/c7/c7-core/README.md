@@ -70,8 +70,8 @@ missing.
   root.
 - **Inspect:** `inspectInstance(port, selection, options)` selects an instance by id, by business
   key or by key with `latest`, and loads its wait states with their ids, root-cause incidents,
-  called instances, optionally variables, the history timeline and stacktraces (cut after
-  `MAX_STACKTRACE_LINES` lines).
+  called instances, optionally variables, the history timeline (read whole, by POST in
+  `INSTANCE_HISTORY_ORDER`) and stacktraces (cut after `MAX_STACKTRACE_LINES` lines).
 - **Status:** `readStatus({ port, now }, options)` triages one engine: findings with severity, the
   overall status, definitions, incident groups with their root cause, topics, jobs and batches
   (the running ones and those with failed jobs counted, `/batch/statistics/count`, a count it
@@ -186,7 +186,8 @@ missing.
   50 asks a chunk of 500 for 51),
   `VariableNameReader` (the variable names of a version's newest 50 instances),
   `InstanceDetailReader` (an instance's detail: `loadInstance`'s rounds without history and its path
-  from the history, in parallel with its typed variables of every scope, which the inspection's
+  from the history, read whole in `INSTANCE_HISTORY_ORDER`, in parallel with its typed variables
+  of every scope, which the inspection's
   variable map stands in for when they cannot be read, then the version of each called instance one
   of its root incidents was raised in; each value as `JSON.stringify` writes it, so an integer the
   wire kept as raw JSON keeps its digits), `IncidentSearch` (the root incidents newest first, then by
@@ -257,7 +258,13 @@ missing.
   `OFFSET_REQUIRED` refuses a time without an offset, `UTC_WITHOUT_OFFSET` reads it as UTC;
   `engineDateMillis`, `latestEngineDate`), true-only and `…Like` filters (`trueOnly`,
   `complementaryFlags`, `engineLike`, `engineKeyList`), paired sorting
-  (`engineSorting`), variable writes and typing (`toEngineVariable(s)`, which refuses a value that
+  (`engineSorting`), the one order of an instance's history (`INSTANCE_HISTORY_ORDER`, the
+  `sorting` of `POST /history/activity-instance`: by start, then by occurrence, then by id, a
+  total order, so pages cut by offset neither repeat nor skip a step of parallel branches or of a
+  multi-instance's items, which start within a millisecond; the CLI's `inspect --history`, an
+  instance's detail and the engine module's cockpit history read it, and `historySorting` puts a
+  caller's sort key before it, so the ties of any key page alike), variable writes and typing
+  (`toEngineVariable(s)`, which refuses a value that
   is or holds a number that is not finite, since JSON would carry it as null; `autoTypedValue`),
   incident recovery (`incidentRecovery`, over `BUILT_IN_INCIDENT_TYPES`, the two types the engine
   raises itself), the root incident (`isRootIncident`, and `rootIdOfCopy`, the root incident a
@@ -382,12 +389,16 @@ pulse-dispatch (`expected.callingProcess`); and the first page of every instance
 version 1 with the counts of each scope (`expected.instanceList`, `InstanceListData`). The editors'
 C7 adapter and the MCP server's SDK wire build each exactly. Its answers come from one run of their
 own, recorded by hand on 2026-11-20 as the board's, made anew with the process screens and the
-instance list, and again on 2026-11-21, when the element statistics read the incidents at call
-activities alone, and once more that day, when the definitions read their root incidents: the world seeded
+instance list, again on 2026-11-21, when the element statistics read the incidents at call
+activities alone, and once more that day, when the definitions read their root incidents, and on
+2026-11-27, when the paths of DSP-3001 and of the instance it called are asked for by
+`POST /history/activity-instance` in `INSTANCE_HISTORY_ORDER`: the world seeded
 with `seedC7World` into `operaton/operaton:2.1.5` at history level FULL, every screen built twice
 through a proxy in front of the engine that keeps each request with what the engine answers (the
 same answer both times but for the telemetry, which counts the engine's commands and keeps its
 first), and once more over the kept answers on `startRecordedEngine`, with no request unanswered.
+The engine connector's engine suite holds that a world seeded on CIB seven or Operaton answers
+those two paths in the recorded order.
 So every id they name is that engine's, and every screen built over them reads the same instances
 and versions; one that reads more is recorded again with the others
 in one run, never joined from another recording, whose ids are another engine's (`C7_BOARD_ENGINE`

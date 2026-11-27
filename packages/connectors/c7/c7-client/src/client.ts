@@ -120,10 +120,16 @@ const CANCELLABLE_METHODS = ["get", "head", "options"] as const
  * request's `ctx.signal`, aborted when the MCP client cancels or
  * disconnects), on top of the deadline of the transport behind its `fetch`. Writes never see it:
  * aborting a started write cannot roll it back on the engine, it only turns
- * a known outcome into an unknown one. An explicit per-call `signal` wins.
- * Without a signal the client itself is returned.
+ * a known outcome into an unknown one. A POST is a read only where `readingPost` says so of its
+ * path template (`/history/activity-instance`, a query with a body), which the caller knows from
+ * the REST API's route table; without it every POST is taken for a write. An explicit per-call
+ * `signal` wins. Without a signal the client itself is returned.
  */
-export function withCallerSignal(client: Client, signal: AbortSignal | undefined): Client {
+export function withCallerSignal(
+  client: Client,
+  signal: AbortSignal | undefined,
+  readingPost: (url: string) => boolean = () => false,
+): Client {
   if (!signal) return client
   const bound: Client = { ...client }
   for (const method of CANCELLABLE_METHODS) {
@@ -131,5 +137,10 @@ export function withCallerSignal(client: Client, signal: AbortSignal | undefined
     bound[method] = ((callOptions: Parameters<typeof call>[0]) =>
       call({ ...callOptions, signal: callOptions.signal ?? signal })) as typeof call
   }
+  const post = client.post
+  bound.post = ((callOptions: Parameters<typeof post>[0]) =>
+    readingPost(callOptions.url)
+      ? post({ ...callOptions, signal: callOptions.signal ?? signal })
+      : post(callOptions)) as typeof post
   return bound
 }

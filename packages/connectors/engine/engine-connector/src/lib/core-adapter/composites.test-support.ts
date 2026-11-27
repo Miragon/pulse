@@ -33,7 +33,7 @@ const PATHS: readonly (readonly [RegExp, string])[] = [
   [/^\/process-instance$/, "getProcessInstances"],
   [/^\/history\/process-instance\/([^/]+)$/, "getHistoricProcessInstance"],
   [/^\/history\/process-instance$/, "getHistoricProcessInstances"],
-  [/^\/history\/activity-instance$/, "getHistoricActivityInstances"],
+  [/^\/history\/activity-instance$/, "queryHistoricActivityInstances"],
   [/^\/history\/incident$/, "getHistoricIncidents"],
   [/^\/history\/variable-instance$/, "getHistoricVariableInstances"],
   [/^\/job\/([^/]+)\/stacktrace$/, "getStacktrace"],

@@ -72,7 +72,7 @@ export function approveRoutes(): Record<string, Route> {
     getStacktrace: () => STACKTRACE,
     getExternalTaskErrorDetails: () => undefined,
     getHistoricVariableInstances: () => [],
-    getHistoricActivityInstances: () => [
+    queryHistoricActivityInstances: () => [
       {
         activityId: "start",
         activityType: "startEvent",

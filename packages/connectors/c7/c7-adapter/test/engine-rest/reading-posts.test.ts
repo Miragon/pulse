@@ -67,6 +67,7 @@ const RUNNING_MIGRATION_BATCH = {
 }
 
 const READING_POSTS = [
+  "POST /history/activity-instance",
   "POST /history/process-instance",
   "POST /history/process-instance/count",
   "POST /history/variable-instance",

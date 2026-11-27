@@ -50,15 +50,15 @@ const RECORDING = JSON.parse(
 
 /** The calling instance and the one it called, as the recording names them. */
 export const CHAIN = {
-  dispatch: "90e6fbd3-e5ee-11f1-8e48-a299d3128296",
-  label: "90e79819-e5ee-11f1-8e48-a299d3128296",
-  rootIncident: "90ee7600-e5ee-11f1-8e48-a299d3128296",
-  copyIncident: "90ee7601-e5ee-11f1-8e48-a299d3128296",
+  dispatch: "4d229eb1-ea25-11f1-95af-ee06bb95dee2",
+  label: "4d24e8a7-ea25-11f1-95af-ee06bb95dee2",
+  rootIncident: "4d393411-ea25-11f1-95af-ee06bb95dee2",
+  copyIncident: "4d393412-ea25-11f1-95af-ee06bb95dee2",
   /** An ended instance of "Dispatch order", which the history alone holds. */
-  ended: "7f0c0eb3-e5ee-11f1-8e48-a299d3128296",
+  ended: "7f0c0eb3-ea25-11f1-95af-ee06bb95dee2",
 } as const
 
-const DISPATCH_V1 = "pulse-dispatch:1:90c8ed59-e5ee-11f1-8e48-a299d3128296"
+const DISPATCH_V1 = "pulse-dispatch:1:4ccb56ca-ea25-11f1-95af-ee06bb95dee2"
 
 /** A JSON value as text, the keys of each of its objects in order, so two spellings compare equal. */
 function canonical(value: unknown): string {
@@ -165,8 +165,11 @@ function namedIds(url: URL, body: unknown): string[] {
       /[Ii]nstanceIds?(?:In)?$|^processInstanceId$|^superProcessInstance$/.test(name),
     )
     .flatMap(([, value]) => value.split(","))
-  const inBody = (body as { processInstanceIds?: unknown } | undefined)?.processInstanceIds
-  return [...listed, ...(Array.isArray(inBody) ? inBody.map(String) : [])]
+  const named = body as { processInstanceIds?: unknown; processInstanceId?: unknown } | undefined
+  const inBody = named?.processInstanceIds
+  // The history's steps of one instance go by POST, the instance in the body.
+  const one = typeof named?.processInstanceId === "string" ? [named.processInstanceId] : []
+  return [...listed, ...(Array.isArray(inBody) ? inBody.map(String) : []), ...one]
 }
 
 /** What the engine answers of DSP-2999, which only its history holds; null for another request. */
@@ -240,27 +243,27 @@ function instanceListRoute(method: string, route: string, body: unknown): Reply 
 }
 
 /** "Order fulfillment" v2, which runs one instance the statistics count and no recorded read lists. */
-const ORDER_V2 = "pulse-order:2:90c4cea5-e5ee-11f1-8e48-a299d3128296"
+const ORDER_V2 = "pulse-order:2:4cc0cf76-ea25-11f1-95af-ee06bb95dee2"
 
 /** The history of ORD-2001, the instance of "Order fulfillment" v2, as the history lists one. */
 const ORD_2001 = {
   ...DISPATCH_HISTORY,
-  id: "1118b0d3-e5ee-11f1-8e48-a299d3128296",
+  id: "1118b0d3-ea25-11f1-95af-ee06bb95dee2",
   businessKey: "ORD-2001",
   processDefinitionId: ORDER_V2,
   processDefinitionKey: "pulse-order",
   processDefinitionVersion: 2,
   processDefinitionName: "Order fulfillment",
-  rootProcessInstanceId: "1118b0d3-e5ee-11f1-8e48-a299d3128296",
+  rootProcessInstanceId: "1118b0d3-ea25-11f1-95af-ee06bb95dee2",
   startActivityId: "Event_OrderReceived",
-  startTime: "2026-11-21T21:00:22.105+0000",
+  startTime: "2026-11-27T05:42:15.334+0000",
   state: "ACTIVE",
 }
 
 /** DSP-2900 to DSP-2959: ended instances of "Dispatch order", one a minute before DSP-2999. */
 const ENDED_DISPATCHES = Array.from({ length: 60 }, (_, index) => {
   const at = Date.parse("2026-11-20T09:00:00.000Z") + index * 60_000
-  const id = `7f0c${String(index).padStart(4, "0")}-e5ee-11f1-8e48-a299d3128296`
+  const id = `7f0c${String(index).padStart(4, "0")}-ea25-11f1-95af-ee06bb95dee2`
   const stamp = (ms: number) => new Date(ms).toISOString().replace("Z", "+0000")
   return {
     ...ENDED_HISTORY,
@@ -322,8 +325,8 @@ const WAITS_AT: Readonly<Record<string, string>> = {
   [CHAIN.dispatch]: "Activity_PrintShippingLabel",
   [CHAIN.label]: "Activity_RenderLabel",
   // ORD-1001 at its review, ORD-1002 at the payment its incident holds, ORD-2001 at its review.
-  "90d3268a-e5ee-11f1-8e48-a299d3128296": "Activity_ReviewOrder",
-  "90ddace3-e5ee-11f1-8e48-a299d3128296": "Activity_ChargePayment",
+  "4ce2fd7b-ea25-11f1-95af-ee06bb95dee2": "Activity_ReviewOrder",
+  "4cfa7d24-ea25-11f1-95af-ee06bb95dee2": "Activity_ChargePayment",
   [ORD_2001.id]: "Activity_ReviewOrder",
 }
 
@@ -381,6 +384,9 @@ function processListRoute(method: string, route: string, url: URL, body: unknown
 /** A count no row of this world fills, and a list of a query the recording did not make. */
 function emptyRoute(method: string, route: string): Reply | null {
   if (route.endsWith("/count")) return { status: 200, body: { count: 0 } }
+  if (method === "POST" && route === `${ROOT}/history/activity-instance`) {
+    return { status: 200, body: [] }
+  }
   if (
     method === "GET" &&
     /^\/engine-rest\/(?:process-instance|history\/[^/]+|incident|job|task|external-task|event-subscription|variable-instance|process-definition)$/.test(

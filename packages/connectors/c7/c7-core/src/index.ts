@@ -74,7 +74,7 @@ export {
   toOptionalEngineDate,
   UTC_WITHOUT_OFFSET,
 } from "./dates.js"
-export { engineSorting } from "./sorting.js"
+export { engineSorting, historySorting, INSTANCE_HISTORY_ORDER } from "./sorting.js"
 export { complementaryFlags, engineKeyList, engineLike, trueOnly } from "./filters.js"
 export {
   autoTypedValue,

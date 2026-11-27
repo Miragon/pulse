@@ -80,8 +80,10 @@ model. A call that brings a `fetch`, a `requestValidator` or an `auth` of its ow
 through `setConfig`, is refused, even as `undefined`: it would leave the given one, and with it
 the credential or the path value rule, out.
 
-`withCallerSignal(client, signal)` returns a view whose reads (`GET`/`HEAD`/`OPTIONS`) also abort
-with the caller's signal; writes never do, since aborting a started write cannot undo it. Every
+`withCallerSignal(client, signal, readingPost)` returns a view whose reads (`GET`/`HEAD`/`OPTIONS`,
+and each `POST` whose path template `readingPost` names as a read, such as a query with a body)
+also abort with the caller's signal; writes never do, since aborting a started write cannot undo
+it, and without `readingPost` every `POST` counts as a write. Every
 request sends `User-Agent: @miragon/pulse-c7-client/<version>` (`USER_AGENT`), so the engine's
 access logs show these calls.
 

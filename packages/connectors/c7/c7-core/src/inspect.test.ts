@@ -10,6 +10,7 @@ import {
   loadView,
 } from "./inspect.js"
 import { INSPECT_OPERATIONS, STATUS_OPERATIONS } from "./operations.js"
+import { INSTANCE_HISTORY_ORDER } from "./sorting.js"
 import { fakeFailure, fakePort, type Route } from "./testing/fake-port.js"
 import { C, historyDto, P } from "./testing/fixture.js"
 import { approveRoutes, STACKTRACE } from "./testing/inspect-routes.js"
@@ -73,6 +74,34 @@ describe("loadInstance", () => {
     ])
     expect(view.incidents[0]?.stacktrace).toEqual(STACKTRACE.trimEnd().split("\n"))
     expect(view.variables).toBeUndefined()
+  })
+
+  it("reads the timeline page by page in the history's one total order, each page by POST", async () => {
+    const steps = Array.from({ length: 501 }, (_, index) => ({
+      activityId: `step${String(index)}`,
+      activityType: "userTask",
+      startTime: "2026-01-01T00:00:00.000+0000",
+    }))
+    const port = fakePort({
+      ...approveRoutes(),
+      queryHistoricActivityInstances: ({ query }) =>
+        steps.slice(
+          Number(query.firstResult),
+          Number(query.firstResult) + Number(query.maxResults),
+        ),
+    })
+    const view = await loadInstance(port, P, { ...ALL, history: true })
+    expect(view.timeline?.map(({ activityId }) => activityId)).toEqual(
+      steps.map(({ activityId }) => activityId),
+    )
+    const reads = port.calls.filter((call) => call.operationId === "queryHistoricActivityInstances")
+    expect(reads.map(({ input }) => input)).toEqual(
+      ["0", "500"].map((firstResult) => ({
+        pathArgs: [],
+        query: { firstResult, maxResults: "500" },
+        body: { processInstanceId: P, sorting: INSTANCE_HISTORY_ORDER },
+      })),
+    )
   })
 
   it("loads an ended instance from the history with its historic variables", async () => {

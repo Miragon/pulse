@@ -155,6 +155,23 @@ describe("withCallerSignal", () => {
     expect(write?.aborted).toBe(false)
   })
 
+  it("hands it to the POSTs the caller names as reads, by their path template, and to no other", async () => {
+    const { fetch, sent } = recording()
+    const caller = new AbortController()
+    const readingPost = (url: string) => url === "/history/activity-instance"
+    const client = withCallerSignal(
+      createEngineClient({ baseUrl: BASE, fetch }),
+      caller.signal,
+      readingPost,
+    )
+    await client.post({ url: "/history/activity-instance", body: {} })
+    await client.post({ url: "/process-instance/{id}/modification", path: { id: "p1" } })
+    caller.abort()
+    const [query, write] = sent.map((s) => s.request.signal)
+    expect(query?.aborted).toBe(true)
+    expect(write?.aborted).toBe(false)
+  })
+
   it("returns the client unchanged without a signal", () => {
     const client = createEngineClient({ baseUrl: BASE, fetch: recording().fetch })
     expect(withCallerSignal(client, undefined)).toBe(client)

@@ -66,7 +66,16 @@ describe("loadInstance", () => {
     const activities = server.requests.find(
       (request) => request.path === "/history/activity-instance",
     )
-    expect(activities?.query.get("sortBy")).toBe("occurrence")
+    expect(activities?.method).toBe("POST")
+    expect(
+      JSON.parse(typeof activities?.body === "string" ? activities.body : "null"),
+    ).toMatchObject({
+      sorting: [
+        { sortBy: "startTime" },
+        { sortBy: "occurrence" },
+        { sortBy: "activityInstanceId" },
+      ],
+    })
   })
 
   it("finds the parent without a history record", async () => {

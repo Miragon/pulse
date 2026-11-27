@@ -24,7 +24,7 @@ const READS: readonly (readonly [string, readonly (readonly string[])[]])[] = [
   ["getJobDefinitions", [[]]],
   ["getProcessInstanceVariables", [[P]]],
   ["getStacktrace", [["j1"]]],
-  ["getHistoricActivityInstances", [[]]],
+  ["queryHistoricActivityInstances", [[]]],
   ["getHistoricIncidents", [[]]],
 ]
 

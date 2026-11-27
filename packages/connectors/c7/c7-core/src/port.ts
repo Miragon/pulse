@@ -92,8 +92,11 @@ export interface EnginePort {
   json(operationId: string, input: OperationInput): Promise<unknown>
   /** As `json`; a missing resource (`isMissing`) gives undefined. */
   find(operationId: string, input: OperationInput): Promise<unknown>
-  /** All pages of 500, at most `cap` items (one more is asked for to tell truncation). */
-  list(operationId: string, query: Query, cap?: number): Promise<ListResult>
+  /**
+   * All pages of 500, at most `cap` items (one more is asked for to tell truncation); a `body`
+   * (the query of a POST) goes with every page as it is.
+   */
+  list(operationId: string, query: Query, cap?: number, body?: unknown): Promise<ListResult>
   /** A text answer; missing, 204, empty or blank give undefined. */
   text(operationId: string, pathArgs: readonly string[]): Promise<string | undefined>
   /** The engine answer an error of the port carries (the transport's reading). */
@@ -165,10 +168,14 @@ export function createEnginePort<A>(transport: EngineTransport<A>): EnginePort {
         throw error
       }
     },
-    async list(operationId, query, cap = Number.POSITIVE_INFINITY) {
+    async list(operationId, query, cap = Number.POSITIVE_INFINITY, body?: unknown) {
       const items: Rec[] = []
       for (let size = pageSize(0, cap); ; size = pageSize(items.length, cap)) {
-        const input = { pathArgs: [], query: pageQuery(query, items.length, size) }
+        const input = {
+          pathArgs: [],
+          query: pageQuery(query, items.length, size),
+          ...(body === undefined ? {} : { body }),
+        }
         const page = records(transport.json(await transport.send(operationId, input)))
         for (const item of page) items.push(item)
         // a page of a different size is the last one (shorter, or the engine ignored the paging)

@@ -102,7 +102,7 @@ describe("InstanceDetailReader.read", () => {
     expect(port.calls.slice(0, 4).map((call) => call.operationId)).toStrictEqual([
       "getProcessInstance",
       "getHistoricProcessInstance",
-      "getHistoricActivityInstances",
+      "queryHistoricActivityInstances",
       "getVariableInstances",
     ])
     expect(port.calls.at(-1)).toStrictEqual({

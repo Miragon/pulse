@@ -10,6 +10,7 @@ import { field, type Rec, records, str } from "./records.js"
 import { listByIds } from "./requests.js"
 import { selectInstance } from "./select.js"
 import { instanceView, rootIncidents } from "./snapshot.js"
+import { instanceHistoryQuery } from "./sorting.js"
 import { activeTree } from "./tree.js"
 import type {
   EndedInstance,
@@ -59,13 +60,10 @@ function instanceMissing(id: string): WorkflowError {
   return new WorkflowError({ kind: "instance-missing", id })
 }
 
+/** The steps of the instance's history, by POST in its one total order, and its incidents. */
 async function timeline(port: EnginePort, id: string) {
   const [activities, incidents] = await Promise.all([
-    port.list("getHistoricActivityInstances", {
-      processInstanceId: id,
-      sortBy: "occurrence",
-      sortOrder: "asc",
-    }),
+    port.list("queryHistoricActivityInstances", {}, undefined, instanceHistoryQuery(id)),
     port.list("getHistoricIncidents", { processInstanceId: id }),
   ])
   return { timeline: activities.items, historicIncidents: incidents.items }

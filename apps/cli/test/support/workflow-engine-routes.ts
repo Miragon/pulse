@@ -190,7 +190,7 @@ export function routeTable(state: EngineState): [string, RegExp, Route][] {
         ),
     ],
     [
-      "GET",
+      "POST",
       /^\/history\/activity-instance$/,
       () =>
         json([

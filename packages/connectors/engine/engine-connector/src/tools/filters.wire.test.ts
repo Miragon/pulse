@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest"
 import type { z } from "zod"
+import { INSTANCE_HISTORY_ORDER } from "@miragon/pulse-c7-core"
 import { registerTools } from "./index.js"
 import { registerIncidentIssueTools } from "./incident-issue.js"
 import {
@@ -69,7 +70,7 @@ describe("engine_list_incidents scopes to a process, an activity and a time wind
 })
 
 describe("engine_query_historic_activity_instances", () => {
-  it("filters by definition, activity, cancellation and time window", async () => {
+  it("filters by definition, activity, cancellation and time window, the page in its POST body", async () => {
     const requests = await requestsOf("engine_query_historic_activity_instances", {
       processDefinitionId: "invoice:3:abc",
       activityId: "UserTask_Approve",
@@ -79,15 +80,34 @@ describe("engine_query_historic_activity_instances", () => {
       finishedAfter: "2026-10-01T12:00:00+02:00",
       finishedBefore: "2026-10-04",
     })
-    expectBothQueries(requests, "/history/activity-instance", {
+    const filters = {
       processDefinitionId: "invoice:3:abc",
       activityId: "UserTask_Approve",
-      canceled: "true",
       startedAfter: "2026-10-01T00:00:00.000+0000",
       startedBefore: "2026-10-03T00:00:00.000+0000",
       finishedAfter: "2026-10-01T12:00:00.000+0200",
       finishedBefore: "2026-10-04T00:00:00.000+0000",
+    }
+    const [count, page] = [...requests].sort((a, b) => a.method.localeCompare(b.method))
+    expect([count, page].map((r) => `${r?.method ?? ""} ${r?.path ?? ""}`)).toEqual([
+      "GET /history/activity-instance/count",
+      "POST /history/activity-instance",
+    ])
+    expect(count?.query).toMatchObject({ ...filters, canceled: "true" })
+    expect(page?.body).toMatchObject({ ...filters, canceled: true })
+  })
+
+  it("breaks the ties of its sort by c7-core's history order, so its pages hold each step once", async () => {
+    const requests = await requestsOf("engine_query_historic_activity_instances", {
+      processInstanceId: "pi-1",
+      sortBy: "startTime",
+      sortOrder: "asc",
+      firstResult: 100,
+      maxResults: 100,
     })
+    const page = requests.find((r) => r.method === "POST")
+    expect(page?.query).toEqual({ firstResult: "100", maxResults: "100" })
+    expect(page?.body).toEqual({ processInstanceId: "pi-1", sorting: [...INSTANCE_HISTORY_ORDER] })
   })
 })
 

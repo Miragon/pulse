@@ -150,6 +150,23 @@ describe("createEnginePort", () => {
     expect(all.items).toHaveLength(700)
   })
 
+  it("sends a body with every page as it is, and none without one", async () => {
+    const items = Array.from({ length: 501 }, (_, index) => ({ id: `i${index}` }))
+    const fake = transport((_operationId, input) => {
+      const first = Number(input.query.firstResult)
+      return { json: items.slice(first, first + Number(input.query.maxResults)) }
+    })
+    const body = { processInstanceId: "p1", sorting: [{ sortBy: "startTime", sortOrder: "asc" }] }
+    const all = await createEnginePort(fake).list("queryHistoricActivityInstances", {}, 600, body)
+    expect(all.items).toHaveLength(501)
+    expect(fake.inputs).toEqual([
+      { pathArgs: [], query: { firstResult: "0", maxResults: "500" }, body },
+      { pathArgs: [], query: { firstResult: "500", maxResults: "101" }, body },
+    ])
+    await createEnginePort(fake).list("getIncidents", {}, 1)
+    expect(fake.inputs.at(-1)).not.toHaveProperty("body")
+  })
+
   it("stops paging at a short page and when the engine ignores the page size", async () => {
     const short = createEnginePort(transport(() => ({ json: [{ id: "a" }, "skipped"] })))
     expect(await short.list("getIncidents", {}, 10)).toEqual({

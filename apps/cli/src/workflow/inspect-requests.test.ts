@@ -113,7 +113,6 @@ describe("inspect requests", () => {
       `GET /event-subscription?processInstanceId=${P}&${page}`,
       `GET /event-subscription?processInstanceId=${C}&${page}`,
       `GET /external-task?processInstanceIdIn=${ids}&${page}`,
-      `GET /history/activity-instance?sortBy=occurrence&sortOrder=asc&${page}&processInstanceId=${P}`,
       `GET /history/incident?processInstanceId=${P}&${page}`,
       `GET /history/process-instance/${P}?`,
       `GET /incident?processInstanceId=${P}&${page}`,
@@ -131,7 +130,17 @@ describe("inspect requests", () => {
       `GET /process-instance?firstResult=0&maxResults=101&superProcessInstance=${P}`,
       `GET /process-instance?firstResult=0&maxResults=101&superProcessInstance=${C}`,
       `GET /task?processInstanceIdIn=${ids}&${page}`,
+      `POST /history/activity-instance?${page}`,
     ])
+    const path = server.requests.find((request) => request.path === "/history/activity-instance")
+    expect(JSON.parse(typeof path?.body === "string" ? path.body : "null")).toEqual({
+      processInstanceId: P,
+      sorting: [
+        { sortBy: "startTime", sortOrder: "asc" },
+        { sortBy: "occurrence", sortOrder: "asc" },
+        { sortBy: "activityInstanceId", sortOrder: "asc" },
+      ],
+    })
   })
 
   it("marks timer jobs from the timers query and keeps the job definitions of every definition", async () => {
@@ -160,7 +169,7 @@ describe("inspect requests", () => {
       .on("GET", `/process-instance/${P}`, engineError(404, "InvalidRequestException", "gone"))
       .on("GET", `/history/process-instance/${P}`, json({ ...historyDto, state: "COMPLETED" }))
       .on("GET", "/history/variable-instance", json([]))
-      .on("GET", "/history/activity-instance", json([{ id: "h1", activityId: "start" }]))
+      .on("POST", "/history/activity-instance", json([{ id: "h1", activityId: "start" }]))
       .on(
         "GET",
         "/history/incident",
@@ -174,11 +183,11 @@ describe("inspect requests", () => {
       }),
     ])
     expect(sent(server)).toEqual([
-      `GET /history/activity-instance?sortBy=occurrence&sortOrder=asc&${page}&processInstanceId=${P}`,
       `GET /history/incident?processInstanceId=${P}&${page}`,
       `GET /history/process-instance/${P}?`,
       `GET /history/variable-instance?processInstanceId=${P}&${page}&deserializeValues=false`,
       `GET /process-instance/${P}?`,
+      `POST /history/activity-instance?${page}`,
     ])
   })
 
