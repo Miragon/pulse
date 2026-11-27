@@ -1,8 +1,9 @@
 /**
- * A write and the floors it changes, on the wire through the module (F123): after a write tool
- * answered on an engine, the statistics floor and the health floor of that engine go for every
- * caller, so the views a widget's write invalidates (`WRITE_POLICY`) count its effect at their
- * next read within the 30 s, never the read before it. A read and a write that failed keep them.
+ * A write and the floors it changes, on the wire through the module (F123, F29): after a write
+ * tool answered on an engine, the statistics floor, the health floor and the process numbers'
+ * floor of that engine go for every caller, so the views a widget's write invalidates
+ * (`WRITE_POLICY`) and `engine_process_stats` count its effect at their next read within the 30 s,
+ * never the read before it. A read and a write that failed keep them.
  */
 
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
@@ -79,6 +80,12 @@ async function boot(options = { failing: false }) {
         processDefinitionKey: WORLD.key,
       })
     ).incidentCount,
+    numbers: (
+      await read<{ now: { incidents: number } }>(user, "engine_process_stats", {
+        processDefinitionKey: WORLD.key,
+        bucket: "day",
+      })
+    ).now.incidents,
   })
   const reads = (path: string) => engine.requests.filter((r) => r.path === path).length
   return { call, health, counts, reads }
@@ -86,12 +93,14 @@ async function boot(options = { failing: false }) {
 
 const resolve = { incidentId: WORLD.incidentId }
 
-describe("a write drops its engine's statistics and health floors", () => {
+describe("a write drops its engine's statistics, health and process numbers floors", () => {
   it("counts a resolve at the next read within 30 s, the writer's and another caller's", async () => {
     const { call, counts, reads } = await boot()
     const before = await counts("ada")
     expect(before.health).toMatchObject({ status: "warning", summary: { totalIncidents: 1 } })
-    expect([before.overview, before.incidents, before.process]).toEqual([1, 1, 1])
+    expect([before.overview, before.incidents, before.process, before.numbers]).toEqual([
+      1, 1, 1, 1,
+    ])
     expect((await counts("bob")).health.status).toBe("warning")
     expect(reads(STATISTICS)).toBe(2)
 
@@ -101,7 +110,9 @@ describe("a write drops its engine's statistics and health floors", () => {
     for (const user of ["ada", "bob"]) {
       const after = await counts(user)
       expect(after.health, user).toMatchObject({ status: "ok", summary: { totalIncidents: 0 } })
-      expect([after.overview, after.incidents, after.process], user).toEqual([0, 0, 0])
+      expect([after.overview, after.incidents, after.process, after.numbers], user).toEqual([
+        0, 0, 0, 0,
+      ])
     }
     // One read after the write per caller: every view of each shares it again.
     expect(reads(STATISTICS)).toBe(4)

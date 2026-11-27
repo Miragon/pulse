@@ -15,7 +15,7 @@ import { buildActivityCountsData } from "../../data/activity-counts-data.js"
 import { buildActivityStatisticsData } from "../../data/activity-statistics-data.js"
 import { buildProcessInstancesData } from "../../data/cockpit-data.js"
 import { buildProcessIncidentsData } from "../../data/process-incidents-data.js"
-import { buildProcessStatsData } from "../../data/process-stats-data.js"
+import { buildProcessStatsData } from "../../data/process-stats-floor.js"
 import type { ResolvedEngine } from "../engine/resolve-engine.js"
 
 /** What the history's instance rows hold that a page counts per bucket. */

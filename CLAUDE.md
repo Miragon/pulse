@@ -527,22 +527,24 @@ for every workspace package.
      (`data/honest-numbers.degrade.test.ts`).
    - **Expensive reads have floors.** What loads the engine's database (the screen feeds, a
      board's build, the cockpit's element counts, the engine-wide definition statistics each view
-     folds per call (`data/statistics-floor.ts`) with the chat's health on them, both dropped for
-     every caller by a write tool on their engine (`dropOnWrite`), a process's numbers of
-     `engine_process_stats` and `engine_activity_counts` over the cockpit's builders) is kept 30 s
-     per caller and arguments (`callerCacheKey`, so a renewed token reads anew), never an answer
-     that misses a part; a view on the floored statistics names that read's time in its bar (the
-     older of its reads). A floor bounds each caller's answers apart and keeps its most recently
-     active callers, a caller counted once it holds an answer (`createHeldCache`, `maxEntries` ×
-     `maxCallers` per engine), so one caller never evicts another's while both are among the
-     `maxCallers` most recently active. The element counts read only the versions the caller's
-     statistics read names held (`KeyStats.heldVersionIds`), a few asked on a cold floor each, and
-     are kept under the read that chose them, so they go with it; a history read reads every version
-     it counts. The process flow's "Throughput" reads a 30-day
-     window cut to the shortest `historyTimeToLive`, one read at a time per engine (`oneAtATime`),
-     outside the cockpit's Refresh; `engine_process_stats` counts per bucket by `/count`, a bucket
-     older than that time to live as a lower bound, every history count unknown where the engine
-     writes no history.
+     folds per call (`data/statistics-floor.ts`) with the chat's health on them, a process's numbers
+     of `engine_process_stats` and `engine_activity_counts` over the cockpit's builders) is kept
+     30 s per caller and arguments (`callerCacheKey`, so a renewed token reads anew), never an
+     answer that misses a part; the statistics, the health and `engine_process_stats` age from their
+     oldest read and go for every caller after a write tool on their engine (`dropOnWrite`), and a
+     view on the floored statistics names that read's time in its bar (the older of its reads). A
+     floor bounds each caller's answers apart and keeps its most recently active callers, a caller
+     counted once it holds an answer (`createHeldCache`, `maxEntries` × `maxCallers` per engine), so
+     one caller never evicts another's while both are among the `maxCallers` most recently active.
+     The element counts read only the versions the caller's statistics read names held
+     (`KeyStats.heldVersionIds`), a few asked on a cold floor each, and are kept under the read that
+     chose them, so they go with it; a history read reads every version it counts. The process
+     flow's "Throughput" reads a 30-day window cut to the shortest `historyTimeToLive`, one read at
+     a time per engine (`oneAtATime`), outside the cockpit's Refresh; `engine_process_stats` ranks
+     in that gate and builds one at a time per engine in a gate of its own (`createGate`), its floor
+     keyed on the range cut to whole minutes (`data/process-stats-floor.ts`), and counts per bucket
+     by `/count`, a bucket older than that time to live as a lower bound, every history count
+     unknown where the engine writes no history.
    - **No view payload carries BPMN XML** (a view's `structuredContent` reaches the model on some
      hosts): a view names the version it draws (`diagramDefinitionId`) and reads the XML from
      `engine_bpmn_xml_data`, through the ONE cache `lib/bpmn/definition-xml.ts`.

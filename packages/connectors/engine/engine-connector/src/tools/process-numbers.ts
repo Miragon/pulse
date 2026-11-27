@@ -2,7 +2,7 @@ import { activityCountsInput, processStatsInput } from "../schemas/index.js"
 import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { engineParamShape, withEngine } from "../lib/engine/with-engine.js"
 import { buildActivityCountsData } from "../data/activity-counts-data.js"
-import { buildProcessStatsData } from "../data/process-stats-data.js"
+import { buildProcessStatsData } from "../data/process-stats-floor.js"
 
 /**
  * A process's numbers ready to show, for a page that draws them (a dashboard, a Claude artifact)

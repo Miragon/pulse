@@ -223,6 +223,8 @@ describe("engine_process_stats", () => {
       to: "2026-11-24T12:00:00.000Z",
       bucket: "day",
       timeZone: "Europe/Berlin",
+      // A to past now reads up to now, and the answer says so.
+      cut: "to read up to now as of the build, which ends before the asked to",
     })
     // d started at 00:59:59.999 on the 24th in Berlin.
     expect(data.buckets.map((bucket) => bucket.started)).toEqual([1, 3])
