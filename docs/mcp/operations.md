@@ -90,6 +90,8 @@ An empty (`engine:`) or unknown suffix warns and falls back to read-only, even u
 
 ## Engine load
 
+On Camunda 7 a list of processes or of a process's versions (the web app's screens, a board's engine, Pulse for VS Code's explorer) reads the definition statistics once and counts **With incident** from one page of 500 instances with an incident while that page holds them all. Past it, one count of them picks the cheaper way on: the rest of their pages, or one count per version that runs an instance, eight at a time. A board's open incidents read only the versions they name, a version's call activities only the versions of the processes they call. So a list sends at most three reads plus the fewer of those pages and those versions, never a read per instance.
+
 The process flow's **Throughput · 30 days** reads the history statistics of the engine (history level `activity` or higher), one query per version that started an instance in the window. On PostgreSQL at 10,000 instances a day a warm read takes about a second and a cold one up to about 15 seconds; an engine whose other processes start far more instances costs more. So the window is fixed, the server keeps a read per engine, process and caller with its bearer token for an hour or until the token renews (every 5 minutes with Keycloak's defaults), per replica, sends one such query at a time per engine and never repeats one by itself: the mode loads when picked, not on Refresh, and a failed read waits for the retry button.
 
 ## Observability

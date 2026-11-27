@@ -114,10 +114,21 @@ missing.
   body or the SDK's typed query, which never sends a false flag the engine would ignore).
   `instancesWithIncident(port, scope)` lists the instances of a version, a process or a business
   key with one, `countWithIncident` counts them, `withIncidentAmong(port, ids)` flags listed
-  instances and `withIncidentByVersion` counts per version; the runtime's `InstanceSearch` pages
+  instances and `withIncidentByVersion` (over listed rows `withIncidentOfListed`) counts per
+  version; the runtime's `InstanceSearch` pages
   the history's rows of those instances and counts them in one runtime count where the runtime
   knows the whole filter; however many there are, no request to the history carries more than 500
-  of their ids. The history's incident filters find nothing below history level FULL, which
+  of their ids. The runtime's process list and a process's version list count "with incident" per
+  version of what they show, the whole engine's or the process's own (`withIncidentPerVersion` of
+  the runtime entry): from one page of 500 of those instances while it holds them all; past a full
+  page, one count of them picks the path that sends fewer requests, the listing read on from where
+  the page ended to its end, or one count per version that runs an instance, eight at a time,
+  since a version without running instances holds none with an incident (the listing where both
+  send as many). So beside the statistics and the first page a list sends the one count and the
+  fewer of the pages left and the running versions; every number is a listing read to its end or
+  a count, never a capped page, and the count only picks the path, so incidents raised or resolved
+  since leave the numbers to the path's own reads.
+  The history's incident filters find nothing below history level FULL, which
   writes no incident to the history: `unrecordedIncidents(port)` tells that from a true "none"
   before a history query by incident answers.
 - **Instance search:** `searchedInstances(filters, term)` builds the bodies of the runtime's
@@ -173,7 +184,10 @@ missing.
   question: `EngineReader` (the product and version telemetry names, else the REST API's version),
   `DefinitionReader` (every process by its latest version, its versions newest first, each with its
   running instances, those "with incident" and its open root incidents, from the one statistics
-  read and its fold per key, a version's BPMN XML), `ElementStatisticsReader` (per
+  read and its fold per key, "with incident" per version as the bullet above says; with
+  `withIncidentCounting` of `C7RuntimeOptions` a list reads pages of fewer of those instances and
+  takes the path it is told past a full one, with which the C7 adapter's engine suite runs the
+  definition laws once more per path in pages of one; a version's BPMN XML), `ElementStatisticsReader` (per
   element of a version the waiting tokens, the incidents raised there and those of called
   instances: the statistics with every incident at an element, root incidents wherever no copy can
   lie, and the incidents at the version's call activities that hold one read whole, sorted by id,
@@ -183,7 +197,9 @@ missing.
   element of the diagram, as Camunda 8 reports it: a multi-instance body's token, failed jobs and
   incidents, which Camunda 7 counts apart, only while its own token waits there, on the activity
   it repeats), `CalledProcessReader` (each call activity of a version with the version its binding
-  starts), `InstanceSearch` (the history's instances newest first, paged by offset behind the
+  starts: after the diagram, every version of the called processes by their keys, and the caller's
+  own by its id where a call is bound to its deployment, never the statistics of the whole engine),
+  `InstanceSearch` (the history's instances newest first, paged by offset behind the
   contract's cursor, each flagged with "with incident", and their count; a variable condition's
   value as the engine reads it, every integer beyond 2^53 in it digit for digit; without an
   incident it counts the history's instances minus those of them the runtime holds an open incident
@@ -209,8 +225,10 @@ missing.
   incident's cause as the cockpit's cause view takes it, `causeKeyOf` over the incident as the
   engine names it, a body's by its own id), `IncidentSearch` (the root incidents newest first, then by
   id, across pages too, since up to 500 incident rows raised at one instant are read whole, copies
-  and the other rows it drops counted, with the version each was raised in, the element of the
-  diagram, a multi-instance body's incident on its activity, and the job or external task
+  and the other rows it drops counted, with the version each was raised in (read by the ids of the
+  versions a window's incidents name, each once per search, never the statistics of the whole
+  engine), the element of the diagram, a multi-instance body's incident on its activity, and the
+  job or external task
   `incidentRecovery` names; an incident outside any process, a failed job of a batch or of the
   history cleanup, which names no element and no instance, is none of them and never fails the
   search),
@@ -394,7 +412,9 @@ decoded path, query and JSON body, and the JSON answered), recorded from the see
 Operaton 2.1.5 (made anew on 2026-11-21, when the element statistics read the incidents at call
 activities alone, and again that day, when the definitions read their root incidents; on
 2026-11-25 its incidents' request asks 52 rows rather than 51, which the three it answers do not
-change), and the board they give in the JSON form of
+change; made anew on 2026-11-27, when the open incidents name their versions by
+`GET /process-definition?processDefinitionIdIn` rather than a second read of the statistics), and
+the board they give in the JSON form of
 [`@miragon/pulse-board`](https://www.npmjs.com/package/@miragon/pulse-board) (`BoardData`). It
 ships here because this package makes the requests: the MCP server's engine connector and the
 editors' C7 adapter each serve the answers to their own wire on the transport's recorded engine
@@ -422,7 +442,9 @@ own, recorded by hand on 2026-11-20 as the board's, made anew with the process s
 instance list, again on 2026-11-21, when the element statistics read the incidents at call
 activities alone, and once more that day, when the definitions read their root incidents, and on
 2026-11-27, when the paths of DSP-3001 and of the instance it called are asked for by
-`POST /history/activity-instance` in `INSTANCE_HISTORY_ORDER`: the world seeded
+`POST /history/activity-instance` in `INSTANCE_HISTORY_ORDER`, and again that day, when a process
+screen counts "with incident" over its own process's instances and a call names its version by
+`GET /process-definition?keysIn`: the world seeded
 with `seedC7World` into `operaton/operaton:2.1.5` at history level FULL, every screen built twice
 through a proxy in front of the engine that keeps each request with what the engine answers (the
 same answer both times but for the telemetry, which counts the engine's commands and keeps its

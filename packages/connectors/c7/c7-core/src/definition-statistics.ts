@@ -66,6 +66,14 @@ function definitionRowOf(record: JsonView): DefinitionRow {
   }
 }
 
+/**
+ * The versions of a definitions list (`GET /process-definition`), in the order the engine lists
+ * them, read as the statistics read a row's definition.
+ */
+export function definitionRowsOf(answer: unknown): DefinitionRow[] {
+  return JsonView.listOf(answer, "definitions").map((record) => definitionRowOf(record))
+}
+
 function sum(values: Iterable<number>): number {
   let total = 0
   for (const value of values) total += value
@@ -102,9 +110,9 @@ export function definitionStatisticsOf(answer: unknown): DefinitionStatisticsRow
 /**
  * Every deployed version with its running instances and open root incidents, its failed jobs where
  * `options` asks for them, in one request: the one statistics read, which the definitions and
- * versions read for their counts, the incident search's version refs and the called processes for
- * the versions alone, the root incidents one grouped subquery over the open incidents beside the
- * instances it already counts.
+ * versions read for their counts, the root incidents one grouped subquery over the open incidents
+ * beside the instances it already counts. A read that only names versions (the incident search's,
+ * the called processes') asks for them by their ids or keys instead (`readDefinitionRows`).
  */
 export async function readDefinitionStatistics(
   port: EnginePort,

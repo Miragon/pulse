@@ -3,7 +3,9 @@
  * of its deployed BPMN XML with the process it names and, when the engine holds it, the version
  * its binding starts (`latest`, `deployment`, `version`, `versionTag`). A call activity whose
  * process or version tag only an expression decides is left out, and so is one without an id or
- * with a version that is no whole number.
+ * with a version that is no whole number. After the diagram it reads the versions of the called
+ * processes alone, by their keys (every version of a key, of every tenant), and the caller's own
+ * version only where a call is bound to its deployment, never the statistics of the whole engine.
  */
 
 import {
@@ -12,11 +14,11 @@ import {
   type CalledProcess,
   type DefinitionId,
 } from "@miragon/pulse-engine-core"
-import { type DefinitionRow, readDefinitionStatistics } from "../definition-statistics.js"
+import type { DefinitionRow } from "../definition-statistics.js"
 import type { EnginePort } from "../port.js"
 import { CALL_ACTIVITY_TAG } from "./call-activity-tags.js"
 import { definitionRefOf } from "./definition-refs.js"
-import { type DiagramRead, diagramReadOf } from "./definition-rows.js"
+import { type DiagramRead, diagramReadOf, readDefinitionRows } from "./definition-rows.js"
 
 type CalledElementBinding =
   | { readonly kind: "latest" | "deployment" }
@@ -90,22 +92,28 @@ export class CalledProcessReader {
 
   /** The calls of the version `definitionId`; none for a version the engine does not know. */
   async read(definitionId: DefinitionId): Promise<CalledProcess[]> {
-    const [xml, statistics] = await Promise.all([
-      this.diagram(definitionId),
-      readDefinitionStatistics(this.port),
-    ])
+    const xml = await this.diagram(definitionId)
     if (xml === undefined) return []
-    const definitions = statistics.map((row) => row.definition)
-    const caller = definitions.find((definition) => definition.id === definitionId)
-    return [...xml.matchAll(CALL_ACTIVITY_TAG)].flatMap(([tag]) =>
-      calledElementsOf(tag).map((called) => {
-        const definition = definitionStartedBy(called, definitions, caller)
-        return {
-          elementId: ElementId(called.elementId),
-          bpmnProcessId: BpmnProcessId(called.processKey),
-          ...(definition === undefined ? {} : { definition: definitionRefOf(definition) }),
-        }
-      }),
-    )
+    const calls = [...xml.matchAll(CALL_ACTIVITY_TAG)].flatMap(([tag]) => calledElementsOf(tag))
+    const { definitions, caller } = await this.versionsOf(definitionId, calls)
+    return calls.map((called) => {
+      const definition = definitionStartedBy(called, definitions, caller)
+      return {
+        elementId: ElementId(called.elementId),
+        bpmnProcessId: BpmnProcessId(called.processKey),
+        ...(definition === undefined ? {} : { definition: definitionRefOf(definition) }),
+      }
+    })
+  }
+
+  /** Every version of the processes `calls` names and, where one binds to it, the caller's own. */
+  private async versionsOf(definitionId: DefinitionId, calls: readonly CalledElement[]) {
+    const keys = calls.map((called) => called.processKey).filter((key) => key !== "")
+    const byDeployment = calls.some((called) => called.binding.kind === "deployment")
+    const [definitions, callers] = await Promise.all([
+      readDefinitionRows(this.port, "keysIn", keys),
+      byDeployment ? readDefinitionRows(this.port, "processDefinitionIdIn", [definitionId]) : [],
+    ])
+    return { definitions, caller: callers.find((definition) => definition.id === definitionId) }
   }
 }

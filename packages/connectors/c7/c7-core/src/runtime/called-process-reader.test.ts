@@ -1,6 +1,6 @@
 import { DefinitionId } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
-import { fakeFailure, fakePort } from "../testing/fake-port.js"
+import { type FakeCall, fakeFailure, fakePort, type Route } from "../testing/fake-port.js"
 import { CalledProcessReader } from "./called-process-reader.js"
 
 const CALLER = { id: "caller:1:c", key: "caller", version: 1, deploymentId: "d2" }
@@ -49,13 +49,36 @@ const xmlOf = (...tags: string[]) =>
     "</bpmn:definitions>",
   ].join("\n")
 
-function callsOf(xml: string, caller = CALLER.id, definitions: readonly object[] = DEFINITIONS) {
+/** The versions of `definitions` a definitions read names by their keys or ids. */
+function definitionsOf(definitions: readonly { id: string; key: string }[]): Route {
+  return ({ query }) => {
+    const keys = query.keysIn?.split(",")
+    const ids = query.processDefinitionIdIn?.split(",")
+    return definitions.filter(
+      (definition) =>
+        (keys === undefined || keys.includes(definition.key)) &&
+        (ids === undefined || ids.includes(definition.id)),
+    )
+  }
+}
+
+function callsOf(
+  xml: string,
+  caller = CALLER.id,
+  definitions: readonly { id: string; key: string }[] = DEFINITIONS,
+) {
   const port = fakePort({
     getProcessDefinitionBpmn20Xml: () => ({ id: caller, bpmn20Xml: xml }),
-    getProcessDefinitionStatistics: () =>
-      definitions.map((definition) => ({ definition, instances: 0 })),
+    getProcessDefinitions: definitionsOf(definitions),
   })
   return { port, calls: new CalledProcessReader(port).read(DefinitionId(caller)) }
+}
+
+/** The query of each definitions read `port` sent. */
+function definitionQueries(port: { readonly calls: readonly FakeCall[] }) {
+  return port.calls
+    .filter((call) => call.operationId === "getProcessDefinitions")
+    .map((call) => call.input.query)
 }
 
 describe("CalledProcessReader", () => {
@@ -77,6 +100,25 @@ describe("CalledProcessReader", () => {
       { elementId: "Call_Version", bpmnProcessId: "invoice", definition: ref(INVOICE_2) },
       { elementId: "Call_Tagged", bpmnProcessId: "invoice", definition: ref(INVOICE_1) },
     ])
+  })
+
+  it("reads the versions of the called processes alone, and the caller's where a call binds to its deployment", async () => {
+    const { port, calls } = callsOf(
+      xmlOf(
+        '<bpmn:callActivity id="Call_Latest" calledElement="invoice" />',
+        '<bpmn:callActivity id="Call_Again" calledElement="invoice" />',
+        '<bpmn:callActivity id="Call_Deployment" calledElement="ReviewInvoice" camunda:calledElementBinding="deployment" />',
+      ),
+    )
+    await calls
+    const order = { sortBy: "id", sortOrder: "asc", firstResult: "0", maxResults: "500" }
+    expect(definitionQueries(port)).toStrictEqual([
+      { keysIn: "invoice,ReviewInvoice", ...order },
+      { processDefinitionIdIn: CALLER.id, ...order },
+    ])
+    const latest = callsOf(xmlOf('<bpmn:callActivity id="Call" calledElement="invoice" />'))
+    await latest.calls
+    expect(definitionQueries(latest.port)).toStrictEqual([{ keysIn: "invoice", ...order }])
   })
 
   it("names the process without a version when the engine holds none the binding starts", async () => {
@@ -148,10 +190,7 @@ describe("CalledProcessReader", () => {
   })
 
   it("reads the XML through the runtime's read where one is given", async () => {
-    const port = fakePort({
-      getProcessDefinitionStatistics: () =>
-        DEFINITIONS.map((definition) => ({ definition, instances: 0 })),
-    })
+    const port = fakePort({ getProcessDefinitions: definitionsOf(DEFINITIONS) })
     const asked: string[] = []
     const reader = new CalledProcessReader(port, (id) => {
       asked.push(id)
@@ -163,10 +202,10 @@ describe("CalledProcessReader", () => {
       { elementId: "Call_Review", bpmnProcessId: "ReviewInvoice", definition: ref(REVIEW_2) },
     ])
     expect(asked).toEqual([CALLER.id])
-    expect(port.calls.map((call) => call.operationId)).toEqual(["getProcessDefinitionStatistics"])
+    expect(port.calls.map((call) => call.operationId)).toEqual(["getProcessDefinitions"])
   })
 
-  it("reads the version's XML and the deployed versions, in parallel", async () => {
+  it("reads no version for a version that calls nothing", async () => {
     const { port, calls } = callsOf(xmlOf())
     expect(await calls).toEqual([])
     expect(port.calls).toEqual([
@@ -174,39 +213,35 @@ describe("CalledProcessReader", () => {
         operationId: "getProcessDefinitionBpmn20Xml",
         input: { pathArgs: [CALLER.id], query: {} },
       },
-      {
-        operationId: "getProcessDefinitionStatistics",
-        input: { pathArgs: [], query: { rootIncidents: "true" } },
-      },
     ])
   })
 
-  it("has no calls for a version the engine does not know", async () => {
+  it("has no calls for a version the engine does not know, and reads no version", async () => {
     const port = fakePort({
       getProcessDefinitionBpmn20Xml: () => {
         throw fakeFailure(404, "InvalidRequestException")
       },
-      getProcessDefinitionStatistics: () => [],
     })
     expect(await new CalledProcessReader(port).read(DefinitionId("nope:1:x"))).toEqual([])
+    expect(port.calls.map((call) => call.operationId)).toEqual(["getProcessDefinitionBpmn20Xml"])
   })
 
   it("has no calls for an id no engine assigns, which it never sends", async () => {
-    const port = fakePort({ getProcessDefinitionStatistics: () => [] })
+    const port = fakePort({})
     expect(await new CalledProcessReader(port).read(DefinitionId("../x"))).toEqual([])
-    expect(port.calls.map((call) => call.operationId)).toEqual(["getProcessDefinitionStatistics"])
+    expect(port.calls).toEqual([])
   })
 
-  it("rejects a failure of the statistics as it is", async () => {
+  it("rejects a failure of the versions' read as it is", async () => {
     const failure = fakeFailure(500, "ProcessEngineException")
     const port = fakePort({
-      getProcessDefinitionBpmn20Xml: () => {
-        throw fakeFailure(404, "InvalidRequestException")
-      },
-      getProcessDefinitionStatistics: () => {
+      getProcessDefinitionBpmn20Xml: () => ({
+        bpmn20Xml: xmlOf('<bpmn:callActivity id="Call" calledElement="invoice" />'),
+      }),
+      getProcessDefinitions: () => {
         throw failure
       },
     })
-    await expect(new CalledProcessReader(port).read(DefinitionId("nope:1:x"))).rejects.toBe(failure)
+    await expect(new CalledProcessReader(port).read(DefinitionId(CALLER.id))).rejects.toBe(failure)
   })
 })

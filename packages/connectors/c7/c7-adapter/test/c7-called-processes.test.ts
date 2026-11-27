@@ -1,6 +1,7 @@
 import { DefinitionId } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { fakeRuntime } from "./support/fake-engine.js"
+import { definitionsNamed } from "./support/definitions-route.js"
 import { engineFailure, type RestRoute } from "./support/fake-engine-rest.js"
 import { fixture, WORLD_IDS, worldDiagram } from "./support/fixtures.js"
 
@@ -8,10 +9,7 @@ const INVOICE_V1 = "invoice:1:61c3f9a0-cd7f-11f1-86d2-667bc3771e0d"
 const INVOICE_V2 = "invoice:2:62318889-cd7f-11f1-86d2-667bc3771e0d"
 const REVIEW_V1 = "ReviewInvoice:1:61c4bcf2-cd7f-11f1-86d2-667bc3771e0d"
 
-const DEFINITION_STATISTICS: RestRoute = {
-  route: "GET /process-definition/statistics",
-  answer: new Response(fixture("definition-statistics.json")),
-}
+const CALLED_BY_BINDINGS = definitionsNamed("keysIn", ["invoice", "ReviewInvoice", "refund"])
 
 function xmlRoute(definitionId: string, bpmn20Xml: string): RestRoute {
   return {
@@ -28,7 +26,7 @@ describe("the processes a C7 call activity calls", () => {
   test("names the latest deployed version of the called process", async () => {
     const { runtime, engine } = fakeRuntime([
       xmlRoute(WORLD_IDS.dispatch1, worldDiagram("dispatch")),
-      DEFINITION_STATISTICS,
+      definitionsNamed("keysIn", ["pulse-label"]),
     ])
 
     const calls = await runtime.getCalledProcesses(DefinitionId(WORLD_IDS.dispatch1))
@@ -46,7 +44,8 @@ describe("the processes a C7 call activity calls", () => {
   test("resolves each binding and skips what only an expression decides", async () => {
     const { runtime } = fakeRuntime([
       xmlRoute(INVOICE_V1, fixture("call-bindings.bpmn")),
-      DEFINITION_STATISTICS,
+      CALLED_BY_BINDINGS,
+      definitionsNamed("processDefinitionIdIn", [INVOICE_V1]),
     ])
 
     const calls = await runtime.getCalledProcesses(DefinitionId(INVOICE_V1))
@@ -79,7 +78,8 @@ describe("the processes a C7 call activity calls", () => {
   test("finds nothing deployed with the caller when the binding asks for its deployment", async () => {
     const { runtime } = fakeRuntime([
       xmlRoute(INVOICE_V2, fixture("call-bindings.bpmn")),
-      DEFINITION_STATISTICS,
+      CALLED_BY_BINDINGS,
+      definitionsNamed("processDefinitionIdIn", [INVOICE_V2]),
     ])
 
     const calls = await runtime.getCalledProcesses(DefinitionId(INVOICE_V2))
@@ -100,7 +100,6 @@ describe("the processes a C7 call activity calls", () => {
           "No matching definition with id nope:1:00000000-0000-0000-0000-000000000000",
         ),
       },
-      DEFINITION_STATISTICS,
     ])
 
     expect(await runtime.getCalledProcesses(DefinitionId("nope:1:x"))).toEqual([])

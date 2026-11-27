@@ -1,13 +1,43 @@
 /**
- * The BPMN XML a version was deployed with, read through `JsonView`, so an unusable answer fails as
- * `RuntimeError("unexpectedResponse")`. The versions themselves and their counts are the definition
- * statistics of the main entry (`../definition-statistics.ts`), which the status triage reads too.
+ * The BPMN XML a version was deployed with and the versions a read names by their ids or by the keys
+ * of their processes, read through `JsonView`, so an unusable answer fails as
+ * `RuntimeError("unexpectedResponse")`. The versions with their counts are the definition
+ * statistics of the main entry (`../definition-statistics.ts`), which the status triage reads too;
+ * a read that only names versions (an incident's, a called process's) reads them here, never the
+ * statistics of the whole engine.
  */
 
-import type { EnginePort } from "../port.js"
+import { type DefinitionRow, definitionRowsOf } from "../definition-statistics.js"
+import { type EnginePort, PARALLEL } from "../port.js"
+import { idChunks } from "../requests.js"
+import { mapLimit } from "../util.js"
 import { isEngineId } from "./engine-ids.js"
 import { findUnlessGone } from "./find-unless-gone.js"
 import { JsonView } from "../json-view.js"
+import { readAll } from "./read-all.js"
+
+/** The order the versions of a definitions read are paged in, so no page repeats or skips one. */
+const BY_ID = { sortBy: "id", sortOrder: "asc" } as const
+
+/** What a definitions read names its versions by: their ids, or the keys of their processes. */
+export type DefinitionsBy = "processDefinitionIdIn" | "keysIn"
+
+/**
+ * The versions `values` names `by` their ids or by the keys of their processes (every version of a
+ * key, of every tenant), each id or key once, 50 to a request and every page of each in the order
+ * of their ids; none without a request where `values` names none.
+ */
+export async function readDefinitionRows(
+  port: EnginePort,
+  by: DefinitionsBy,
+  values: readonly string[],
+): Promise<DefinitionRow[]> {
+  const chunks = idChunks([...new Set(values)])
+  const pages = await mapLimit(chunks, PARALLEL, async (chunk) =>
+    definitionRowsOf(await readAll(port, "getProcessDefinitions", { [by]: chunk, ...BY_ID })),
+  )
+  return pages.flat()
+}
 
 /**
  * A read of the BPMN XML a version was deployed with: undefined for a version the engine does not

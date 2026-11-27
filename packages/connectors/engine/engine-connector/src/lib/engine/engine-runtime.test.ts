@@ -92,7 +92,7 @@ describe("runtimeOf: the engine contract's runtime of an engine the server resol
       "GET /process-definition/order:1:d/xml": {
         body: { id: "order:1:d", bpmn20Xml: '<callActivity id="Call" calledElement="label" />' },
       },
-      "GET /process-definition/statistics": { body: [] },
+      "GET /process-definition": { body: [] },
       "GET /process-definition/gone:1:d/xml": {
         status: 404,
         body: { type: "InvalidRequestException", message: "No definition gone:1:d" },

@@ -37,6 +37,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
 import { EngineHttp, HttpEngineTransport } from "../src/engine-rest/index.js"
 import { ErrorTranslation } from "../src/errors/error-translation.js"
+import { runtimeCountingWithIncidentBy } from "./support/counting-runtime.js"
 import { RecordedBoard } from "./support/recorded-board.js"
 import {
   ENGINE_IMAGE,
@@ -165,6 +166,31 @@ describe.skipIf(!RUNS_ON_CAMUNDA_7)(`the C7 adapter against ${ENGINE_IMAGE}`, ()
       expect(Math.max(...lengths)).toBe(chunk)
     })
   })
+
+  describe.each(["listing", "perVersion"] as const)(
+    "with incident counted past a page of one by the path %s",
+    (path) => {
+      const taken: string[] = []
+
+      new ConformanceKit(test).registerRuntimeLaws(
+        () => {
+          if (engine === undefined || harness === undefined) {
+            return Promise.reject(new Error("the engine did not start"))
+          }
+          return Promise.resolve({
+            ...harness,
+            runtime: runtimeCountingWithIncidentBy(engine.url, path, taken),
+          })
+        },
+        ConformanceKit.runtimeLaws().filter(({ name }) => /^(?:definitions|versions):/.test(name)),
+      )
+
+      test("the laws' processes and versions read past their first page by that path alone", () => {
+        expect(taken.length).toBeGreaterThan(0)
+        expect([...new Set(taken)]).toEqual([path])
+      })
+    },
+  )
 
   const half = IDS_PER_HISTORY_REQUEST_HALF_THE_SIX_INSTANCES
 

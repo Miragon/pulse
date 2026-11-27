@@ -8,6 +8,7 @@ import {
   withIncidentAmong,
   withIncidentBody,
   withIncidentByVersion,
+  withIncidentOfListed,
 } from "./with-incident.js"
 
 const PAGE = 500
@@ -188,6 +189,27 @@ describe("withIncidentByVersion", () => {
       ]),
     )
     expect(withIncidentByVersion([])).toEqual(new Map())
+  })
+})
+
+describe("withIncidentOfListed", () => {
+  it("counts the listed instances with an open incident per version, each once", () => {
+    const rows = [
+      instance("p1"),
+      instance("p2", "order:2:b"),
+      instance("p1"),
+      { id: "p3" },
+      "p4",
+      instance("p5"),
+    ]
+
+    expect(withIncidentOfListed(rows)).toEqual(
+      new Map([
+        ["order:1:a", 2],
+        ["order:2:b", 1],
+      ]),
+    )
+    expect(withIncidentOfListed([])).toEqual(new Map())
   })
 })
 

@@ -13,7 +13,7 @@ export function queryInput(query: Query): OperationInput {
 }
 
 /** `ids` in chunks of `ID_CHUNK`, each joined with commas. */
-function idChunks(ids: readonly string[]): string[] {
+export function idChunks(ids: readonly string[]): string[] {
   const chunks: string[] = []
   for (let start = 0; start < ids.length; start += ID_CHUNK) {
     chunks.push(ids.slice(start, start + ID_CHUNK).join(","))

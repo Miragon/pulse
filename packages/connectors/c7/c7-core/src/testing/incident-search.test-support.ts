@@ -1,5 +1,5 @@
 /**
- * The fixtures of `IncidentSearch`'s tests: two versions the definition statistics list, a root
+ * The fixtures of `IncidentSearch`'s tests: two versions the engine lists by their ids, a root
  * incident of the first, a search over a fake port that answers its incidents by a route, and the
  * pages a search lists one after the other. Under src/testing, which the mutation run leaves out,
  * but no part of the ./testing entry: `files` keeps every `*.test-support.*` out of the tarball.
@@ -25,14 +25,19 @@ export const ROOT = {
   configuration: "job-1",
 }
 
-/** A search over a port that answers the incidents by `incidents`, the statistics both versions. */
+/** The versions of `definitions` a definitions read names by their ids. */
+function definitionsByIds(definitions: readonly { readonly id: string }[]): Route {
+  return ({ query }) => {
+    const ids = (query.processDefinitionIdIn ?? "").split(",")
+    return definitions.filter((definition) => ids.includes(definition.id))
+  }
+}
+
+/** A search over a port that answers the incidents by `incidents`, both versions by their ids. */
 export function searchOver(incidents: Route) {
   const port = fakePort({
     getIncidents: incidents,
-    getProcessDefinitionStatistics: () => [
-      { definition: ORDER_1, instances: 1 },
-      { definition: LABEL_1, instances: 1 },
-    ],
+    getProcessDefinitions: definitionsByIds([ORDER_1, LABEL_1]),
   })
   return { port, search: new IncidentSearch(port, new DefinitionReader(port)) }
 }

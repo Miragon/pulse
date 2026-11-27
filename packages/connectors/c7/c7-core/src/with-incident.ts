@@ -10,10 +10,13 @@
  * 2.2.0), so no surface counts "with incident" from them, and a reading only the history gives (an
  * incident that was resolved, an instance that had one) asks `unrecordedIncidents` before it
  * answers "none".
+ *
+ * A list of processes or of a process's versions counts "with incident" per version over these
+ * reads in the runtime entry (`withIncidentPerVersion`, runtime/with-incident-per-version.ts).
  */
 
 import type { EnginePort, Query } from "./port.js"
-import { countOf, type Rec, str } from "./records.js"
+import { countOf, type Rec, records, str } from "./records.js"
 import { listByIds, queryInput } from "./requests.js"
 
 /** The runtime's process-instance filter of "with incident" (`getProcessInstances`, its count). */
@@ -65,12 +68,8 @@ function idsOf(items: readonly Rec[]): string[] {
   return items.flatMap((item) => str(item, "id") ?? [])
 }
 
-/** The instances with an open incident in `scope`, every page: the id and the version of each, once. */
-export async function instancesWithIncident(
-  port: EnginePort,
-  scope: IncidentScope,
-): Promise<InstanceWithIncident[]> {
-  const { items } = await port.list("getProcessInstances", { ...scopeQuery(scope), ...BY_ID })
+/** The id and the version of each listed instance, once. */
+function instancesOf(items: readonly Rec[]): InstanceWithIncident[] {
   const byId = new Map<string, InstanceWithIncident>()
   for (const item of items) {
     const id = str(item, "id")
@@ -78,6 +77,20 @@ export async function instancesWithIncident(
     if (id !== undefined && definitionId !== undefined) byId.set(id, { id, definitionId })
   }
   return [...byId.values()]
+}
+
+/** The runtime's listing of the instances with an open incident in `scope`, in the order it pages. */
+export function withIncidentListing(scope: IncidentScope): Query {
+  return { ...scopeQuery(scope), ...BY_ID }
+}
+
+/** The instances with an open incident in `scope`, every page: the id and the version of each, once. */
+export async function instancesWithIncident(
+  port: EnginePort,
+  scope: IncidentScope,
+): Promise<InstanceWithIncident[]> {
+  const { items } = await port.list("getProcessInstances", withIncidentListing(scope))
+  return instancesOf(items)
 }
 
 /** How many instances hold an open incident in `scope`, in one count. */
@@ -103,6 +116,14 @@ export function withIncidentByVersion(
     counts.set(definitionId, (counts.get(definitionId) ?? 0) + 1)
   }
   return counts
+}
+
+/**
+ * Per version, how many of the rows of the runtime's listing of instances with an open incident
+ * (`withIncidentListing`) run on it, each instance once; a row without its id or version is none.
+ */
+export function withIncidentOfListed(rows: readonly unknown[]): Map<string, number> {
+  return withIncidentByVersion(instancesOf(records(rows)))
 }
 
 /**

@@ -182,8 +182,18 @@ function activityStatistics(version: string, query: Record<string, string>): unk
   return [charge, { id: WORLD.callActivityId, instances: 1, failedJobs: 0, incidents: failed }]
 }
 
-/** Every version of the key, newest first, where a read asks for them; else the latest. */
+/**
+ * The versions a read names by their ids or the keys of their processes; every version of the key,
+ * newest first, where a read asks for them; else the latest.
+ */
 function definitionsFor(query: Record<string, string>): unknown[] {
+  const ids = query.processDefinitionIdIn?.split(",")
+  const keys = query.keysIn?.split(",")
+  if (ids !== undefined || keys !== undefined) {
+    return [definition(1), definition(2)].filter(
+      ({ id, key }) => (ids ?? [id]).includes(id) && (keys ?? [key]).includes(key),
+    )
+  }
   const every = query.key !== undefined && query.latestVersion === undefined && !query.deployedAfter
   return every ? [definition(2), definition(1)] : [definition(2)]
 }
