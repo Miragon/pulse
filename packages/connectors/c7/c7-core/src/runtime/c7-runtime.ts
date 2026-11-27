@@ -40,6 +40,11 @@ import { CalledProcessReader } from "./called-process-reader.js"
 import { DefinitionReader } from "./definition-reader.js"
 import { type DiagramRead, diagramReadOf } from "./definition-rows.js"
 import {
+  type ElementIncident,
+  ElementIncidentSearch,
+  type ElementRef,
+} from "./element-incidents.js"
+import {
   ElementStatisticsReader,
   type ElementStatisticsWithFailedJobs,
 } from "./element-statistics-reader.js"
@@ -83,6 +88,7 @@ interface C7Readers {
   readonly variableNames: VariableNameReader
   readonly instanceDetails: InstanceDetailReader
   readonly incidents: IncidentSearch
+  readonly elementIncidents: ElementIncidentSearch
   readonly incidentDetails: IncidentDetailsReader
   readonly bulkOperations: BulkOperationReader
   readonly migrations: MigrationReader
@@ -109,6 +115,7 @@ export class C7Runtime implements ProcessRuntime {
         variableNames: new VariableNameReader(port),
         instanceDetails: new InstanceDetailReader(port),
         incidents: new IncidentSearch(port, definitions),
+        elementIncidents: new ElementIncidentSearch(port),
         incidentDetails: new IncidentDetailsReader(port),
         bulkOperations: new BulkOperationReader(port),
         migrations: new MigrationReader(port),
@@ -180,6 +187,18 @@ export class C7Runtime implements ProcessRuntime {
 
   searchIncidents(filter: IncidentFilter, page: PageRequest): Promise<Page<Incident>> {
     return this.answered(() => this.readers.incidents.search(filter, page))
+  }
+
+  /**
+   * Beyond the contract: a page of the open root incidents at an element and its multi-instance
+   * body over every version of its process, newest first and then by id, each row as the engine
+   * answers it, for the MCP server's page of an activity's incidents.
+   */
+  searchElementRootIncidents(
+    element: ElementRef,
+    page: PageRequest,
+  ): Promise<Page<ElementIncident>> {
+    return this.answered(() => this.readers.elementIncidents.search(element, page))
   }
 
   getIncidentDetails(incidentId: IncidentId): Promise<IncidentDetails | undefined> {

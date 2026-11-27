@@ -2,6 +2,7 @@ import {
   BpmnProcessId,
   BulkOperationId,
   DefinitionId,
+  ElementId,
   IncidentId,
   InstanceId,
   type ProcessRuntime,
@@ -17,7 +18,7 @@ type Read = (runtime: C7Runtime) => Promise<unknown>
 const DEFINITION = DefinitionId("order:1:x")
 const PLAN = { sourceDefinitionId: DEFINITION, targetDefinitionId: DEFINITION, mappings: [] }
 
-/** Every read of the contract, and the one beyond it, with the operation it sends first. */
+/** Every read of the contract, and those beyond it, with the operation each sends first. */
 const READS: readonly (readonly [string, string, Read])[] = [
   ["describeEngine", "getTelemetryData", (runtime) => runtime.describeEngine()],
   ["listDefinitions", "getProcessDefinitionStatistics", (runtime) => runtime.listDefinitions()],
@@ -63,6 +64,15 @@ const READS: readonly (readonly [string, string, Read])[] = [
     (runtime) => runtime.getInstanceDetail(InstanceId("p1")),
   ],
   ["searchIncidents", "getIncidents", (runtime) => runtime.searchIncidents({}, { limit: 5 })],
+  [
+    "searchElementRootIncidents",
+    "getIncidents",
+    (runtime) =>
+      runtime.searchElementRootIncidents(
+        { bpmnProcessId: BpmnProcessId("order"), elementId: ElementId("Task") },
+        { limit: 5 },
+      ),
+  ],
   ["getIncidentDetails", "getIncident", (runtime) => runtime.getIncidentDetails(IncidentId("i1"))],
   [
     "getBulkOperation",
