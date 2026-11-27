@@ -21,9 +21,10 @@
  * runtime holds an open incident for, as the engine answers them (cockpit-search.test-support.ts).
  * Last, on what they deploy or start themselves and remove again, a multi-instance body's counts
  * lie on its element on every surface, an incident outside any process fails no engine-wide
- * incident search (contract-cases.test-support.ts), and an instance's history of more steps than
- * a page, started within milliseconds, comes in one total order, each step once across pages
- * (history-order.test-support.ts).
+ * incident search (contract-cases.test-support.ts), an instance's history of more steps than a
+ * page, started within milliseconds, comes in one total order, each step once across pages
+ * (history-order.test-support.ts), and an activity's page lists each root incident once by its
+ * cursor where many were raised at one instant (activity-page.test-support.ts).
  *
  * `pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` (Docker); its
  * own container start, since no package shares a Node test helper with another.
@@ -71,6 +72,7 @@ import {
 } from "../engine/resolve-engine.js"
 import { engineStatusForModel } from "./composites.js"
 import { fakeWorldBoard, recordedBoard } from "./compared-boards.test-support.js"
+import { ACTIVITY_PAGE_CASES } from "./activity-page.test-support.js"
 import { CONTRACT_CASES } from "./contract-cases.test-support.js"
 import { HISTORY_ORDER_CASES } from "./history-order.test-support.js"
 import { engineImageOf } from "./engine-image.test-support.js"
@@ -394,7 +396,11 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
       expect(await runtime.getBulkFailures(world.unknown.bulkOperationId)).toEqual([])
     })
 
-    for (const [name, check] of [...CONTRACT_CASES, ...HISTORY_ORDER_CASES]) {
+    for (const [name, check] of [
+      ...CONTRACT_CASES,
+      ...HISTORY_ORDER_CASES,
+      ...ACTIVITY_PAGE_CASES,
+    ]) {
       test(name, () => {
         const { url, harness } = prepared()
         return check({ url, runtime: harness.runtime, resolve: boardEngineAt(url) })

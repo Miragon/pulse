@@ -2,10 +2,11 @@
  * The honest-numbers table's cases of a call activity's copies (a called instance's incident,
  * copied without a message) and an instance's history: each read that names a copy's root cause,
  * an instance's caller or its start is enrichment, so its failure leaves the build intact; an
- * activity's page at a call activity reads its incidents whole, each page primary.
+ * activity's page at a call activity lists its root incidents alone, and a first page read whole
+ * totals its rows.
  */
 
-import { buildActivityIncidentsData } from "./process-incidents-data.js"
+import { buildActivityIncidentsData } from "./activity-incidents-data.js"
 import { buildInstanceDetailData } from "./instance-detail-data.js"
 import { cibsevenProvider } from "../providers/index.js"
 import { WORLD } from "../tools/test-support/engine-world.js"
@@ -55,7 +56,7 @@ const CALL_XML = `<?xml version="1.0"?><definitions><process id="${WORLD.key}"><
 
 /**
  * The caller's call activity, drawn as one on the latest diagram, holding a root incident of its own
- * beside its copy of the called instance's: an activity page there reads its incidents whole.
+ * beside its copy of the called instance's: an activity page there lists the root incident alone.
  */
 function atCallActivity(r: RecordedRequest): FakeReply | undefined {
   if (r.path === `/process-definition/${WORLD.latestDefinitionId}/xml`) {
@@ -110,7 +111,7 @@ export const COPY_CASES: Record<string, EnrichedCase> = {
       "GET /process-instance?maxResults&processInstanceIds": (data: {
         incidents: Array<{ businessKey: unknown }>
       }) => data.incidents[0]?.businessKey,
-      // Unread, the page cannot tell the call activity and reads it whole all the same.
+      // Unread, the diagram names no element; the rows and their total stay the same.
       [LATEST_XML]: (data: { incidents: Array<{ activityName: unknown }> }) =>
         data.incidents[0]?.activityName,
     },

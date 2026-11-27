@@ -23,7 +23,7 @@ function sources(dir: string): string[] {
   })
 }
 
-const PAGED = /\busePaged(ViewData|ListView)\b/
+const PAGED = /\b(usePaged(ViewData|ListView)|useCursorViewData)\b/
 const files = sources(WIDGETS).filter((path) => PAGED.test(readFileSync(path, "utf8")))
 
 describe("every paged list reaches the inline fit", () => {
@@ -32,7 +32,7 @@ describe("every paged list reaches the inline fit", () => {
       "cluster-detail.tsx",
       "history-timeline.tsx",
       "job-panel.tsx",
-      "process-incidents/incident-table.tsx",
+      "process-incidents/paged-incident-table.tsx",
       "process-instances/list.tsx",
     ])
   })

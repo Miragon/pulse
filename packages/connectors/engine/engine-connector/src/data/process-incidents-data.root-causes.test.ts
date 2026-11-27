@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { cibsevenProvider } from "../providers/index.js"
-import { clientFor, startFakeEngine, type FakeRoutes } from "../tools/test-support/fake-engine.js"
-import { buildActivityIncidentsData } from "./process-incidents-data.js"
+import { pageOn } from "./activity-incidents-data.test-support.js"
 import {
   build,
   closeEnginesAfterEach,
   definitionRoutes,
-  engines,
   incidentsAt,
   KEY,
   row,
@@ -53,23 +50,20 @@ describe("buildActivityIncidentsData: a call activity's copies are no row of its
     rootCauseIncidentId: root,
   })
 
-  async function page(atCallCheck: readonly unknown[]) {
-    const routes: FakeRoutes = {
-      "GET /process-definition": {
-        body: [{ id: V2, key: KEY, name: "Leasing", version: 2 }],
+  /** The page at the call activity, whose incidents all lie in v1. */
+  function page(atCallCheck: readonly unknown[]) {
+    const diagram = (id: string) => ({ body: { id, bpmn20Xml: CALLER_XML } })
+    return pageOn(
+      {
+        "GET /process-definition": {
+          body: [{ id: V2, key: KEY, name: "Leasing", version: 2 }],
+        },
+        [`GET /process-definition/${V2}/xml`]: diagram(V2),
+        [`GET /process-definition/${V1}/xml`]: diagram(V1),
+        ...incidentsAt({ callCheck: atCallCheck }),
       },
-      [`GET /process-definition/${V2}/xml`]: { body: { id: V2, bpmn20Xml: CALLER_XML } },
-      ...incidentsAt({ callCheck: atCallCheck }),
-    }
-    const engine = await startFakeEngine(routes, { body: [] })
-    engines.push(engine)
-    const data = await buildActivityIncidentsData(clientFor(engine), {
-      baseUrl: engine.baseUrl,
-      provider: cibsevenProvider,
-      processDefinitionKey: KEY,
-      activityId: "callCheck",
-    })
-    return { data, requests: engine.requests }
+      { activityId: "callCheck" },
+    )
   }
 
   it("lists its own root incident alone, as its group counts it, reading no root of a copy", async () => {
@@ -85,10 +79,9 @@ describe("buildActivityIncidentsData: a call activity's copies are no row of its
       [row(3, "callCheck", V1).id, "Check applicant", null],
     ])
     expect(requests.filter((r) => r.path.startsWith("/incident/root"))).toEqual([])
-    // Never counted at the call activity (the count holds the copies), only at its body.
-    expect(
-      requests.filter((r) => r.path === "/incident/count").map((r) => r.query.activityId),
-    ).toEqual(["callCheck#multiInstanceBody"])
+    // Never counted by the engine at the call activity (the count holds the copies): a page read
+    // whole totals its rows, the root incidents alone.
+    expect(requests.filter((r) => r.path === "/incident/count")).toEqual([])
   })
 
   it("has no row where the call activity holds copies alone", async () => {

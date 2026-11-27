@@ -1,27 +1,15 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import {
-  elementOfActivity,
-  engineDateMillis,
-  isRootIncident,
-  latestEngineDate,
-  multiInstanceBodyOf,
-} from "@miragon/pulse-c7-core"
-import {
-  getIncidentsCount,
-  getJobsCount,
-  getProcessInstancesCount,
-} from "@miragon/pulse-c7-client/sdk"
+import { elementOfActivity, isRootIncident, latestEngineDate } from "@miragon/pulse-c7-core"
+import { getJobsCount, getProcessInstancesCount } from "@miragon/pulse-c7-client/sdk"
 import { bpmnProcessNameOf, readBpmnNames } from "@miragon/pulse-widget-shell/server"
 import type {
-  ActivityIncidentsData,
   IncidentsByProcess,
   ProcessIncidentsActivity,
   ProcessIncidentsData,
 } from "../view-models.js"
-import type { ActivityIncidentsFilters, PagingArgs } from "../feed-contracts.js"
 import type { EngineProvider } from "../engine-provider.js"
 import { buildProcessCockpitUrl } from "../lib/engine/cockpit-url.js"
-import { bpmnActivityIds, bpmnCallActivityIds } from "../lib/bpmn/bpmn-parse.js"
+import { bpmnActivityIds } from "../lib/bpmn/bpmn-parse.js"
 import {
   fetchDefinitionXml,
   fetchLatestDefinition,
@@ -32,15 +20,11 @@ import {
 import { readElementCounts } from "./element-counts.js"
 import { countOf, optional } from "./engine-reads.js"
 import {
-  fetchBusinessKeys,
   groupBy,
-  readIncidents,
   scanFacts,
   scanIncidents,
-  toIncidentInstance,
   type IncidentRow,
   type IncidentScan,
-  type RowWindow,
 } from "./incident-scan.js"
 
 /**
@@ -155,13 +139,14 @@ function toActivities(
 }
 
 /**
- * The open root incidents per element of the diagram: a complete scan already holds every incident
- * of the key, so its root incidents are exact, a multi-instance body's on its activity; otherwise
+ * The open root incidents per element of the diagram, the count of each group and of an activity's
+ * page with more (`activity-incidents-data.ts`): a complete scan already holds every incident of
+ * the key, so its root incidents are exact, a multi-instance body's on its activity; otherwise
  * each version that holds a root incident is read by the shared process screen's rule
  * (`readElementCounts`: its statistics with every incident at an element, the body's on its
  * activity, and the incidents at its call activities whole).
  */
-async function activityIncidentCounts(
+export async function activityIncidentCounts(
   client: Client,
   read: { scan: IncidentScan; roots: IncidentRow[]; stats: KeyStats | undefined },
 ): Promise<Map<string, number>> {
@@ -196,169 +181,4 @@ async function siblingsWithIncidentsOf(
     processDefinitionName: stats.latest.name,
     incidentCount: stats.incidentCount,
   }))
-}
-
-export type ActivityIncidentsArgs = ActivityIncidentsFilters & PagingArgs
-
-const ACTIVITY_INCIDENTS_PAGE = 10
-
-/** A page of an activity's root incidents and how many it holds. */
-interface RootsPage {
-  rows: IncidentRow[]
-  totalCount: number
-}
-
-/** Where a page's root incidents lie: a key's incidents at one activity id. */
-interface RootsAt {
-  processDefinitionKeyIn: string
-  activityId: string
-}
-
-/**
- * How a window of the root incidents at one activity id is read, whole or paged by the engine, and
- * how many lie there; `counted`, what the engine's `/incident/count` already counted there.
- */
-type RootsRead = (
-  client: Client,
-  filter: RootsAt,
-  window: RowWindow,
-  counted?: number,
-) => Promise<RootsPage>
-
-/**
- * Whether the activity may hold a call activity's copies of its called instances' incidents: it is
- * a call activity in the key's latest diagram, or that diagram cannot tell (unread, or without the
- * element, which only an older version has).
- */
-function mayHoldCopies(bpmnXml: string | null, activityId: string): boolean {
-  return (
-    bpmnXml === null ||
-    bpmnCallActivityIds(bpmnXml).includes(activityId) ||
-    !bpmnActivityIds(bpmnXml).includes(activityId)
-  )
-}
-
-/**
- * Where copies may lie: the activity's incidents read whole, its root incidents (`isRootIncident`)
- * windowed in memory and counted, so no copy is a row or part of the total, nor is a count, which
- * holds the copies.
- */
-async function rootsReadWhole(
-  client: Client,
-  filter: RootsAt,
-  window: RowWindow,
-): Promise<RootsPage> {
-  const roots = (await readIncidents(client, filter)).filter(isRootIncident)
-  return { rows: roots.slice(window.first, window.first + window.size), totalCount: roots.length }
-}
-
-/**
- * Where no copy lies: the engine pages the activity's incidents (`readIncidents`) and
- * `/incident/count` counts them, unless already counted.
- */
-async function rootsPagedByEngine(
-  client: Client,
-  filter: RootsAt,
-  window: RowWindow,
-  counted?: number,
-): Promise<RootsPage> {
-  const [rows, totalCount] = await Promise.all([
-    readIncidents(client, filter, window),
-    counted ?? getIncidentsCount({ client, query: filter }).then(countOf),
-  ])
-  return { rows, totalCount }
-}
-
-/** The newer incident first, by the instant the engine raised it. */
-function newerFirst(left: IncidentRow, right: IncidentRow): number {
-  return (
-    (engineDateMillis(right.incidentTimestamp) ?? 0) -
-    (engineDateMillis(left.incidentTimestamp) ?? 0)
-  )
-}
-
-/**
- * A page of the element's root incidents and its multi-instance body's (`multiInstanceBodyOf`),
- * which Camunda 7 raises under an id of its own and the element's group counts on the element.
- * Where the body holds none (its `/incident/count`), the element's page alone. Else only the rows
- * of each that the page can hold, read by `read`: the body's from its first to the page's end, with
- * that count, and the element's from as many before the page's first as the body counts, to the
- * page's end. The two are merged newest first, the element's row first on a tie, and their totals
- * summed, so every page is a slice of the one merged list, and no request asks more rows than a
- * page of `readIncidents`.
- */
-async function rootsAtElement(
-  client: Client,
-  read: RootsRead,
-  element: RootsAt,
-  page: RowWindow,
-): Promise<RootsPage> {
-  const body = { ...element, activityId: multiInstanceBodyOf(element.activityId) }
-  const atBody = await getIncidentsCount({ client, query: body }).then(countOf)
-  if (atBody === 0) return read(client, element, page)
-  // A row lies in the merged list at its own list's index or later, so none past the page's end
-  // reaches the page, and an element's row at most `atBody` places later, so the page starts at its
-  // row `from` or after. Of the rows before the page's end, the windows leave out only the
-  // element's before `from`, which all precede the page, so the page's row `i` is the windows'
-  // row `offset + i`.
-  const end = page.first + page.size
-  const from = Math.max(0, page.first - atBody)
-  const [ofBody, own] = await Promise.all([
-    read(client, body, { first: 0, size: Math.min(atBody, end) }, atBody),
-    read(client, element, { first: from, size: end - from }),
-  ])
-  const merged = [...own.rows, ...ofBody.rows].sort(newerFirst)
-  const offset = page.first - from
-  return {
-    rows: merged.slice(offset, offset + page.size),
-    totalCount: own.totalCount + ofBody.totalCount,
-  }
-}
-
-/**
- * A page of an activity's open ROOT incidents, newest first, as its group counts them (owner
- * decision D2, amended on 2026-11-19): a call activity's copy of a called instance's incident is no
- * row and no part of the total. Copies only lie at a call activity (`mayHoldCopies`, by the key's
- * latest diagram, read through the one XML cache, which also names the rows' element): there the
- * activity's incidents are read whole and its root incidents paged in memory; anywhere else the
- * engine pages them and `/incident/count` counts them. A multi-instance body's root incidents are
- * the activity's too (`rootsAtElement`), each row under its own id. Each row links to its OWN
- * definition version, so no definition lookup runs per page (N67). An unknown key is a not-found
- * error.
- */
-export async function buildActivityIncidentsData(
-  client: Client,
-  options: {
-    baseUrl: string
-    cockpitUrl?: string
-    provider: EngineProvider
-  } & ActivityIncidentsArgs,
-): Promise<Omit<ActivityIncidentsData, "engineId">> {
-  const filter = {
-    processDefinitionKeyIn: options.processDefinitionKey,
-    activityId: options.activityId,
-  }
-  const first = Math.max(0, options.firstResult ?? 0)
-  const size = options.maxResults ?? ACTIVITY_INCIDENTS_PAGE
-  // Primary: an unknown key is a not-found error, never a page of zeros.
-  const latest = await fetchLatestDefinition(client, options.processDefinitionKey)
-  // Enrichment: an unread diagram names no element and leaves the copies to the whole read.
-  const bpmnXml = latest.id ? await optional(fetchDefinitionXml(client, latest.id)) : null
-  const read = mayHoldCopies(bpmnXml, options.activityId) ? rootsReadWhole : rootsPagedByEngine
-  const { rows, totalCount } = await rootsAtElement(client, read, filter, { first, size })
-  const names = readBpmnNames(bpmnXml ?? "").elements
-  const activityName = Object.hasOwn(names, options.activityId) ? names[options.activityId] : null
-  // Enrichment: a failed read names the rows by their short ids.
-  const businessKeys = await optional(
-    fetchBusinessKeys(
-      client,
-      rows.map((r) => r.processInstanceId),
-    ),
-  )
-  return {
-    processDefinitionKey: options.processDefinitionKey,
-    activityId: options.activityId,
-    incidents: rows.map((r) => toIncidentInstance(r, options, businessKeys, activityName)),
-    totalCount,
-  }
 }

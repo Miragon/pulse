@@ -111,7 +111,8 @@ bundle that dedupes it needs a 1.x copy, and no package manager warns about it.
   `ListTable` + `PagedRows`, the dual-mode data hooks, hand-offs, …), reused across both widget
   packages. The BPMN diagram and its viewer are pulse-ui's (`@miragon/pulse-ui/bpmn`).
   Inline in a chat a view is a card (#396): the view root's measured fit (`HostDocument`,
-  `InlineFitBox`) caps a paged list (`usePagedViewData`) and an unpaged `ListTable` to the
+  `InlineFitBox`) caps a paged list (`usePagedViewData` by offset, `useCursorViewData` by the
+  cursor of the page before, for a feed whose order ties) and an unpaged `ListTable` to the
   rows that fit the host's height budget, measured on the rendered view, with the count and
   a way to the rest (fullscreen where the host offers it); a BPMN canvas stays at 320 px only
   where the view hands `useDiagramMaxHeight()` to pulse-ui's `BpmnDiagram` (`maxHeight`) or

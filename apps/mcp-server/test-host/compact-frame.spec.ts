@@ -324,6 +324,7 @@ async function groupedIncidents(page: Page) {
           activityId,
           incidents: rows(activityId, count),
           totalCount: count,
+          next: null,
           engineId: HEALTHY_ENGINE,
         }),
       )

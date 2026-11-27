@@ -46,7 +46,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for one activity's incident rows, offset-paged. Prefer engine_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for one activity's incident rows, cursor-paged. Prefer engine_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -54,16 +54,16 @@
           "description": "Activity id whose incidents to page",
           "type": "string"
         },
+        "after": {
+          "description": "The cursor of the page before, from its next.",
+          "minLength": 1,
+          "type": "string"
+        },
         "engine": {
           "enum": [
             "default"
           ],
           "type": "string"
-        },
-        "firstResult": {
-          "description": "Offset for pagination (0-based).",
-          "minimum": 0,
-          "type": "integer"
         },
         "maxResults": {
           "description": "Page size.",

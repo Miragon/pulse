@@ -5,7 +5,7 @@ import type { ProcessIncidentsData } from "../../view-models.js"
 import { useNav } from "../navigation.js"
 import { ActivitySummary, ActivityTitle } from "./activity-summary.js"
 import { useDefinitionData, type DefinitionScope } from "./feed.js"
-import { PagedIncidentTable } from "./incident-table.js"
+import { PagedIncidentTable } from "./paged-incident-table.js"
 import { EmptyStateWithSiblings } from "./empty-state.js"
 import { useT } from "../../messages/use-t.js"
 
