@@ -141,8 +141,11 @@ const ENDED_VERSIONS_COUNTED = 3 * VERSIONS_AT_ONCE
  */
 export const DURATION_RANK_LIMIT = 50_000
 
-/** The answers kept per engine and caller at most; past it the least recently used one goes. */
-const STATS_FLOOR_ENTRIES = 128
+/**
+ * The answers kept per engine and caller (past it the caller's least recently used one goes) and
+ * the callers per engine (past it the least recently active caller's go): 128 answers at most.
+ */
+const STATS_FLOOR_BOUNDS = { maxEntries: 4, maxCallers: 32 }
 
 /**
  * The floor under the numbers: a call reads up to a few hundred counts, so a caller's same call
@@ -150,7 +153,7 @@ const STATS_FLOOR_ENTRIES = 128
  * engine client and per CALLER (`createCallerCache`); a failed read is not kept.
  */
 const statsFloor = createCallerCache<ProcessStatsData>({
-  maxEntries: STATS_FLOOR_ENTRIES,
+  ...STATS_FLOOR_BOUNDS,
   ttlMs: SCREEN_FLOOR_MS,
   now: () => Date.now(),
 })

@@ -2,10 +2,24 @@ import type { Client } from "@miragon/pulse-c7-client"
 import { getProcessDefinitionBpmn20Xml } from "@miragon/pulse-c7-client/sdk"
 import { createOwnerCache, engineClientKey } from "../engine/per-engine.js"
 
-/** A definition's XML never changes (a redeploy mints a new id); the bound only caps memory. */
-const XML_CACHE_ENTRIES = 64
+/**
+ * A definition's XML never changes (a redeploy mints a new id); the bounds only cap memory: XMLs per
+ * engine and caller, past it the caller's least recently used one goes. A caller opens a few
+ * processes, each a diagram and those of its versions with an incident (`ElementStatisticsReader`).
+ */
+const XML_CACHE_ENTRIES = 8
 
-const xmlCache = createOwnerCache<string | null>({ maxEntries: XML_CACHE_ENTRIES })
+/**
+ * Callers whose XMLs an engine keeps, each counted once it holds one; past it the least recently
+ * active caller's go. Per engine at most XML_CACHE_CALLERS × XML_CACHE_ENTRIES (128) XMLs, twice
+ * the 64 for every caller together before, so 16 callers that read in turn never evict each other.
+ */
+const XML_CACHE_CALLERS = 16
+
+const xmlCache = createOwnerCache<string | null>({
+  maxEntries: XML_CACHE_ENTRIES,
+  maxCallers: XML_CACHE_CALLERS,
+})
 
 /** Reads a definition's XML on its engine, or `null` when the engine has none for it. */
 type DefinitionXmlReader = (definitionId: string) => Promise<string | null>

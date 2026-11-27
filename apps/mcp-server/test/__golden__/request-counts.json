@@ -7,13 +7,14 @@
           "GET /incident": 18,
           "GET /incident/{id}": 1,
           "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
           "GET /process-definition/{id}/statistics": 19,
           "GET /process-definition/{id}/xml": 18,
           "GET /task": 1,
           "GET /task/count": 1
         }
       },
-      "total": 59
+      "total": 60
     },
     "engine_activity_incidents_data": {
       "requests": {
@@ -31,11 +32,12 @@
         "prod-1": {
           "GET /incident": 17,
           "GET /process-definition": 2,
+          "GET /process-definition/statistics": 1,
           "GET /process-definition/{id}/statistics": 19,
           "GET /process-definition/{id}/xml": 17
         }
       },
-      "total": 55
+      "total": 56
     },
     "engine_activity_statistics_data:history": {
       "requests": {

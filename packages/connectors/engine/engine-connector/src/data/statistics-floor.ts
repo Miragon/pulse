@@ -23,10 +23,10 @@ import { SCREEN_FLOOR_MS } from "./screens/screen-floor.js"
 export const STATISTICS_FLOOR_MS = SCREEN_FLOOR_MS
 
 /**
- * Reads kept per engine client at most, one per caller; past it the least recently used one goes.
- * Each holds a row per deployed version, so the bound stays low.
+ * Callers whose read an engine client keeps, one each; past it the least recently active caller's
+ * goes: 32 reads per engine at most. Each holds a row per deployed version, so the bound stays low.
  */
-const STATISTICS_FLOOR_ENTRIES = 32
+const STATISTICS_FLOOR_CALLERS = 32
 
 /** The engine's definition statistics as one read answered them. */
 export interface StatisticsRead {
@@ -37,17 +37,29 @@ export interface StatisticsRead {
 }
 
 const statisticsFloor = createCallerCache<StatisticsRead>({
-  maxEntries: STATISTICS_FLOOR_ENTRIES,
+  maxEntries: 1,
+  maxCallers: STATISTICS_FLOOR_CALLERS,
   ttlMs: STATISTICS_FLOOR_MS,
   now: () => Date.now(),
   dropOnWrite: true,
 })
 
+/** The one id the floor keeps its read under, per engine and caller. */
+const STATISTICS_ID = "definition-statistics"
+
 /** The engine's definition statistics for this caller: a read of the last 30 s, else one sent now. */
 export function readStatistics(client: Client): Promise<StatisticsRead> {
-  return statisticsFloor(client, "definition-statistics", async () => {
+  return statisticsFloor(client, STATISTICS_ID, async () => {
     const readAt = Date.now()
     const rows = await readDefinitionStatistics(enginePortFor(client), { failedJobs: true })
     return { rows, readAt }
   })
+}
+
+/**
+ * This caller's statistics read of the last 30 s when one answered and stays, without reading or
+ * waiting (`CallerCache.peek`): none while the floor is cold, or its read still out or failed.
+ */
+export function peekStatistics(client: Client): StatisticsRead | undefined {
+  return statisticsFloor.peek(client, STATISTICS_ID)
 }

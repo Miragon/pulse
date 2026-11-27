@@ -132,8 +132,8 @@ lists what still differs. The decisions are in `apps/vscode/docs/adr/ui-foundati
 4. A view tool (`open_cockpit`) returns the view's data as `structuredContent` and its facts as
    compact JSON as `content`, which the host renders in the view the bundle picks by the tool's name
    (re-running the tool once where a host drops it). App-only `*_data` feeds refresh and page it
-   without a model turn. The overview, health and incidents share one statistics read per engine and
-   caller, 30 s or until a write tool answers on that engine, the health on it, its time in the bar.
+   without a model turn. The overview, health and incidents share one statistics read per engine
+   and caller (30 s or until a write), its time in the bar; diagram counts skip its idle versions.
 5. A board (`view` `board`): the app-only `engine_board_data` builds a file of `ENGINE_BOARDS_DIR`
    with `@miragon/pulse-board`'s builder over each engine it names (`runtimeOf`: `C7Runtime` or
    `C8Runtime`), kept 30 s per caller; the cockpit draws its JSON with `@miragon/pulse-blocks`.

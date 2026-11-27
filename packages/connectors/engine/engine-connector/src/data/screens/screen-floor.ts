@@ -17,8 +17,15 @@ import type { RuntimeEngine } from "../../lib/engine/resolve-engine.js"
 /** How long a screen's read answers again for the same caller and arguments. */
 export const SCREEN_FLOOR_MS = 30_000
 
-/** Answers per engine and caller at most; past it the least recently used one goes. */
-const SCREEN_FLOOR_ENTRIES = 256
+/** Answers of one feed per engine and caller at most; past it the caller's least recently used one goes. */
+const SCREEN_FLOOR_ENTRIES = 8
+
+/**
+ * Callers kept per engine and feed; past it the least recently active caller's answers go. A feed
+ * keeps SCREEN_FLOOR_CALLERS × SCREEN_FLOOR_ENTRIES (256) answers per engine at most, as many as
+ * it kept for every caller together before each caller had a bound of its own.
+ */
+const SCREEN_FLOOR_CALLERS = 32
 
 /** A floor of one feed: the answer of `read` for `args` on `engine`, kept for SCREEN_FLOOR_MS. */
 export type ScreenFloor<T> = (
@@ -31,6 +38,7 @@ export type ScreenFloor<T> = (
 export function screenFloor<T>(keep: (value: T) => boolean = () => true): ScreenFloor<T> {
   const cached = createOwnerCache<T>({
     maxEntries: SCREEN_FLOOR_ENTRIES,
+    maxCallers: SCREEN_FLOOR_CALLERS,
     ttlMs: SCREEN_FLOOR_MS,
     now: () => Date.now(),
     keep,

@@ -25,10 +25,19 @@ function deferred() {
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0))
 
+/** `call` as the caller `user`, signed in with a token of its own. */
+const as = <T>(user: string, call: () => Promise<T>) =>
+  runWithMcpRequestInfo({ authUserId: user, authorization: `Bearer ${user}` }, call)
+
 describe("createCallerCache", () => {
   it("answers from one read until its TTL runs out, then reads again", async () => {
     let clock = 0
-    const cache = createCallerCache<number>({ maxEntries: 8, ttlMs: 1000, now: () => clock })
+    const cache = createCallerCache<number>({
+      maxEntries: 8,
+      maxCallers: 4,
+      ttlMs: 1000,
+      now: () => clock,
+    })
     const client = engineClient()
     let reads = 0
     const read = () => Promise.resolve(++reads)
@@ -42,7 +51,7 @@ describe("createCallerCache", () => {
 
   it("keeps an entry for good without a TTL", async () => {
     let clock = 0
-    const cache = createCallerCache<number>({ maxEntries: 8, now: () => clock })
+    const cache = createCallerCache<number>({ maxEntries: 8, maxCallers: 4, now: () => clock })
     const client = engineClient()
     let reads = 0
     await cache(client, "a", () => Promise.resolve(++reads))
@@ -53,7 +62,7 @@ describe("createCallerCache", () => {
 
 describe("createOwnerCache", () => {
   it("keeps reads apart per owner object", async () => {
-    const cache = createOwnerCache<string>({ maxEntries: 8 })
+    const cache = createOwnerCache<string>({ maxEntries: 8, maxCallers: 4 })
     const [first, second] = [{}, {}]
     expect(await cache(first, "a", () => Promise.resolve("first"))).toBe("first")
     expect(await cache(second, "a", () => Promise.resolve("second"))).toBe("second")
@@ -61,7 +70,11 @@ describe("createOwnerCache", () => {
   })
 
   it("answers the calls that shared a value `keep` refuses, then reads again", async () => {
-    const cache = createOwnerCache<number>({ maxEntries: 8, keep: (value) => value > 1 })
+    const cache = createOwnerCache<number>({
+      maxEntries: 8,
+      maxCallers: 4,
+      keep: (value) => value > 1,
+    })
     const owner = {}
     let reads = 0
     const read = () => Promise.resolve(++reads)
@@ -72,11 +85,82 @@ describe("createOwnerCache", () => {
   })
 })
 
+describe("createOwnerCache: bounds per caller", () => {
+  /** A cache whose reads count per id, so a read again names the id with a higher count. */
+  function counted(options: { maxEntries: number; maxCallers: number }) {
+    const cache = createOwnerCache<string>(options)
+    const reads = new Map<string, number>()
+    const read = (id: string) => () => {
+      reads.set(id, (reads.get(id) ?? 0) + 1)
+      return Promise.resolve(`${id}#${String(reads.get(id))}`)
+    }
+    return (owner: object, ...ids: string[]) =>
+      Promise.all(ids.map((id) => cache(owner, id, read(id))))
+  }
+
+  it("keeps a caller's entries however many another caller reads", async () => {
+    const read = counted({ maxEntries: 2, maxCallers: 4 })
+    const owner = {}
+    expect(await as("ada", () => read(owner, "a", "b"))).toEqual(["a#1", "b#1"])
+    // Bob reads past his bound: his least recently used goes, never one of Ada's.
+    await as("bob", () => read(owner, "c", "d", "e"))
+    expect(await as("ada", () => read(owner, "a", "b"))).toEqual(["a#1", "b#1"])
+    expect(await as("bob", () => read(owner, "d", "e", "c"))).toEqual(["d#1", "e#1", "c#2"])
+  })
+
+  it("drops every entry of the least recently active caller past the callers it keeps", async () => {
+    const read = counted({ maxEntries: 2, maxCallers: 2 })
+    const owner = {}
+    await as("ada", () => read(owner, "a", "b"))
+    await as("bob", () => read(owner, "c"))
+    await as("ada", () => read(owner, "a"))
+    // A third caller: Bob was the least recently active, so his entries go, Ada's stay.
+    await as("cy", () => read(owner, "d"))
+    expect(await as("ada", () => read(owner, "a", "b"))).toEqual(["a#1", "b#1"])
+    expect(await as("bob", () => read(owner, "c"))).toEqual(["c#2"])
+  })
+
+  it("counts a caller towards the callers it keeps only once it holds an answer", async () => {
+    const cache = createOwnerCache<string>({
+      maxEntries: 8,
+      maxCallers: 32,
+      keep: (value) => value !== "refused",
+    })
+    const owner = {}
+    let reads = 0
+    const read = () => {
+      reads++
+      return Promise.resolve("a")
+    }
+    await as("ada", () => cache(owner, "a", read))
+    // 32 callers with a token of their own whose reads fail (an engine that refuses them) or
+    // answer what `keep` refuses: none holds an answer, so none takes Ada's place.
+    for (let junk = 0; junk < 32; junk++) {
+      const answer = () =>
+        junk % 2 === 0 ? Promise.reject(new Error("401")) : Promise.resolve("refused")
+      await as(`junk-${String(junk)}`, () => cache(owner, "a", answer)).catch(() => undefined)
+    }
+    await as("ada", () => cache(owner, "a", read))
+    expect(reads).toBe(1)
+  })
+
+  it("keeps the owner's whole bound for the one caller of the calls that send no token", async () => {
+    const read = counted({ maxEntries: 2, maxCallers: 3 })
+    const owner = {}
+    const ids = ["a", "b", "c", "d", "e", "f"]
+    await read(owner, ...ids)
+    expect(await read(owner, ...ids)).toEqual(ids.map((id) => `${id}#1`))
+    await read(owner, "g")
+    expect(await read(owner, "a")).toEqual(["a#2"])
+  })
+})
+
 describe("createOwnerCache: a value's age", () => {
   it("runs the TTL from the oldest read a value holds once it answered", async () => {
     let clock = 500
     const cache = createOwnerCache<{ readAt: number }>({
       maxEntries: 8,
+      maxCallers: 4,
       ttlMs: 1000,
       now: () => clock,
       readAt: (value) => value.readAt,
@@ -94,12 +178,9 @@ describe("createOwnerCache: a value's age", () => {
 })
 
 describe("dropAfterWrite", () => {
-  const as = <T>(user: string, call: () => Promise<T>) =>
-    runWithMcpRequestInfo({ authUserId: user, authorization: `Bearer ${user}` }, call)
-
   it("drops every caller's entries of the written engine in the caches made to drop them", async () => {
-    const dropped = createOwnerCache<number>({ maxEntries: 8, dropOnWrite: true })
-    const kept = createOwnerCache<number>({ maxEntries: 8 })
+    const dropped = createOwnerCache<number>({ maxEntries: 8, maxCallers: 4, dropOnWrite: true })
+    const kept = createOwnerCache<number>({ maxEntries: 8, maxCallers: 4 })
     const [written, other] = [{}, {}]
     let reads = 0
     const read = () => Promise.resolve(++reads)
@@ -118,7 +199,7 @@ describe("dropAfterWrite", () => {
   })
 
   it("keeps no read that was in flight at the write, though it answers its callers", async () => {
-    const cache = createOwnerCache<number>({ maxEntries: 8, dropOnWrite: true })
+    const cache = createOwnerCache<number>({ maxEntries: 8, maxCallers: 4, dropOnWrite: true })
     const owner = {}
     const open = deferred()
     let reads = 0
@@ -149,7 +230,7 @@ describe("createHeldCache", () => {
   }
 
   it("takes a released read off the cache: the next call reads anew, a sharer still waits on it, its answer is kept nowhere", async () => {
-    const cache = createHeldCache<number>({ maxEntries: 8 })
+    const cache = createHeldCache<number>({ maxEntries: 8, maxCallers: 4 })
     const owner = {}
     const { asked, read } = reads()
     const cut = cache(owner, "a", read)
@@ -166,7 +247,7 @@ describe("createHeldCache", () => {
   })
 
   it("leaves a newer read in place when a call releases one the cache no longer holds", async () => {
-    const cache = createHeldCache<number>({ maxEntries: 8 })
+    const cache = createHeldCache<number>({ maxEntries: 8, maxCallers: 4 })
     const owner = {}
     const { asked, read } = reads()
     const first = cache(owner, "a", read)
@@ -182,7 +263,7 @@ describe("createHeldCache", () => {
   })
 
   it("releases the read a sharer took again after the call that started its first was cancelled", async () => {
-    const cache = createHeldCache<number>({ maxEntries: 8 })
+    const cache = createHeldCache<number>({ maxEntries: 8, maxCallers: 4 })
     const owner = {}
     const { asked, read } = reads()
     const leaving = cache(owner, "a", () =>
