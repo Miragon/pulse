@@ -50,7 +50,7 @@ import {
   buildProcessInstancesData,
 } from "./cockpit-data.js"
 import type { VerdictThresholds } from "@miragon/pulse-c7-core"
-import { buildEngineHealthData } from "./health-data.js"
+import { cachedEngineHealthData } from "./health-floor.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
 import { buildIncidentDetailData } from "./incident-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
@@ -172,7 +172,7 @@ export const healthFeed = dataFeed({
   dialects: ["c7"],
   shape: {},
   read: (_, { client, engineId }, { healthThresholds }) =>
-    buildEngineHealthData(client, engineId, healthThresholds),
+    cachedEngineHealthData(client, engineId, healthThresholds),
 })
 
 export const clusterDetailFeed = dataFeed({

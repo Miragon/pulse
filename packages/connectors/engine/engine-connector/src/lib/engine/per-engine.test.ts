@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { Client } from "@miragon/pulse-c7-client"
-import { createCallerCache, createOwnerCache, oneAtATime } from "./per-engine.js"
+import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
+import { createCallerCache, createOwnerCache, dropAfterWrite, oneAtATime } from "./per-engine.js"
 
 // A stand-in engine client: what the module keeps per engine keys on its interceptors.
 const engineClient = () => ({ interceptors: {} }) as unknown as Client
@@ -60,6 +61,69 @@ describe("createOwnerCache", () => {
     const [shared, joined] = [cache(owner, "a", read), cache(owner, "a", read)]
     expect([await shared, await joined]).toEqual([1, 1])
     expect(await cache(owner, "a", read)).toBe(2)
+    expect(await cache(owner, "a", read)).toBe(2)
+  })
+})
+
+describe("createOwnerCache: a value's age", () => {
+  it("runs the TTL from the oldest read a value holds once it answered", async () => {
+    let clock = 500
+    const cache = createOwnerCache<{ readAt: number }>({
+      maxEntries: 8,
+      ttlMs: 1000,
+      now: () => clock,
+      readAt: (value) => value.readAt,
+    })
+    const owner = {}
+    let reads = 0
+    // Built at 500 on a read kept since 0: it ages from 0, never from 500.
+    const read = () => Promise.resolve({ readAt: reads++ === 0 ? 0 : clock })
+    const first = await cache(owner, "a", read)
+    clock = 999
+    expect(await cache(owner, "a", read)).toBe(first)
+    clock = 1000
+    expect(await cache(owner, "a", read)).not.toBe(first)
+  })
+})
+
+describe("dropAfterWrite", () => {
+  const as = <T>(user: string, call: () => Promise<T>) =>
+    runWithMcpRequestInfo({ authUserId: user, authorization: `Bearer ${user}` }, call)
+
+  it("drops every caller's entries of the written engine in the caches made to drop them", async () => {
+    const dropped = createOwnerCache<number>({ maxEntries: 8, dropOnWrite: true })
+    const kept = createOwnerCache<number>({ maxEntries: 8 })
+    const [written, other] = [{}, {}]
+    let reads = 0
+    const read = () => Promise.resolve(++reads)
+    const cases = [
+      [dropped, written, "ada"],
+      [dropped, written, "bob"],
+      [dropped, other, "ada"],
+      [kept, written, "ada"],
+    ] as const
+    const call = () =>
+      Promise.all(cases.map(([cache, owner, user]) => as(user, () => cache(owner, "a", read))))
+    expect(await call()).toEqual([1, 2, 3, 4])
+    dropAfterWrite(written)
+    // Both callers of the written engine read anew; another engine and another cache keep theirs.
+    expect(await call()).toEqual([5, 6, 3, 4])
+  })
+
+  it("keeps no read that was in flight at the write, though it answers its callers", async () => {
+    const cache = createOwnerCache<number>({ maxEntries: 8, dropOnWrite: true })
+    const owner = {}
+    const open = deferred()
+    let reads = 0
+    const read = async () => {
+      const n = ++reads
+      if (n === 1) await open.promise
+      return n
+    }
+    const before = cache(owner, "a", read)
+    dropAfterWrite(owner)
+    open.resolve()
+    expect(await before).toBe(1)
     expect(await cache(owner, "a", read)).toBe(2)
   })
 })

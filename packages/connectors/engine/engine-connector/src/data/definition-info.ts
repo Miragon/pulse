@@ -4,7 +4,6 @@ import {
   type DefinitionStatisticsRow,
   elementOfActivity,
   type ProcessStatistics,
-  readDefinitionStatistics,
   statisticsByKey,
 } from "@miragon/pulse-c7-core"
 import {
@@ -13,8 +12,8 @@ import {
   type BpmnModelNames,
 } from "@miragon/pulse-widget-shell/server"
 import { fetchDefinitionXml } from "../lib/bpmn/definition-xml.js"
-import { enginePortFor } from "../lib/core-adapter/engine-port.js"
-import { rowsOf } from "./engine-reads.js"
+import { optional, rowsOf } from "./engine-reads.js"
+import { readStatistics } from "./statistics-floor.js"
 
 export { fetchDefinitionXml }
 
@@ -140,7 +139,11 @@ export const NAMED_DEFINITIONS_LIMIT = 8
 
 export type NamesByDefinition = ReadonlyMap<string, BpmnModelNames>
 
-/** ENRICHMENT: a failed (or XML-less) read leaves its id out, so its names are null. */
+/**
+ * ENRICHMENT: a failed (or XML-less) read leaves its id out, so its names are null; a failed one,
+ * a read another call started and this one joined included, misses a part of the build over
+ * `client` (`optional`).
+ */
 export async function fetchNamesByDefinition(
   client: Client,
   definitionIds: Iterable<string | null | undefined>,
@@ -151,7 +154,7 @@ export async function fetchNamesByDefinition(
   )
   const read = await Promise.all(
     ids.map(async (id) => {
-      const xml = await fetchDefinitionXml(client, id).catch(() => null)
+      const xml = await optional(fetchDefinitionXml(client, id), client)
       return xml ? ([id, readBpmnNames(xml)] as const) : null
     }),
   )
@@ -247,7 +250,17 @@ export interface KeyStats {
   incidentCount: number
   /** The versions that hold a root incident. */
   incidentVersionIds: string[]
+  /**
+   * The versions that can hold a count on their diagram: running instances, jobs without retries
+   * or open root incidents of any type. Every other version's element statistics are all zero.
+   */
+  heldVersionIds: string[]
   versionIds: string[]
+}
+
+/** Whether a version holds anything its element statistics could count. */
+function holdsCounts(row: DefinitionStatisticsRow): boolean {
+  return row.instances > 0 || row.failedJobs > 0 || row.rootIncidents > 0
 }
 
 function keyStatsOf(process: ProcessStatistics): KeyStats {
@@ -259,11 +272,15 @@ function keyStatsOf(process: ProcessStatistics): KeyStats {
     incidentsByType: new Map(process.incidentsByType),
     incidentCount: process.rootIncidents,
     incidentVersionIds: [...process.incidentVersionIds],
+    heldVersionIds: process.versions.filter(holdsCounts).map((row) => row.definition.id),
     versionIds: process.versions.map((row) => row.definition.id),
   }
 }
 
-/** The statistics per key; with `incidentType`, a key counts the incidents of that type alone. */
+/**
+ * The statistics per key; with `incidentType`, a key counts the incidents of that type alone. Rows
+ * read without the failed jobs count none, so their versions hold counts by instances and incidents.
+ */
 export function foldStatsByKey(
   rows: readonly DefinitionStatisticsRow[],
   incidentType?: string,
@@ -284,30 +301,58 @@ export function definitionKeyResolver(
   return (definitionId) => keyById.get(definitionId) ?? definitionKeyInId(definitionId)
 }
 
-/**
- * ONE engine-wide call (no key filter), so read it only when a view spans keys or needs a key's
- * root incidents. The engine counts each version's open root incidents per type
- * (`rootIncidents=true`, which takes no type of its own), so a type narrows the counts here.
- */
-export async function fetchStatsByKey(
-  client: Client,
-  query: { failedJobs?: boolean; incidentType?: string },
-): Promise<Map<string, KeyStats>> {
-  const rows = await readDefinitionStatistics(enginePortFor(client), {
-    failedJobs: query.failedJobs === true,
-  })
-  return foldStatsByKey(rows, query.incidentType)
+/** The statistics per key of one floored read, and when it was sent. */
+export interface KeyStatsRead {
+  statsByKey: Map<string, KeyStats>
+  /** When the statistics read was sent (epoch milliseconds): the time a view's bar names. */
+  readAt: number
 }
 
-/** Statistics are read only for bare generated ids, so short keys cost no call. */
+/**
+ * ONE engine-wide read (no key filter), so read it only when a view spans keys or needs a key's
+ * root incidents: this engine's and caller's floored one (`readStatistics`, 30 s, the failed jobs
+ * counted), folded per call. The engine counts each version's open root incidents per type
+ * (`rootIncidents=true`, which takes no type of its own), so a type narrows the counts here.
+ */
+export async function fetchStatsRead(
+  client: Client,
+  options: { incidentType?: string } = {},
+): Promise<KeyStatsRead> {
+  const { rows, readAt } = await readStatistics(client)
+  return { statsByKey: foldStatsByKey(rows, options.incidentType), readAt }
+}
+
+/** The statistics per key of the floored read (`fetchStatsRead`), where no time is named. */
+export async function fetchStatsByKey(
+  client: Client,
+  options: { incidentType?: string } = {},
+): Promise<Map<string, KeyStats>> {
+  return (await fetchStatsRead(client, options)).statsByKey
+}
+
+/** The bare generated ids among `definitionIds`, each once: the ones no id names a key of. */
+function bareIdsIn(definitionIds: Iterable<string | null | undefined>): string[] {
+  const ids = [...definitionIds].filter(
+    (id): id is string => !!id && definitionKeyInId(id) === null,
+  )
+  return [...new Set(ids)]
+}
+
+/**
+ * Statistics are read only for bare generated ids, so short keys cost no call. The floored read
+ * (`fetchStatsByKey`, up to 30 s old) lists no version deployed since, so a bare id it misses is
+ * read by its id once (`fetchDefinitionsById`) before its key stays null.
+ */
 export async function resolveDefinitionKeys(
   client: Client,
   definitionIds: Iterable<string | null | undefined>,
 ): Promise<(definitionId: string) => string | null> {
-  for (const id of definitionIds) {
-    if (id && definitionKeyInId(id) === null) {
-      return definitionKeyResolver(await fetchStatsByKey(client, {}))
-    }
-  }
-  return definitionKeyInId
+  const bare = bareIdsIn(definitionIds)
+  if (bare.length === 0) return definitionKeyInId
+  const listed = definitionKeyResolver(await fetchStatsByKey(client))
+  const missed = bare.filter((id) => listed(id) === null)
+  if (missed.length === 0) return listed
+  const deployed = await fetchDefinitionsById(client, missed)
+  // A row that names no key reads "" (`toDefinitionInfo`): no key either.
+  return (definitionId) => listed(definitionId) ?? (deployed.get(definitionId)?.key || null)
 }

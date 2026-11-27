@@ -61,7 +61,7 @@ interface ActivityRef {
  */
 async function rootsAsGrouped(client: Client, { key, activityId }: ActivityRef): Promise<number> {
   const scan = await scanIncidents(client, { processDefinitionKeyIn: key })
-  const stats = scan.complete ? undefined : (await fetchStatsByKey(client, {})).get(key)
+  const stats = scan.complete ? undefined : (await fetchStatsByKey(client)).get(key)
   const roots = scan.rows.filter(isRootIncident)
   return (await activityIncidentCounts(client, { scan, roots, stats })).get(activityId) ?? 0
 }

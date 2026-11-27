@@ -65,7 +65,7 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
     ])
     // The root incidents from the statistics, never /count, which counts a call activity's copies.
     expect(queriesOf(requests, "/process-definition/statistics")).toEqual([
-      { rootIncidents: "true" },
+      { failedJobs: "true", rootIncidents: "true" },
     ])
     // A complete scan needs no per-version reads; the diagram is read by version id, never the
     // tenant-less /key/{key}.
@@ -168,7 +168,7 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
         .map((q) => [q.processDefinitionId, q.activityId]),
     ).toEqual([[V2, "callCheck"]])
     expect(queriesOf(requests, "/process-definition/statistics")).toEqual([
-      { rootIncidents: "true" },
+      { failedJobs: "true", rootIncidents: "true" },
     ])
   })
 

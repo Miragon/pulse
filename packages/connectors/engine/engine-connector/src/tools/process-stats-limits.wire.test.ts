@@ -11,6 +11,8 @@ import {
 } from "./test-support/fake-engine.js"
 import { INSTANCES, NOW, statsWorld, V2 } from "./test-support/stats-world.js"
 import type { ProcessStatsData } from "../data/process-stats-data.js"
+import { fetchStatsByKey } from "../data/definition-info.js"
+import { resolveEngine } from "../lib/engine/resolve-engine.js"
 
 /**
  * `engine_process_stats` on the wire where its reads meet an engine's limits: no history written,
@@ -127,5 +129,22 @@ describe("engine_process_stats at an engine's limits", () => {
     // five rows, never two at once.
     expect(engine.requests.filter((r) => r.query.sortBy === "duration")).toHaveLength(5)
     expect(most).toBe(1)
+  })
+
+  it("names the statistics read it counts the incidents from, as of when it was sent", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: NOW - 10_000 })
+    const engine = await startFakeEngine({}, statsWorld({ instances: INSTANCES }))
+    engines.push(engine)
+    const registry = registryFor(engine)
+    // Another view of the caller's read the statistics 10 s before: the call counts that read.
+    await fetchStatsByKey(resolveEngine("fake", registry).client)
+    vi.setSystemTime(NOW)
+    const config = tools.get("engine_process_stats")
+    if (!config) throw new Error("engine_process_stats is not registered")
+    const args = { processDefinitionKey: "order", bucket: "day" }
+    const data = (await callTool(config, registry, args)) as ProcessStatsData
+    expect(data.asOf).toBe(new Date(NOW - 10_000).toISOString())
+    const statistics = engine.requests.filter((r) => r.path === "/process-definition/statistics")
+    expect(statistics).toHaveLength(1)
   })
 })

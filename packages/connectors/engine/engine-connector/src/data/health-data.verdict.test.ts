@@ -37,11 +37,14 @@ const mockedGetIncidents = vi.mocked(getIncidents)
 
 /** The engine's statistics answer, which c7-core reads over its port through the client's `get`. */
 const statistics = vi.fn<() => unknown>()
-const client = {
-  get: vi.fn((call: { url: string }) =>
-    Promise.resolve(call.url === "/process-definition/statistics" ? statistics() : undefined),
-  ),
-} as unknown as Client
+/** A client of each build's own: the server keeps a client's statistics read for 30 s per caller. */
+const statisticsClient = () =>
+  ({
+    get: vi.fn((call: { url: string }) =>
+      Promise.resolve(call.url === "/process-definition/statistics" ? statistics() : undefined),
+    ),
+  }) as unknown as Client
+let client: Client
 
 interface IncidentRowFixture {
   id: string
@@ -55,6 +58,7 @@ interface IncidentRowFixture {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  client = statisticsClient()
   vi.mocked(getProcessInstances).mockResolvedValue([] as never)
   // Nothing runs: the day's zero counts ask the history in vain, and the zeros stand.
   vi.mocked(getHistoricProcessInstances).mockResolvedValue([] as never)
@@ -105,7 +109,7 @@ describe("buildEngineHealthData verdict", () => {
     mockedGetIncidents.mockResolvedValue(scan(sizes))
     statistics.mockReturnValue(rootStatistics(roots))
     vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
-    return buildEngineHealthData(client, "eng1", T)
+    return buildEngineHealthData(statisticsClient(), "eng1", T)
   }
 
   it.each([

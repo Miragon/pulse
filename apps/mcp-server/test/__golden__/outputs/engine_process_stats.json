@@ -480,7 +480,7 @@
     "GET /engine-rest/job/count?processDefinitionKey=order&noRetriesLeft=true",
     "GET /engine-rest/process-definition/order%3A1%3A5e0d79/xml",
     "GET /engine-rest/process-definition/order%3A2%3A6f1e8a/xml",
-    "GET /engine-rest/process-definition/statistics?rootIncidents=true",
+    "GET /engine-rest/process-definition/statistics?failedJobs=true&rootIncidents=true",
     "GET /engine-rest/process-definition?key=order&sortBy=version&sortOrder=desc",
     "GET /engine-rest/process-instance/count?processDefinitionKey=order",
     "GET /engine-rest/process-instance/count?withIncident=true&processDefinitionKey=order",

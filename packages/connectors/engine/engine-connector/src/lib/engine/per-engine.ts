@@ -21,7 +21,7 @@ function isCancelled(error: unknown): boolean {
   return cancellationOf(error) !== undefined
 }
 
-export interface CallerCacheOptions {
+interface CallerCacheOptions {
   /** Entries per owner (per engine client for a caller cache); past it the least recently used one goes. */
   maxEntries: number
   /** How long an entry answers, from the start of its read; default: for good. */
@@ -39,6 +39,16 @@ export interface OwnerCacheOptions<T> extends CallerCacheOptions {
    * answers the calls that shared its read and goes then.
    */
   keep?: (value: T) => boolean
+  /**
+   * When the oldest read a value holds was sent, its TTL running from then once it answered: a
+   * value built on a kept read ages with that read. Default: the start of its own read.
+   */
+  readAt?: (value: T) => number
+  /**
+   * Whether a write to its owner's engine drops every caller's entries of that owner
+   * (`dropAfterWrite`), so the next read after a write reads anew. Default: no.
+   */
+  dropOnWrite?: boolean
 }
 
 /** Answers `id` of `owner` from the cache, or from `read`. */
@@ -49,21 +59,37 @@ interface Entry<T> {
   at: number
 }
 
+/** Each cache's entries per owner, of the caches a write to the owner's engine drops. */
+const droppedOnWrite = new Set<WeakMap<object, unknown>>()
+
+/**
+ * After a write to the engine `owner` stands for (an engine client's interceptors,
+ * `engineClientKey`): every caller's entries of that owner in the caches made with `dropOnWrite`
+ * go, so the views a write changed read anew. Every other cache keeps its entries.
+ */
+export function dropAfterWrite(owner: object): void {
+  for (const caches of droppedOnWrite) caches.delete(owner)
+}
+
 /**
  * Reads kept per owner (an engine client's interceptors, a board, whatever the reads belong to)
  * and per CALLER: under passthrough auth the engine decides per token what a caller may read.
  * Concurrent calls share one read; a failed read is not kept, and neither is a value `keep`
  * refuses. A shared read runs on the signal of the call that started it: when THAT call is
  * cancelled, the read is dropped and a joiner reads again through its own view, so only its own
- * cancellation fails it.
+ * cancellation fails it. With `dropOnWrite`, a write to the owner's engine drops the owner's
+ * entries (`dropAfterWrite`): a read in flight then answers its callers and is kept no longer.
  */
 export function createOwnerCache<T>({
   maxEntries,
   ttlMs = Infinity,
   now = Date.now,
   keep = () => true,
+  readAt = () => Infinity,
+  dropOnWrite = false,
 }: OwnerCacheOptions<T>): OwnerCache<T> {
   const caches = new WeakMap<object, Map<string, Entry<T>>>()
+  if (dropOnWrite) droppedOnWrite.add(caches)
   const cached: OwnerCache<T> = (owner, id, read) => {
     let entries = caches.get(owner)
     if (!entries) {
@@ -89,6 +115,7 @@ export function createOwnerCache<T>({
     }
     entry.read.then((value) => {
       if (!keep(value)) drop()
+      entry.at = Math.min(entry.at, readAt(value))
     }, drop)
     for (const oldest of kept.keys()) {
       if (kept.size <= maxEntries) break
@@ -100,7 +127,7 @@ export function createOwnerCache<T>({
 }
 
 /** Reads kept per engine client and per caller (`createOwnerCache`, the client its owner). */
-export function createCallerCache<T>(options: CallerCacheOptions): CallerCache<T> {
+export function createCallerCache<T>(options: OwnerCacheOptions<T>): CallerCache<T> {
   const cached = createOwnerCache<T>(options)
   return (client, id, read) => cached(engineClientKey(client), id, read)
 }

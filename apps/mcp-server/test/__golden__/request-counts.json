@@ -474,11 +474,11 @@
         "prod-1": {
           "GET /history/process-instance/count": 2,
           "GET /incident": 1,
-          "GET /process-definition/statistics": 2,
+          "GET /process-definition/statistics": 1,
           "GET /process-definition/{id}/xml": 2
         }
       },
-      "total": 7
+      "total": 6
     },
     "engine_process_incidents_data": {
       "requests": {
@@ -695,7 +695,7 @@
         "GET /history/process-instance/count": 2,
         "GET /incident": 1,
         "GET /job/count": 3,
-        "GET /process-definition/statistics": 2,
+        "GET /process-definition/statistics": 1,
         "GET /process-definition/{id}/xml": 2
       },
       "prod-2": {
@@ -703,7 +703,7 @@
         "GET /history/process-instance/count": 2,
         "GET /incident": 1,
         "GET /job/count": 3,
-        "GET /process-definition/statistics": 2,
+        "GET /process-definition/statistics": 1,
         "GET /process-definition/{id}/xml": 2
       },
       "prod-3": {
@@ -711,7 +711,7 @@
         "GET /history/process-instance/count": 2,
         "GET /incident": 1,
         "GET /job/count": 3,
-        "GET /process-definition/statistics": 2,
+        "GET /process-definition/statistics": 1,
         "GET /process-definition/{id}/xml": 2
       },
       "prod-4": {
@@ -719,7 +719,7 @@
         "GET /history/process-instance/count": 2,
         "GET /incident": 1,
         "GET /job/count": 3,
-        "GET /process-definition/statistics": 2,
+        "GET /process-definition/statistics": 1,
         "GET /process-definition/{id}/xml": 2
       },
       "prod-5": {
@@ -727,10 +727,10 @@
         "GET /history/process-instance/count": 2,
         "GET /incident": 1,
         "GET /job/count": 3,
-        "GET /process-definition/statistics": 2,
+        "GET /process-definition/statistics": 1,
         "GET /process-definition/{id}/xml": 2
       }
     },
-    "total": 55
+    "total": 50
   }
 }

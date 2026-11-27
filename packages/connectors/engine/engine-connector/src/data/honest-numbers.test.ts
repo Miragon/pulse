@@ -136,7 +136,7 @@ const CASES: Record<string, Case> = {
     ]),
     enrichment: {
       ...instanceStarts,
-      "GET /process-definition/statistics?rootIncidents": (data: {
+      "GET /process-definition/statistics?failedJobs&rootIncidents": (data: {
         instances: Array<{ processDefinitionKey: unknown }>
       }) => data.instances[0]?.processDefinitionKey,
       // The rows' process names (#322 U13): one read over the page's versions.
@@ -246,7 +246,10 @@ const CASES: Record<string, Case> = {
     run: (client, baseUrl) =>
       buildIncidentsDashboardData(client, { ...urls(baseUrl), processDefinitionKey: WORLD.key }),
     // The statistics list every deployed key: a key they lack is not deployed.
-    unknown: { read: "GET /process-definition/statistics?rootIncidents", reply: NO_ROWS },
+    unknown: {
+      read: "GET /process-definition/statistics?failedJobs&rootIncidents",
+      reply: NO_ROWS,
+    },
     enrichment: {
       // An activity's row is named in the diagram of its newest incident's version.
       [namesFrom(WORLD.instanceDefinitionId)]: (data: {

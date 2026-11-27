@@ -66,18 +66,18 @@ ID, a board's incident row its message), as in Pulse for VS Code; its other acti
 a list shows its first rows and how many there are, and **Show all** opens it fullscreen where your
 chat app offers that.
 
-What the assistant may _change_ depends on the deployment's toolset. A
-read-only deployment (the playground, or any server without login unless its
-operator widened it) answers every question but offers no write tools and no
-action buttons. Starting instances, completing tasks, retries and resolving
-incidents need `operations` (the default with login); deletions,
-modifications, migrations and signals need `admin`, which an operator has to
-enable explicitly. Whether a write the assistant starts asks you first is up
-to your chat app's tool-approval settings; the server marks every destructive
-tool (`destructiveHint`) so the app can ask. A widget button that cancels, suspends or resolves asks first and names what
-it acts on (instance, business key, engine); after any action the view reloads
-what it changed: completing a task shows the next one. The cockpit's
-**Refresh** re-reads the open view, e.g. after the assistant changed something.
+What the assistant may _change_ depends on the deployment's toolset. A read-only deployment (the
+playground, or any server without login unless its operator widened it) answers every question but
+offers no write tools and no action buttons. Starting instances, completing tasks, retries and
+resolving incidents need `operations` (the default with login); deletions, modifications, migrations
+and signals need `admin`, which an operator has to enable explicitly. Whether a write the assistant
+starts asks you first is up to your chat app's tool-approval settings; the server marks every
+destructive tool (`destructiveHint`) so the app can ask. A widget button that cancels, suspends or
+resolves asks first and names what it acts on (instance, business key, engine); after any action the
+view reloads what it changed: completing a task shows the next one. The cockpit's **Refresh**
+re-reads the open view, e.g. after the assistant changed something. The engine-wide counts of the
+overview, its health and the incidents are read once in 30 seconds per user and anew after a change
+made in the chat; a reload in between shows that read again, as of its bar's time.
 
 ## Language and theme
 

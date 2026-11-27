@@ -46,6 +46,31 @@ describe("definitionKeyResolver", () => {
   })
 })
 
+describe("foldStatsByKey: the versions that hold a count", () => {
+  const version = (n: number, counts: object) => ({
+    id: `order:${n}:d${n}`,
+    instances: 0,
+    ...counts,
+    definition: { id: `order:${n}:d${n}`, key: "order", version: n },
+  })
+
+  it("holds a version by its instances, its jobs without retries or a root incident of any type", () => {
+    const rows = definitionStatisticsOf([
+      version(1, {}),
+      version(2, { instances: 3 }),
+      // A failed timer start's job, with no instance to run it.
+      version(3, { failedJobs: 1 }),
+      version(4, { incidents: [{ incidentType: "custom", incidentCount: 1 }] }),
+    ])
+    const ids = ["order:2:d2", "order:3:d3", "order:4:d4"]
+    expect(foldStatsByKey(rows).get("order")?.heldVersionIds).toEqual(ids)
+    // A type narrows the incidents counted, never the versions that hold a count.
+    const failedJob = foldStatsByKey(rows, "failedJob").get("order")
+    expect(failedJob?.heldVersionIds).toEqual(ids)
+    expect(failedJob?.incidentVersionIds).toEqual([])
+  })
+})
+
 describe("resolveDefinitionKeys", () => {
   async function engineWithStats() {
     const engine = await startFakeEngine({
@@ -66,6 +91,24 @@ describe("resolveDefinitionKeys", () => {
     expect(resolved(UUID)).toBe(LONG_KEY)
     expect(resolved("order:2:d2")).toBe("order")
     expect(engine.requests.map((r) => r.path)).toEqual(["/process-definition/statistics"])
+  })
+
+  it("reads the bare ids the statistics miss by their ids, once, before a key stays null", async () => {
+    // Deployed since the statistics were read: the engine lists it by its id.
+    const deployed = "0d9e8f7a-0000-4000-8000-000000000001"
+    const gone = "0d9e8f7a-0000-4000-8000-000000000002"
+    const engine = await startFakeEngine({
+      "GET /process-definition/statistics": { body: STATS },
+      "GET /process-definition": { body: [{ id: deployed, key: "newProcess", version: 1 }] },
+    })
+    engines.push(engine)
+
+    const keyOf = await resolveDefinitionKeys(clientFor(engine), [UUID, deployed, gone, deployed])
+    expect([keyOf(UUID), keyOf(deployed), keyOf(gone)]).toEqual([LONG_KEY, "newProcess", null])
+    expect(engine.requests.map((r) => [r.path, r.query.processDefinitionIdIn])).toEqual([
+      ["/process-definition/statistics", undefined],
+      ["/process-definition", `${deployed},${gone}`],
+    ])
   })
 })
 

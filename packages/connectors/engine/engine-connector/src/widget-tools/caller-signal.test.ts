@@ -61,20 +61,26 @@ function boardFiles() {
 
 describe("widget tools and feeds honor ctx.mcpReq.signal", () => {
   it("every engine-reading handler stops reading once the MCP request is cancelled", async () => {
-    const { server, tools } = recordingModuleServer()
-    const registry = createEngineRegistry([{ id: "prod-a", baseUrl }], (e) =>
-      providerForEntry(e).createClient(e, { type: "none" }, { timeoutMs: 2000 }),
-    )
-    registerWidgetTools(server, registry, {
-      healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
-      toolset: "read-only",
-      registered: new Set(),
-      boards: boardFiles(),
-    })
+    // Each call on an engine client of its own: the server keeps reads per client (its floors),
+    // so a call after another of the same reads could answer without reading at all.
+    const surface = () => {
+      const { server, tools } = recordingModuleServer()
+      const registry = createEngineRegistry([{ id: "prod-a", baseUrl }], (e) =>
+        providerForEntry(e).createClient(e, { type: "none" }, { timeoutMs: 2000 }),
+      )
+      registerWidgetTools(server, registry, {
+        healthThresholds: DEFAULT_VERDICT_THRESHOLDS,
+        toolset: "read-only",
+        registered: new Set(),
+        boards: boardFiles(),
+      })
+      return tools
+    }
+    const tools = surface()
 
     const readsOf = async (name: string, signal?: AbortSignal) => {
       const before = requests
-      await tools.get(name)!.call(ARGS, testServerContext(signal))
+      await surface().get(name)!.call(ARGS, testServerContext(signal))
       return requests - before
     }
     const neverRead: string[] = []

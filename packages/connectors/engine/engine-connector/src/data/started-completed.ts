@@ -18,7 +18,7 @@ function countHistoric(
   client: Client,
   query: { startedAfter: string } | { finishedAfter: string },
 ): Promise<number | null> {
-  return optional(getHistoricProcessInstancesCount({ client, query }).then(countOf))
+  return optional(getHistoricProcessInstancesCount({ client, query }).then(countOf), client)
 }
 
 /**
