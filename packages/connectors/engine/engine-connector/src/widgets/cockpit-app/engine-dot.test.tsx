@@ -86,6 +86,7 @@ function healthFeed(args: Record<string, unknown>): EngineHealthData {
       totalDefinitions: 2,
       started24h: null,
       completed24h: null,
+      historyRecorded: null,
     },
     clusters: [],
     fetchedAt: "2026-11-04T08:00:00.000Z",

@@ -12,7 +12,7 @@ import { EngineHealthVerdict, EngineHealthView } from "./engine-health.js"
 import type { EngineHealthData } from "../view-models.js"
 import { ENGINE_HEALTH_DATA, ENGINE_WIDGET_ACTIONS_DATA } from "../tool-names.js"
 import { widgetActionsFeedFor } from "./lib/hand-off.test-support.js"
-import { DEGRADED, HEALTHY } from "./engine-health.test-support.js"
+import { DEGRADED, HEALTHY, NO_HISTORY } from "./engine-health.test-support.js"
 
 // One retry-free client per test; the test reads and pokes its cache.
 let queryClient = createTestQueryClient()
@@ -232,6 +232,23 @@ describe("the verdict line and the hand-offs speak the view's language", RENDER,
     expect(document.body.textContent).not.toMatch(/neu in 24 Std\./i)
     expect(screen.getByText(/^Gestartet und abgeschlossen \(24 Std\.\):/)).toBeTruthy()
   })
+
+  // History level none: the history counts 0 while instances run, so the line says why the day
+  // counts nothing, never "0 · 0" or "— · —" (#689, F138).
+  it.each([
+    ["en", /^This engine records no history, so started and completed \(24h\) are not counted\./],
+    ["de", /^Diese Engine schreibt keine Historie, deshalb sind gestartet und abgeschlossen/],
+  ] as const)(
+    "%s: an engine that writes no history says so, never the day's 0 · 0",
+    (locale, words) => {
+      renderIn(locale, NO_HISTORY)
+      expect(screen.getByText(words)).toBeTruthy()
+      expect(document.body.textContent).not.toMatch(/\d · \d|— · —/)
+      expect(
+        screen.queryByText(/^(Started and completed|Gestartet und abgeschlossen) \(24/),
+      ).toBeNull()
+    },
+  )
 
   it("a German view: German title, verdict, status badge and chat hand-offs, no English left", async () => {
     const { container } = renderIn("de", DEGRADED)

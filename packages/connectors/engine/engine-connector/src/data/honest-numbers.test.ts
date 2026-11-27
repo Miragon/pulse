@@ -14,12 +14,10 @@ import {
   buildJobPanelData,
   buildProcessInstancesData,
 } from "./cockpit-data.js"
-import { buildCockpitStart } from "./cockpit-start.js"
 import { buildClusterDetailData } from "./cluster-detail-data.js"
 import { CLUSTER_SCAN_LIMIT } from "./cluster-scan.js"
 import { INCIDENT_SCAN_LIMIT } from "./engine-reads.js"
-import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
-import { buildEngineHealthData } from "./health-data.js"
+import { HEALTH_CASES } from "./honest-numbers.health.test-support.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
 import { buildIncidentDetailData } from "./incident-detail-data.js"
 import { buildIncidentsDashboardData } from "./incidents-dashboard-data.js"
@@ -202,41 +200,8 @@ const CASES: Record<string, Case> = {
         data.incidentActivityIds,
     },
   },
-  buildEngineHealthData: {
-    run: (client) => buildEngineHealthData(client, "fake"),
-    enrichment: {
-      "GET /history/process-instance/count?startedAfter": (data: {
-        summary: { started24h: unknown }
-      }) => data.summary.started24h,
-      "GET /history/process-instance/count?finishedAfter": (data: {
-        summary: { completed24h: unknown }
-      }) => data.summary.completed24h,
-      // The clusters are titled by their activity's name (#322 U12).
-      [namesFrom(WORLD.instanceDefinitionId)]: (data: {
-        clusters: Array<{ activityName: unknown }>
-      }) => data.clusters[0]?.activityName,
-    },
-  },
-  // The cockpit's start view: the overview reads the health verdict and the definitions table.
-  "buildCockpitStart (overview)": {
-    run: (client, baseUrl) =>
-      buildCockpitStart(
-        { section: "overview" },
-        { client, engineId: "fake", ...urls(baseUrl) },
-        DEFAULT_VERDICT_THRESHOLDS,
-      ),
-    enrichment: {
-      "GET /history/process-instance/count?startedAfter": (data: {
-        data: { health: { summary: { started24h: unknown } } }
-      }) => data.data.health.summary.started24h,
-      "GET /history/process-instance/count?finishedAfter": (data: {
-        data: { health: { summary: { completed24h: unknown } } }
-      }) => data.data.health.summary.completed24h,
-      [namesFrom(WORLD.instanceDefinitionId)]: (data: {
-        data: { health: { clusters: Array<{ activityName: unknown }> } }
-      }) => data.data.health.clusters[0]?.activityName,
-    },
-  },
+  // The overview and the cockpit's start on it.
+  ...HEALTH_CASES,
   buildClusterDetailData: { run: clusterDetail, enrichment: clusterNames },
   // The cluster's keys scope its remediation: a bare definition id resolves
   // through the statistics, and that read is primary: never a guessed key.

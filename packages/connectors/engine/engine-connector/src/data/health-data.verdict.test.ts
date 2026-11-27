@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@miragon/pulse-c7-client/sdk", () => ({
+  getHistoricProcessInstances: vi.fn(),
   getHistoricProcessInstancesCount: vi.fn(),
   getIncidents: vi.fn(),
   getIncidentsCount: vi.fn(),
@@ -9,6 +10,7 @@ vi.mock("@miragon/pulse-c7-client/sdk", () => ({
 }))
 
 import {
+  getHistoricProcessInstances,
   getHistoricProcessInstancesCount,
   getIncidents,
   getIncidentsCount,
@@ -50,6 +52,8 @@ interface IncidentRowFixture {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(getProcessInstances).mockResolvedValue([] as never)
+  // Nothing runs: the day's zero counts ask the history in vain, and the zeros stand.
+  vi.mocked(getHistoricProcessInstances).mockResolvedValue([] as never)
 })
 
 // #340: the verdict states its source and the deployment's thresholds.

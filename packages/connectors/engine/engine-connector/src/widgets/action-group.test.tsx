@@ -140,6 +140,7 @@ const HEALTH: EngineHealthData = {
     totalDefinitions: 2,
     started24h: 10,
     completed24h: 8,
+    historyRecorded: true,
   },
   clusters: [],
   fetchedAt: "2026-06-11T14:05:00.000Z",

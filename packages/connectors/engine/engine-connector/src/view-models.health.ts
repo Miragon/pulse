@@ -61,10 +61,16 @@ export interface EngineHealthData {
     affectedDefinitions: number
     runningInstances: number
     totalDefinitions: number
-    /** Instances started in the last 24h; null when the history API is unavailable. */
+    /** Instances started in the last 24h; null when unread or the engine writes no history. */
     started24h: number | null
-    /** Instances completed in the last 24h; null when the history API is unavailable. */
+    /** Instances completed in the last 24h; null when unread or the engine writes no history. */
     completed24h: number | null
+    /**
+     * Whether the engine writes history: false at history level `none` while an instance runs,
+     * where neither 24h count is known; null when nothing tells (no instance runs, a read failed).
+     * Asked only when no count is above 0 and one is 0, as such an engine answers them.
+     */
+    historyRecorded: boolean | null
   }
   clusters: EngineHealthCluster[]
   /** When this snapshot was computed (ISO), rendered as "as of …" for ops trust. */

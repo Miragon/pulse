@@ -88,6 +88,8 @@ export const deSweep: MessageCatalog = {
   "engineHealth.statusWarning": "Beeinträchtigt",
   // Danach zwei Zahlen, gestartet und abgeschlossen: „Gestartet und abgeschlossen (24 Std.): 44 · 41“.
   "engineHealth.throughput24h": "Gestartet und abgeschlossen (24 Std.):",
+  "engineHealth.throughput24hNoHistory":
+    "Diese Engine schreibt keine Historie, deshalb sind gestartet und abgeschlossen (24 Std.) nicht gezählt. Dafür braucht es das History-Level activity oder höher.",
   "fleet.engineCount": ({ count, list }) =>
     `${countOf(count, "Engine", "Engines")} · ${String(list)}`,
   "fleet.fleetAnalyses.copyHint":

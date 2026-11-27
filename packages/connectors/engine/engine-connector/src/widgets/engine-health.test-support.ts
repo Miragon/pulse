@@ -18,6 +18,7 @@ export const DEGRADED: EngineHealthData = {
     totalDefinitions: 8,
     started24h: 1240,
     completed24h: 1180,
+    historyRecorded: true,
   },
   clusters: [
     {
@@ -66,8 +67,15 @@ export const HEALTHY: EngineHealthData = {
     totalDefinitions: 8,
     started24h: 1240,
     completed24h: 1180,
+    historyRecorded: true,
   },
   clusters: [],
   fetchedAt: "2026-06-11T14:05:00.000Z",
   engineId: "default",
+}
+
+/** A stable engine at history level `none`: its history counts nothing while instances run. */
+export const NO_HISTORY: EngineHealthData = {
+  ...HEALTHY,
+  summary: { ...HEALTHY.summary, started24h: null, completed24h: null, historyRecorded: false },
 }

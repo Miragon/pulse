@@ -1,14 +1,11 @@
 import {
   FreshnessStamp,
   Button,
-  KpiGrid,
   StatusBadge,
   StatusStrip,
   WidgetHeader,
   type ToneVariant,
   Icon,
-  formatCount,
-  formatNumber,
 } from "@miragon/pulse-ui"
 import {
   HandOffButton,
@@ -20,15 +17,16 @@ import {
   HostModelContext,
   useQueryClient,
   useViewData,
+  type ViewDataResult,
 } from "@miragon/pulse-widget-shell/widgets"
 import { RefreshCw, TriangleAlert } from "lucide-react"
 import type { EngineHealthData, EngineHealthStatus } from "../view-models.js"
 import { useNav, type OnNavigate } from "./navigation.js"
 import { ENGINE_HEALTH_DATA } from "../tool-names.js"
-import { AlarmCount } from "./lib/alarm-count.js"
 import { useHandOff, useHandOffsShown, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { healthFailureOf, VERDICT_TONE } from "./lib/health-verdict.js"
 import { ClustersSection } from "./engine-health-clusters.js"
+import { HealthKpis, Throughput24h } from "./engine-health-kpis.js"
 import { useT } from "../messages/use-t.js"
 import { refreshCockpitData } from "./refresh.js"
 
@@ -72,6 +70,7 @@ function describeHealth(data: EngineHealthData, engine: string): ViewContext {
       runningInstances: summary.runningInstances,
       started24h: summary.started24h,
       completed24h: summary.completed24h,
+      historyRecorded: summary.historyRecorded,
       topClusterActivity: top?.activityId,
       topClusterType: top?.incidentType,
       // A capped scan vouches only for the cluster's scanned share (#335).
@@ -152,70 +151,87 @@ function HealthUnavailable({
 }
 
 /**
- * Only open incidents carry a state; the other KPIs are neutral counts (#322 U14). The incidents
- * are open root incidents: a failure that runs through a chain of called instances counts once.
+ * The deterministic next step leads (#322 U11): with open incidents, look at them; the chat
+ * assessment follows. The cockpit's head holds the one Refresh (#322 U27).
  */
-function HealthKpis({ summary, go }: { summary: EngineHealthData["summary"]; go: OnNavigate }) {
+function HealthActions({
+  data,
+  engine,
+  go,
+}: {
+  data: EngineHealthData
+  engine: string
+  go: OnNavigate
+}) {
   const t = useT()
+  const { ask } = useHandOff()
   return (
-    <KpiGrid
-      boxed
-      ariaLabel={t("engineHealth.kpiHealth")}
-      cells={[
-        {
-          label: t("engineHealth.kpiRunningInstances"),
-          value: formatNumber(summary.runningInstances),
-          // The KPI counts instances, so the drill lands on instances, not definitions.
-          onClick: () => go({ type: "process-instances" }),
-          // Named by its visible label and value (WCAG 2.5.3); the hint
-          // says what the click does.
-          actionHint: t("engineHealth.kpiRunningInstancesAria"),
-        },
-        {
-          label: t("engineHealth.kpiOpenIncidents"),
-          // The derivative beats the absolute during an active incident: "9 new in the last hour"
-          // = burning now; unknown (the scan does not reach back an hour) says nothing.
-          value: (
-            <AlarmCount alarm={summary.totalIncidents > 0 && "openIncidents"}>
-              {formatNumber(summary.totalIncidents)}
-            </AlarmCount>
-          ),
-          fraction:
-            summary.lastHourIncidents !== null && summary.lastHourIncidents > 0
-              ? ` ${t("engineHealth.kpiInLastHour", { count: formatNumber(summary.lastHourIncidents) })}`
-              : undefined,
-          onClick: () => go({ type: "incidents" }),
-          actionHint: t("engineHealth.kpiOpenIncidentsAria"),
-        },
-        {
-          label: t("engineHealth.kpiAffectedActivities"),
-          // null (the incident scan was capped) shows "—", never a guessed count.
-          value: formatCount(summary.affectedActivities),
-        },
-        // The deployed count is the processes section's, never a denominator here (D12).
-        {
-          label: t("engineHealth.kpiAffectedProcesses"),
-          value: formatNumber(summary.affectedDefinitions),
-        },
-      ]}
-    />
+    <>
+      {data.summary.totalIncidents > 0 && (
+        <Button type="button" variant="toolbar" size="sm" onClick={() => go({ type: "incidents" })}>
+          <Icon icon={TriangleAlert} />
+          {t("engineHealth.openIncidents")}
+        </Button>
+      )}
+      <HandOffButton action="assess" variant="toolbar" prompt={ask(triageHandOff(data, engine))} />
+    </>
   )
 }
 
 /**
- * Shows the engine moving work even with zero incidents, started then completed in the last 24 h,
- * an unread one as "—"; hidden when history is unavailable.
+ * A failed re-pull keeps the last verdict and says it is not current, docked under the bar, the
+ * engine's own text under its Details; a refusal no retry changes offers no retry. A page's ended
+ * session is the page frame's to say, once.
  */
-function Throughput24h({ summary }: { summary: EngineHealthData["summary"] }) {
+function RefreshFailedStrip({ view }: { view: ViewDataResult<EngineHealthData> }) {
   const t = useT()
-  if (summary.started24h === null && summary.completed24h === null) return null
+  const { refreshError, refreshing } = viewRefreshState(view)
+  if (!refreshError || refreshing || isSessionEnded(refreshError)) return null
+  const retry = { label: t("viewState.retry"), icon: RefreshCw, onClick: () => void view.refetch() }
   return (
-    <p className="text-muted-foreground text-small">
-      {t("engineHealth.throughput24h")}{" "}
-      <span className="tabular-nums">
-        {formatCount(summary.started24h)} · {formatCount(summary.completed24h)}
-      </span>
-    </p>
+    <StatusStrip
+      tone="warning"
+      title={t("engineHealth.refreshFailedTitle")}
+      detail={t("engineHealth.refreshFailedHint")}
+      details={refreshError.message}
+      actions={isPermanentError(refreshError) ? [] : [retry]}
+    />
+  )
+}
+
+/** The view's bar: the engine in its title, the verdict, when the numbers were read, the actions. */
+function HealthBar({
+  data,
+  engine,
+  title,
+  view,
+  go,
+}: {
+  data: EngineHealthData
+  engine: string
+  title: string
+  view: ViewDataResult<EngineHealthData>
+  go: OnNavigate
+}) {
+  const t = useT()
+  const handOffs = useHandOffsShown()
+  const badge = verdictBadge(data)
+  // No open incident to look at and a hand-off the host hides: the bar has no action group.
+  const hasActions = data.summary.totalIncidents > 0 || handOffs
+  return (
+    <>
+      <WidgetHeader
+        badge={<StatusBadge tone={badge.tone}>{t(badge.labelKey)}</StatusBadge>}
+        // The engine in the title (#322 U4): prod-leasing and test-leasing
+        // never share a heading.
+        title={title}
+        // The KPIs under the bar hold the counts (one home per number): the bar keeps the
+        // title, the verdict and when the numbers were read.
+        freshness={<FreshnessStamp at={data.fetchedAt} />}
+        actions={hasActions && <HealthActions data={data} engine={engine} go={go} />}
+      />
+      <RefreshFailedStrip view={view} />
+    </>
   )
 }
 
@@ -229,8 +245,7 @@ export function EngineHealthView({
 }) {
   const t = useT()
   const go = useNav()
-  const { ask, context } = useHandOff()
-  const handOffs = useHandOffsShown()
+  const { context } = useHandOff()
   // Start data SEEDS the feed scoped to its engine, so a refresh re-reads that engine.
   const view = useViewData<EngineHealthData>(
     initialData,
@@ -239,85 +254,21 @@ export function EngineHealthView({
     { engine },
     true,
   )
-  const { data, loading, error, refetch } = view
-  const { refreshError, refreshing } = viewRefreshState(view)
+  const { data } = view
 
   const title = t("engineHealth.titleFor", { engine })
   if (!data) {
     // Loading or failed, the route keeps its title, the page's one heading.
     return (
       <WidgetShell header={<WidgetHeader title={title} />}>
-        <HealthUnavailable engine={engine} loading={loading} error={error} />
+        <HealthUnavailable engine={engine} loading={view.loading} error={view.error} />
       </WidgetShell>
     )
   }
 
-  const badge = verdictBadge(data)
-  // No open incident to look at and a hand-off the host hides: the bar has no action group.
-  const hasActions = data.summary.totalIncidents > 0 || handOffs
-
   return (
     <WidgetShell
-      header={
-        <>
-          <WidgetHeader
-            badge={<StatusBadge tone={badge.tone}>{t(badge.labelKey)}</StatusBadge>}
-            // The engine in the title (#322 U4): prod-leasing and test-leasing
-            // never share a heading.
-            title={title}
-            // The KPIs under the bar hold the counts (one home per number): the bar keeps the
-            // title, the verdict and when the numbers were read.
-            freshness={<FreshnessStamp at={data.fetchedAt} />}
-            actions={
-              hasActions && (
-                <>
-                  {/* The deterministic next step leads (#322 U11): with open incidents, look at
-                      them; the chat assessment follows. The cockpit's head holds the one Refresh
-                      (#322 U27). */}
-                  {data.summary.totalIncidents > 0 && (
-                    <Button
-                      type="button"
-                      variant="toolbar"
-                      size="sm"
-                      onClick={() => go({ type: "incidents" })}
-                    >
-                      <Icon icon={TriangleAlert} />
-                      {t("engineHealth.openIncidents")}
-                    </Button>
-                  )}
-                  <HandOffButton
-                    action="assess"
-                    variant="toolbar"
-                    prompt={ask(triageHandOff(data, engine))}
-                  />
-                </>
-              )
-            }
-          />
-          {/* A failed re-pull keeps the last verdict and says it is not current, docked under
-              the bar, the engine's own text under its Details; a refusal no retry changes offers
-              no retry. A page's ended session is the page frame's to say, once. */}
-          {refreshError && !refreshing && !isSessionEnded(refreshError) && (
-            <StatusStrip
-              tone="warning"
-              title={t("engineHealth.refreshFailedTitle")}
-              detail={t("engineHealth.refreshFailedHint")}
-              details={refreshError.message}
-              actions={
-                isPermanentError(refreshError)
-                  ? []
-                  : [
-                      {
-                        label: t("viewState.retry"),
-                        icon: RefreshCw,
-                        onClick: () => void refetch(),
-                      },
-                    ]
-              }
-            />
-          )}
-        </>
-      }
+      header={<HealthBar data={data} engine={engine} title={title} view={view} go={go} />}
     >
       <HostModelContext content={context(describeHealth(data, engine))}>{null}</HostModelContext>
 

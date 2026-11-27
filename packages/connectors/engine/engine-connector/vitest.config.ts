@@ -57,8 +57,10 @@ export default mergeConfig(
         // when the floors came to follow the measurement (#688; they had not
         // moved since 2026-10-12 while the tests grew): measured statements
         // 96.72 / branches 91.13 / functions 97.33 / lines 97.32, each floor
-        // that value rounded down less a point.
-        thresholds: { statements: 95, branches: 90, functions: 96, lines: 96 },
+        // that value rounded down less a point. Statements raised 2026-11-27
+        // with the overview's day counts at history level none (#689; measured
+        // 97.14 / 91.58 / 97.45 / 97.7).
+        thresholds: { statements: 96, branches: 90, functions: 96, lines: 96 },
       },
     },
   }),

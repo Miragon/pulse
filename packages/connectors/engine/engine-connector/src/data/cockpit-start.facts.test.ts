@@ -100,6 +100,7 @@ describe("cockpitFacts: the model's view of each route", () => {
       totalDefinitions: 1,
       started24h: 1,
       completed24h: 1,
+      historyRecorded: true,
       totalFailedJobs: 1,
       topCluster: {
         activityId: WORLD.activityId,
@@ -140,6 +141,7 @@ describe("cockpitFacts: the model's view of each route", () => {
       totalDefinitions: 1,
       started24h: 1,
       completed24h: 1,
+      historyRecorded: true,
       totalFailedJobs: 0,
       topCluster: null,
     })

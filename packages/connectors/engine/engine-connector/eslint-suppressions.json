@@ -211,11 +211,6 @@
       "count": 1
     }
   },
-  "src/widgets/engine-health.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/widgets/group-summary-row.tsx": {
     "max-lines-per-function": {
       "count": 1
