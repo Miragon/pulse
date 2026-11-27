@@ -45,6 +45,8 @@ interface ListCase {
   count: (typeof sdk)[keyof typeof sdk]
   filterArgs: Record<string, unknown>
   engineQuery?: Record<string, unknown>
+  /** The page is a POST: its filters go in the body, the count's in its query. */
+  byPost?: true
 }
 
 const cases: readonly ListCase[] = [
@@ -80,9 +82,10 @@ const cases: readonly ListCase[] = [
   },
   {
     tool: "engine_query_historic_activity_instances",
-    list: sdk.getHistoricActivityInstances,
+    list: sdk.queryHistoricActivityInstances,
     count: sdk.getHistoricActivityInstancesCount,
     filterArgs: { processInstanceId: "pi-1", activityType: "userTask" },
+    byPost: true,
   },
   {
     tool: "engine_query_historic_task_instances",
@@ -222,14 +225,13 @@ describe.each(cases)("$tool pagination envelope", ({ tool, list, count, filterAr
 
     expect(result).toEqual({ items: page, totalCount: 7, hasMore: true, nextOffset: 4 })
     expect(paginatedListOutput.safeParse(result).success).toBe(true)
+    const paged = { firstResult: 2, maxResults: 2 }
     expect(mockedList).toHaveBeenCalledWith(
       expect.objectContaining({
         client: fakeClient,
-        query: expect.objectContaining({
-          ...engineQuery,
-          firstResult: 2,
-          maxResults: 2,
-        }) as Record<string, unknown>,
+        ...(c.byPost
+          ? { query: paged, body: expect.objectContaining(engineQuery) as unknown }
+          : { query: expect.objectContaining({ ...engineQuery, ...paged }) as unknown }),
       }),
     )
     expect(mockedCount).toHaveBeenCalledWith({ client: fakeClient, query: engineQuery })

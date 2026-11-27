@@ -11,6 +11,7 @@ import {
   type FakeEngine,
   type FakeReply,
   type FakeRoutes,
+  type RecordedRequest,
 } from "./test-support/fake-engine.js"
 
 /** #328, read side: the REST contract rules every READ tool honours on the wire. */
@@ -37,6 +38,13 @@ function call(engine: FakeEngine, name: string, args: Record<string, unknown>) {
   return callTool(config, registryFor(engine), args)
 }
 
+/** The sort pair a request sends: its query's, or the first key of its POST body's `sorting`. */
+function sortOf(request: RecordedRequest): Record<string, unknown> | undefined {
+  if ("sortBy" in request.query || "sortOrder" in request.query) return request.query
+  const { sorting } = (request.body ?? {}) as { sorting?: Record<string, unknown>[] }
+  return sorting?.[0]
+}
+
 const SORTED_TOOLS = [...tools.values()].flatMap((config) => {
   const sortBy = (config.inputSchema as Record<string, z.ZodType>).sortBy
   if (!sortBy) return []
@@ -52,19 +60,17 @@ describe("sortBy/sortOrder are sent as the pair the engine requires", () => {
   it.each(SORTED_TOOLS)("$name: sortBy alone sorts ascending", async ({ name, field }) => {
     const engine = await engineWith({}, { body: [] })
     await call(engine, name, { sortBy: field })
-    const sorted = engine.requests.filter((r) => "sortBy" in r.query)
+    const sorted = engine.requests.filter((r) => sortOf(r) !== undefined)
     expect(sorted).toHaveLength(1)
-    expect(sorted[0].query).toMatchObject({ sortBy: field, sortOrder: "asc" })
+    expect(sortOf(sorted[0])).toMatchObject({ sortBy: field, sortOrder: "asc" })
     // The /count twin never sorts.
-    expect(engine.requests.filter((r) => r.path.endsWith("/count") && "sortBy" in r.query)).toEqual(
-      [],
-    )
+    expect(engine.requests.filter((r) => r.path.endsWith("/count") && sortOf(r))).toEqual([])
   })
 
   it.each(SORTED_TOOLS)("$name: a lone sortOrder is dropped", async ({ name }) => {
     const engine = await engineWith({}, { body: [] })
     await call(engine, name, { sortOrder: "desc" })
-    expect(engine.requests.some((r) => "sortOrder" in r.query || "sortBy" in r.query)).toBe(false)
+    expect(engine.requests.some((r) => sortOf(r) !== undefined)).toBe(false)
   })
 })
 

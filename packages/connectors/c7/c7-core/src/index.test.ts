@@ -70,6 +70,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "failureOf",
       "field",
       "formatDuration",
+      "historySorting",
       "incidentRecovery",
       "inspectInstance",
       "instanceRequests",

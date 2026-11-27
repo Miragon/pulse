@@ -186,7 +186,8 @@ missing.
   50 asks a chunk of 500 for 51),
   `VariableNameReader` (the variable names of a version's newest 50 instances),
   `InstanceDetailReader` (an instance's detail: `loadInstance`'s rounds without history and its path
-  from the history, read whole in `INSTANCE_HISTORY_ORDER`, in parallel with its typed variables of every scope, which the inspection's
+  from the history, read whole in `INSTANCE_HISTORY_ORDER`, in parallel with its typed variables
+  of every scope, which the inspection's
   variable map stands in for when they cannot be read, then the version of each called instance one
   of its root incidents was raised in; each value as `JSON.stringify` writes it, so an integer the
   wire kept as raw JSON keeps its digits), `IncidentSearch` (the root incidents newest first, then by
@@ -260,8 +261,10 @@ missing.
   (`engineSorting`), the one order of an instance's history (`INSTANCE_HISTORY_ORDER`, the
   `sorting` of `POST /history/activity-instance`: by start, then by occurrence, then by id, a
   total order, so pages cut by offset neither repeat nor skip a step of parallel branches or of a
-  multi-instance's items, which start within a millisecond; the CLI's `inspect --history` and an
-  instance's detail read it), variable writes and typing (`toEngineVariable(s)`, which refuses a value that
+  multi-instance's items, which start within a millisecond; the CLI's `inspect --history`, an
+  instance's detail and the engine module's cockpit history read it, and `historySorting` puts a
+  caller's sort key before it, so the ties of any key page alike), variable writes and typing
+  (`toEngineVariable(s)`, which refuses a value that
   is or holds a number that is not finite, since JSON would carry it as null; `autoTypedValue`),
   incident recovery (`incidentRecovery`, over `BUILT_IN_INCIDENT_TYPES`, the two types the engine
   raises itself), the root incident (`isRootIncident`, and `rootIdOfCopy`, the root incident a

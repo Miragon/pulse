@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { INSTANCE_HISTORY_ORDER } from "@miragon/pulse-c7-core"
 import { clientFor, startFakeEngine, type FakeEngine } from "../tools/test-support/fake-engine.js"
 import { ENGINE_FAILURE, WORLD, worldReply } from "../tools/test-support/engine-world.js"
 import { buildHistoryTimelineData } from "./history-timeline-data.js"
@@ -21,6 +22,30 @@ async function build(failIncidents: boolean) {
   })
   return { data, engine }
 }
+
+describe("buildHistoryTimelineData: the steps in c7-core's history order", () => {
+  it("reads its page by POST in that order, which the pages after it read alike", async () => {
+    const engine = await startFakeEngine({}, worldReply)
+    engines.push(engine)
+    await buildHistoryTimelineData(clientFor(engine), "fake", {
+      processInstanceId: WORLD.instanceId,
+      firstResult: 100,
+      maxResults: 100,
+    })
+    const path = engine.requests.filter((r) => r.path === "/history/activity-instance")
+    expect(path.map(({ method, query, body }) => ({ method, query, body }))).toEqual([
+      {
+        method: "POST",
+        query: { firstResult: "100", maxResults: "100" },
+        body: { processInstanceId: WORLD.instanceId, sorting: [...INSTANCE_HISTORY_ORDER] },
+      },
+    ])
+    // The count is the GET's, over the same instance.
+    expect(
+      engine.requests.find((r) => r.path === "/history/activity-instance/count"),
+    ).toMatchObject({ method: "GET", query: { processInstanceId: WORLD.instanceId } })
+  })
+})
 
 describe("buildHistoryTimelineData: the failing steps", () => {
   it("names the activities with an open incident on this instance", async () => {

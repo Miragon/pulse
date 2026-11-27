@@ -1,10 +1,18 @@
+/**
+ * The history route's first page: an instance's steps by POST in c7-core's history order
+ * (`INSTANCE_HISTORY_ORDER`), which the pages after it read alike through
+ * engine_query_historic_activity_instances sorted by start, so no page repeats or skips a step;
+ * their count, the instance and the steps an open incident marks.
+ */
+
 import type { Client } from "@miragon/pulse-c7-client"
+import { INSTANCE_HISTORY_ORDER } from "@miragon/pulse-c7-core"
 import { MAX_PAGE_SIZE } from "../schemas/index.js"
 import {
-  getHistoricActivityInstances,
   getHistoricActivityInstancesCount,
   getHistoricProcessInstances,
   getIncidents,
+  queryHistoricActivityInstances,
 } from "@miragon/pulse-c7-client/sdk"
 import { collectIncidentActivityIds } from "../lib/bpmn/activity-tree.js"
 import type { HistoryTimelineData } from "../view-models.js"
@@ -24,15 +32,10 @@ export async function buildHistoryTimelineData(
   // When the reads began: the bar's "As of".
   const fetchedAt = new Date().toISOString()
   const [activities, totalActivities, instances, incidents] = await Promise.all([
-    getHistoricActivityInstances({
+    queryHistoricActivityInstances({
       client,
-      query: {
-        processInstanceId,
-        sortBy: "startTime",
-        sortOrder: "asc",
-        firstResult: args.firstResult,
-        maxResults: args.maxResults ?? MAX_PAGE_SIZE,
-      },
+      query: { firstResult: args.firstResult, maxResults: args.maxResults ?? MAX_PAGE_SIZE },
+      body: { processInstanceId, sorting: [...INSTANCE_HISTORY_ORDER] },
     }).then((rows) => rowsOf<HistoryTimelineData["activities"][number]>(rows)),
     getHistoricActivityInstancesCount({ client, query: { processInstanceId } }).then(countOf),
     getHistoricProcessInstances({ client, query: { processInstanceId, maxResults: 1 } }).then(

@@ -39,3 +39,22 @@ export const INSTANCE_HISTORY_ORDER = [
 export function instanceHistoryQuery(id: string) {
   return { processInstanceId: id, sorting: INSTANCE_HISTORY_ORDER }
 }
+
+/** A key of the history's activity instances that its POST sorts by. */
+type HistoryKey = (typeof INSTANCE_HISTORY_ORDER)[number]["sortBy"]
+
+/**
+ * The `sorting` of a POST of the history's activity instances that a caller sorts by its pair (as
+ * `engineSorting` pairs it): that pair first, then `INSTANCE_HISTORY_ORDER` for its ties, so pages
+ * cut by offset hold each step once whatever the key; a start ascending is that order itself.
+ * Undefined without a key: the engine then orders by id, which is total too.
+ */
+export function historySorting<TField extends string>(args: {
+  sortBy?: TField
+  sortOrder?: SortOrder
+}): { sortBy: TField | HistoryKey; sortOrder: SortOrder }[] | undefined {
+  const { sortBy, sortOrder } = engineSorting(args)
+  if (sortBy === undefined || sortOrder === undefined) return undefined
+  const ties = INSTANCE_HISTORY_ORDER.filter((key) => key.sortBy !== sortBy)
+  return [{ sortBy, sortOrder }, ...ties]
+}

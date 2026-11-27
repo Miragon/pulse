@@ -6,8 +6,10 @@
  * assigned to a user of its own. The engine takes `POST /history/activity-instance` with c7-core's
  * `INSTANCE_HISTORY_ORDER` (start, occurrence, activity instance id), pages of it cut by offset
  * hold every step once and in the order of one read of them all, and so do the path c7-core's
- * `loadInstance` reads for the CLI's `inspect --history` and the contract's instance detail. On
- * the seeded world itself, the paths of DSP-3001 and of the instance it called come in the order
+ * `loadInstance` reads for the CLI's `inspect --history` and the contract's instance detail, and
+ * the cockpit's history as its widget pages it: the feed's first page, then the registrar's
+ * history query sorted by start from where it ended, whose date filters the engine takes in its
+ * POST body. On the seeded world itself, the paths of DSP-3001 and of the instance it called come in the order
  * c7-core's recorded screen engine (`C7_SCREEN_ENGINE`) answers them, whose requests ask for it.
  */
 
@@ -15,6 +17,11 @@ import { INSTANCE_HISTORY_ORDER, loadInstance } from "@miragon/pulse-c7-core"
 import { C7_BOARD_ENGINE, C7_SCREEN_ENGINE } from "@miragon/pulse-c7-core/testing"
 import { InstanceId } from "@miragon/pulse-engine-core"
 import { expect } from "vitest"
+import { buildHistoryTimelineData } from "../../data/history-timeline-data.js"
+import { providerForEntry } from "../../providers/index.js"
+import { registerTools } from "../../tools/index.js"
+import { callTool, captureTools } from "../../tools/test-support/fake-engine.js"
+import { createEngineRegistry } from "../engine/resolve-engine.js"
 import type { ContractSuite } from "./contract-cases.test-support.js"
 import { enginePortFor } from "./engine-port.js"
 
@@ -117,6 +124,63 @@ function expectEveryStepOnce(steps: readonly HistoricStep[]): void {
   expect(starts).toEqual([...starts].sort((left, right) => left - right))
 }
 
+/** The registrar's history query, which the cockpit's history pages through after its first page. */
+const HISTORY_QUERY = captureTools((register) => registerTools(register)).get(
+  "engine_query_historic_activity_instances",
+)
+
+/** A page of the registrar's history query: its rows and the count of all. */
+interface QueryPage {
+  readonly items: readonly { readonly id: string }[]
+  readonly totalCount: number
+}
+
+/** The registrar's history query on the engine at `url`, called as a model or a view calls it. */
+function historyQueryAt(url: string): (args: Record<string, unknown>) => Promise<QueryPage> {
+  const query = HISTORY_QUERY
+  if (query === undefined) throw new Error("the history query is not registered")
+  const registry = createEngineRegistry([{ id: "history", baseUrl: url }], (entry) =>
+    providerForEntry(entry).createClient(entry, { type: "none" }),
+  )
+  return async (args) => (await callTool(query, registry, args)) as QueryPage
+}
+
+/** The ids of the cockpit's history of `instanceId`, as its widget pages it, and their count. */
+async function cockpitHistory(suite: ContractSuite, instanceId: string) {
+  const client = suite.resolve(C7_BOARD_ENGINE.engine).client
+  const first = await buildHistoryTimelineData(client, "history", {
+    processInstanceId: instanceId,
+    maxResults: PAGE,
+  })
+  const query = historyQueryAt(suite.url)
+  const ids = first.activities.map(({ id }) => id)
+  for (let page = ids; page.length === PAGE && ids.length < first.totalActivities;) {
+    const next = await query({
+      processInstanceId: instanceId,
+      sortBy: "startTime",
+      sortOrder: "asc",
+      firstResult: ids.length,
+      maxResults: PAGE,
+    })
+    page = next.items.map(({ id }) => id)
+    ids.push(...page)
+  }
+  return { ids, total: first.totalActivities }
+}
+
+/**
+ * The query's filters reach its POST body in the engine's date format, which the engine takes: a
+ * window around every step holds them all, one before them none.
+ */
+async function expectDateWindows(url: string, instanceId: string): Promise<void> {
+  const query = historyQueryAt(url)
+  const window = { processInstanceId: instanceId, maxResults: PAGE }
+  const around = await query({ ...window, startedAfter: "2000-01-01", startedBefore: "2999-01-01" })
+  expect([around.items.length, around.totalCount]).toEqual([PAGE, STEPS])
+  const before = await query({ ...window, startedBefore: "2000-01-01T00:00:00Z" })
+  expect([before.items.length, before.totalCount]).toEqual([0, 0])
+}
+
 async function historyInOneOrder(suite: ContractSuite): Promise<void> {
   const { url, runtime, resolve } = suite
   const { deploymentId, instanceId } = await startInstance(url)
@@ -142,6 +206,11 @@ async function historyInOneOrder(suite: ContractSuite): Promise<void> {
     expect(detail?.path.map(({ elementId }) => elementId)).toEqual(
       whole.map(({ activityId }) => activityId),
     )
+    expect(await cockpitHistory(suite, instanceId)).toEqual({
+      ids: whole.map(({ id }) => id),
+      total: STEPS,
+    })
+    await expectDateWindows(url, instanceId)
   } finally {
     await call(`${url}/deployment/${deploymentId}?cascade=true`, "DELETE")
   }

@@ -11,13 +11,13 @@ import {
   complementaryFlags,
   engineLike,
   engineSorting,
+  historySorting,
   toOptionalEngineDate,
   trueOnly,
 } from "@miragon/pulse-c7-core"
 import {
   getHistoricProcessInstances,
   getHistoricProcessInstancesCount,
-  getHistoricActivityInstances,
   getHistoricActivityInstancesCount,
   getHistoricTaskInstances,
   getHistoricTaskInstancesCount,
@@ -25,6 +25,7 @@ import {
   getHistoricVariableInstancesCount,
   getHistoricIncidents,
   getHistoricIncidentsCount,
+  queryHistoricActivityInstances,
 } from "@miragon/pulse-c7-client/sdk"
 import { checkedIncidentHistory } from "../lib/core-adapter/incident-history.js"
 import { paginatedListOutput, toPaginatedList } from "../lib/mcp/pagination.js"
@@ -110,15 +111,13 @@ function registerQueryHistoricActivityInstances(register: EngineToolRegistrar) {
         canceled: trueOnly(args.canceled),
         ...engineTimeWindow(args),
       }
+      // By POST, whose sorting breaks the ties of a key by c7-core's history order: an instance's
+      // history pages through it with no step twice or missed.
       const [items, count] = await Promise.all([
-        getHistoricActivityInstances({
+        queryHistoricActivityInstances({
           client,
-          query: {
-            ...filters,
-            firstResult: args.firstResult,
-            maxResults: args.maxResults,
-            ...engineSorting(args),
-          },
+          query: { firstResult: args.firstResult, maxResults: args.maxResults },
+          body: { ...filters, sorting: historySorting(args) },
         }),
         getHistoricActivityInstancesCount({ client, query: filters }),
       ])
