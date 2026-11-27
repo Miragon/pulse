@@ -5,6 +5,7 @@ import {
   type InstanceView,
   type LiveUpdates,
   type VariableRow,
+  type WaitRow,
 } from "../../src/core/protocol/index.js"
 import { VariableValues } from "../../src/core/views/variable-values.js"
 import { WriteOutcomes } from "../../src/core/views/write-outcomes.js"
@@ -48,10 +49,22 @@ function viewWith(overrides: Partial<InstanceView>): InstanceView {
   }
 }
 
+const FAILED_JOB_AT_ITS_ELEMENT: WaitRow = {
+  elementId: "Activity_ChargePayment",
+  elementName: "Charge payment",
+  kindLabel: "Async continuation",
+  since: "2026-10-21T07:59:00Z",
+}
+
+const RETRIED = WriteOutcomes.retried(
+  INCIDENT,
+  viewWith({ waitStates: [FAILED_JOB_AT_ITS_ELEMENT] }),
+)
+
 describe("the outcome of a retry", () => {
   test("reports a new incident at the same element as failed again, its actions stay on the card", () => {
     const again = { ...INCIDENT, id: "incident-2", rootCause: "CardExpiredException: 03/2025" }
-    expect(WriteOutcomes.afterRetry(INCIDENT, viewWith({ incidents: [again] }))).toEqual({
+    expect(WriteOutcomes.afterRetry(RETRIED, viewWith({ incidents: [again] }))).toEqual({
       tone: "danger",
       title: "Failed again at Activity_ChargePayment.",
       detail: "CardExpiredException: 03/2025",
@@ -69,11 +82,11 @@ describe("the outcome of a retry", () => {
       message: INCIDENT.message,
       createdAt: INCIDENT.createdAt,
     }
-    expect(WriteOutcomes.afterRetry(INCIDENT, viewWith({ incidents: [again] })).actions).toEqual([])
+    expect(WriteOutcomes.afterRetry(RETRIED, viewWith({ incidents: [again] })).actions).toEqual([])
   })
 
   test("reports an instance that moved on", () => {
-    expect(WriteOutcomes.afterRetry(INCIDENT, viewWith({}))).toEqual({
+    expect(WriteOutcomes.afterRetry(RETRIED, viewWith({}))).toEqual({
       tone: "info",
       title: "Moved on from Activity_ChargePayment.",
       actions: [],
@@ -96,27 +109,48 @@ describe("the outcome of a retry", () => {
       diagramXml: '<bpmn:serviceTask id="Activity_ChargePayment" name="Charge&#10;payment" />',
     })
 
-    expect(WriteOutcomes.afterRetry(INCIDENT, passed).title).toBe("Moved on from Charge payment.")
-    expect(WriteOutcomes.afterRetry(INCIDENT, drawn).title).toBe("Moved on from Charge payment.")
+    expect(WriteOutcomes.afterRetry(RETRIED, passed).title).toBe("Moved on from Charge payment.")
+    expect(WriteOutcomes.afterRetry(RETRIED, drawn).title).toBe("Moved on from Charge payment.")
   })
 
-  test("names the element with its name when the instance waits there", () => {
-    const view = viewWith({
-      waitStates: [
-        {
-          elementId: "Activity_ChargePayment",
-          elementName: "Charge payment",
-          kindLabel: "Worker task",
-        },
-      ],
-    })
-    expect(WriteOutcomes.afterRetry(INCIDENT, view).title).toBe(
+  test("names the element with its name when the instance still waits there as before", () => {
+    const view = viewWith({ waitStates: [FAILED_JOB_AT_ITS_ELEMENT] })
+    expect(WriteOutcomes.afterRetry(RETRIED, view).title).toBe(
       "Waiting at Charge payment for the next attempt.",
     )
-    expect(WriteOutcomes.afterRetry(INCIDENT, view, true).detail).toContain(
+    expect(WriteOutcomes.afterRetry(RETRIED, view, true).detail).toContain(
       "keeps checking for a minute",
     )
-    expect(WriteOutcomes.afterRetry(INCIDENT, view).detail).toContain("Refresh later")
+    expect(WriteOutcomes.afterRetry(RETRIED, view).detail).toContain("Refresh later")
+    expect(WriteOutcomes.isSettled(RETRIED, view)).toBe(false)
+  })
+
+  test("counts a new wait at the element as moving on: the user task after its async continuation", () => {
+    const task = {
+      ...FAILED_JOB_AT_ITS_ELEMENT,
+      kindLabel: "User task",
+      since: "2026-10-21T08:02:00Z",
+    }
+    const view = viewWith({ waitStates: [task] })
+
+    expect(WriteOutcomes.isSettled(RETRIED, view)).toBe(true)
+    expect(WriteOutcomes.afterRetry(RETRIED, view).title).toBe("Moved on from Charge payment.")
+  })
+
+  test("counts the items a multi-instance body runs after its retry as moving on", () => {
+    const body = { ...INCIDENT, elementId: "Activity_ApproveEach" }
+    const job = {
+      ...FAILED_JOB_AT_ITS_ELEMENT,
+      elementId: "Activity_ApproveEach",
+      elementName: "Approve each",
+    }
+    const retried = WriteOutcomes.retried(body, viewWith({ waitStates: [job] }))
+    const item = { ...job, kindLabel: "User task", since: "2026-10-21T08:02:00Z" }
+    const view = viewWith({ waitStates: [item, item, item] })
+
+    expect(WriteOutcomes.isSettled(retried, viewWith({ waitStates: [job] }))).toBe(false)
+    expect(WriteOutcomes.isSettled(retried, view)).toBe(true)
+    expect(WriteOutcomes.afterRetry(retried, view).title).toBe("Moved on from Approve each.")
   })
 })
 

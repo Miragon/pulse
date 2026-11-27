@@ -94,7 +94,14 @@ const CODES: ReadonlySet<string> = new Set<
   | VariableConditionKindCode
 >([
   ...(["running", "suspended", "completed", "terminated", "active", "canceled"] as const),
-  ...(["incident", "incidentInCalledInstance", "incidents", "ended", "waiting"] as const),
+  ...([
+    "incident",
+    "incidentInCalledInstance",
+    "incidents",
+    "incidentsAtLeast",
+    "ended",
+    "waiting",
+  ] as const),
   ...([
     "userTask",
     "workerTask",

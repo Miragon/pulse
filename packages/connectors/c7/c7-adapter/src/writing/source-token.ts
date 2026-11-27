@@ -11,7 +11,11 @@ export class SourceToken {
   static in(tree: ActivityInstanceRow, elementId: string): SourceTokenRef {
     const scopes = SourceToken.scopesOf(tree)
     const body = multiInstanceBodyOf(elementId)
-    if (scopes.some((scope) => scope.activityId === body)) {
+    const runningOrWaiting = [
+      ...scopes,
+      ...scopes.flatMap((scope) => scope.childTransitionInstances),
+    ]
+    if (runningOrWaiting.some((instance) => instance.activityId === body)) {
       throw new RuntimeError(
         "rejected",
         `${elementId} runs as multi-instance; Pulse moves only a single token.`,

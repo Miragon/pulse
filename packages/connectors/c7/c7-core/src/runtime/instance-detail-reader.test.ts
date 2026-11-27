@@ -1,4 +1,4 @@
-import { InstanceId, RuntimeError } from "@miragon/pulse-engine-core"
+import { BpmnProcessId, DefinitionId, InstanceId, RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import { fakeFailure, fakePort, type Route } from "../testing/fake-port.js"
 import { C, CHILD_DEF, P } from "../testing/fixture.js"
@@ -7,6 +7,12 @@ import { InstanceDetailReader } from "./instance-detail-reader.js"
 import type { InspectView } from "./instance-inspection.js"
 
 const SINCE = "2026-10-21T18:44:04.613+0000"
+const CHILD_REF = {
+  id: DefinitionId(CHILD_DEF),
+  bpmnProcessId: BpmnProcessId("workflow-child"),
+  version: 1,
+  name: "Child",
+}
 const CHILD_ROW = {
   id: C,
   processDefinitionId: CHILD_DEF,
@@ -27,6 +33,7 @@ const TYPED = [
 const VIEW: InspectView = {
   id: "p1",
   definition: { id: "order:1:d1", key: "order", version: 1 },
+  versions: new Map(),
   state: "ACTIVE",
   waitingAt: [],
   incidents: [],
@@ -94,7 +101,7 @@ describe("InstanceDetailReader.read", () => {
     ])
   })
 
-  it("starts the inspection and the typed variables together, then asks for the versions", async () => {
+  it("starts the inspection and the typed variables together, and names a running called instance's version from the runtime", async () => {
     const { port, reader } = approveReader()
 
     await reader.read(InstanceId(P))
@@ -105,26 +112,22 @@ describe("InstanceDetailReader.read", () => {
       "queryHistoricActivityInstances",
       "getVariableInstances",
     ])
-    expect(port.calls.at(-1)).toStrictEqual({
-      operationId: "queryHistoricProcessInstances",
-      input: {
-        pathArgs: [],
-        query: { firstResult: "0", maxResults: "1" },
-        body: {
-          processInstanceIds: [C],
-          sorting: [
-            { sortBy: "startTime", sortOrder: "desc" },
-            { sortBy: "instanceId", sortOrder: "asc" },
-          ],
-        },
-      },
-    })
+    expect(port.calls.map((call) => call.operationId)).not.toContain(
+      "queryHistoricProcessInstances",
+    )
   })
 
-  it("asks the history once for each called instance an incident was raised in", async () => {
+  it("asks the history once for each called instance an incident was raised in whose version the runtime does not list", async () => {
     const view = {
       ...VIEW,
-      incidents: [incident("i1"), incident("i2", "p1"), incident("i3", "c1"), incident("i4", "c1")],
+      versions: new Map([["c2", CHILD_REF]]),
+      incidents: [
+        incident("i1"),
+        incident("i2", "p1"),
+        incident("i3", "c1"),
+        incident("i4", "c1"),
+        incident("i5", "c2"),
+      ],
     }
     const { port, reader } = readerOf(() => Promise.resolve(view), {
       queryHistoricProcessInstances: () => [{ ...CHILD_ROW, id: "c1" }],
@@ -135,14 +138,24 @@ describe("InstanceDetailReader.read", () => {
     const history = port.calls.filter(
       (call) => call.operationId === "queryHistoricProcessInstances",
     )
-    expect(history.map((call) => [call.input.query, call.input.body])).toMatchObject([
-      [{ maxResults: "1" }, { processInstanceIds: ["c1"] }],
+    expect(history.map((call) => [call.input.query, call.input.body])).toStrictEqual([
+      [
+        { firstResult: "0", maxResults: "1" },
+        {
+          processInstanceIds: ["c1"],
+          sorting: [
+            { sortBy: "startTime", sortOrder: "desc" },
+            { sortBy: "instanceId", sortOrder: "asc" },
+          ],
+        },
+      ],
     ])
     expect(detail?.incidents.map((each) => [each.id, each.definition.id])).toStrictEqual([
       ["i1", "order:1:d1"],
       ["i2", "order:1:d1"],
       ["i3", CHILD_DEF],
       ["i4", CHILD_DEF],
+      ["i5", CHILD_DEF],
     ])
   })
 
@@ -217,17 +230,31 @@ describe("InstanceDetailReader.read", () => {
   })
 
   it("fails when the history cannot name the version of a called instance", async () => {
-    const { reader } = approveReader({ queryHistoricProcessInstances: () => [{ id: C }] })
-    const error = await reader.read(InstanceId(P)).catch((cause: unknown) => cause)
+    const view = { ...VIEW, incidents: [incident("i1", "c1")] }
+    const { reader } = readerOf(() => Promise.resolve(view), {
+      queryHistoricProcessInstances: () => [{ id: "c1" }],
+    })
+    const error = await reader.read(InstanceId("p1")).catch((cause: unknown) => cause)
 
     expect(error).toBeInstanceOf(RuntimeError)
     expect(error).toMatchObject({ failure: "unexpectedResponse" })
   })
 
-  it("leaves out an incident whose instance the history does not list", async () => {
+  it("leaves out an incident whose instance neither the runtime nor the history lists", async () => {
+    const view = { ...VIEW, incidents: [incident("i1", "c1")] }
+    const { reader } = readerOf(() => Promise.resolve(view), {
+      queryHistoricProcessInstances: () => [],
+    })
+
+    expect((await reader.read(InstanceId("p1")))?.incidents).toStrictEqual([])
+  })
+
+  it("keeps the root incident of a running called instance the history does not list", async () => {
     const { reader } = approveReader({ queryHistoricProcessInstances: () => [] })
 
-    expect((await reader.read(InstanceId(P)))?.incidents).toStrictEqual([])
+    expect((await reader.read(InstanceId(P)))?.incidents).toMatchObject([
+      { id: "i1", instanceId: C, definition: CHILD_REF },
+    ])
   })
 
   it("names the parent's own version for the instance itself", async () => {

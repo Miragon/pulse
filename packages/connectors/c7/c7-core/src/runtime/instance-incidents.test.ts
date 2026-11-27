@@ -32,6 +32,7 @@ function viewWaitingAt(waitingAt: readonly InspectedWait[]): InspectView {
   return {
     id: "p1",
     definition: { id: ORDER.id, key: "order", version: 1 },
+    versions: new Map(),
     state: "ACTIVE",
     waitingAt,
     incidents: [],

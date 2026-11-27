@@ -1,5 +1,10 @@
 import { PatchedRuntime } from "@miragon/pulse-engine-core/testing"
-import { RuntimeError, type ProcessCommands } from "@miragon/pulse-engine-core"
+import {
+  IsoTimestamp,
+  RuntimeError,
+  type ProcessCommands,
+  type WaitState,
+} from "@miragon/pulse-engine-core"
 import { describe, expect, test, vi } from "vitest"
 import { InstancePanel } from "../../src/core/panels/instance-panel.js"
 import type { InstanceView, PanelState } from "../../src/core/protocol/index.js"
@@ -153,6 +158,48 @@ describe("retrying an incident", () => {
           getInstanceDetail: async (instanceId) => {
             const detail = await runtime.getInstanceDetail(instanceId)
             return detail && retried ? { ...detail, waitStates: [] } : detail
+          },
+        }),
+      {
+        writable: true,
+        adaptCommands: (given) => ({
+          ...given,
+          retryIncident: async (incidentId) => {
+            await given.retryIncident(incidentId)
+            retried = true
+          },
+        }),
+      },
+    )
+    const panel = new InstancePanel(fixture.context, fixture.world.instanceIds["ORD-1002"])
+    await panel.handle({ type: "ready" })
+    const incidentId = readyView(fixture.lastState()).incidents[0]!.id
+
+    await panel.handle({ type: "retryIncident", incidentId })
+
+    expect(fixture.context.wait).toHaveBeenCalledTimes(1)
+    expect(readyView(fixture.lastState()).outcome?.title).toBe(`Moved on from ${CHARGE}.`)
+  })
+
+  test("stops checking once the element waits anew, as a multi-instance body's items do", async () => {
+    let retried = false
+    const fixture = panelFixture(
+      (runtime) =>
+        new PatchedRuntime(runtime, {
+          getInstanceDetail: async (instanceId) => {
+            const detail = await runtime.getInstanceDetail(instanceId)
+            if (detail === undefined || !retried) return detail
+            const tasksAfterTheRetriedJob = (wait: WaitState): WaitState[] =>
+              [1, 2, 3].map(() => ({
+                instanceId: wait.instanceId,
+                elementId: wait.elementId,
+                kind: "userTask",
+                since: IsoTimestamp("2030-01-01T00:00:00.000Z"),
+              }))
+            const waitStates = detail.waitStates.flatMap((wait) =>
+              wait.kind === "asyncContinuation" ? tasksAfterTheRetriedJob(wait) : [wait],
+            )
+            return { ...detail, waitStates }
           },
         }),
       {

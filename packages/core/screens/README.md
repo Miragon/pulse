@@ -169,9 +169,14 @@ never a 0, and a caller the surface did not read is named nowhere. The model, an
   of the contract gives short of the caller's whole detail;
 - the head strip as a code (`headline`): `incident` (it waits at an incident of its own: which,
   where and since when), `incidentInCalledInstance` (at the call activity that leads to the
-  instance holding it, with where it lies), `incidents` (several, counted), `suspended` or `ended`
-  (completed or cancelled), with whether a suspended instance waits at an incident; none for a
-  running instance without one;
+  instance holding it, with where it lies), `incidents` (several, counted), `incidentsAtLeast`
+  (where the engine cut the detail's lists, `truncated`, any incident at all, at least so many,
+  since more may lie beyond the cards; a code of its own, so a reader of the form's version 1 that
+  knows only `incidents` passes over it and never reads a lower bound as exact), `suspended` or
+  `ended` (completed or cancelled), with whether a suspended instance waits at an incident; none
+  for a running instance without one. The contract's `truncated` does not say which list was cut:
+  where only the variables were (on Camunda 7, 500 typed variables of its scopes), the incidents
+  are whole, and a single one still reads as at least one rather than where and since;
 - an incident card per root incident of its tree, its own and those of the instances it called
   (`IncidentCards`): `rootIncident`, the open root incident the card shows (its id, the instance
   that holds it and that instance's version), and where it lies (`liesIn`, `null` for one of the

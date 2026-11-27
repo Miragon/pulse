@@ -8,11 +8,12 @@ export class Headline {
     instance: InstanceSummary,
     cards: readonly IncidentCardModel[],
     tree: InstanceTree,
+    listsCut: boolean,
   ): HeadlineData | undefined {
     const suspended = instance.state === "suspended"
     const [first, second] = cards
-    if (second !== undefined) {
-      return { code: "incidents", count: cards.length, suspended }
+    if (second !== undefined || (listsCut && first !== undefined)) {
+      return Headline.counted(cards.length, listsCut, suspended)
     }
     if (instance.state === "completed" || instance.state === "terminated") {
       return { code: "ended", state: instance.state }
@@ -21,6 +22,10 @@ export class Headline {
       return Headline.single(first, tree, suspended)
     }
     return suspended ? { code: "suspended" } : undefined
+  }
+
+  private static counted(count: number, listsCut: boolean, suspended: boolean): HeadlineData {
+    return { code: listsCut ? "incidentsAtLeast" : "incidents", count, suspended }
   }
 
   private static single(

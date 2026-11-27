@@ -13,7 +13,9 @@ type WaitFacts =
 describe("the instance view of the protocol", () => {
   test("copies the head strips the editors show from the screens' codes, without importing them", () => {
     expectTypeOf<InstanceHead>().toExtend<HeadlineData>()
-    expectTypeOf<InstanceHead["code"]>().toEqualTypeOf<"incidents" | "suspended" | "ended">()
+    expectTypeOf<InstanceHead["code"]>().toEqualTypeOf<
+      "incidents" | "incidentsAtLeast" | "suspended" | "ended"
+    >()
   })
 
   test("carries the screens' JSON form of a run, a wait's facts and a variable beside its words", () => {

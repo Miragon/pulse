@@ -6,7 +6,8 @@ export class InstanceHeadline {
   static headOf(headline: HeadlineData | null): InstanceHead | undefined {
     switch (headline?.code) {
       case "incidents":
-        return { code: "incidents", count: headline.count, suspended: headline.suspended }
+      case "incidentsAtLeast":
+        return { code: headline.code, count: headline.count, suspended: headline.suspended }
       case "incident":
       case "incidentInCalledInstance":
         return headline.suspended ? { code: "suspended" } : undefined
@@ -23,7 +24,8 @@ export class InstanceHeadline {
     const head = InstanceHeadline.headOf(headline)
     switch (head?.code) {
       case "incidents":
-        return InstanceHeadline.incidents(head.count, head.suspended, rows)
+      case "incidentsAtLeast":
+        return InstanceHeadline.incidents(head, rows)
       case "suspended":
         return InstanceHeadline.state("Suspended")
       case "ended":
@@ -34,14 +36,15 @@ export class InstanceHeadline {
   }
 
   private static incidents(
-    count: number,
-    suspended: boolean,
+    { code, count, suspended }: Extract<InstanceHead, { readonly count: number }>,
     rows: readonly IncidentRow[],
   ): Notice {
     const [first] = rows
+    const bound = code === "incidentsAtLeast" ? { atLeast: count } : count
+    const counted = Labels.plural(bound, "incident")
     return {
       tone: "danger",
-      title: `${Labels.plural(count, "incident")}${suspended ? " · suspended" : ""}`,
+      title: `${counted}${suspended ? " · suspended" : ""}`,
       ...(first === undefined ? {} : { detail: first.rootCause ?? first.message }),
       actions: [],
     }

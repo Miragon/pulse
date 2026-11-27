@@ -8,12 +8,14 @@
  * know is a refusal no retry changes (`UNKNOWN_INSTANCE`). The diagram, the processes it calls and
  * its caller are the builder's enrichments, each named in `unread` where its read failed. Beside
  * the screen: the instance in the engine's own web app where the provider's routes know it, and on
- * Camunda 7 each card's cause as the cockpit's cause view takes it (c7-core's `causeKeyOf`), null
- * on a dialect the cause view does not read.
+ * Camunda 7 each card's cause as the cockpit's cause view takes it, null on a dialect the cause view
+ * does not read: c7-core reads it with the detail (`getInstanceDetailWithCauses`, `causeKeyOf` over
+ * the incident as the engine names it), since a card names a multi-instance body's incident by the
+ * activity it repeats and the cause view reads the body's own id.
  */
 
-import { causeKeyOf } from "@miragon/pulse-c7-core"
-import { InstanceId } from "@miragon/pulse-engine-core"
+import type { IncidentCauseKey } from "@miragon/pulse-c7-core"
+import { IncidentId, type InstanceDetail, InstanceId } from "@miragon/pulse-engine-core"
 import type { IncidentCardData, InstanceScreenData } from "@miragon/pulse-screens"
 import {
   InstanceScreen,
@@ -22,7 +24,7 @@ import {
 } from "@miragon/pulse-screens/builder"
 import { buildInstanceCockpitUrl } from "../../lib/engine/cockpit-url.js"
 import { diagramXmlOf } from "../../lib/engine/diagram-xml.js"
-import { runtimeOf } from "../../lib/engine/engine-runtime.js"
+import { c7RuntimeOf, runtimeOf } from "../../lib/engine/engine-runtime.js"
 import type { RuntimeEngine } from "../../lib/engine/resolve-engine.js"
 
 /** An instance in the engine's own web app: its address and its vendor's name, which the link names. */
@@ -64,14 +66,29 @@ class UnknownInstanceError extends Error {
   }
 }
 
+/** The instance's detail and, on Camunda 7, the cause of each root incident; null elsewhere. */
+interface DetailRead {
+  readonly detail: InstanceDetail | undefined
+  readonly causes: ReadonlyMap<IncidentId, IncidentCauseKey> | null
+}
+
+/** The detail of `instanceId` on `engine`, on Camunda 7 with its root incidents' causes. */
+async function detailOf(engine: RuntimeEngine, instanceId: InstanceId): Promise<DetailRead> {
+  if (!("client" in engine)) {
+    return { detail: await runtimeOf(engine).getInstanceDetail(instanceId), causes: null }
+  }
+  const read = await c7RuntimeOf(engine.client).getInstanceDetailWithCauses(instanceId)
+  return { detail: read?.detail, causes: read?.causes ?? new Map() }
+}
+
 /**
- * The reads the builder takes of `engine`: its runtime's, the diagram through the one XML cache
- * (per engine and caller), none where the engine has none.
+ * The reads the builder takes of `engine`: the instance's `detail` as read, its runtime's, the
+ * diagram through the one XML cache (per engine and caller), none where the engine has none.
  */
-function readsOf(engine: RuntimeEngine): InstanceScreenReads {
+function readsOf(engine: RuntimeEngine, detail: InstanceDetail | undefined): InstanceScreenReads {
   const runtime = runtimeOf(engine)
   return {
-    getInstanceDetail: (id) => runtime.getInstanceDetail(id),
+    getInstanceDetail: () => Promise.resolve(detail),
     getCalledProcesses: (id) => runtime.getCalledProcesses(id),
     searchInstances: (filter, page) => runtime.searchInstances(filter, page),
     getDiagramXml: async (id) => (await diagramXmlOf(engine, id)) ?? undefined,
@@ -93,22 +110,15 @@ function webAppOf(engine: RuntimeEngine, screen: InstanceScreenData): InstanceWe
 
 /** Each card's cause on a Camunda 7 engine, whose cockpit's cause view takes it; else null. */
 function causesOf(
-  engine: RuntimeEngine,
+  causes: DetailRead["causes"],
   incidents: readonly IncidentCardData[],
 ): IncidentCauseData[] | null {
-  if (!("client" in engine)) return null
-  return incidents.map(({ rootIncident, elementId, type, message }) => {
-    const cause = causeKeyOf({
-      activityId: elementId,
-      incidentType: type,
-      incidentMessage: message,
-    })
-    return {
-      incidentId: rootIncident.id,
-      activityId: cause.activityId,
-      incidentType: cause.incidentType,
-      signature: cause.signature,
-    }
+  if (causes === null) return null
+  return incidents.flatMap(({ rootIncident }) => {
+    const cause = causes.get(IncidentId(rootIncident.id))
+    if (cause === undefined) return []
+    const { activityId, incidentType, signature } = cause
+    return [{ incidentId: rootIncident.id, activityId, incidentType, signature }]
   })
 }
 
@@ -118,13 +128,21 @@ export async function buildInstanceScreenData(
   instanceId: string,
   now: () => Date = () => new Date(),
 ): Promise<InstanceScreenFeedData> {
+  // When the reads began, the detail's first: the screen's "As of".
+  const asOf = now()
+  const id = InstanceId(instanceId)
+  const read = await detailOf(engine, id)
   const model = await InstanceScreen.read(
     engine.engineId,
-    InstanceId(instanceId),
-    readsOf(engine),
-    now,
+    id,
+    readsOf(engine, read.detail),
+    () => asOf,
   )
   if (model === undefined) throw new UnknownInstanceError(instanceId, engine.engineId)
   const screen = ScreenJson.instance(model)
-  return { ...screen, webApp: webAppOf(engine, screen), causes: causesOf(engine, screen.incidents) }
+  return {
+    ...screen,
+    webApp: webAppOf(engine, screen),
+    causes: causesOf(read.causes, screen.incidents),
+  }
 }

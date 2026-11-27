@@ -68,6 +68,7 @@ export type HeadlineData =
       readonly suspended: boolean
     }
   | { readonly code: "incidents"; readonly count: number; readonly suspended: boolean }
+  | { readonly code: "incidentsAtLeast"; readonly count: number; readonly suspended: boolean }
   | { readonly code: "suspended" }
   | { readonly code: "ended"; readonly state: "completed" | "terminated" }
 

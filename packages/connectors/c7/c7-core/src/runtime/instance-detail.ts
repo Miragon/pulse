@@ -14,15 +14,17 @@ import {
   type InstanceSummary,
   type WaitState,
 } from "@miragon/pulse-engine-core"
+import { elementOfActivity } from "../multi-instance-body.js"
 import type { TimelineEntry, WaitState as InspectedWait } from "../types.js"
 import { compact } from "../util.js"
 import { calledInstanceOf } from "./called-instances.js"
 import { definitionRefOf } from "./definition-refs.js"
-import { type DefinitionsByInstance, incidentOf } from "./instance-incidents.js"
+import { incidentOf } from "./instance-incidents.js"
 import type { InspectView } from "./instance-inspection.js"
 import { instanceStateOf } from "./instance-states.js"
 import { variablesOf } from "./instance-variables.js"
 import { optionalTimestampOf, timestampOf } from "./timestamps.js"
+import type { DefinitionsByInstance } from "./tree-versions.js"
 import { VARIABLE_PAGE_SIZE, type VariableRow } from "./variable-instances.js"
 
 /** The inspected instance as the contract's summary: with an incident of its own or copied up. */
@@ -51,14 +53,19 @@ function runOf(entry: TimelineEntry): ElementRun {
   }
 }
 
-/** What every wait state says: the instance it is in, its element, since when, its incident. */
+/**
+ * What every wait state says: the instance it is in, its element (a multi-instance body's, the
+ * activity it repeats), since when, its incident.
+ */
 function waitBaseOf(wait: InspectedWait, inspectedInstanceId: string) {
+  const { attachedTo } = wait
   return {
     instanceId: InstanceId(wait.processInstanceId ?? inspectedInstanceId),
-    elementId: ElementId(wait.activityId),
+    elementId: ElementId(elementOfActivity(wait.activityId)),
     ...compact({
       elementName: wait.activityName,
-      attachedToElementId: wait.attachedTo === undefined ? undefined : ElementId(wait.attachedTo),
+      attachedToElementId:
+        attachedTo === undefined ? undefined : ElementId(elementOfActivity(attachedTo)),
       since: optionalTimestampOf(wait.since),
       incidentId: wait.incidentId === undefined ? undefined : IncidentId(wait.incidentId),
     }),

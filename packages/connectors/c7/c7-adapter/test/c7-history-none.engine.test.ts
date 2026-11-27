@@ -405,14 +405,24 @@ describe.skipIf(!RUNS_ON_CAMUNDA_7)(
         expect(detail?.path).toEqual([])
       })
 
-      test("a caller's detail names its called instance and lacks the incident raised there", async () => {
+      test("a caller's detail names its called instance and the root incident raised there, by the runtime's version", async () => {
         const { runtime, world } = seededWorld()
         const detail = await runtime.getInstanceDetail(world.instanceIds["DSP-3001"])
 
         expect(detail?.calledInstances.map(({ bpmnProcessId }) => bpmnProcessId)).toEqual([
           WORLD_PROCESS.label,
         ])
-        expect(detail?.incidents).toEqual([])
+        expect(detail?.incidents).toEqual([
+          expect.objectContaining({
+            instanceId: detail?.calledInstances[0]?.id,
+            elementId: WORLD_ELEMENT.renderLabel,
+            definition: expect.objectContaining({
+              id: world.definitionIds["label@1"],
+              bpmnProcessId: WORLD_PROCESS.label,
+              version: 1,
+            }) as unknown,
+          }),
+        ])
       })
 
       test("an ended instance has no detail", async () => {

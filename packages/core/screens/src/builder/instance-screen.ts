@@ -54,7 +54,7 @@ export class InstanceScreen {
       asOf: facts.asOf,
       instance: detail.instance,
       caller,
-      headline: Headline.of(detail.instance, incidents, tree),
+      headline: Headline.of(detail.instance, incidents, tree, detail.truncated),
       markers: InstanceMarkers.of(detail, tree, facts.diagramXml),
       calls: CallLinks.of(facts.calledProcesses ?? [], detail).links(),
       incidents,

@@ -62,3 +62,55 @@ describe("collectIncidentActivityIds", () => {
     expect(collectIncidentActivityIds(incidents)).toEqual(["Activity_A", "Activity_B"])
   })
 })
+
+describe("a multi-instance body on the diagram", () => {
+  it("counts the items a body runs on the activity it repeats, never the body beside them", () => {
+    const tree = {
+      activityId: "Process_root",
+      childActivityInstances: [
+        {
+          activityId: "Activity_Approve#multiInstanceBody",
+          childActivityInstances: [
+            { activityId: "Activity_Approve" },
+            { activityId: "Activity_Approve" },
+          ],
+          childTransitionInstances: [{ activityId: "Activity_Approve" }],
+        },
+      ],
+    }
+    expect(collectActiveActivityIds(tree)).toEqual([
+      "Process_root",
+      "Activity_Approve",
+      "Activity_Approve",
+      "Activity_Approve",
+    ])
+  })
+
+  it("marks the body's own token on the activity it repeats where it waits", () => {
+    const tree = {
+      activityId: "Process_root",
+      childActivityInstances: [
+        { activityId: "Activity_Approve#multiInstanceBody", childActivityInstances: [] },
+      ],
+      childTransitionInstances: [{ activityId: "Activity_Ship#multiInstanceBody" }],
+    }
+    expect(collectActiveActivityIds(tree)).toEqual([
+      "Process_root",
+      "Activity_Approve",
+      "Activity_Ship",
+    ])
+  })
+
+  it("marks the body's incident on the activity it repeats and keeps the body's own id", () => {
+    const incidents = [
+      { activityId: "Activity_Approve#multiInstanceBody" },
+      { activityId: "Activity_Approve" },
+      { activityId: "Activity_Ship" },
+    ]
+    expect(collectIncidentActivityIds(incidents)).toEqual([
+      "Activity_Approve",
+      "Activity_Approve#multiInstanceBody",
+      "Activity_Ship",
+    ])
+  })
+})

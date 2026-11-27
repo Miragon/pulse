@@ -121,6 +121,7 @@ const headline = z.union([
     suspended: z.boolean(),
   }),
   z.strictObject({ code: z.literal("incidents"), count, suspended: z.boolean() }),
+  z.strictObject({ code: z.literal("incidentsAtLeast"), count, suspended: z.boolean() }),
   z.strictObject({ code: z.literal("suspended") }),
   z.strictObject({ code: z.literal("ended"), state: z.enum(["completed", "terminated"]) }),
 ])

@@ -33,7 +33,8 @@ export const instanceDe: Readonly<Record<InstanceWordKey, Message>> = {
     `Wartet an ${String(element)} auf einen Incident in einer aufgerufenen Instanz, seit ${String(time)}`,
   "headline.incidentInCalledInstanceAnywhere": ({ time }) =>
     `Wartet auf einen Incident in einer aufgerufenen Instanz, seit ${String(time)}`,
-  "headline.incidents": ({ count }) => countOf(count, "Incident", "Incidents"),
+  "headline.incidents": ({ count, bound }) =>
+    `${String(count)} ${isOne(bound ?? count) ? "Incident" : "Incidents"}`,
   "headline.suspendedToo": "{title} · ausgesetzt",
   "headline.suspended": "Diese Instanz ist ausgesetzt.",
   "headline.completed": "Diese Instanz ist abgeschlossen.",

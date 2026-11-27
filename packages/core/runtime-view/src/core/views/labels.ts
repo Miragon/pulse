@@ -59,7 +59,12 @@ export class Labels {
     return formatCount(count)
   }
 
-  static plural(count: number, noun: string, nouns = `${noun}s`): string {
-    return `${Labels.count(count)} ${count === 1 ? noun : nouns}`
+  static plural(
+    count: number | { readonly atLeast: number },
+    noun: string,
+    nouns = `${noun}s`,
+  ): string {
+    const value = typeof count === "number" ? count : count.atLeast
+    return `${formatCount(count)} ${value === 1 ? noun : nouns}`
   }
 }

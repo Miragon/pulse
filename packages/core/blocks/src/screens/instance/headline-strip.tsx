@@ -21,6 +21,26 @@ function suspendedToo(t: InstanceWords, title: string, suspended: boolean): stri
   return suspended ? t("headline.suspendedToo", { title }) : title
 }
 
+/**
+ * The strip of several incidents, the first one's cause beside them: as many as the cards show, at
+ * least so many where the engine cut the instance's lists (`incidentsAtLeast`, the kit's `≥ n`).
+ */
+function incidentsStrip(
+  t: InstanceWords,
+  headline: Extract<HeadlineData, { readonly code: "incidents" | "incidentsAtLeast" }>,
+  incidents: HeadlineStripProps["incidents"],
+): Strip {
+  const [first] = incidents
+  const { count, code } = headline
+  const shown = formatCount(code === "incidentsAtLeast" ? { atLeast: count } : count)
+  const title = t("headline.incidents", { count: shown, bound: formatCount(count) })
+  return {
+    tone: "danger",
+    title: suspendedToo(t, title, headline.suspended),
+    ...(first === undefined ? {} : { detail: first.rootCauseLine ?? first.message }),
+  }
+}
+
 function stripOf(t: InstanceWords, { headline, incidents, nameOf }: HeadlineStripProps): Strip {
   switch (headline.code) {
     case "incident": {
@@ -36,15 +56,9 @@ function stripOf(t: InstanceWords, { headline, incidents, nameOf }: HeadlineStri
           : t("headline.incidentInCalledInstance", { element: nameOf(headline.elementId), time })
       return { tone: "danger", title: suspendedToo(t, title, headline.suspended) }
     }
-    case "incidents": {
-      const [first] = incidents
-      const title = t("headline.incidents", { count: formatCount(headline.count) })
-      return {
-        tone: "danger",
-        title: suspendedToo(t, title, headline.suspended),
-        ...(first === undefined ? {} : { detail: first.rootCauseLine ?? first.message }),
-      }
-    }
+    case "incidents":
+    case "incidentsAtLeast":
+      return incidentsStrip(t, headline, incidents)
     case "suspended":
       return { tone: "info", title: t("headline.suspended") }
     case "ended":
@@ -58,8 +72,9 @@ function stripOf(t: InstanceWords, { headline, incidents, nameOf }: HeadlineStri
 /**
  * The strip under an instance's bar that says where it stands, from the screen's code: it waits
  * at an incident here or in an instance it called (since when, and where), it has several
- * incidents (the first's cause beside them), it is suspended, or it ended. A surface shows the
- * strips it decides to (the editors name one incident on its card alone).
+ * incidents, or at least so many where its lists are cut (the first's cause beside them), it is
+ * suspended, or it ended. A surface shows the strips it decides to (the editors name one incident
+ * on its card alone).
  */
 export function HeadlineStrip(props: HeadlineStripProps) {
   const t = useInstanceWords()

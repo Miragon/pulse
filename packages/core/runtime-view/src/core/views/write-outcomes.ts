@@ -1,5 +1,10 @@
-import type { IncidentRow, InstanceView, Notice } from "../protocol/index.js"
+import type { IncidentRow, InstanceView, Notice, WaitRow } from "../protocol/index.js"
 import { InstanceViewElements } from "./instance-view-elements.js"
+
+export interface RetriedIncident {
+  readonly row: IncidentRow
+  readonly waitsAtItsElementBefore: readonly WaitRow[]
+}
 
 export class WriteOutcomes {
   static readonly RETRY_CHECK: Notice = {
@@ -8,7 +13,15 @@ export class WriteOutcomes {
     actions: [],
   }
 
-  static afterRetry(before: IncidentRow, view: InstanceView, stillChecking = false): Notice {
+  static retried(row: IncidentRow, before: InstanceView): RetriedIncident {
+    const waitsAtItsElementBefore = before.waitStates.filter(
+      (wait) => wait.elementId === row.elementId,
+    )
+    return { row, waitsAtItsElementBefore }
+  }
+
+  static afterRetry(retried: RetriedIncident, view: InstanceView, stillChecking = false): Notice {
+    const before = retried.row
     const label = InstanceViewElements.nameOf(view, before.elementId)
     const again = WriteOutcomes.failedAgain(before, view)
     if (again !== undefined) {
@@ -19,7 +32,7 @@ export class WriteOutcomes {
         actions: [],
       }
     }
-    if (view.waitStates.some((row) => row.elementId === before.elementId)) {
+    if (WriteOutcomes.waitsAsBefore(retried, view)) {
       return {
         tone: "info",
         title: `Waiting at ${label} for the next attempt.`,
@@ -32,9 +45,9 @@ export class WriteOutcomes {
     return { tone: "info", title: `Moved on from ${label}.`, actions: [] }
   }
 
-  static isSettled(before: IncidentRow, view: InstanceView): boolean {
-    const waiting = view.waitStates.some((row) => row.elementId === before.elementId)
-    return WriteOutcomes.failedAgain(before, view) !== undefined || !waiting
+  static isSettled(retried: RetriedIncident, view: InstanceView): boolean {
+    const failed = WriteOutcomes.failedAgain(retried.row, view) !== undefined
+    return failed || !WriteOutcomes.waitsAsBefore(retried, view)
   }
 
   static afterChange(name: string, view: InstanceView): Notice {
@@ -52,6 +65,17 @@ export class WriteOutcomes {
 
   static shownIn(view: InstanceView, outcome: Notice | undefined): InstanceView {
     return outcome === undefined ? view : { ...view, outcome }
+  }
+
+  private static waitsAsBefore(retried: RetriedIncident, view: InstanceView): boolean {
+    const { row, waitsAtItsElementBefore } = retried
+    const sameKindSinceTheSameInstant = (wait: WaitRow) =>
+      waitsAtItsElementBefore.some(
+        (was) => was.kindLabel === wait.kindLabel && was.since === wait.since,
+      )
+    return view.waitStates.some(
+      (wait) => wait.elementId === row.elementId && sameKindSinceTheSameInstant(wait),
+    )
   }
 
   private static failedAgain(before: IncidentRow, view: InstanceView): IncidentRow | undefined {

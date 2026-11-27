@@ -92,4 +92,22 @@ describe("the head strip of an instance", () => {
       suspended: false,
     })
   })
+
+  test("counts the incidents of cut lists as at least so many, one included, never one named incident", () => {
+    expect(headlineOf({ incidents: [HERE], truncated: true })).toEqual({
+      code: "incidentsAtLeast",
+      count: 1,
+      suspended: false,
+    })
+    expect(
+      headlineOf({ ...instance("suspended"), incidents: [HERE, DOWN], truncated: true }),
+    ).toEqual({ code: "incidentsAtLeast", count: 2, suspended: true })
+  })
+
+  test("says nothing of incidents for cut lists that hold none", () => {
+    expect(headlineOf({ truncated: true })).toBeUndefined()
+    expect(headlineOf({ ...instance("suspended"), truncated: true })).toEqual({
+      code: "suspended",
+    })
+  })
 })

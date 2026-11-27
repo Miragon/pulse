@@ -10,7 +10,9 @@
  *   activity counts, the web app's process screen, a board's diagram and the incident search put
  *   the items' tokens and the body's root incident on the element of the diagram, the chat's
  *   process incidents count it there and list it on the element's page, and the incidents
- *   dashboard counts the element once and names the body's row by it.
+ *   dashboard counts the element once and names the body's row by it. Each instance's screen (the
+ *   web app's, whose builder the editors' webview runs, and the chat's instance view) marks and
+ *   names the body's wait and root incident on the element (instance-body.test-support.ts).
  * - An incident outside any process: a batch the case starts that sets the retries of a job no
  *   engine holds, so its own job fails until its retries are used up: an incident without
  *   element, instance or version, and nothing a board counts changes. The engine-wide incident
@@ -33,6 +35,7 @@ import {
 import { buildProcessScreenData } from "../../data/screens/process-screen-data.js"
 import type { ResolvedEngine } from "../engine/resolve-engine.js"
 import { recordedBoard } from "./compared-boards.test-support.js"
+import { expectInstanceScreensOnElement } from "./instance-body.test-support.js"
 
 /** The seeded engine a case runs on: its REST root, the contract's runtime, the board resolver. */
 export interface ContractSuite {
@@ -141,10 +144,15 @@ async function engineStatistics(url: string, definitionId: string) {
     .sort((left, right) => left.id.localeCompare(right.id))
 }
 
-/** One instance's items waiting at the element, another's body failed: its incident. */
-async function seedMultiInstance(url: string, definitionId: string): Promise<IncidentAnswer> {
+/** One instance's items waiting at the element, another's body failed: that one and its incident. */
+async function seedMultiInstance(
+  url: string,
+  definitionId: string,
+): Promise<{ readonly items: string; readonly incident: IncidentAnswer }> {
   const start = `${url}/process-definition/${definitionId}/start`
-  await call(start, "POST", { variables: { copies: { value: ITEMS, type: "Integer" } } })
+  const items = await call<{ id: string }>(start, "POST", {
+    variables: { copies: { value: ITEMS, type: "Integer" } },
+  })
   await call(start, "POST", {})
   const [tasks, incidents] = await settled(
     () =>
@@ -157,7 +165,7 @@ async function seedMultiInstance(url: string, definitionId: string): Promise<Inc
   expect(tasks.count).toBe(ITEMS)
   const [incident] = incidents
   if (incident === undefined) throw new Error("the body raised no incident")
-  return incident
+  return { items: items.id, incident }
 }
 
 /** A board of one diagram of the multi-instance process, over the recorded board's engine. */
@@ -210,7 +218,7 @@ async function multiInstanceBodyOnItsElement(suite: ContractSuite): Promise<void
   const { url, runtime, resolve } = suite
   const { deploymentId, definitionId } = await deployMultiInstance(url)
   try {
-    const incident = await seedMultiInstance(url, definitionId)
+    const { items, incident } = await seedMultiInstance(url, definitionId)
     // The engine counts the body apart, and only the token waiting there, never beside its items.
     expect(incident.activityId).toBe(`${APPROVE_EACH}#multiInstanceBody`)
     expect(await engineStatistics(url, definitionId)).toEqual([
@@ -249,6 +257,12 @@ async function multiInstanceBodyOnItsElement(suite: ContractSuite): Promise<void
       expect.objectContaining({ id: incident.id, elementId: APPROVE_EACH }),
     ])
     await expectIncidentsOnElement(engine, incident)
+    await expectInstanceScreensOnElement(engine, {
+      element: APPROVE_EACH,
+      items,
+      itemCount: ITEMS,
+      incident,
+    })
   } finally {
     await call(`${url}/deployment/${deploymentId}?cascade=true`, "DELETE")
   }
