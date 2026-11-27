@@ -1,9 +1,11 @@
 /**
  * The connector's engine suites stay in place although `pnpm test` runs none of them: the
  * pinned `test:engines` script loads vitest.engines.config.ts, which runs every engine suite of
- * the package, the Camunda 7 one and the Camunda 8 one, and switches none off; each suite
+ * the package, the Camunda 7 ones and the Camunda 8 one, and switches none off; each suite
  * starts the image `PULSE_ENGINE_IMAGE` names by its dialect, so a typo fails rather than
- * passing as a skipped run; and the Camunda 8 suite's stack is the C8 adapter's, trimmed.
+ * passing as a skipped run; the recording script of c7-core's status engine is none of them and
+ * records only in its own run (`record:status-world`); and the Camunda 8 suite's stack is the C8
+ * adapter's, trimmed.
  */
 
 import { globSync, readFileSync } from "node:fs"
@@ -52,17 +54,31 @@ describe("the config that runs the connector's engine suites", () => {
     expect(manifest.scripts["test:engines"]).toBe("vitest run --config vitest.engines.config.ts")
   })
 
-  it("runs every engine suite, the Camunda 7 and the Camunda 8 one, and switches none off", async () => {
+  it("runs every engine suite, the Camunda 7 ones and the Camunda 8 one, and switches none off", async () => {
     const config = await engineConfig()
     expect(filesOf(ENGINE_SUITES)).toEqual([
       "src/lib/core-adapter/c7-runtime.engine.test.ts",
       "src/lib/core-adapter/c8-runtime.engine.test.ts",
+      "src/lib/core-adapter/status-world.engine.test.ts",
     ])
     expect(filesOf(config.include)).toEqual(filesOf(ENGINE_SUITES))
     expect(config.exclude).toEqual([...configDefaults.exclude])
     for (const option of SWITCHES) {
       expect(config[option], option).toBeUndefined()
     }
+  })
+
+  it("leaves the recording script of c7-core's status engine to record:status-world alone", async () => {
+    const manifest = JSON.parse(readFileSync(join(PACKAGE_ROOT, "package.json"), "utf8")) as {
+      readonly scripts: Readonly<Record<string, string>>
+    }
+    expect(manifest.scripts["record:status-world"]).toBe(
+      "RECORD_STATUS_WORLD=1 vitest run src/lib/core-adapter/status-world.record.test.ts " +
+        "--coverage.enabled=false",
+    )
+    expect(filesOf((await engineConfig()).include)).not.toContain(
+      "src/lib/core-adapter/status-world.record.test.ts",
+    )
   })
 })
 

@@ -43,6 +43,15 @@ export function scanOpenIncidents(client: Client): Promise<IncidentLike[]> {
   }).then((rows) => rowsOf<IncidentLike>(rows))
 }
 
+/**
+ * Whether a process holds the incident: a batch's or the history cleanup's failed job names no
+ * process definition. c7-core's verdict tells the root incidents outside any process by the same
+ * field (`rootIncidentCounts`), which the overview names apart and never counts as a process's.
+ */
+export function inAnyProcess({ processDefinitionId }: IncidentLike): boolean {
+  return typeof processDefinitionId === "string" && processDefinitionId !== ""
+}
+
 export interface ScanCoverage {
   complete: boolean
   covers: (sinceMs: number) => boolean

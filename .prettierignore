@@ -12,6 +12,11 @@ CHANGELOG.md
 # The error-path goldens of the family adapters (the C7 and the C8 adapter) live in their packages.
 apps/*/test/__golden__/
 packages/connectors/*/*-adapter/test/__golden__/
+# c7-core's recorded status engine and the status world's screens: written byte-exact by their
+# recording script (`pnpm record:status-world`, JSON.stringify with 2 spaces), never by hand, the
+# same way.
+packages/connectors/c7/c7-core/src/testing/status-engine.json
+packages/connectors/c7/c7-core/src/testing/status-screens.json
 
 # Vite dev-server cache of the docs site (git-ignored via Vite's own nested
 # .gitignore, which Prettier does not read)

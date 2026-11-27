@@ -12,6 +12,7 @@ import {
 import type { EngineHealthCluster, EngineHealthData } from "../view-models.js"
 import {
   HOUR_MS,
+  inAnyProcess,
   scanCoverage,
   scanOpenIncidents,
   truncateMessage,
@@ -90,9 +91,10 @@ function deriveIncidentFacts(
 }
 
 /**
- * The causes and the affected activities come from the root incidents alone (`isRootIncident`): a
- * call activity's copy of a called instance's failure is that failure, not a cause or an activity
- * of its own without a message. A multi-instance body's failure (`<id>#multiInstanceBody`, its own
+ * The causes and the affected activities come from the processes' root incidents alone
+ * (`isRootIncident`, `inAnyProcess`): a call activity's copy of a called instance's failure is that
+ * failure, not a cause or an activity of its own without a message, and an incident outside any
+ * process (a batch's failed job) has no activity and is the summary's line of its own. A multi-instance body's failure (`<id>#multiInstanceBody`, its own
  * job) is a cause of its own, by the id its cluster reads, at the activity it repeats
  * (`elementOfActivity`), which counts once with its items.
  */
@@ -167,7 +169,7 @@ function topClusters(byCluster: Map<string, ClusterAcc>): ClusterAcc[] {
 }
 
 /**
- * The root incidents raised since `sinceMs`, where the scan holds every incident since then (it
+ * The processes' root incidents raised since `sinceMs`, where the scan holds every incident since then (it
  * reaches past it, or holds every open incident), else null: a window Camunda 7 cannot count
  * root incidents in by itself (no `/count` tells a root from a copy), so a count the scan cannot
  * vouch for is unknown, never a guess.
@@ -192,8 +194,8 @@ function processCounts(statsByKey: Map<string, KeyStats>) {
 }
 
 /**
- * The top causes, named, and the activities of every cause, from the scan's root incidents: the
- * activities are exact only when the scan read every incident, else null.
+ * The top causes, named, and the activities of every cause, from the scan's root incidents a
+ * process holds: the activities are exact only when the scan read every incident, else null.
  */
 async function readCauses(
   client: Client,
@@ -216,11 +218,14 @@ async function readCauses(
 
 /**
  * Deterministic, no LLM: the widget hands each cluster to the host agent on demand. Its incident
- * counts are open ROOT incidents (owner decision D2, amended on 2026-11-19): the definition
- * statistics' (`rootIncidents=true`) summed over every process, and the scan's root incidents for the
- * clusters, the affected activities and the last hour. The verdict counts root incidents too (owner
- * decision of 2026-11-20): c7-core's `rootIncidentCounts` over the same statistics and scan, whose
- * root incidents outside any process the summary names apart (`scanVerdict`).
+ * counts are the processes' open ROOT incidents (owner decision D2, amended on 2026-11-19): the
+ * definition statistics' (`rootIncidents=true`) summed over every process, and the scan's root
+ * incidents a process holds (`inAnyProcess`) for the clusters, the affected activities and the last
+ * hour, so the tile's "new in the last hour" and the activities beside it count what its open
+ * incidents count. The verdict counts root incidents too (owner decision of 2026-11-20): c7-core's
+ * `rootIncidentCounts` over the same statistics and the whole scan, whose root incidents outside
+ * any process the summary names apart (`scanVerdict`), never in a process's count, a cause or an
+ * activity (owner decision of 2026-11-26).
  */
 export async function buildEngineHealthData(
   client: Client,
@@ -239,7 +244,7 @@ export async function buildEngineHealthData(
   ])
   const nowMs = Date.now()
   const coverage = scanCoverage(incidents)
-  const roots = incidents.filter(isRootIncident)
+  const roots = incidents.filter((incident) => isRootIncident(incident) && inAnyProcess(incident))
   const processes = processCounts(statsByKey)
   const { clusters, affectedActivities } = await readCauses(client, roots, coverage, statsByKey)
 

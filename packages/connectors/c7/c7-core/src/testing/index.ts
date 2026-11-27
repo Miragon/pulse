@@ -3,7 +3,9 @@
  * wait states of every kind, a recording fake port, a list whose tied rows turn on every request
  * and a fake clock; the seed of the Camunda 7 conformance world and a board's answers recorded
  * from it, with the board they give, and the answers of the shared screens' reads, with the
- * screens they give; and the seams tests reach below the entry's API: the pure rules behind
+ * screens they give; the seed of the Camunda 7 status world and the answers of the status', the
+ * health's and the verdict's reads recorded from it, with what each surface gives; and the seams
+ * tests reach below the entry's API: the pure rules behind
  * inspect and status, the paging
  * rule of the port, and the operations each composite and the runtime send (a port adapter's test
  * holds its table equal to them).
@@ -27,6 +29,19 @@ export {
 export { seedC7CommandWorld, seedC7World } from "./seed-world.js"
 export { C7_BOARD_ENGINE, type C7BoardEngine, type C7RecordedAnswer } from "./board-engine.js"
 export { C7_SCREEN_ENGINE, type C7ExpectedScreens, type C7ScreenEngine } from "./screen-engine.js"
+export { C7_STATUS_WORLD, type C7StatusWorldIds, seedC7StatusWorld } from "./status-world.js"
+export {
+  C7_STATUS_SCREENS,
+  type C7ExpectedStatusScreens,
+  type C7StatusScreens,
+} from "./status-screens.js"
+export {
+  C7_STATUS_ENGINE,
+  type C7EdgeVerdict,
+  type C7ExpectedStatus,
+  type C7RecordedStatusEngine,
+  type C7StatusEngine,
+} from "./status-engine.js"
 export type {
   C7CommandWorld,
   C7CommandWorldPlan,

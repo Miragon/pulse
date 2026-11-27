@@ -1,0 +1,886 @@
+{
+  "about": "The status world of @miragon/pulse-c7-core/testing (seedC7StatusWorld) seeded into operaton/operaton:2.1.5 at history level full: the engine's answers to the reads of the process screen of pulse-status-approval, the instance screen of APR-139-2, whose multi-instance body holds the root incident, and a board with a diagram of that process, at asOf, and what the MCP server's feeds give of them, which the editors' C7 adapter builds alike, recorded by pnpm record:status-world.",
+  "engine": "full",
+  "asOf": "2026-11-27T14:34:18.000Z",
+  "file": {
+    "schemaVersion": 1,
+    "title": "Approvals",
+    "engines": [
+      "full"
+    ],
+    "rows": [
+      {
+        "row": [
+          {
+            "widget": "processDiagram",
+            "props": {
+              "process": "pulse-status-approval"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "answers": [
+    {
+      "method": "GET",
+      "path": "/engine-rest/event-subscription",
+      "query": {
+        "processInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/external-task",
+      "query": {
+        "processInstanceIdIn": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/history/process-instance/9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+      "answer": {
+        "id": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "businessKey": "APR-139-2",
+        "processDefinitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+        "processDefinitionKey": "pulse-status-approval",
+        "processDefinitionName": "Approve items",
+        "processDefinitionVersion": 1,
+        "startTime": "2026-11-27T14:34:15.364+0000",
+        "endTime": null,
+        "removalTime": null,
+        "durationInMillis": null,
+        "startUserId": null,
+        "startActivityId": "Event_Start",
+        "deleteReason": null,
+        "rootProcessInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "superProcessInstanceId": null,
+        "superCaseInstanceId": null,
+        "caseInstanceId": null,
+        "tenantId": null,
+        "state": "ACTIVE",
+        "restartedProcessInstanceId": null
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/incident",
+      "query": {
+        "processInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+          "processDefinitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+          "processInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+          "executionId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+          "incidentTimestamp": "2026-11-27T14:34:15.453+0000",
+          "incidentType": "failedJob",
+          "activityId": "Activity_ApproveEach#multiInstanceBody",
+          "failedActivityId": "Activity_ApproveEach#multiInstanceBody",
+          "causeIncidentId": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+          "rootCauseIncidentId": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+          "configuration": "9eeb0ded-ea6f-11f1-ba07-922da4d86bb8",
+          "incidentMessage": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+          "tenantId": null,
+          "jobDefinitionId": "9df84948-ea6f-11f1-ba07-922da4d86bb8",
+          "annotation": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job",
+      "query": {
+        "processInstanceIds": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "9eeb0ded-ea6f-11f1-ba07-922da4d86bb8",
+          "jobDefinitionId": "9df84948-ea6f-11f1-ba07-922da4d86bb8",
+          "processInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+          "processDefinitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+          "processDefinitionKey": "pulse-status-approval",
+          "executionId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+          "exceptionMessage": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+          "failedActivityId": "Activity_ApproveEach#multiInstanceBody",
+          "retries": 0,
+          "dueDate": null,
+          "suspended": false,
+          "priority": 0,
+          "tenantId": null,
+          "createTime": "2026-11-27T14:34:15.367+0000",
+          "batchId": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job",
+      "query": {
+        "timers": "true",
+        "processInstanceIds": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job-definition",
+      "query": {
+        "processDefinitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "9df84948-ea6f-11f1-ba07-922da4d86bb8",
+          "processDefinitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+          "processDefinitionKey": "pulse-status-approval",
+          "jobType": "async-continuation",
+          "jobConfiguration": "async-before",
+          "activityId": "Activity_ApproveEach#multiInstanceBody",
+          "suspended": false,
+          "overridingJobPriority": null,
+          "tenantId": null,
+          "deploymentId": null
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/job/9eeb0ded-ea6f-11f1-ba07-922da4d86bb8/stacktrace",
+      "text": "org.operaton.bpm.engine.ProcessEngineException: Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:66)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:53)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.MultiInstanceActivityBehavior.resolveLoopCardinality(MultiInstanceActivityBehavior.java:147)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.MultiInstanceActivityBehavior.resolveNrOfInstances(MultiInstanceActivityBehavior.java:110)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.MultiInstanceActivityBehavior.execute(MultiInstanceActivityBehavior.java:64)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.lambda$execute$1(PvmAtomicOperationActivityExecute.java:57)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueIfExecutionDoesNotAffectNextOperation(PvmExecutionImpl.java:2061)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:44)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:31)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.lambda$dispatchDelayedEventsAndPerformOperation$4(PvmExecutionImpl.java:2007)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueExecutionIfNotCanceled(PvmExecutionImpl.java:2067)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2022)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2006)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:62)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:29)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:70)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionCreateScope.scopeCreated(PvmAtomicOperationTransitionCreateScope.java:41)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:55)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:28)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:127)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:81)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:40)\n\tat org.operaton.bpm.engine.impl.persistence.entity.JobEntity.execute(JobEntity.java:123)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:106)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:41)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandExecutorImpl.execute(CommandExecutorImpl.java:29)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandContextInterceptor.execute(CommandContextInterceptor.java:113)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.lambda$execute$0(SpringTransactionInterceptor.java:64)\n\tat org.springframework.transaction.support.TransactionTemplate.execute(TransactionTemplate.java:137)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.execute(SpringTransactionInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.ProcessApplicationContextInterceptor.execute(ProcessApplicationContextInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandCounterInterceptor.execute(CommandCounterInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.LogInterceptor.execute(LogInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.ExceptionCodeInterceptor.execute(ExceptionCodeInterceptor.java:55)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobHelper.executeJob(ExecuteJobHelper.java:62)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.executeJob(ExecuteJobsRunnable.java:110)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.run(ExecuteJobsRunnable.java:71)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)\n\tat java.base/java.lang.Thread.run(Thread.java:840)\nCaused by: jakarta.el.PropertyNotFoundException: Cannot resolve identifier 'copies'\n\tat org.operaton.bpm.impl.juel.AstIdentifier.eval(AstIdentifier.java:93)\n\tat org.operaton.bpm.impl.juel.AstEval.eval(AstEval.java:53)\n\tat org.operaton.bpm.impl.juel.AstNode.getValue(AstNode.java:27)\n\tat org.operaton.bpm.impl.juel.TreeValueExpression.getValue(TreeValueExpression.java:115)\n\tat org.operaton.bpm.engine.impl.delegate.ExpressionGetInvocation.invoke(ExpressionGetInvocation.java:42)\n\tat org.operaton.bpm.engine.impl.delegate.DelegateInvocation.proceed(DelegateInvocation.java:59)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocationInContext(DefaultDelegateInterceptor.java:88)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocation(DefaultDelegateInterceptor.java:59)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:63)\n\t... 71 more\n",
+      "contentType": "text/plain"
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-definition",
+      "query": {
+        "processDefinitionIdIn": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+          "key": "pulse-status-approval",
+          "category": "http://bpmn.io/schema/bpmn",
+          "description": null,
+          "name": "Approve items",
+          "version": 1,
+          "resource": "pulse-status-approval.bpmn",
+          "deploymentId": "9df1b995-ea6f-11f1-ba07-922da4d86bb8",
+          "diagram": null,
+          "suspended": false,
+          "tenantId": null,
+          "versionTag": null,
+          "historyTimeToLive": 1,
+          "startableInTasklist": true
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-definition/pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8/statistics",
+      "query": {
+        "incidents": "true"
+      },
+      "answer": [
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ActivityStatisticsResultDto",
+          "id": "Activity_ApproveEach",
+          "instances": 3,
+          "failedJobs": 0,
+          "incidents": []
+        },
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ActivityStatisticsResultDto",
+          "id": "Activity_ApproveEach#multiInstanceBody",
+          "instances": 1,
+          "failedJobs": 0,
+          "incidents": [
+            {
+              "incidentType": "failedJob",
+              "incidentCount": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-definition/pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8/xml",
+      "answer": {
+        "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+        "bpmn20Xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:camunda=\"http://camunda.org/schema/1.0/bpmn\" targetNamespace=\"http://bpmn.io/schema/bpmn\" id=\"Definitions_pulse-status-approval\">\n  <bpmn:process id=\"pulse-status-approval\" name=\"Approve items\" isExecutable=\"true\" camunda:historyTimeToLive=\"1\">\n    <bpmn:startEvent id=\"Event_Start\" />\n    <bpmn:sequenceFlow id=\"Flow_Event_Start_Activity_ApproveEach\" sourceRef=\"Event_Start\" targetRef=\"Activity_ApproveEach\" />\n    <bpmn:userTask id=\"Activity_ApproveEach\" name=\"Approve each\" camunda:asyncBefore=\"true\">\n      <bpmn:multiInstanceLoopCharacteristics>\n        <bpmn:loopCardinality>${copies}</bpmn:loopCardinality>\n      </bpmn:multiInstanceLoopCharacteristics>\n    </bpmn:userTask>\n    <bpmn:sequenceFlow id=\"Flow_Activity_ApproveEach_Event_End\" sourceRef=\"Activity_ApproveEach\" targetRef=\"Event_End\" />\n    <bpmn:endEvent id=\"Event_End\" />\n  </bpmn:process>\n</bpmn:definitions>\n"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-definition/statistics",
+      "query": {
+        "rootIncidents": "true"
+      },
+      "answer": [
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+          "instances": 2,
+          "failedJobs": 0,
+          "incidents": [
+            {
+              "incidentType": "failedJob",
+              "incidentCount": 1
+            }
+          ],
+          "definition": {
+            "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+            "key": "pulse-status-approval",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Approve items",
+            "version": 1,
+            "resource": "pulse-status-approval.bpmn",
+            "deploymentId": "9df1b995-ea6f-11f1-ba07-922da4d86bb8",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        },
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-status-dispatch:1:9def4894-ea6f-11f1-ba07-922da4d86bb8",
+          "instances": 1,
+          "failedJobs": 0,
+          "incidents": [],
+          "definition": {
+            "id": "pulse-status-dispatch:1:9def4894-ea6f-11f1-ba07-922da4d86bb8",
+            "key": "pulse-status-dispatch",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Ship parcel",
+            "version": 1,
+            "resource": "pulse-status-dispatch.bpmn",
+            "deploymentId": "9de55d82-ea6f-11f1-ba07-922da4d86bb8",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        },
+        {
+          "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+          "id": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+          "instances": 1,
+          "failedJobs": 0,
+          "incidents": [
+            {
+              "incidentType": "failedJob",
+              "incidentCount": 1
+            }
+          ],
+          "definition": {
+            "id": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+            "key": "pulse-status-label",
+            "category": "http://bpmn.io/schema/bpmn",
+            "description": null,
+            "name": "Print parcel label",
+            "version": 1,
+            "resource": "pulse-status-label.bpmn",
+            "deploymentId": "9db6101e-ea6f-11f1-ba07-922da4d86bb8",
+            "diagram": null,
+            "suspended": false,
+            "tenantId": null,
+            "versionTag": null,
+            "historyTimeToLive": null,
+            "startableInTasklist": true
+          }
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance",
+      "query": {
+        "withIncident": "true",
+        "processDefinitionKey": "pulse-status-approval",
+        "sortBy": "instanceId",
+        "sortOrder": "asc",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "links": [],
+          "id": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+          "definitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+          "businessKey": "APR-139-2",
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-status-approval"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance",
+      "query": {
+        "withIncident": "true",
+        "sortBy": "instanceId",
+        "sortOrder": "asc",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": [
+        {
+          "links": [],
+          "id": "9e0f7ac9-ea6f-11f1-ba07-922da4d86bb8",
+          "definitionId": "pulse-status-dispatch:1:9def4894-ea6f-11f1-ba07-922da4d86bb8",
+          "businessKey": "DSP-139",
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-status-dispatch"
+        },
+        {
+          "links": [],
+          "id": "9e15954d-ea6f-11f1-ba07-922da4d86bb8",
+          "definitionId": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+          "businessKey": null,
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-status-label"
+        },
+        {
+          "links": [],
+          "id": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+          "definitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+          "businessKey": "APR-139-2",
+          "caseInstanceId": null,
+          "ended": false,
+          "suspended": false,
+          "tenantId": null,
+          "definitionKey": "pulse-status-approval"
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance",
+      "query": {
+        "superProcessInstance": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "firstResult": "0",
+        "maxResults": "101"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance/9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+      "answer": {
+        "links": [],
+        "id": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "definitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+        "businessKey": "APR-139-2",
+        "caseInstanceId": null,
+        "ended": false,
+        "suspended": false,
+        "tenantId": null,
+        "definitionKey": "pulse-status-approval"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance/9eea98bb-ea6f-11f1-ba07-922da4d86bb8/activity-instances",
+      "answer": {
+        "id": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "parentActivityInstanceId": null,
+        "activityId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+        "activityType": "processDefinition",
+        "processInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "processDefinitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+        "childActivityInstances": [],
+        "childTransitionInstances": [
+          {
+            "id": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+            "parentActivityInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+            "processInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+            "processDefinitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+            "activityId": "Activity_ApproveEach#multiInstanceBody",
+            "activityName": null,
+            "activityType": "multiInstanceBody",
+            "executionId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+            "incidentIds": [
+              "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8"
+            ],
+            "incidents": [
+              {
+                "id": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+                "activityId": "Activity_ApproveEach#multiInstanceBody"
+              }
+            ],
+            "targetActivityId": "Activity_ApproveEach#multiInstanceBody"
+          }
+        ],
+        "executionIds": [
+          "9eea98bb-ea6f-11f1-ba07-922da4d86bb8"
+        ],
+        "activityName": "Approve items",
+        "incidentIds": [],
+        "incidents": [],
+        "name": "Approve items"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/process-instance/9eea98bb-ea6f-11f1-ba07-922da4d86bb8/variables",
+      "query": {
+        "deserializeValues": "false"
+      },
+      "answer": {}
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/task",
+      "query": {
+        "processInstanceIdIn": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/telemetry/data",
+      "answer": {
+        "installation": "e863e6da-64c6-4369-91b8-0ee283fc0bd8",
+        "product": {
+          "name": "Operaton BPM Runtime",
+          "version": "2.1.5",
+          "edition": "community",
+          "internals": {
+            "database": {
+              "vendor": "H2",
+              "version": "2.4.240 (2025-09-22)"
+            },
+            "commands": {
+              "AcquireJobsCmd": {
+                "count": 33
+              },
+              "AuthorizationQueryImpl": {
+                "count": 22
+              },
+              "CreateGroupCmd": {
+                "count": 1
+              },
+              "GetDeploymentProcessModelCmd": {
+                "count": 7
+              },
+              "DbGroupQueryImpl": {
+                "count": 1
+              },
+              "CreateGroupQueryCmd": {
+                "count": 1
+              },
+              "GetExecutionVariablesCmd": {
+                "count": 1
+              },
+              "ProcessInstanceQueryImpl": {
+                "count": 6
+              },
+              "ActivityStatisticsQueryImpl": {
+                "count": 1
+              },
+              "IncidentQueryImpl": {
+                "count": 19
+              },
+              "ExternalTaskQueryImpl": {
+                "count": 7
+              },
+              "GetActivityInstanceCmd": {
+                "count": 1
+              },
+              "BootstrapEngineCommand": {
+                "count": 1
+              },
+              "VariableInstanceQueryImpl": {
+                "count": 1
+              },
+              "DefaultHistoryLevelSetupCommand": {
+                "count": 1
+              },
+              "SaveFilterCmd": {
+                "count": 1
+              },
+              "CreateFilterCmd": {
+                "count": 1
+              },
+              "TaskQueryImpl": {
+                "count": 5
+              },
+              "ProcessDefinitionQueryImpl": {
+                "count": 1
+              },
+              "CreateUserQueryCmd": {
+                "count": 1
+              },
+              "DbUserQueryImpl": {
+                "count": 1
+              },
+              "EventSubscriptionQueryImpl": {
+                "count": 1
+              },
+              "SaveGroupCmd": {
+                "count": 1
+              },
+              "ExecuteJobsCmd": {
+                "count": 12
+              },
+              "SaveUserCmd": {
+                "count": 1
+              },
+              "StartProcessInstanceCmd": {
+                "count": 3
+              },
+              "SuccessfulJobListener": {
+                "count": 3
+              },
+              "SuspendBatchCmd": {
+                "count": 1
+              },
+              "BatchStatisticsQueryImpl": {
+                "count": 9
+              },
+              "ProcessDefinitionStatisticsQueryImpl": {
+                "count": 10
+              },
+              "SaveAuthorizationCmd": {
+                "count": 22
+              },
+              "DeployCmd": {
+                "count": 3
+              },
+              "FailedJobListener": {
+                "count": 9
+              },
+              "SetJobsRetriesBatchCmd": {
+                "count": 1
+              },
+              "CreateMembershipCmd": {
+                "count": 1
+              },
+              "HistoricProcessInstanceQueryImpl": {
+                "count": 7
+              },
+              "FailedJobListener_FailedJobListenerCmd": {
+                "count": 9
+              },
+              "JobQueryImpl": {
+                "count": 10
+              },
+              "GetJobExceptionStacktraceCmd": {
+                "count": 7
+              },
+              "GetTableMetaDataCmd": {
+                "count": 1
+              },
+              "CreateUserCmd": {
+                "count": 1
+              },
+              "FilterQueryImpl": {
+                "count": 1
+              },
+              "HistoricActivityInstanceQueryImpl": {
+                "count": 1
+              },
+              "JobDefinitionQueryImpl": {
+                "count": 1
+              },
+              "HistoryCleanupCmd": {
+                "count": 1
+              },
+              "SchemaOperationsProcessEngineBuild": {
+                "count": 1
+              }
+            },
+            "metrics": {
+              "executed-decision-elements": {
+                "count": 0
+              },
+              "flow-node-instances": {
+                "count": 15
+              },
+              "decision-instances": {
+                "count": 0
+              },
+              "process-instances": {
+                "count": 3
+              }
+            },
+            "webapps": [],
+            "jdk": {
+              "version": "17.0.20",
+              "vendor": "Alpine"
+            },
+            "application-server": {
+              "vendor": "Apache Tomcat",
+              "version": "Apache Tomcat/11.0.26"
+            },
+            "operaton-integration": [
+              "spring-boot-starter",
+              "operaton-bpm-run"
+            ],
+            "data-collection-start-date": "2026-11-27T14:34:07.789+0000"
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/engine-rest/variable-instance",
+      "query": {
+        "processInstanceIdIn": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "deserializeValues": "false",
+        "maxResults": "500"
+      },
+      "answer": []
+    },
+    {
+      "method": "POST",
+      "path": "/engine-rest/history/activity-instance",
+      "query": {
+        "firstResult": "0",
+        "maxResults": "500"
+      },
+      "body": {
+        "processInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "sorting": [
+          {
+            "sortBy": "startTime",
+            "sortOrder": "asc"
+          },
+          {
+            "sortBy": "occurrence",
+            "sortOrder": "asc"
+          },
+          {
+            "sortBy": "activityInstanceId",
+            "sortOrder": "asc"
+          }
+        ]
+      },
+      "answer": [
+        {
+          "id": "Event_Start:9eeabfcc-ea6f-11f1-ba07-922da4d86bb8",
+          "parentActivityInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+          "activityId": "Event_Start",
+          "activityName": null,
+          "activityType": "startEvent",
+          "processDefinitionKey": "pulse-status-approval",
+          "processDefinitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+          "processInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+          "executionId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+          "taskId": null,
+          "calledProcessInstanceId": null,
+          "calledCaseInstanceId": null,
+          "assignee": null,
+          "startTime": "2026-11-27T14:34:15.365+0000",
+          "endTime": "2026-11-27T14:34:15.365+0000",
+          "durationInMillis": 0,
+          "canceled": false,
+          "completeScope": false,
+          "tenantId": null,
+          "removalTime": null,
+          "rootProcessInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "process": {
+      "engine": "full",
+      "asOf": "2026-11-27T14:34:18.000Z",
+      "bpmnProcessId": "pulse-status-approval",
+      "selected": {
+        "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+        "bpmnProcessId": "pulse-status-approval",
+        "version": 1,
+        "name": "Approve items"
+      },
+      "versions": [
+        {
+          "definition": {
+            "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+            "bpmnProcessId": "pulse-status-approval",
+            "version": 1,
+            "name": "Approve items"
+          },
+          "running": 2,
+          "withIncident": 1
+        }
+      ],
+      "badges": [
+        {
+          "elementId": "Activity_ApproveEach",
+          "running": 3,
+          "incidents": 1,
+          "incidentsInCalledInstances": 0
+        }
+      ],
+      "calls": [],
+      "notices": [],
+      "unread": []
+    },
+    "instance": {
+      "engine": "full",
+      "asOf": "2026-11-27T14:34:18.000Z",
+      "instance": {
+        "id": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+        "definition": {
+          "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+          "bpmnProcessId": "pulse-status-approval",
+          "version": 1,
+          "name": "Approve items"
+        },
+        "state": "running",
+        "hasIncident": true,
+        "businessKey": "APR-139-2",
+        "startedAt": "2026-11-27T14:34:15.364Z"
+      },
+      "caller": null,
+      "headline": {
+        "code": "incident",
+        "incidentId": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+        "elementId": "Activity_ApproveEach",
+        "since": "2026-11-27T14:34:15.453Z",
+        "suspended": false
+      },
+      "markers": [
+        {
+          "elementId": "Activity_ApproveEach",
+          "kind": "incident"
+        },
+        {
+          "elementId": "Event_Start",
+          "kind": "completed"
+        }
+      ],
+      "calls": [],
+      "incidents": [
+        {
+          "rootIncident": {
+            "id": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+            "instanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+            "definition": {
+              "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+              "bpmnProcessId": "pulse-status-approval",
+              "version": 1,
+              "name": "Approve items"
+            }
+          },
+          "liesIn": null,
+          "elementId": "Activity_ApproveEach",
+          "type": "failedJob",
+          "message": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+          "createdAt": "2026-11-27T14:34:15.453Z",
+          "retriesLeft": 0,
+          "job": {
+            "id": "9eeb0ded-ea6f-11f1-ba07-922da4d86bb8"
+          },
+          "text": "stacktrace",
+          "rootCauseLine": "PropertyNotFoundException: Cannot resolve identifier 'copies'",
+          "causeSource": "stacktrace"
+        }
+      ],
+      "waits": [
+        {
+          "elementId": "Activity_ApproveEach",
+          "kind": "asyncContinuation",
+          "since": "2026-11-27T14:34:15.367Z",
+          "incidentId": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+          "retriesLeft": 0,
+          "liesIn": null
+        }
+      ],
+      "path": [
+        {
+          "elementId": "Event_Start",
+          "startedAt": "2026-11-27T14:34:15.365Z",
+          "state": "completed",
+          "endedAt": "2026-11-27T14:34:15.365Z",
+          "durationMs": 0
+        }
+      ],
+      "variables": [],
+      "truncated": false,
+      "unread": []
+    },
+    "board": {
+      "title": "Approvals",
+      "engines": [
+        {
+          "name": "full",
+          "state": "ready",
+          "product": "Operaton BPM Runtime",
+          "version": "2.1.5",
+          "totals": {
+            "running": 4,
+            "withIncident": 3
+          }
+        }
+      ],
+      "rows": [
+        [
+          {
+            "kind": "processDiagram",
+            "widget": {
+              "widget": "processDiagram",
+              "engines": [
+                "full"
+              ],
+              "process": "pulse-status-approval"
+            },
+            "engine": "full",
+            "latest": {
+              "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+              "bpmnProcessId": "pulse-status-approval",
+              "version": 1,
+              "name": "Approve items"
+            },
+            "badges": [
+              {
+                "elementId": "Activity_ApproveEach",
+                "active": 3,
+                "incidents": 1,
+                "incidentsInCalledInstances": 0
+              }
+            ]
+          }
+        ]
+      ],
+      "notes": []
+    }
+  }
+}

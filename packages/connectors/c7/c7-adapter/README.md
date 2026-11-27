@@ -39,7 +39,10 @@ engine connector builds over its own wire (`test/c7-board-numbers.test.ts`), and
 recorded screen answers (`C7_SCREEN_ENGINE`) exactly the engine screen, the two instance screens,
 the three process screens and the instance list of `@miragon/pulse-screens` the recording expects, whose figures are those of the kit's own
 world (`test/c7-screen-numbers.test.ts`, compared by `ScreenFigures` of
-`@miragon/pulse-screens/testing`; the engine suite reads them live too). Its error-path goldens
+`@miragon/pulse-screens/testing`; the engine suite reads them live too), and over the status
+world's recorded screens (`C7_STATUS_SCREENS`, Camunda 7's alone) exactly the process screen, the
+instance screen and the board whose multi-instance body's root incident stands on the element it
+repeats (`test/c7-status-screens-numbers.test.ts`). Its error-path goldens
 (`test/__golden__/error-paths/`, the same cases the CLI and the MCP server pin) change only through
 `pnpm --fail-if-no-match --filter @miragon/pulse-c7-adapter golden:update`. Its wire passes the
 transport's conformance cases it can express (`test/engine-rest/transport-cases.test.ts`). Its

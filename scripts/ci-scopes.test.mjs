@@ -320,11 +320,43 @@ describe("scopesFor: the MCP server's engine suite runs for what it runs", () =>
     }
   })
 
+  it("runs it for the status surfaces and screens the status world's suite holds to the recordings", () => {
+    for (const file of [
+      `${CONNECTOR}/src/tools/engines.ts`,
+      `${CONNECTOR}/src/data/feeds.ts`,
+      `${CONNECTOR}/src/data/screen-feeds.ts`,
+      `${CONNECTOR}/src/data/health-data.ts`,
+      `${CONNECTOR}/src/data/health-floor.ts`,
+      `${CONNECTOR}/src/data/cluster-scan.ts`,
+      `${CONNECTOR}/src/data/scan-verdict.ts`,
+      `${CONNECTOR}/src/data/statistics-floor.ts`,
+      `${CONNECTOR}/src/data/started-completed.ts`,
+      `${CONNECTOR}/src/data/history-recorded.ts`,
+      `${CONNECTOR}/src/data/answer-parts.ts`,
+      `${CONNECTOR}/src/data/screens/verdict-data.ts`,
+      `${CONNECTOR}/src/data/screens/engine-screen-data.ts`,
+      `${CONNECTOR}/src/data/screens/screen-floor.ts`,
+      // The screens it holds to C7_STATUS_SCREENS: their feeds (the screens package: below).
+      `${CONNECTOR}/src/data/screens/process-screen-data.ts`,
+      `${CONNECTOR}/src/data/screens/instance-screen-data.ts`,
+    ]) {
+      assert.ok(existsSync(path.join(repoRoot, file)), file)
+      assert.ok(scopes(file).includes("mcp-engines"), file)
+    }
+    for (const file of [
+      `${CONNECTOR}/src/data/health-data.test.ts`,
+      `${CONNECTOR}/src/data/screens/find-data.ts`,
+      `${CONNECTOR}/src/data/screens/process-screen-data.numbers.test.ts`,
+      `${CONNECTOR}/src/tools/engines.test.ts`,
+    ]) {
+      assert.ok(!scopes(file).includes("mcp-engines"), file)
+    }
+  })
+
   it("leaves it off for the rest of those packages and for every other package", () => {
     for (const file of [
       `${CONNECTOR}/src/tools/process-instances.ts`,
       `${CONNECTOR}/src/widgets/views.tsx`,
-      `${CONNECTOR}/src/data/feeds.ts`,
       `${CONNECTOR}/src/data/boards.ts`,
       `${CONNECTOR}/src/data/cockpit-start.ts`,
       `${CONNECTOR}/src/lib/bpmn/bpmn-parse.ts`,
@@ -579,7 +611,7 @@ describe("the real workspace", () => {
     }
   })
 
-  it("names real paths for the MCP server's engine suite: the suite, its config and the world", () => {
+  it("names real paths for the MCP server's engine suite: the suite, its config, the world and the screens", () => {
     for (const file of [
       "packages/connectors/engine/engine-connector/src/lib/core-adapter/c7-runtime.engine.test.ts",
       "packages/connectors/engine/engine-connector/vitest.engines.config.ts",
@@ -590,10 +622,14 @@ describe("the real workspace", () => {
       "packages/connectors/engine/engine-connector/src/data/board-reads.ts",
       "packages/connectors/engine/engine-connector/src/lib/bpmn/definition-xml.ts",
       "packages/core/board/src/builder/board-builder.ts",
+      "packages/core/screens/src/builder/process-screen.ts",
     ]) {
       assert.ok(existsSync(path.join(repoRoot, file)), file)
       assert.ok(scopesFor([file], packages).has("mcp-engines"), file)
     }
+    assert.ok(
+      !scopesFor(["packages/core/screens/test/no-text.test.ts"], packages).has("mcp-engines"),
+    )
   })
 
   it("names every app that ships a Claude Code plugin in PLUGIN_APPS", () => {

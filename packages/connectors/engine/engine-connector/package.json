@@ -50,6 +50,7 @@
     "build": "tsc",
     "test": "vitest run",
     "test:engines": "vitest run --config vitest.engines.config.ts",
+    "record:status-world": "RECORD_STATUS_WORLD=1 vitest run src/lib/core-adapter/status-world.record.test.ts --coverage.enabled=false",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.widgets.json",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix"

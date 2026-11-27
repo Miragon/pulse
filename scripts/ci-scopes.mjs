@@ -144,8 +144,13 @@ export const ALSO_READ_BY = [
   // connection, its runtime per dialect with the providers and the flavor table it picks one by,
   // the board feed's build (its board files, src/data/board-*.ts and the one XML read it draws a
   // diagram by), the instance list's build whose "With incident" chip the suite holds to a board's
-  // counter (src/data/cockpit-data.ts and the reads it builds on), its manifest and its vitest
-  // configs. Any other change of these packages leaves the suite off.
+  // counter (src/data/cockpit-data.ts and the reads it builds on), the status surfaces the status
+  // world's suite holds to C7_STATUS_ENGINE (engine_status in src/tools/engines.ts; the health feed
+  // and the verdict feed, their builders, floors, the incident scan, the verdict over it, the
+  // statistics read and the day's history counts, and src/data/feeds.ts and screen-feeds.ts, which
+  // register them), the screens it holds to C7_STATUS_SCREENS (the process and the instance
+  // screen's feeds and the screens package's builders), its manifest and its vitest configs. Any
+  // other change of these packages leaves the suite off.
   {
     pattern: new RegExp(
       "^packages/(?:" +
@@ -157,8 +162,10 @@ export const ALSO_READ_BY = [
           "core/http/src/",
           "core/profile/src/",
           "core/board/src/",
+          "core/screens/src/",
           "connectors/engine/engine-connector/(?:src/lib/(?:core-adapter|engine)/|src/providers/|src/engine-provider\\.ts$|package\\.json$|vitest\\.(?:engines\\.)?config\\.ts$)",
           "connectors/engine/engine-connector/src/(?:board-files\\.ts|data/(?:board-[\\w.-]+|cockpit-data|definition-info|engine-reads)\\.ts|lib/bpmn/definition-xml\\.ts)$",
+          "connectors/engine/engine-connector/src/(?:tools/engines|data/(?:health-data|health-floor|cluster-scan|scan-verdict|statistics-floor|started-completed|history-recorded|answer-parts|feeds|screen-feeds|screens/(?:verdict-data|engine-screen-data|screen-floor|process-screen-data|instance-screen-data)))\\.ts$",
         ].join("|") +
         ")",
     ),
