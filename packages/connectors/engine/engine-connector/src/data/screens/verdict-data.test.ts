@@ -161,6 +161,25 @@ describe("the verdict feed", () => {
     expect(paths(engine, "/process-definition/statistics")).toHaveLength(2)
   })
 
+  it.each([
+    ["says what the engine is", CHAIN_ROUTES],
+    [
+      "says nothing of what the engine is (its telemetry refused)",
+      { ...CHAIN_ROUTES, "GET /telemetry/data": { status: 403, body: { message: "no" } } },
+    ],
+  ])(
+    "asks the engine no second statistics after an engine screen's read that %s",
+    async (_name, routes) => {
+      const { engine, call } = await boot(routes)
+      // The verdict read once its engine's screen answered, not beside it.
+      const screen = feedPayload<{ info: unknown }>(await call(ENGINE_SCREEN_PROCESSES_DATA))
+      expect(screen.info === null).toBe(routes !== CHAIN_ROUTES)
+      expect(feedPayload(await call(ENGINE_SCREEN_VERDICT_DATA))).toEqual({ status: "warning" })
+      expect(paths(engine, "/process-definition/statistics")).toHaveLength(1)
+      expect(paths(engine, "/incident")).toHaveLength(1)
+    },
+  )
+
   it("fails as its incident scan fails, never with a verdict it could not read", async () => {
     const { call } = await boot({
       ...CHAIN_ROUTES,

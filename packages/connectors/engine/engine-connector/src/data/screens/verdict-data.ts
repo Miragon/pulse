@@ -6,10 +6,11 @@
  * 8 engine has none (the feed serves Camunda 7 alone, as the server decides no verdict for Camunda
  * 8). Its two reads, neither of them a second statistics read:
  *
- * - the root incidents of the processes are the engine screen's (`buildEngineScreenData`, its rows'
- *   incidents summed: the one definition statistics read with `rootIncidents=true`), on that
- *   screen's floor, so the page's screen and its verdict share one read of it (a read both ask at
- *   once is one read);
+ * - the root incidents of the processes are the engine screen's (its list of processes,
+ *   `readEngineProcesses`, their incidents summed: the one definition statistics read with
+ *   `rootIncidents=true`), on that list's floor, so the page's screen and its verdict share one
+ *   read of it, whether both ask at once or the verdict after the screen, and whatever the screen
+ *   read of what the engine is;
  * - the newest open incidents are the cockpit overview's scan (`scanOpenIncidents`), whose root
  *   incidents give those outside any process and the largest cause, lower bounds where it stops.
  *
@@ -22,7 +23,7 @@ import { type EngineStatus, engineVerdict, rootIncidentCounts } from "@miragon/p
 import type { VerdictThresholds } from "@miragon/pulse-c7-core"
 import type { ResolvedEngine } from "../../lib/engine/resolve-engine.js"
 import { scanOpenIncidents } from "../cluster-scan.js"
-import { buildEngineScreenData } from "./engine-screen-data.js"
+import { readEngineProcesses } from "./engine-screen-data.js"
 import { screenFloor } from "./screen-floor.js"
 
 /** The verdict feed's answer: the engine's live verdict, `ok`, `warning` or `critical`. */
@@ -38,11 +39,11 @@ export function buildEngineVerdictData(
   thresholds: VerdictThresholds,
 ): Promise<EngineVerdictData> {
   return verdictFloor(engine, {}, async () => {
-    const [screen, incidents] = await Promise.all([
-      buildEngineScreenData(engine),
+    const [processes, incidents] = await Promise.all([
+      readEngineProcesses(engine),
       scanOpenIncidents(engine.client),
     ])
-    const ofProcesses = screen.processes.reduce((sum, process) => sum + process.incidents, 0)
+    const ofProcesses = processes.definitions.reduce((sum, process) => sum + process.incidents, 0)
     return { status: engineVerdict(rootIncidentCounts(ofProcesses, incidents), thresholds) }
   })
 }

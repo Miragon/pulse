@@ -177,14 +177,18 @@ describe("an engine that does not say what it is (Camunda 7's telemetry)", () =>
     expect(ScreenFigures.engine(screen)).toEqual(ScreenFigures.engine(WORLD_SCREENS.engine))
   })
 
-  it("asks it again on the next call: a screen without its product stands on no floor", async () => {
+  it("asks it again on the next call for its product alone: the list of processes stands on its floor", async () => {
     const about = RECORDED_C7.about as string
     const { engine, call } = await boot(RECORDED_C7, without(RECORDED_C7, about))
 
-    await call()
-    await call()
+    const first = feedPayload<EngineScreenFeedData>(await call())
+    const again = feedPayload<EngineScreenFeedData>(await call())
 
     expect(engine.unanswered.filter(({ target }) => target.startsWith(about))).toHaveLength(2)
+    const processes = RECORDED_C7.processes
+    expect(engine.seen.filter(({ target }) => target.startsWith(processes))).toHaveLength(1)
+    // The list read before, at the time it was read.
+    expect(again).toEqual(first)
   })
 })
 
