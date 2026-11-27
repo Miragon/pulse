@@ -4,6 +4,7 @@ import { Ban, CircleAlert, Minus, Server } from "lucide-react"
 import type { ReactNode } from "react"
 import { useEnginesWords } from "../../messages/engines-words.js"
 import { IncidentCount } from "../incident-count.js"
+import type { OutsideAnyProcessData } from "../../verdict/outside-any-process.js"
 import type { ScreenSlots, ScreenTableColumn } from "../slots.js"
 import { type EngineVerdict, EngineVerdictCell } from "./engine-verdict.js"
 
@@ -21,6 +22,8 @@ export type EngineRowData =
       readonly sums: FleetEngineData
       /** Its live state, where the surface shows one (`withVerdict`); none without it. */
       readonly verdict?: EngineVerdict
+      /** The root incidents outside any process its verdict judged, where the surface shows it. */
+      readonly outside?: OutsideAnyProcessData
     }
   | { readonly engine: string; readonly state: "loading" | "failed" | "refused" | "unread" }
 
@@ -99,7 +102,21 @@ function verdictCell(row: EngineRowData, t: Words): ReactNode {
   return <EngineVerdictCell verdict={verdict} figures={row.sums} why={why} />
 }
 
-function columnsOf(t: Words, withVerdict: boolean): ScreenTableColumn<EngineRowData>[] {
+/**
+ * The incidents' column: an engine's root incidents in its processes, named so where an engine of
+ * the table holds some outside any process too (`COUNT_TERMS.inProcesses`), which no row counts
+ * and the surface shows apart (`OutsideAnyProcessNotice`), as the chat's tile names them.
+ */
+function incidentsLabel(engines: readonly EngineRowData[], t: Words): string {
+  const outside = engines.some((row) => row.state === "read" && (row.outside?.count ?? 0) > 0)
+  return t(outside ? "engines.column.incidentsInProcesses" : "engines.column.incidents")
+}
+
+function columnsOf(
+  t: Words,
+  withVerdict: boolean,
+  incidents: string,
+): ScreenTableColumn<EngineRowData>[] {
   const count = (value: number) => <CountFigure>{formatCount(value)}</CountFigure>
   const state: ScreenTableColumn<EngineRowData>[] = withVerdict
     ? [{ key: "state", label: t("engines.column.state"), cell: (row) => verdictCell(row, t) }]
@@ -143,7 +160,7 @@ function columnsOf(t: Words, withVerdict: boolean): ScreenTableColumn<EngineRowD
     },
     {
       key: "incidents",
-      label: t("engines.column.incidents"),
+      label: incidents,
       cell: (row) =>
         figureOf(row, t, (sums) => (
           <IncidentCount
@@ -164,11 +181,12 @@ function columnsOf(t: Words, withVerdict: boolean): ScreenTableColumn<EngineRowD
  * dash where the server decides none), its product, its processes, running instances, instances
  * with incident and open root incidents, each the figure its engine screen shows (its totals, its
  * rows' incidents summed, a lower bound where the engine stopped counting; `FleetSums`: counts
- * only, never a rate, since engines run different processes). An engine still read, one whose read
- * failed, a refused profile and one not read for a reason that is not the engine's keep their row,
- * the state in words beside the id and a dash for each figure. A row opens its engine and copies
- * its id; the product, the processes and the running instances drop in a narrow region, the
- * state's word under 28rem, where its mark's shape still says it.
+ * only, never a rate, since engines run different processes), the last named in processes where an
+ * engine holds some outside any process too. An engine still read, one whose read failed, a refused
+ * profile and one not read for a reason that is not the engine's keep their row, the state in words
+ * beside the id and a dash for each figure. A row opens its engine and copies its id; the product,
+ * the processes and the running instances drop in a narrow region, the state's word under 28rem,
+ * where its mark's shape still says it.
  */
 export function EngineTable({ engines, slots, withVerdict = false }: EngineTableProps) {
   const t = useEnginesWords()
@@ -178,7 +196,7 @@ export function EngineTable({ engines, slots, withVerdict = false }: EngineTable
     <Table<EngineRowData>
       name="engines"
       label={t("engines.label")}
-      columns={columnsOf(t, withVerdict)}
+      columns={columnsOf(t, withVerdict, incidentsLabel(engines, t))}
       rows={engines}
       rowKey={(row) => row.engine}
       onOpen={(row, how) => {

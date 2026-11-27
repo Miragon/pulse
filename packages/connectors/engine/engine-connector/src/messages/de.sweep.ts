@@ -77,6 +77,8 @@ export const deSweep: MessageCatalog = {
   "engineHealth.kpiHealth": "Zustand",
   "engineHealth.kpiInLastHour": "({count} neu in der letzten Stunde)",
   "engineHealth.kpiOpenIncidents": "Offene Incidents",
+  // Das Label der Kachel, sobald die Engine Incidents außerhalb von Prozessen hat, eine Zeile für sich.
+  "engineHealth.kpiOpenIncidentsInProcesses": "Offene Incidents in Prozessen",
   "engineHealth.kpiOpenIncidentsAria": "Incident-Übersicht anzeigen",
   "engineHealth.kpiRunningInstances": "Laufende Instanzen",
   "engineHealth.kpiRunningInstancesAria": "Alle laufenden Instanzen anzeigen",

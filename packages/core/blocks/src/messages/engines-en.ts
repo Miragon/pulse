@@ -15,6 +15,7 @@ export const enginesEn = {
   "engines.column.running": "Running",
   "engines.column.withIncident": "With incident",
   "engines.column.incidents": "Incidents",
+  "engines.column.incidentsInProcesses": "Incidents in processes",
   "engines.column.state": "State",
   "engines.row": "Engine {engine}",
   "engines.id": "engine ID",

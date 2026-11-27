@@ -45,6 +45,9 @@ export const en: MessageCatalog = {
   "cockpit.landing.status.forbidden": "access denied",
   "cockpit.landing.status.empty": "empty",
   "cockpit.landing.status.incidents": ({ count }) => countOf(count, "incident", "incidents"),
+  // Its processes hold none, its state judged these: a line of their own, never "no incidents".
+  "cockpit.landing.status.outside": ({ count }) =>
+    `${countOf(count, "incident", "incidents")} outside any process`,
   "cockpit.landing.status.failedJobs": ({ count }) =>
     countOf(count, "job without retries", "jobs without retries"),
   "cockpit.landing.status.idle": "no running instances",

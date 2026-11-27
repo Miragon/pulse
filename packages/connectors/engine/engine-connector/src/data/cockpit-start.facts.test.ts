@@ -68,7 +68,7 @@ const at =
     r.path === path ? reply : undefined
 
 /** Incidents of one cluster, all at `NOW` minus two hours. */
-function incidents(count: number, message = "card declined"): unknown[] {
+function incidents(count: number, message = "card declined"): Record<string, unknown>[] {
   const ts = toEngineDate(new Date(Date.parse(NOW) - 2 * 60 * 60 * 1000))
   return Array.from({ length: count }, (_, n) => ({
     id: `inc-${n}`,
@@ -80,6 +80,24 @@ function incidents(count: number, message = "card declined"): unknown[] {
     incidentTimestamp: ts,
     configuration: WORLD.jobId,
   }))
+}
+
+/** An engine without an open incident: no incident read, its one process without any. */
+const quiet: Override = (r) => {
+  if (r.path === "/incident") return ok([])
+  if (r.path === "/incident/count") return ok({ count: 0 })
+  if (r.path === "/process-definition/statistics") {
+    return ok([
+      {
+        id: WORLD.latestDefinitionId,
+        instances: 3,
+        failedJobs: 0,
+        incidents: [],
+        definition: { id: WORLD.latestDefinitionId, key: WORLD.key, name: "Order", version: 2 },
+      },
+    ])
+  }
+  return undefined
 }
 
 const RULE = healthVerdictRule(DEFAULT_VERDICT_THRESHOLDS)
@@ -114,22 +132,6 @@ describe("cockpitFacts: the model's view of each route", () => {
   })
 
   it("overview without incidents: ok, and no top cluster", async () => {
-    const quiet: Override = (r) => {
-      if (r.path === "/incident") return ok([])
-      if (r.path === "/incident/count") return ok({ count: 0 })
-      if (r.path === "/process-definition/statistics") {
-        return ok([
-          {
-            id: WORLD.latestDefinitionId,
-            instances: 3,
-            failedJobs: 0,
-            incidents: [],
-            definition: { id: WORLD.latestDefinitionId, key: WORLD.key, name: "Order", version: 2 },
-          },
-        ])
-      }
-      return undefined
-    }
     expect(await factsOf({ section: "overview" }, quiet)).toEqual({
       status: "ok",
       statusRule: RULE,
@@ -145,6 +147,28 @@ describe("cockpitFacts: the model's view of each route", () => {
       totalFailedJobs: 0,
       topCluster: null,
     })
+  })
+
+  // A batch's failed job, which no process holds: the verdict judges it, and the facts name it
+  // apart from the processes' count, a lower bound where the scan stops (owner decision 2026-11-26).
+  it("overview with an incident outside any process: warning, 0 in processes, 1 outside", async () => {
+    const batch = {
+      ...incidents(1)[0],
+      id: "batch-1",
+      processDefinitionId: null,
+      processInstanceId: null,
+    }
+    const facts = await factsOf({ section: "overview" }, (r) =>
+      r.path === "/incident" ? ok([batch]) : quiet(r),
+    )
+    expect(facts).toMatchObject({ status: "warning", openRootIncidents: 0 })
+    expect(facts.rootIncidentsOutsideAnyProcess).toBe(1)
+    expect(facts.rootIncidentsOutsideAnyProcessAtLeast).toBeUndefined()
+    const capped = await factsOf({ section: "overview" }, (r) =>
+      r.path === "/incident" ? ok([batch, ...incidents(CLUSTER_SCAN_LIMIT - 1)]) : quiet(r),
+    )
+    expect(capped.rootIncidentsOutsideAnyProcessAtLeast).toBe(1)
+    expect(capped.rootIncidentsOutsideAnyProcess).toBeUndefined()
   })
 
   // A capped scan holds only part of the cluster: its count is unknown, the scanned share a lower bound.

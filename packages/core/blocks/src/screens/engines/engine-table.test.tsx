@@ -212,6 +212,31 @@ describe("the engines side by side, in a page's table", () => {
   })
 })
 
+describe("the incidents' column beside root incidents outside any process", () => {
+  const heads = (container: HTMLElement) =>
+    [...container.querySelectorAll("thead th")].map((head) => head.textContent).at(-1)
+  const outside = (count: number): EngineRowData => ({
+    engine: "conformance",
+    state: "read",
+    sums: WORLD!,
+    outside: { count, atLeast: false },
+  })
+
+  it("names the processes' incidents so where an engine holds some outside any process", () => {
+    expect(heads(shown(pageSlots().slots, "en", [outside(1), ...ROWS.slice(1)]))).toBe(
+      "Incidents in processes",
+    )
+    cleanup()
+    expect(heads(shown(pageSlots().slots, "de", [outside(2)]))).toBe("Incidents in Prozessen")
+  })
+
+  it("stays Incidents where no engine holds one outside any process", () => {
+    expect(heads(shown(pageSlots().slots, "en", [outside(0), ...ROWS.slice(1)]))).toBe("Incidents")
+    cleanup()
+    expect(heads(shown(pageSlots().slots))).toBe("Incidents")
+  })
+})
+
 describe("the engine screens summed in the browser", () => {
   it("give each engine's row and what runs where, as FleetSums does, the same answer while the screens stay", () => {
     const screens = [WORLD_SCREENS.engine, CLUSTER]

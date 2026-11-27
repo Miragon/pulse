@@ -623,7 +623,7 @@ const DOCS_BUDGETS = {
   // Each identity provider's side for /mcp and the web app, what a renewal catches, the MCP clients'
   // registration, what the server cannot serve, what was checked and the real-tenant checklist.
   "mcp/identity-providers.md": 274,
-  "mcp/usage.md": 150,
+  "mcp/usage.md": 154,
   // A board in the chat and the cockpit, the server's board files, a board shared with the editors.
   "mcp/boards.md": 70,
   // What the server reads of a Camunda 8 cluster and offers per engine (the web app's screen feeds
@@ -643,7 +643,7 @@ const DOCS_BUDGETS = {
   // and its instance screen, the sign-in an operator sets up (variables, the provider's side,
   // sessions and their check at the provider, a proxy and HTTP/2 at it, local), how it is built,
   // what its screens read and that it reads one call per engine at a time.
-  "web/index.md": 86,
+  "web/index.md": 89,
   "web/sign-in.md": 140,
   "web/architecture.md": 119,
   // The CLI's pages (docs/cli/).

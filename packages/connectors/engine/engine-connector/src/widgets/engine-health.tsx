@@ -1,3 +1,4 @@
+import { OutsideAnyProcessNotice } from "@miragon/pulse-blocks"
 import {
   FreshnessStamp,
   Button,
@@ -25,6 +26,7 @@ import { useNav, type OnNavigate } from "./navigation.js"
 import { ENGINE_HEALTH_DATA } from "../tool-names.js"
 import { useHandOff, useHandOffsShown, type HandOff, type ViewContext } from "./lib/hand-off.js"
 import { healthFailureOf, VERDICT_TONE } from "./lib/health-verdict.js"
+import { outsideFacts } from "../lib/shared/outside-facts.js"
 import { ClustersSection } from "./engine-health-clusters.js"
 import { HealthKpis, Throughput24h } from "./engine-health-kpis.js"
 import { useT } from "../messages/use-t.js"
@@ -64,6 +66,7 @@ function describeHealth(data: EngineHealthData, engine: string): ViewContext {
     facts: {
       verdict: status,
       openRootIncidents: summary.totalIncidents,
+      ...outsideFacts(summary.outsideAnyProcess),
       rootIncidentsLastHour: summary.lastHourIncidents,
       affectedActivities: summary.affectedActivities,
       affectedDefinitions: summary.affectedDefinitions,
@@ -88,6 +91,7 @@ function triageHandOff(data: EngineHealthData, engine: string): HandOff {
     ids: { engine },
     facts: {
       openRootIncidents: summary.totalIncidents,
+      ...outsideFacts(summary.outsideAnyProcess),
       rootIncidentsLastHour: summary.lastHourIncidents,
       affectedActivities: summary.affectedActivities,
       affectedDefinitions: summary.affectedDefinitions,
@@ -199,7 +203,10 @@ function RefreshFailedStrip({ view }: { view: ViewDataResult<EngineHealthData> }
   )
 }
 
-/** The view's bar: the engine in its title, the verdict, when the numbers were read, the actions. */
+/**
+ * The view's bar: the engine in its title, the verdict, when the numbers were read, the actions;
+ * under it a failed re-pull and the root incidents outside any process, a line of their own.
+ */
 function HealthBar({
   data,
   engine,
@@ -231,6 +238,7 @@ function HealthBar({
         actions={hasActions && <HealthActions data={data} engine={engine} go={go} />}
       />
       <RefreshFailedStrip view={view} />
+      <OutsideAnyProcessNotice outside={data.summary.outsideAnyProcess} />
     </>
   )
 }

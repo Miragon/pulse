@@ -10,6 +10,7 @@ export const enginesDe: Readonly<Record<EnginesWordKey, Message>> = {
   "engines.column.running": "Laufend",
   "engines.column.withIncident": "Mit Incident",
   "engines.column.incidents": "Incidents",
+  "engines.column.incidentsInProcesses": "Incidents in Prozessen",
   "engines.column.state": "Zustand",
   "engines.row": "Engine {engine}",
   "engines.id": "Engine-ID",

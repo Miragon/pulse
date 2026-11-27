@@ -9,10 +9,12 @@ import { VERDICT_TONE } from "../lib/health-verdict.js"
  * own two feeds on its query keys, so a drill-in lands on a warm cache: the counts from its
  * definitions feed, the dot from its health feed's verdict (c7-core's `engineVerdict` on the
  * deployment's thresholds), the one the overview's badge shows. Failed jobs stay counted and
- * named; the dot is the verdict's alone. `failure` is the counts' read's failure: before the
- * first answer from its FIRST failed attempt, as a board's strip says it at once, while the query
- * client's retries go on quietly and an answer they get replaces it; over counts on screen only
- * once every retry failed, so a refetch that a retry mends never flickers the row.
+ * named; the dot is the verdict's alone, and beside it the root incidents outside any process it
+ * judged (`outside`), which no count of the definitions holds. `failure` is the counts' read's
+ * failure: before the first answer from its FIRST failed attempt, as a board's strip says it at
+ * once, while the query client's retries go on quietly and an answer they get replaces it; over
+ * counts on screen only once every retry failed, so a refetch that a retry mends never flickers
+ * the row.
  */
 export function useEngineHealth(engineId: string) {
   const args = { engine: engineId }
@@ -34,6 +36,8 @@ export function useEngineHealth(engineId: string) {
     incidents: summary?.totalIncidents ?? 0,
     failed: summary?.totalFailedJobs ?? 0,
     status: health.data?.status,
+    // What the verdict judged outside any process: none before it, nor from a server before them.
+    outside: health.data?.summary.outsideAnyProcess,
     tone: dotTone(health.data),
   }
 }

@@ -38,7 +38,10 @@ drawer behind the menu button, the first of each view's bar. It shows no numbers
 where, counts only, never rates; an engine it could not read says why, a refused profile in the
 server's words. A Camunda 7 engine's state, there and in its processes' bar, is the chat overview's
 verdict (Stable, Degraded, Critical: its open root incidents by the server's thresholds); a Camunda
-8 engine has none. An engine's processes list each with its latest version, running instances,
+8 engine has none. Its root incidents outside any process (a batch's or the history cleanup's failed
+job) count toward its state, never toward a process: a line of their own under the bar names them,
+on **Start** by engine beside the table's incidents in processes, a lower bound (≥) where the
+server's scan stops. An engine's processes list each with its latest version, running instances,
 instances with incident and open incidents over every version, the numbers Pulse for VS Code shows
 (a legend says why a caller waiting for a called instance's incident counts with incident yet holds
 none); scopes and search filter in the browser, a row opens its process, **Refresh** reads again (on

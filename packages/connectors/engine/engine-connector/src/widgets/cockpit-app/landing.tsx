@@ -18,7 +18,8 @@ import { translator } from "../../messages/use-t.js"
 import type { ListedBoard, ListedRefusedBoard } from "../../view-models.board.js"
 import { boardsOnlyOf, type BoardsOnlyEngine, type CockpitEngine } from "./boards-only.js"
 import { useEngineHealth } from "./engine-health.js"
-import { engineStatusKind, StatusMark } from "./engine-status.js"
+import { useEngineRowWords } from "./engine-row-status.js"
+import { StatusMark } from "./engine-status.js"
 
 /** A row of the chooser's lists: one 28 px line (40 px on touch) of 13 px text. */
 const ROW = "text-dense min-h-row px-cell py-cell flex w-full items-center gap-3 text-left"
@@ -80,28 +81,16 @@ function EngineRowFrame({
   )
 }
 
+/** An engine every route reads: its verdict's dot and its live health in words. */
 function EngineRow(props: EngineRowProps) {
-  const locale = useLocale()
-  const tr = (key: string, params?: Record<string, unknown>) => translator(locale, key, params)
   const health = useEngineHealth(props.engineId)
-  const { failure, summary, tone } = health
-  const kind = engineStatusKind({ failure, summary, status: health.status })
-  const status =
-    kind === "incidents"
-      ? tr("cockpit.landing.status.incidents", {
-          count: formatNumber(summary?.totalIncidents ?? 0),
-        })
-      : kind === "failedJobs"
-        ? tr("cockpit.landing.status.failedJobs", {
-            count: formatNumber(summary?.totalFailedJobs ?? 0),
-          })
-        : tr(`cockpit.landing.status.${kind}`)
+  const { kind, words } = useEngineRowWords(health)
   return (
     <EngineRowFrame
       {...props}
       kind={kind}
-      mark={<StatusMark kind={kind} tone={tone} />}
-      status={status}
+      mark={<StatusMark kind={kind} tone={health.tone} />}
+      status={words}
     />
   )
 }

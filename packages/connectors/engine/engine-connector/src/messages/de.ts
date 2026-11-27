@@ -43,6 +43,8 @@ export const de: MessageCatalog = {
   "cockpit.landing.status.forbidden": "Zugriff verweigert",
   "cockpit.landing.status.empty": "leer",
   "cockpit.landing.status.incidents": ({ count }) => countOf(count, "Incident", "Incidents"),
+  "cockpit.landing.status.outside": ({ count }) =>
+    `${countOf(count, "Incident", "Incidents")} außerhalb von Prozessen`,
   "cockpit.landing.status.failedJobs": ({ count }) =>
     countOf(count, "Job ohne Versuche", "Jobs ohne Versuche"),
   "cockpit.landing.status.idle": "keine laufenden Instanzen",

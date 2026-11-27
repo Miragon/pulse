@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { WebApiError } from "@miragon/pulse-widget-shell/widgets"
-import { hasVerdict, verdictOf } from "../src/screens/engine/verdict-feed.js"
+import { hasVerdict, outsideOf, verdictOf } from "../src/screens/engine/verdict-feed.js"
 
 /**
  * An engine's live state as the page shows it from its verdict's read: the server's verdict, the
@@ -12,11 +12,14 @@ const unreachable = new Error("[unreachable] connection to engine prod failed (e
 const forbidden = new Error("[403 Forbidden] The engine refused the server's access (engine prod)")
 const ended = new WebApiError(401, { code: "signed_out", message: "No session." })
 
+/** None outside any process, read whole. */
+const NONE = { count: 0, atLeast: false }
+
 const read = (
-  data: { status: "ok" | "warning" | "critical" } | undefined,
+  data: { status: "ok" | "warning" | "critical"; outsideAnyProcess?: typeof NONE } | undefined,
   error: Error | null = null,
   failureReason: Error | null = null,
-) => ({ data, error, failureReason })
+) => ({ data: data && { outsideAnyProcess: NONE, ...data }, error, failureReason })
 
 describe("verdictOf", () => {
   it("is none where the server decides no verdict for the engine, whatever was read", () => {
@@ -43,6 +46,25 @@ describe("verdictOf", () => {
   it("leaves a page's ended session quiet: nothing was read of the engine", () => {
     expect(verdictOf(read(undefined, ended), true)).toBe("unread")
     expect(verdictOf(read(undefined, null, ended), true)).toBe("unread")
+  })
+})
+
+describe("outsideOf", () => {
+  const one = { count: 1, atLeast: false }
+  const degraded = { status: "warning", outsideAnyProcess: one } as const
+
+  it("is the root incidents outside any process of the verdict shown", () => {
+    expect(outsideOf(read(degraded), true)).toEqual(one)
+    expect(outsideOf(read({ status: "ok" }), true)).toEqual(NONE)
+    // A first attempt's failure while the query client retries: the verdict shows, and they too.
+    expect(outsideOf(read(degraded, null, unreachable), true)).toEqual(one)
+  })
+
+  it("is none where no verdict shows: none decided, still reading, a failed read", () => {
+    expect(outsideOf(read(degraded), false)).toBeUndefined()
+    expect(outsideOf(undefined, true)).toBeUndefined()
+    expect(outsideOf(read(undefined), true)).toBeUndefined()
+    expect(outsideOf(read(degraded, unreachable), true)).toBeUndefined()
   })
 })
 

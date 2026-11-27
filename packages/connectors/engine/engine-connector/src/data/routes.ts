@@ -6,6 +6,7 @@ import {
   type CockpitView,
 } from "../view-models.js"
 import type { ResolvedEngine } from "../lib/engine/resolve-engine.js"
+import { outsideFacts } from "../lib/shared/outside-facts.js"
 import { boardFacts } from "./board-facts.js"
 import {
   boardFeed,
@@ -131,6 +132,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
         status: health.status,
         statusRule: health.statusRule,
         openRootIncidents: s.totalIncidents,
+        ...outsideFacts(s.outsideAnyProcess),
         rootIncidentsLastHour: s.lastHourIncidents,
         affectedActivities: s.affectedActivities,
         affectedDefinitions: s.affectedDefinitions,

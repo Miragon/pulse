@@ -23,6 +23,8 @@ export type EngineStatusKind =
   | HealthFailure
   | "empty"
   | "incidents"
+  /** No process holds an open root incident, yet the verdict judged some outside any (`engineRowKind`). */
+  | "outside"
   | "failedJobs"
   | "idle"
   | "healthy"

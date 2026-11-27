@@ -37,6 +37,13 @@ export {
   type EngineVerdictFigures,
 } from "./screens/engines/engine-verdict.js"
 export { useFleetSums } from "./screens/engines/fleet-sums.js"
+// An engine's open root incidents outside any process, a line of their own beside its processes',
+// which the chat's overview shows as the web app's screens do (no screen block: verdict/).
+export {
+  OutsideAnyProcessNotice,
+  type OutsideAnyProcessData,
+  type OutsideAnyProcessNoticeProps,
+} from "./verdict/outside-any-process.js"
 export {
   ProcessesByEngine,
   type ProcessesByEngineProps,

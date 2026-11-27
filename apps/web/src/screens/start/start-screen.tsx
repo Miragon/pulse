@@ -19,6 +19,7 @@ import { useReadOnReturn } from "../read-on-return.js"
 import { RefreshButton } from "../screen-chrome.js"
 import { PagePlainTable, usePageSlots } from "../slots.js"
 import { StartBoards } from "./start-boards.js"
+import { StartOutside } from "./start-outside.js"
 import { useStartReads, type EngineRead } from "./start-reads.js"
 
 /**
@@ -161,6 +162,7 @@ export function StartScreen({ navigate, replace }: { navigate: Navigate; replace
                 />
               ),
             )}
+            <StartOutside reads={reads} />
           </>
         }
       >
