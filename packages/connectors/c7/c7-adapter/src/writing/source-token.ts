@@ -1,7 +1,6 @@
 import { RuntimeError } from "@miragon/pulse-engine-core"
+import { multiInstanceBodyOf } from "@miragon/pulse-c7-core"
 import type { ActivityInstanceRow } from "@miragon/pulse-c7-core/runtime"
-
-const MULTI_INSTANCE_BODY = "#multiInstanceBody"
 
 export interface SourceTokenRef {
   readonly field: "activityInstanceId" | "transitionInstanceId"
@@ -11,7 +10,8 @@ export interface SourceTokenRef {
 export class SourceToken {
   static in(tree: ActivityInstanceRow, elementId: string): SourceTokenRef {
     const scopes = SourceToken.scopesOf(tree)
-    if (scopes.some((scope) => scope.activityId === `${elementId}${MULTI_INSTANCE_BODY}`)) {
+    const body = multiInstanceBodyOf(elementId)
+    if (scopes.some((scope) => scope.activityId === body)) {
       throw new RuntimeError(
         "rejected",
         `${elementId} runs as multi-instance; Pulse moves only a single token.`,

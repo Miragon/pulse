@@ -4,7 +4,6 @@ import type { ElementStatisticsWithFailedJobs } from "@miragon/pulse-c7-core/run
 import { DefinitionId } from "@miragon/pulse-engine-core"
 import { c7RuntimeOf } from "../lib/engine/engine-runtime.js"
 import { createCallerCache } from "../lib/engine/per-engine.js"
-import { MULTI_INSTANCE_BODY } from "./activity-diagram.js"
 import { SCREEN_FLOOR_MS } from "./screens/screen-floor.js"
 
 /**
@@ -45,14 +44,14 @@ export interface ElementCounts {
 }
 
 /**
- * The counts on the diagrams of `versionIds`, summed per element (a multi-instance body on its
- * element), by the rule the shared process screen reads them with: each version's element
- * statistics (c7-core's `ElementStatisticsReader` over the server's wire, with each element's jobs
- * without retries and every incident at an element from the same one statistics read), whose
- * incidents are root incidents wherever no copy can lie, and which reads the incidents at the
- * version's call activities whole to tell the root incidents raised there from the copies a call
- * activity holds of its called instances' (`isRootIncident`), the named exception to "never a scan"
- * (invariant 7), since the read is whole and never a capped page. At most
+ * The counts on the diagrams of `versionIds`, summed per element, by the rule the shared process
+ * screen reads them with: each version's element statistics (c7-core's `ElementStatisticsReader`
+ * over the server's wire, with each element's jobs without retries and every incident at an
+ * element from the same one statistics read, a multi-instance body's counts on the activity it
+ * repeats), whose incidents are root incidents wherever no copy can lie, and which reads the
+ * incidents at the version's call activities whole to tell the root incidents raised there from
+ * the copies a call activity holds of its called instances' (`isRootIncident`), the named exception
+ * to "never a scan" (invariant 7), since the read is whole and never a capped page. At most
  * {@link VERSION_READS_AT_ONCE} versions at once, each on the floor of 30 s per caller
  * (`versionFloor`). Every version's read is primary: one left out would undercount the key.
  */
@@ -66,7 +65,7 @@ export async function readElementCounts(
   )
   const byElement = new Map<string, ElementCounts>()
   for (const element of perVersion.flat()) {
-    const id = element.elementId.replace(MULTI_INSTANCE_BODY, "")
+    const id = element.elementId
     const counts = byElement.get(id) ?? {
       active: 0,
       incidents: 0,

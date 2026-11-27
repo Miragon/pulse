@@ -5,11 +5,11 @@ import { incidentRowOf, incidentRowsOf, recoveryIdOf } from "./incident-rows.js"
 const REQUIRED = {
   id: "inc-1",
   incidentType: "failedJob",
-  activityId: "Activity_Charge",
   incidentTimestamp: "2026-10-21T18:44:04.587+0000",
 }
 const FULL = {
   ...REQUIRED,
+  activityId: "Activity_Charge",
   processInstanceId: "p1",
   processDefinitionId: "order:1:x",
   incidentMessage: "boom",
@@ -39,11 +39,34 @@ describe("incidentRowOf", () => {
     ).toStrictEqual(REQUIRED)
   })
 
+  it("reads an incident outside any process, a batch's failed job, without element or instance", () => {
+    const batchJob = {
+      ...REQUIRED,
+      activityId: null,
+      failedActivityId: null,
+      processInstanceId: null,
+      processDefinitionId: null,
+      executionId: null,
+      incidentMessage: null,
+      rootCauseIncidentId: "inc-1",
+      configuration: "job-9",
+    }
+    expect(incidentRowOf(batchJob)).toStrictEqual({
+      ...REQUIRED,
+      rootCauseIncidentId: "inc-1",
+      configuration: "job-9",
+    })
+    expect(incidentRowsOf([FULL, batchJob]).map((row) => row.activityId)).toEqual([
+      "Activity_Charge",
+      undefined,
+    ])
+  })
+
   it.each([
     ["no object", [], "incident is not an object"],
     ["without its id", { ...FULL, id: undefined }, "id is missing"],
     ["without its type", { ...FULL, incidentType: null }, "incidentType is missing"],
-    ["without its element", { ...FULL, activityId: undefined }, "activityId is missing"],
+    ["with an element that is no text", { ...FULL, activityId: 1 }, "activityId is not a string"],
     ["without its time", { ...FULL, incidentTimestamp: null }, "incidentTimestamp is missing"],
     [
       "with an instance that is no text",

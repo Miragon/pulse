@@ -5,9 +5,6 @@ import type { DefinitionInfo } from "./definition-info.js"
 import { fetchDefinitionXml } from "./definition-info.js"
 import { optional } from "./engine-reads.js"
 
-/** A multi-instance activity's body is reported under an id of its own. */
-export const MULTI_INSTANCE_BODY = /#multiInstanceBody$/
-
 export interface DiagramPlacement {
   /** Its name in the drawn diagram; null when the diagram does not name it or is unreadable. */
   activityName: string | null

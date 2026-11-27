@@ -152,7 +152,10 @@ missing.
   lie, and the incidents at the version's call activities that hold one read whole, sorted by id,
   to tell the root incidents from the copies Camunda 7 keeps there; the call activities from the
   version's diagram, kept per reader; every incident of the version where they cannot be told or
-  one read takes fewer requests and less than a page of rows beyond theirs), `CalledProcessReader` (each call activity of a version with the version its binding
+  one read takes fewer requests and less than a page of rows beyond theirs; each count on an
+  element of the diagram, as Camunda 8 reports it: a multi-instance body's token, failed jobs and
+  incidents, which Camunda 7 counts apart, only while its own token waits there, on the activity
+  it repeats), `CalledProcessReader` (each call activity of a version with the version its binding
   starts), `InstanceSearch` (the history's instances newest first, paged by offset behind the
   contract's cursor, each flagged with "with incident", and their count; a variable condition's
   value as the engine reads it, every integer beyond 2^53 in it digit for digit; without an
@@ -173,7 +176,10 @@ missing.
   of its root incidents was raised in; each value as `JSON.stringify` writes it, so an integer the
   wire kept as raw JSON keeps its digits), `IncidentSearch` (the root incidents newest first, then by
   id, across pages too, since incidents raised at one instant are read whole, with the version each
-  was raised in and the job or external task `incidentRecovery` names),
+  was raised in, the element of the diagram, a multi-instance body's incident on its activity, and
+  the job or external task `incidentRecovery` names; an incident outside any process, a failed job
+  of a batch or of the history cleanup, which names no element and no instance, is none of them
+  and never fails the search),
   `IncidentDetailsReader` (the stack trace or error details `CAUSE_OPERATIONS` names, else the
   incident's message, with the root cause by engine-core's `RootCauses`), `BulkOperationReader` (a
   batch that cancels or migrates instances from its statistics while the runtime holds it, else from
@@ -186,8 +192,8 @@ missing.
   or a 500 `NullValueException`, as `inspect` reads an instance that ended); a list is read page by
   page until a shorter page, and an answer that is no list fails. A page of the instances without an
   incident and a page of incidents drop rows of the engine's answer (an instance the runtime flags;
-  an incident copied up from a called instance, without its instance or of a version the engine does
-  not list), so they fill: after the page and one row more they read further windows from where the
+  an incident copied up from a called instance, without its element or instance or of a version the
+  engine does not list), so they fill: after the page and one row more they read further windows from where the
   last one ended, each twice the last up to 500 rows, at most 10 windows in all, the first included,
   while they keep fewer rows than that. Up to that bound a page holds its limit while more follow,
   and its cursor is the engine offset of the next kept row, so a dropped row is not read again;
@@ -226,7 +232,11 @@ missing.
   copy stands for: Camunda 7 copies an incident of a called instance up its call chain, each copy
   naming its root in `rootCauseIncidentId`; one without that field is a root, the one reading of
   the status triage, the inspection, the retry plan, the runtime, the engine module and the C7
-  adapter), the raw variable read flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a
+  adapter), the multi-instance body (`isMultiInstanceBody`, `elementOfActivity`,
+  `multiInstanceBodyOf`: Camunda 7 names the scope a multi-instance activity runs its items in by
+  the activity's id with `#multiInstanceBody`, the diagram the activity alone; the one reading of
+  the runtime's counts, incidents and variable scopes, the engine module's views, the CLI's
+  `--until` check and the C7 adapter's move), the raw variable read flag (`RAW_VARIABLES`, and `RAW_VARIABLES_QUERY` for a
   port's query), the history timeline (`timelineOf`), the request that holds an incident's cause
   (`CAUSE_OPERATIONS`, an operation id per built-in type) and the cause of a failure
   (`causeOf(text, fallback)`: the root cause of a stack trace or error details by engine-core's

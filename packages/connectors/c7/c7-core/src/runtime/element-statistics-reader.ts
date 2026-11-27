@@ -6,6 +6,12 @@
  * (`withFailedJobs`), from the same one statistics read with `failedJobs`, for a surface that
  * shows both (the MCP server's process flow), so it reads a version's statistics once.
  *
+ * Each count lies at an element of the diagram, as Camunda 8 reports it: Camunda 7 counts a
+ * multi-instance body apart (`<id>#multiInstanceBody`, the token that waits at the body itself and
+ * the incidents raised there, its failed job say, never beside the items it runs), and the reader
+ * adds the body's counts to its activity's (`elementOfActivity`), so every surface that reads the
+ * contract shows them on the activity. An incident that names no element counts at none.
+ *
  * The statistics count every open incident of the version at its element, copies included. Camunda
  * 7 copies a called instance's incident only to the caller's call activity, so an element that is
  * no call activity holds root incidents alone and its count stands as the engine gives it. At a
@@ -20,6 +26,7 @@
  */
 
 import { ElementId, type DefinitionId, type ElementStatistics } from "@miragon/pulse-engine-core"
+import { elementOfActivity } from "../multi-instance-body.js"
 import { type EnginePort, PARALLEL, type Query } from "../port.js"
 import { isRootIncident } from "../root-incident.js"
 import { mapLimit } from "../util.js"
@@ -135,11 +142,29 @@ function countsOf(
     }
   }
   for (const incident of incidents.rows) {
+    if (incident.activityId === undefined) continue
     const element = countsFor(counts, incident.activityId)
     if (isRootIncident(incident)) element.incidents += 1
     else element.incidentsInCalledInstances += 1
   }
   return counts
+}
+
+/**
+ * The counts per element of the diagram from those per activity the engine reports: a
+ * multi-instance body's added to the activity it repeats, each token held by an incident raised
+ * where it waits counted as that incident.
+ */
+function onElements(counts: Map<string, ElementCounts>): ElementStatisticsWithFailedJobs[] {
+  const byElement = new Map<string, ElementCounts>()
+  for (const [activityId, held] of counts) {
+    const element = countsFor(byElement, elementOfActivity(activityId))
+    element.active += Math.max(0, held.active - held.incidents)
+    element.incidents += held.incidents
+    element.incidentsInCalledInstances += held.incidentsInCalledInstances
+    element.failedJobs += held.failedJobs
+  }
+  return [...byElement].map(([elementId, held]) => ({ elementId: ElementId(elementId), ...held }))
 }
 
 /** Reads the counts on a version's diagram over the engine's port. */
@@ -183,13 +208,7 @@ export class ElementStatisticsReader {
       }),
     )
     const incidents = await this.incidentRows(id, activities)
-    return [...countsOf(activities, incidents).entries()].map(([activityId, counts]) => ({
-      elementId: ElementId(activityId),
-      active: Math.max(0, counts.active - counts.incidents),
-      incidents: counts.incidents,
-      incidentsInCalledInstances: counts.incidentsInCalledInstances,
-      failedJobs: counts.failedJobs,
-    }))
+    return onElements(countsOf(activities, incidents))
   }
 
   /**
