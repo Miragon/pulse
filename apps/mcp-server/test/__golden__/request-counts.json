@@ -1,0 +1,736 @@
+{
+  "about": "Engine requests per call and operation against the medium engines of test/engine-goldens/medium-world.ts; written by golden:update only.",
+  "calls": {
+    "engine_activity_counts": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 18,
+          "GET /incident/{id}": 1,
+          "GET /process-definition": 1,
+          "GET /process-definition/{id}/statistics": 19,
+          "GET /process-definition/{id}/xml": 18,
+          "GET /task": 1,
+          "GET /task/count": 1
+        }
+      },
+      "total": 59
+    },
+    "engine_activity_incidents_data": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 3,
+          "GET /process-definition": 1,
+          "GET /process-definition/{id}/xml": 1,
+          "GET /process-instance": 1
+        }
+      },
+      "total": 6
+    },
+    "engine_activity_statistics_data": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 17,
+          "GET /process-definition": 2,
+          "GET /process-definition/{id}/statistics": 19,
+          "GET /process-definition/{id}/xml": 17
+        }
+      },
+      "total": 55
+    },
+    "engine_activity_statistics_data:history": {
+      "requests": {
+        "prod-1": {
+          "GET /history/process-definition/{id}/statistics": 8,
+          "GET /history/process-instance/count": 9,
+          "GET /process-definition": 3,
+          "GET /process-definition/{id}/xml": 1
+        }
+      },
+      "total": 21
+    },
+    "engine_board_data": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 2,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 8,
+          "GET /process-instance/count": 2,
+          "GET /telemetry/data": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 1
+        },
+        "prod-2": {
+          "GET /incident": 2,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 7,
+          "GET /process-instance/count": 2,
+          "GET /telemetry/data": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 1
+        },
+        "prod-3": {
+          "GET /incident": 2,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 6,
+          "GET /process-instance/count": 2,
+          "GET /telemetry/data": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 1
+        },
+        "prod-4": {
+          "GET /incident": 2,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 4,
+          "GET /process-instance/count": 2,
+          "GET /telemetry/data": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 1
+        },
+        "prod-5": {
+          "GET /incident": 2,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 3,
+          "GET /process-instance/count": 2,
+          "GET /telemetry/data": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 1
+        }
+      },
+      "total": 73
+    },
+    "engine_bpmn_xml_data": {
+      "requests": {
+        "prod-1": {
+          "GET /process-definition/{id}/xml": 1
+        }
+      },
+      "total": 1
+    },
+    "engine_cluster_detail_data": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 1,
+          "GET /incident/count": 1,
+          "GET /process-definition/{id}/xml": 8,
+          "GET /process-instance": 1
+        }
+      },
+      "total": 11
+    },
+    "engine_cockpit_overview_data": {
+      "requests": {
+        "prod-1": {
+          "GET /process-definition/statistics": 1
+        }
+      },
+      "total": 1
+    },
+    "engine_format_incident_issue": {
+      "requests": {
+        "prod-1": {
+          "GET /incident/{id}": 1,
+          "GET /job/{id}/stacktrace": 1,
+          "GET /process-definition/{id}": 1,
+          "GET /process-instance/{id}": 1
+        }
+      },
+      "total": 4
+    },
+    "engine_get_board": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 2,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 8,
+          "GET /process-instance/count": 2,
+          "GET /telemetry/data": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 1
+        },
+        "prod-2": {
+          "GET /incident": 2,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 7,
+          "GET /process-instance/count": 2,
+          "GET /telemetry/data": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 1
+        },
+        "prod-3": {
+          "GET /incident": 2,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 6,
+          "GET /process-instance/count": 2,
+          "GET /telemetry/data": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 1
+        },
+        "prod-4": {
+          "GET /incident": 2,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 4,
+          "GET /process-instance/count": 2,
+          "GET /telemetry/data": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 1
+        },
+        "prod-5": {
+          "GET /incident": 2,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 3,
+          "GET /process-instance/count": 2,
+          "GET /telemetry/data": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 1
+        }
+      },
+      "total": 73
+    },
+    "engine_get_deployment": {
+      "requests": {
+        "prod-1": {
+          "GET /deployment/{id}": 1
+        }
+      },
+      "total": 1
+    },
+    "engine_get_job_stacktrace": {
+      "requests": {
+        "prod-1": {
+          "GET /job/{id}/stacktrace": 1
+        }
+      },
+      "total": 1
+    },
+    "engine_get_process_definition_xml": {
+      "requests": {
+        "prod-1": {
+          "GET /process-definition/{id}/xml": 1
+        }
+      },
+      "total": 1
+    },
+    "engine_get_process_instance_variables": {
+      "requests": {
+        "prod-1": {
+          "GET /process-instance/{id}/variables": 1
+        }
+      },
+      "total": 1
+    },
+    "engine_get_screen": {
+      "requests": {
+        "prod-1": {
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 7,
+          "GET /process-instance/count": 1,
+          "GET /telemetry/data": 1
+        }
+      },
+      "total": 10
+    },
+    "engine_get_screen:instance": {
+      "requests": {
+        "prod-1": {
+          "GET /event-subscription": 2,
+          "GET /external-task": 1,
+          "GET /history/process-instance/{id}": 1,
+          "GET /incident": 2,
+          "GET /job": 2,
+          "GET /job-definition": 2,
+          "GET /job/{id}/stacktrace": 1,
+          "GET /process-definition": 2,
+          "GET /process-definition/{id}/xml": 1,
+          "GET /process-instance": 2,
+          "GET /process-instance/{id}": 1,
+          "GET /process-instance/{id}/activity-instances": 2,
+          "GET /process-instance/{id}/variables": 1,
+          "GET /task": 1,
+          "GET /variable-instance": 1,
+          "POST /history/activity-instance": 1
+        }
+      },
+      "total": 23
+    },
+    "engine_get_screen:process": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 1,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-definition/{id}/statistics": 1,
+          "GET /process-definition/{id}/xml": 1,
+          "GET /process-instance": 1
+        }
+      },
+      "total": 6
+    },
+    "engine_get_task": {
+      "requests": {
+        "prod-1": {
+          "GET /task/{id}": 1
+        }
+      },
+      "total": 1
+    },
+    "engine_get_task_form": {
+      "requests": {
+        "prod-1": {
+          "GET /process-definition/{id}/xml": 1,
+          "GET /task/{id}": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_get_task_variables": {
+      "requests": {
+        "prod-1": {
+          "GET /task/{id}/variables": 1
+        }
+      },
+      "total": 1
+    },
+    "engine_health_data": {
+      "requests": {
+        "prod-1": {
+          "GET /history/process-instance/count": 2,
+          "GET /incident": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-definition/{id}/xml": 2
+        }
+      },
+      "total": 6
+    },
+    "engine_history_timeline_data": {
+      "requests": {
+        "prod-1": {
+          "GET /history/activity-instance/count": 1,
+          "GET /history/process-instance": 1,
+          "GET /incident": 1,
+          "POST /history/activity-instance": 1
+        }
+      },
+      "total": 4
+    },
+    "engine_incident_detail_data": {
+      "requests": {
+        "prod-1": {
+          "GET /incident/{id}": 1,
+          "GET /job": 1,
+          "GET /job/{id}/stacktrace": 1,
+          "GET /process-definition/{id}": 1,
+          "GET /process-definition/{id}/xml": 1,
+          "GET /process-instance/{id}": 1,
+          "GET /process-instance/{id}/activity-instances": 1,
+          "GET /process-instance/{id}/variables": 1
+        }
+      },
+      "total": 8
+    },
+    "engine_incidents_data": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-definition/{id}/xml": 8
+        }
+      },
+      "total": 10
+    },
+    "engine_inspect_process_instance": {
+      "requests": {
+        "prod-1": {
+          "GET /event-subscription": 2,
+          "GET /external-task": 1,
+          "GET /history/process-instance/{id}": 1,
+          "GET /incident": 2,
+          "GET /job": 2,
+          "GET /job-definition": 2,
+          "GET /job/{id}/stacktrace": 1,
+          "GET /process-definition": 1,
+          "GET /process-instance": 2,
+          "GET /process-instance/{id}": 1,
+          "GET /process-instance/{id}/activity-instances": 2,
+          "GET /task": 1
+        }
+      },
+      "total": 18
+    },
+    "engine_instance_detail_data": {
+      "requests": {
+        "prod-1": {
+          "GET /history/process-instance/{id}": 1,
+          "GET /incident": 1,
+          "GET /incident/count": 1,
+          "GET /incident/{id}": 1,
+          "GET /process-definition/{id}/xml": 2,
+          "GET /process-instance/{id}": 1,
+          "GET /process-instance/{id}/activity-instances": 1,
+          "GET /process-instance/{id}/variables": 1,
+          "GET /task": 1,
+          "GET /task/count": 1
+        }
+      },
+      "total": 11
+    },
+    "engine_job_backlog_data": {
+      "requests": {
+        "prod-1": {
+          "GET /external-task/count": 1,
+          "GET /job/count": 3
+        }
+      },
+      "total": 4
+    },
+    "engine_jobs_data": {
+      "requests": {
+        "prod-1": {
+          "GET /job/count": 2,
+          "GET /process-definition/{id}/xml": 4,
+          "POST /job": 1
+        }
+      },
+      "total": 7
+    },
+    "engine_list_deployments": {
+      "requests": {
+        "prod-1": {
+          "GET /deployment": 1,
+          "GET /deployment/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_list_engines": {
+      "requests": {},
+      "total": 0
+    },
+    "engine_list_external_tasks": {
+      "requests": {
+        "prod-1": {
+          "GET /external-task": 1,
+          "GET /external-task/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_list_incidents": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 1,
+          "GET /incident/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_list_jobs": {
+      "requests": {
+        "prod-1": {
+          "GET /job": 1,
+          "GET /job/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_list_process_definitions": {
+      "requests": {
+        "prod-1": {
+          "GET /process-definition": 1,
+          "GET /process-definition/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_list_process_instances": {
+      "requests": {
+        "prod-1": {
+          "GET /process-instance": 1,
+          "GET /process-instance/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_list_tasks": {
+      "requests": {
+        "prod-1": {
+          "GET /task": 1,
+          "GET /task/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_open_cockpit": {
+      "requests": {
+        "prod-1": {
+          "GET /history/process-instance/count": 2,
+          "GET /incident": 1,
+          "GET /process-definition/statistics": 2,
+          "GET /process-definition/{id}/xml": 2
+        }
+      },
+      "total": 7
+    },
+    "engine_process_incidents_data": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 1,
+          "GET /job/count": 1,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-definition/{id}/xml": 1,
+          "GET /process-instance/count": 1
+        }
+      },
+      "total": 6
+    },
+    "engine_process_instances_data": {
+      "requests": {
+        "prod-1": {
+          "GET /process-definition": 1,
+          "GET /process-instance": 1,
+          "POST /history/process-instance": 1,
+          "POST /process-instance": 1,
+          "POST /process-instance/count": 3
+        }
+      },
+      "total": 7
+    },
+    "engine_process_stats": {
+      "requests": {
+        "prod-1": {
+          "GET /history/process-instance": 4,
+          "GET /history/process-instance/count": 59,
+          "GET /job/count": 1,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-definition/{id}/xml": 12,
+          "GET /process-instance/count": 2,
+          "GET /task/count": 1
+        }
+      },
+      "total": 81
+    },
+    "engine_query_historic_activity_instances": {
+      "requests": {
+        "prod-1": {
+          "GET /history/activity-instance/count": 1,
+          "POST /history/activity-instance": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_query_historic_incidents": {
+      "requests": {
+        "prod-1": {
+          "GET /history/incident": 1,
+          "GET /history/incident/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_query_historic_process_instances": {
+      "requests": {
+        "prod-1": {
+          "GET /history/process-instance": 1,
+          "GET /history/process-instance/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_query_historic_task_instances": {
+      "requests": {
+        "prod-1": {
+          "GET /history/task": 1,
+          "GET /history/task/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_query_historic_variable_instances": {
+      "requests": {
+        "prod-1": {
+          "GET /history/variable-instance": 1,
+          "GET /history/variable-instance/count": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_screen_find_data": {
+      "requests": {
+        "prod-1": {
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 8,
+          "GET /process-instance/count": 1,
+          "POST /history/process-instance": 2,
+          "POST /history/process-instance/count": 1
+        }
+      },
+      "total": 13
+    },
+    "engine_screen_incident_text_data": {
+      "requests": {
+        "prod-1": {
+          "GET /incident/{id}": 1,
+          "GET /job/{id}/stacktrace": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_screen_instance_data": {
+      "requests": {
+        "prod-1": {
+          "GET /event-subscription": 2,
+          "GET /external-task": 1,
+          "GET /history/process-instance/{id}": 1,
+          "GET /incident": 2,
+          "GET /job": 2,
+          "GET /job-definition": 2,
+          "GET /job/{id}/stacktrace": 1,
+          "GET /process-definition": 2,
+          "GET /process-definition/{id}/xml": 1,
+          "GET /process-instance": 2,
+          "GET /process-instance/{id}": 1,
+          "GET /process-instance/{id}/activity-instances": 2,
+          "GET /process-instance/{id}/variables": 1,
+          "GET /task": 1,
+          "GET /variable-instance": 1,
+          "POST /history/activity-instance": 1
+        }
+      },
+      "total": 23
+    },
+    "engine_screen_instances_data": {
+      "requests": {
+        "prod-1": {
+          "GET /process-instance": 1,
+          "GET /process-instance/count": 1,
+          "POST /history/process-instance": 1,
+          "POST /history/process-instance/count": 2
+        }
+      },
+      "total": 5
+    },
+    "engine_screen_process_data": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 1,
+          "GET /process-definition": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-definition/{id}/statistics": 1,
+          "GET /process-definition/{id}/xml": 1,
+          "GET /process-instance": 1
+        }
+      },
+      "total": 6
+    },
+    "engine_screen_processes_data": {
+      "requests": {
+        "prod-1": {
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 7,
+          "GET /process-instance/count": 1,
+          "GET /telemetry/data": 1
+        }
+      },
+      "total": 10
+    },
+    "engine_screen_variable_names_data": {
+      "requests": {
+        "prod-1": {
+          "POST /history/process-instance": 1,
+          "POST /history/variable-instance": 1
+        }
+      },
+      "total": 2
+    },
+    "engine_screen_verdict_data": {
+      "requests": {
+        "prod-1": {
+          "GET /incident": 1,
+          "GET /process-definition/statistics": 1,
+          "GET /process-instance": 7,
+          "GET /process-instance/count": 1
+        }
+      },
+      "total": 10
+    },
+    "engine_status": {
+      "requests": {
+        "prod-1": {
+          "GET /batch/statistics": 1,
+          "GET /batch/statistics/count": 2,
+          "GET /external-task": 5,
+          "GET /external-task/count": 1,
+          "GET /incident": 5,
+          "GET /incident/count": 1,
+          "GET /job": 1,
+          "GET /job/count": 1,
+          "GET /job/{id}/stacktrace": 10,
+          "GET /process-definition/statistics": 1,
+          "GET /task/count": 1,
+          "GET /version": 1
+        }
+      },
+      "total": 30
+    },
+    "engine_widget_actions_data": {
+      "requests": {},
+      "total": 0
+    }
+  },
+  "fleet": {
+    "requests": {
+      "prod-1": {
+        "GET /external-task/count": 1,
+        "GET /history/process-instance/count": 2,
+        "GET /incident": 1,
+        "GET /job/count": 3,
+        "GET /process-definition/statistics": 2,
+        "GET /process-definition/{id}/xml": 2
+      },
+      "prod-2": {
+        "GET /external-task/count": 1,
+        "GET /history/process-instance/count": 2,
+        "GET /incident": 1,
+        "GET /job/count": 3,
+        "GET /process-definition/statistics": 2,
+        "GET /process-definition/{id}/xml": 2
+      },
+      "prod-3": {
+        "GET /external-task/count": 1,
+        "GET /history/process-instance/count": 2,
+        "GET /incident": 1,
+        "GET /job/count": 3,
+        "GET /process-definition/statistics": 2,
+        "GET /process-definition/{id}/xml": 2
+      },
+      "prod-4": {
+        "GET /external-task/count": 1,
+        "GET /history/process-instance/count": 2,
+        "GET /incident": 1,
+        "GET /job/count": 3,
+        "GET /process-definition/statistics": 2,
+        "GET /process-definition/{id}/xml": 2
+      },
+      "prod-5": {
+        "GET /external-task/count": 1,
+        "GET /history/process-instance/count": 2,
+        "GET /incident": 1,
+        "GET /job/count": 3,
+        "GET /process-definition/statistics": 2,
+        "GET /process-definition/{id}/xml": 2
+      }
+    },
+    "total": 55
+  }
+}

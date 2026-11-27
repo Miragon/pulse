@@ -51,7 +51,7 @@ second worktree's server and inspector, `PORT=<port> claude` its Claude Code ses
 The gates one by one: `pnpm build`, `pnpm typecheck`, `pnpm test`, `pnpm lint`, `pnpm format:check`.
 While you iterate: `pnpm test:one <file...>`, then the package and what depends on it with
 `pnpm exec turbo run typecheck test lint --filter=...<pkg>`, then `pnpm check`. A change to a tool,
-an engine read's result or its error text refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (the tools/list goldens per configuration: Camunda 7 engines alone, beside a Camunda 8 cluster, a cluster alone).
+an engine read's result, its error text or the requests it sends refreshes the goldens with `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (the tools/list goldens per configuration: Camunda 7 engines alone, beside a Camunda 8 cluster, a cluster alone; per operation, the requests each read tool, feed and board sends the medium engines of `apps/mcp-server/test/engine-goldens/medium-world.ts`, in `apps/mcp-server/test/__golden__/request-counts.json`).
 `pnpm dev` and `pnpm play` bind 127.0.0.1; `pnpm start` and Docker listen on all interfaces.
 The inspector has no chat, so a hand-off shows only in a real host: tunnel the server
 (`cloudflared tunnel --url http://localhost:8400`), set `MCP_URL` to the `https://` origin it prints
