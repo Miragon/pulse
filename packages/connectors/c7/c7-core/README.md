@@ -73,18 +73,30 @@ missing.
   called instances, optionally variables, the history timeline (read whole, by POST in
   `INSTANCE_HISTORY_ORDER`) and stacktraces (cut after `MAX_STACKTRACE_LINES` lines).
 - **Status:** `readStatus({ port, now }, options)` triages one engine: findings with severity, the
-  overall status, definitions, incident groups with their root cause, topics, jobs and batches
-  (the running ones and those with failed jobs counted, `/batch/statistics/count`, a count it
-  cannot read failing as the reason `unexpected-answer`; the first 100 with failed jobs listed for
-  their findings, cut only when that page is full and the engine counts more), every cut named in
-  `truncated`. `engineVerdict`
-  judges an engine `ok`, `warning` or `critical` by thresholds you pass, over its open root
-  incidents: `rootIncidentCounts` takes the processes' from the statistics with
-  `rootIncidents=true` and, of the open incidents read, those outside any process and the largest
-  cause over root incidents alone, so a chain of calls one failure stops counts it once
-  (`readStatus` names the basis `rootIncidentsTotal` beside `incidentsTotal`, every open
-  incident); `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group incidents
-  alike everywhere.
+  overall status, definitions, incident groups with their root cause, topics, jobs and batches (the
+  running ones and those with failed jobs counted, `/batch/statistics/count`, a count it cannot read
+  failing as the reason `unexpected-answer`; the first 100 with failed jobs listed for their
+  findings, cut only when that page is full and the engine counts more), every cut named in
+  `truncated`. `engineVerdict` judges an engine `ok`, `warning` or `critical` by thresholds you
+  pass, over its open root incidents: `rootIncidentCounts` takes the processes' from the statistics
+  with `rootIncidents=true` and, of the open incidents read, those outside any process and the
+  largest cause over root incidents alone, so a chain of calls one failure stops counts it once
+  (`readStatus` names the basis `rootIncidentsTotal` beside `incidentsTotal`, every open incident);
+  `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group incidents alike
+  everywhere. The triage reads the newest 2,000 open incidents of its scope, a copy in a calling
+  instance too (`propagated`), in pages of `TiedPages` walked by their cursors
+  (`packages/connectors/c7/c7-core/src/status-incidents.ts`, which also holds the incidents' order
+  and tie rule the incident pages below read by): newest first, then by id, every run of up to 500
+  incidents raised at one instant read whole within one request, no request for more than 500 rows.
+  A page takes all the cap leaves, in windows of 500 rows, each from the last run of the one before:
+  five requests for 2,001 incidents and more where those runs hold 499 rows or fewer in all, as on
+  the engines measured (up to 6 incidents in one millisecond), at most 10 a page. Every request
+  after the first is bounded by `incidentTimestampBefore` a millisecond after the first answer's
+  newest incident (strictly before, on both engines), so incidents raised during the walk shift none
+  of its offsets, and an incident the walk already holds is never listed again, so each counts once,
+  a longer run's too (which keeps the engine's order at plain offsets, as the incident pages below
+  say, and may miss some where the database orders it anew). An answer with more rows than it asked
+  for (an engine that ignores the paging) ends the walk with that list, as `port.list` does.
 - **Definition statistics:** `readDefinitionStatistics(port, { failedJobs })` is the one read of
   `/process-definition/statistics` with `rootIncidents=true` (each version's failed jobs on
   request), `definitionStatisticsOf(answer)` its one parse and `statisticsByKey(rows, type?)` its

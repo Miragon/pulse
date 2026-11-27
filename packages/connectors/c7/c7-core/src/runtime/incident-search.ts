@@ -34,6 +34,7 @@ import type { EnginePort } from "../port.js"
 import { compareText } from "../records.js"
 import { queryInput } from "../requests.js"
 import { isRootIncident } from "../root-incident.js"
+import { NEWEST_FIRST, tiedIncident } from "../status-incidents.js"
 import { compact } from "../util.js"
 import type { DefinitionReader } from "./definition-reader.js"
 import { engineIdOf } from "./engine-ids.js"
@@ -41,9 +42,6 @@ import { type IncidentRow, incidentRowsOf, recoveryIdOf } from "./incident-rows.
 import type { OffsetWindow } from "./offset-paging.js"
 import { TiedPages } from "../tied-pages.js"
 import { timestampOf } from "./timestamps.js"
-
-/** The newest incident first, as the engine pages them. */
-const NEWEST_FIRST = { sortBy: "incidentTimestamp", sortOrder: "desc" } as const
 
 function optionalEngineId(value: string | undefined): string | undefined {
   return value === undefined ? undefined : engineIdOf(value)
@@ -100,11 +98,7 @@ export class IncidentSearch {
         this.rows(filter, window),
         (definitions ??= this.definitions.refsById()),
       ])
-      return rows.map((row) => ({
-        key: timestampOf(row.incidentTimestamp),
-        id: row.id,
-        item: incidentOf(row, definitionsById),
-      }))
+      return rows.map((row) => tiedIncident(row, incidentOf(row, definitionsById)))
     })
     return { ...found, items: [...found.items].sort(newerFirst) }
   }

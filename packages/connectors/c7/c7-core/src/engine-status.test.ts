@@ -89,9 +89,10 @@ describe("readStatus", () => {
   it("reads per key, skips the batches and names every cut", async () => {
     const port = engine({
       getIncidents: (input) =>
-        Array.from({ length: Number(input.query.maxResults) }, (_, index) =>
-          failedJob(String(index), `a${index % 12}`),
-        ),
+        Array.from({ length: Number(input.query.maxResults) }, (_, index) => {
+          const offset = Number(input.query.firstResult) + index
+          return failedJob(String(offset), `a${offset % 12}`)
+        }),
       getExternalTasks: (input) =>
         Array.from({ length: Number(input.query.maxResults) }, (_, index) => ({
           id: `e${index}`,

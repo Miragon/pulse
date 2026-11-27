@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { engineWith, status, stopFakeEngines, toolErrorText } from "./composites.test-support.js"
 import type { FakeRoutes } from "../../tools/test-support/fake-engine.js"
 import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
+import { turningTies } from "@miragon/pulse-c7-core/testing"
 import { FINDING_RULES, MAX_STATUS_ROWS, statusRule } from "./composites.js"
 
 /** engine_status on the wire (helpers: composites.test-support.ts). */
@@ -43,6 +44,12 @@ const STATUS_ROUTES: FakeRoutes = {
   "GET /batch/statistics": { body: [] },
   "GET /batch/statistics/count": { body: { count: 0 } },
 }
+
+/** The engine time `seconds` before 11:00 on the status's day. */
+const secondsBefore = (seconds: number) =>
+  new Date(Date.parse("2026-01-01T11:00:00.000Z") - seconds * 1000)
+    .toISOString()
+    .replace("Z", "+0000")
 
 describe("engineStatusForModel", () => {
   it("triages the engine by its id, with data instead of next steps", async () => {
@@ -279,6 +286,45 @@ describe("engineStatusForModel", () => {
       "[UNEXPECTED_ANSWER] The engine answered getBatchStatisticsCount in a shape the REST API " +
         "does not document (engine fake): count is missing.",
     )
+  })
+
+  it("counts each of 1,000 incidents once where the engine turns those raised at one instant, in requests of at most 500 rows", async () => {
+    // runs of 7 raised at one instant, every tenth a copy: 900 groups of one root incident each
+    const rows = Array.from({ length: 1000 }, (_, index) => {
+      const id = `i${String((index * 7919) % 1000).padStart(3, "0")}`
+      return {
+        id,
+        rootCauseIncidentId: index % 10 === 0 ? "elsewhere" : id,
+        incidentType: "failedJob",
+        activityId: `a-${id}`,
+        processDefinitionId: "order:1:x",
+        incidentMessage: "boom",
+        incidentTimestamp: secondsBefore(Math.floor(index / 7)),
+      }
+    })
+    const turning = turningTies(rows, (row) => row.incidentTimestamp)
+    const engine = await engineWith(
+      {
+        ...STATUS_ROUTES,
+        "GET /incident": (request) => ({ body: turning({ pathArgs: [], query: request.query }) }),
+        "GET /incident/count": { body: { count: rows.length } },
+      },
+      () => ({ body: "", contentType: "text/plain" }),
+    )
+    const triage = await status(engine, {})
+    expect(triage.incidents[0]?.count).toBe(1)
+    expect(triage.propagated).toBe(100)
+    expect(triage.truncated).toEqual(["incident groups: 10 of 900 shown"])
+    const reads = engine.requests.filter((request) => request.path === "/incident")
+    expect(Math.max(...reads.map((request) => Number(request.query.maxResults)))).toBe(500)
+    expect(reads.every((request) => request.query.sortBy === "incidentTimestamp")).toBe(true)
+    // every read after the first bounded a millisecond after the newest incident, `+` intact
+    const bounds = reads.map((request) => request.query.incidentTimestampBefore)
+    expect(bounds.length).toBeGreaterThan(1)
+    expect(bounds).toStrictEqual([
+      undefined,
+      ...bounds.slice(1).map(() => "2026-01-01T11:00:00.001+0000"),
+    ])
   })
 
   it("reads the named keys once each, without the batches and blank keys", async () => {
