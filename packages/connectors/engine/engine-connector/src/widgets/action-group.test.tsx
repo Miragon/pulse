@@ -133,6 +133,7 @@ const HEALTH: EngineHealthData = {
   statusRule: "warning with any open incident",
   summary: {
     totalIncidents: 3,
+    outsideAnyProcess: { count: 0, atLeast: false },
     lastHourIncidents: 1,
     affectedActivities: 1,
     affectedDefinitions: 1,

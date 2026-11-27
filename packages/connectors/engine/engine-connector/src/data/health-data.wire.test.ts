@@ -91,6 +91,7 @@ describe("buildEngineHealthData: exact totals", () => {
     // (both a month old), never a window /count, which cannot tell a root from a copy.
     expect(data.summary).toEqual({
       totalIncidents: 2,
+      outsideAnyProcess: { count: 0, atLeast: false },
       lastHourIncidents: 0,
       affectedActivities: 1,
       affectedDefinitions: 1,

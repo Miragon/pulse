@@ -94,6 +94,14 @@ export interface StatusData {
    * loaded, a lower bound of these where the list was cut.
    */
   readonly rootIncidentsTotal: number
+  /**
+   * The part of `rootIncidentsTotal` outside any process (a batch's or the history cleanup's
+   * failed job), which no definition counts: engine_status, the CLI's status, the chat and the web
+   * app show it apart (the editors' webview follows once engine-core has the read), `atLeast`
+   * where the list was cut. Read for the whole engine alone, as the batches: a scope of keys holds
+   * none.
+   */
+  readonly outsideAnyProcess?: RootIncidentCounts["outsideAnyProcess"]
   /** Every open incident in scope, from a count: a call activity's copy counts too. */
   readonly incidentsTotal: number
   /** The copies on calling instances among the incidents loaded. */
@@ -327,7 +335,7 @@ export async function readStatus(
   const jobs = jobStatus(data.executableJobs, data.staleJobs, now - options.staleAfterMs)
   const definitions = definitionStatus(data.statistics, options.keys)
   const ofDefinitions = definitions.reduce((sum, definition) => sum + definition.incidents, 0)
-  const counts = rootIncidentCounts(ofDefinitions, data.incidents.items)
+  const counts = rootIncidentCounts(ofDefinitions, data.incidents)
   const list = findings({
     ...compact({ incidentsAtThreshold: atThreshold(counts, grouped, options) }),
     jobs,
@@ -346,6 +354,8 @@ export async function readStatus(
     definitions,
     incidents,
     rootIncidentsTotal: counts.openRootIncidents,
+    // a scope of keys holds no incident outside any process, as it holds no batch
+    ...(options.keys.length > 0 ? {} : { outsideAnyProcess: counts.outsideAnyProcess }),
     incidentsTotal: data.incidentCount,
     propagated: grouped.propagated,
     externalTasks,

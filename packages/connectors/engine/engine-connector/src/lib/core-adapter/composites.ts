@@ -72,9 +72,11 @@ function saying(severity: "critical" | "warning", thresholds: VerdictThresholds)
 export function statusRule(thresholds: VerdictThresholds): string {
   return (
     `critical: ${saying("critical", thresholds)}; warning: ${saying("warning", thresholds)}; ` +
-    "else ok. rootIncidentsTotal counts the open root incidents the status judges, incidentsTotal " +
-    "every open incident, propagated the copies on calling instances among those loaded; the " +
-    "incident groups and definitions count root incidents."
+    "else ok. rootIncidentsTotal counts the open root incidents the status judges, " +
+    "outsideAnyProcess (the whole engine's) those of them outside any process, which no " +
+    "definition counts (atLeast where the incidents loaded were cut), incidentsTotal every open " +
+    "incident, propagated the copies on calling instances among those loaded; the incident " +
+    "groups and definitions count root incidents."
   )
 }
 

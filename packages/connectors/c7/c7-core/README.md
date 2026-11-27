@@ -79,9 +79,14 @@ missing.
   findings, cut only when that page is full and the engine counts more), every cut named in
   `truncated`. `engineVerdict` judges an engine `ok`, `warning` or `critical` by thresholds you
   pass, over its open root incidents: `rootIncidentCounts` takes the processes' from the statistics
-  with `rootIncidents=true` and, of the open incidents read, those outside any process and the
-  largest cause over root incidents alone, so a chain of calls one failure stops counts it once
-  (`readStatus` names the basis `rootIncidentsTotal` beside `incidentsTotal`, every open incident);
+  with `rootIncidents=true` and, of the open incidents read (`{ items, truncated }`), those outside
+  any process and the largest cause over root incidents alone, so a chain of calls one failure stops
+  counts it once. Those outside any process (a batch's or the history cleanup's failed job, which no
+  statistics row counts) it also returns apart, `outsideAnyProcess` (`{ count, atLeast }`, a lower
+  bound where the read was cut), the one value engine_status, the CLI's status, the chat and the web
+  app show apart, never summed into the processes' count; the editors' webview follows once
+  engine-core has the read (`readStatus` names the basis `rootIncidentsTotal` beside
+  `incidentsTotal`, every open incident, and for the whole engine its part `outsideAnyProcess`);
   `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group incidents alike
   everywhere. The triage reads the newest 2,000 open incidents of its scope, a copy in a calling
   instance too (`propagated`), in pages of `TiedPages` walked by their cursors

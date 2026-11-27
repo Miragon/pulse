@@ -85,7 +85,9 @@ in `ENGINES_JSON` / `ENGINES_FILE`; every variable is in the
   the engine's history misses running instances (on the floor of 30 s per caller and text). Beside
   them, of Camunda 7 alone, `engine_screen_verdict_data` an engine's live verdict, c7-core's over its
   open root incidents by the `ENGINE_HEALTH_*` thresholds, its root incidents from the engine
-  screen's own read and its incident scan on a floor of 30 s per caller. No view of the cockpit
+  screen's own read and its incident scan on a floor of 30 s per caller, and beside it the root
+  incidents outside any process it judged (`outsideAnyProcess`, a lower bound where the scan stops),
+  as the overview's health summary carries them, which no process counts. No view of the cockpit
   reads them; the server's web app renders them.
 - **Engines as profiles.** `ENGINES_FILE` or `ENGINES_JSON` hold a profile file of
   `@miragon/pulse-profile`, the format of the CLI and Pulse for VS Code; without one,

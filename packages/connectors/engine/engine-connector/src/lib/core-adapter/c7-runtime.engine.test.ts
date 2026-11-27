@@ -21,7 +21,8 @@
  * runtime holds an open incident for, as the engine answers them (cockpit-search.test-support.ts).
  * Last, on what they deploy or start themselves and remove again, a multi-instance body's counts
  * lie on its element on every surface, an incident outside any process fails no engine-wide
- * incident search (contract-cases.test-support.ts), an instance's history of more steps than a
+ * incident search and every verdict names it apart, never in a process's count
+ * (contract-cases.test-support.ts), an instance's history of more steps than a
  * page, started within milliseconds, comes in one total order, each step once across pages
  * (history-order.test-support.ts), and an activity's page lists each root incident once by its
  * cursor where many were raised at one instant (activity-page.test-support.ts).
@@ -364,7 +365,12 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
         incidentsTotal: all,
       })
       expect([health.status, health.summary.totalIncidents]).toEqual(["warning", roots])
-      expect(verdict).toEqual({ status: "warning" })
+      // The world holds no incident outside any process: the verdicts name none.
+      expect(verdict).toEqual({
+        status: "warning",
+        outsideAnyProcess: { count: 0, atLeast: false },
+      })
+      expect(health.summary.outsideAnyProcess).toEqual(verdict.outsideAnyProcess)
     })
 
     for (const [name, check] of [...PROCESS_NUMBER_CHECKS, ...COCKPIT_SEARCH_CHECKS]) {

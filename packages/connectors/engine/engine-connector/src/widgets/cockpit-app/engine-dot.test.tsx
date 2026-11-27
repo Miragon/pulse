@@ -79,6 +79,7 @@ function healthFeed(args: Record<string, unknown>): EngineHealthData {
     statusRule: "",
     summary: {
       totalIncidents: e.openRootIncidents,
+      outsideAnyProcess: { count: 0, atLeast: false },
       lastHourIncidents: 0,
       affectedActivities: null,
       affectedDefinitions: 0,

@@ -23,6 +23,7 @@ import { makeTempDir, removeTempDir } from "./support/temp.js"
 import { registerDeployAndAdvance } from "./workflow-scenario/deploy-and-advance.js"
 import { registerStatusAndRetry } from "./workflow-scenario/status-and-retry.js"
 import { registerStatusIncidents } from "./workflow-scenario/status-incidents.js"
+import { registerStatusOutside } from "./workflow-scenario/status-outside.js"
 import { BY_KEY, type InstanceOutput, type WorkflowScenario } from "./workflow-scenario/suite.js"
 
 /** Another team's file with the same resource name (`workflow.bpmn`) and another process. */
@@ -80,5 +81,6 @@ export function registerWorkflowScenario(engineName: EngineName): void {
     registerDeployAndAdvance(scenario)
     registerStatusAndRetry(scenario)
     registerStatusIncidents(scenario)
+    registerStatusOutside(scenario)
   })
 }

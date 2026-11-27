@@ -111,9 +111,33 @@ export interface VerdictIncident extends CauseFields {
   readonly processDefinitionId?: unknown
 }
 
+/**
+ * The open incidents a verdict reads, newest first, copies included: whole, or `truncated` where
+ * the read stopped before the engine's last one (a capped scan, a cut list), so what it counts of
+ * them is a lower bound.
+ */
+export interface VerdictIncidents {
+  readonly items: readonly VerdictIncident[]
+  readonly truncated: boolean
+}
+
+/**
+ * The open root incidents outside any process among those read (a batch's or the history
+ * cleanup's failed job): no statistics row counts them, so engine_status, the CLI's status, the
+ * chat and the web app show them as a count of their own, never summed into the processes' (owner
+ * decision of 2026-11-26; the editors' webview follows once engine-core has the read). `atLeast`
+ * where the read was cut: then more may stand beyond it, and `count` is a lower bound.
+ */
+export interface OutsideAnyProcess {
+  readonly count: number
+  readonly atLeast: boolean
+}
+
 /** The verdict's incident inputs (`rootIncidentCounts`) and the largest cause they name. */
 export interface RootIncidentCounts {
   readonly openRootIncidents: number
+  /** The part of `openRootIncidents` outside any process, the one value the surfaces show. */
+  readonly outsideAnyProcess: OutsideAnyProcess
   readonly largestCluster: number
   /** The cause of `largestCluster`; absent without a root incident among those read. */
   readonly largestCause?: IncidentCauseKey
@@ -129,19 +153,21 @@ function outsideAnyProcess({ processDefinitionId }: VerdictIncident): boolean {
  * `ofProcesses` are the open root incidents of the processes in scope, from an exact read (the
  * definition statistics with `rootIncidents=true`, summed over every version, which count no copy
  * a call activity holds); `incidents` the open incidents read newest first, copies included, whole
- * or capped. Of those read, the root incidents (`isRootIncident`) outside any process join the
- * total, since no statistics row counts them, and the root incidents alone form the largest cause,
- * so a copy never raises it. Over a capped read both are lower bounds, so neither raises a false
- * `critical`.
+ * or cut. Of those read, the root incidents (`isRootIncident`) outside any process join the total,
+ * since no statistics row counts them, and stand apart as `outsideAnyProcess`; the root incidents
+ * alone form the largest cause, so a copy never raises it. Over a cut read both are lower bounds,
+ * so neither raises a false `critical`, and `outsideAnyProcess` says so.
  */
 export function rootIncidentCounts(
   ofProcesses: number,
-  incidents: readonly VerdictIncident[],
+  incidents: VerdictIncidents,
 ): RootIncidentCounts {
-  const roots = incidents.filter(isRootIncident)
+  const roots = incidents.items.filter(isRootIncident)
   const largest = largestCause(roots)
+  const outside = roots.filter(outsideAnyProcess).length
   return {
-    openRootIncidents: ofProcesses + roots.filter(outsideAnyProcess).length,
+    openRootIncidents: ofProcesses + outside,
+    outsideAnyProcess: { count: outside, atLeast: incidents.truncated },
     largestCluster: largest?.count ?? 0,
     ...(largest === undefined ? {} : { largestCause: largest.cause }),
   }
