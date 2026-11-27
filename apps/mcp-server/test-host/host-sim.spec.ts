@@ -2484,6 +2484,36 @@ test.describe("an instance and the instance list (engine_open_cockpit)", () => {
     expect(word.width).toBeGreaterThan(20)
   })
 
+  test("With incident under a search counts and lists only the matches with an open incident", async ({
+    page,
+  }) => {
+    // The realistic engine drops withIncident beside an OR query, as the engine does (#717): five
+    // business keys hold CUST-121, three of them with an incident, none suspended.
+    const app = await openView(page, {
+      hostEnv: REALISTIC_HOST_ENV,
+      args: { engine: REALISTIC_ENGINE, view: "process-instances" },
+    })
+    const scopes = app.getByRole("radiogroup", { name: "Show instances" })
+    await expect(scopes.getByRole("radio", { name: /^All ?160$/ })).toBeVisible({ timeout: 15_000 })
+    const search = app.getByRole("searchbox", { name: "Search instances by business key or ID" })
+    await search.fill("CUST-121")
+    const withIncidents = scopes.getByRole("radio", { name: /^With incident ?3$/ })
+    await expect(scopes.getByRole("radio", { name: /^All ?5$/ })).toBeVisible({ timeout: 15_000 })
+    await expect(withIncidents).toBeVisible()
+    await expect(scopes.getByRole("radio", { name: /^Suspended ?0$/ })).toBeVisible()
+
+    await withIncidents.click()
+    await expect(app.getByText("3 running", { exact: true })).toBeVisible({ timeout: 15_000 })
+    // The page's rows are those three in the list's order, each with its incident.
+    const rows = app.locator("tbody > tr")
+    await expect(rows).toHaveCount(3)
+    for (const [at, key] of ["CUST-12105", "CUST-12147", "CUST-12189"].entries()) {
+      await expect(rows.nth(at)).toContainText(key)
+    }
+    await expect(rows.locator("[data-slot='state-label'][data-state='incident']")).toHaveCount(3)
+    await expect(withIncidents).toHaveAttribute("aria-checked", "true")
+  })
+
   test("a phone-width chat shows each instance's state and its incident without scrolling sideways", async ({
     page,
   }) => {

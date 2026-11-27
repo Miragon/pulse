@@ -104,25 +104,37 @@ function definitionOf(id: string): Definition | undefined {
   return DEFINITIONS.find((d) => d.id === id)
 }
 
-/** The process-instance filters the list sends (POST body, or GET query for the flags). */
+/** A comma list (GET) or a list (POST) of ids holds `id`; no list holds every id. */
+function idsHold(ids: unknown, id: string): boolean {
+  if (typeof ids === "string") return ids.split(",").includes(id)
+  return Array.isArray(ids) ? ids.includes(id) : true
+}
+
+/** The business key holds a `…Like` pattern's text; no pattern holds every key. */
+function keyHolds(pattern: unknown, instance: Instance): boolean {
+  if (typeof pattern !== "string") return true
+  return !!instance.businessKey?.includes(pattern.replaceAll("%", ""))
+}
+
+/**
+ * The process-instance filters the list sends (POST body, or GET query for the flags), as the
+ * engine reads them: beside an OR query (the search) `withIncident` filters nothing (#717), so the
+ * search with the flag arrives as c7-core's top-level halves.
+ */
 function matches(instance: Instance, filter: Filter): boolean {
   const key = filter.processDefinitionKey
   if (typeof key === "string" && definitionOf(instance.definitionId)?.key !== key) return false
-  if (filter.withIncident === true || filter.withIncident === "true") {
-    if (!instance.hasIncident) return false
-  }
+  const or = (
+    filter.orQueries as { businessKeyLike?: string; processInstanceIds?: string[] }[]
+  )?.[0]
+  const withIncident = filter.withIncident === true || filter.withIncident === "true"
+  if (withIncident && or === undefined && !instance.hasIncident) return false
   if (filter.suspended === true && !instance.suspended) return false
   if (filter.active === true && instance.suspended) return false
-  const ids = filter.processInstanceIds
-  if (typeof ids === "string" && !ids.split(",").includes(instance.id)) return false
-  const or = filter.orQueries as
-    Array<{ businessKeyLike?: string; processInstanceIds?: string[] }> | undefined
-  if (or?.[0]) {
-    const term = (or[0].businessKeyLike ?? "").replaceAll("%", "")
-    const byKey = !!instance.businessKey?.includes(term)
-    if (!byKey && !(or[0].processInstanceIds ?? []).includes(instance.id)) return false
-  }
-  return true
+  if (!idsHold(filter.processInstanceIds, instance.id)) return false
+  if (!keyHolds(filter.businessKeyLike, instance)) return false
+  if (or === undefined) return true
+  return keyHolds(or.businessKeyLike ?? "", instance) || idsHold(or.processInstanceIds, instance.id)
 }
 
 /** By business key (no key first, as a database sorts NULL), the id breaking ties. */

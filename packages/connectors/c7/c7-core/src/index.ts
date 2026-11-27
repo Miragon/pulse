@@ -73,13 +73,7 @@ export {
   UTC_WITHOUT_OFFSET,
 } from "./dates.js"
 export { engineSorting } from "./sorting.js"
-export {
-  complementaryFlags,
-  engineInstanceSearch,
-  engineKeyList,
-  engineLike,
-  trueOnly,
-} from "./filters.js"
+export { complementaryFlags, engineKeyList, engineLike, trueOnly } from "./filters.js"
 export {
   autoTypedValue,
   type EngineVariableInput,
@@ -187,6 +181,17 @@ export {
   withIncidentBody,
   withIncidentByVersion,
 } from "./with-incident.js"
+export {
+  countSearchedInstances,
+  type InstanceBodyFilters,
+  type InstanceBodyReads,
+  type InstanceOrQuery,
+  type InstanceSearchBody,
+  type InstanceWindow,
+  pageSearchedInstances,
+  type SearchedInstances,
+  searchedInstances,
+} from "./searched-instances.js"
 export {
   checkMigrationPlan,
   type DefinitionAtVersion,

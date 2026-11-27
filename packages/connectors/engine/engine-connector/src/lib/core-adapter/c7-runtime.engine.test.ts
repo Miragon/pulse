@@ -17,6 +17,8 @@
  * `failedJobs` and `incidents`, are the contract's counts and the jobs the engine counts without
  * `incidents`. A process's numbers (`engine_process_stats`, `engine_activity_counts`) count what
  * the history and the runtime hold, as the cockpit counts them (process-numbers.test-support.ts).
+ * Under a search the cockpit's "With incident" chip counts and lists the search's matches the
+ * runtime holds an open incident for, as the engine answers them (cockpit-search.test-support.ts).
  *
  * `pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` (Docker); its
  * own container start, since no package shares a Node test helper with another.
@@ -65,6 +67,7 @@ import {
 import { engineStatusForModel } from "./composites.js"
 import { fakeWorldBoard, recordedBoard } from "./compared-boards.test-support.js"
 import { engineImageOf } from "./engine-image.test-support.js"
+import { COCKPIT_SEARCH_CHECKS } from "./cockpit-search.test-support.js"
 import { PROCESS_NUMBER_CHECKS } from "./process-numbers.test-support.js"
 
 const ENGINE_IMAGE = engineImageOf(process.env.PULSE_ENGINE_IMAGE)
@@ -355,7 +358,7 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
       expect(verdict).toEqual({ status: "warning" })
     })
 
-    for (const [name, check] of PROCESS_NUMBER_CHECKS) {
+    for (const [name, check] of [...PROCESS_NUMBER_CHECKS, ...COCKPIT_SEARCH_CHECKS]) {
       test(name, () => check(prepared().url, boardEngineAt(prepared().url)(C7_BOARD_ENGINE.engine)))
     }
 

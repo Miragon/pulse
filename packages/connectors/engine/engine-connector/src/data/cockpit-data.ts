@@ -1,8 +1,12 @@
 import type { Client } from "@miragon/pulse-c7-client"
 import {
   complementaryFlags,
-  engineInstanceSearch,
+  countSearchedInstances,
   engineLike,
+  type InstanceBodyFilters,
+  type InstanceBodyReads,
+  pageSearchedInstances,
+  searchedInstances,
   withIncidentAmong,
   withIncidentBody,
 } from "@miragon/pulse-c7-core"
@@ -18,8 +22,6 @@ import {
   getJobsCount,
   queryHistoricProcessInstances,
   queryJobs,
-  queryProcessInstances,
-  queryProcessInstancesCount,
 } from "@miragon/pulse-c7-client/sdk"
 import type {
   InstanceSearchArgs,
@@ -42,6 +44,7 @@ import {
 } from "./definition-info.js"
 import { enginePortFor } from "../lib/core-adapter/engine-port.js"
 import { countOf, optional, rowsOf } from "./engine-reads.js"
+import { instanceReads, type RawInstance } from "./instance-list-reads.js"
 
 /** One row per KEY, summed over every version; the statistics call's failure is the view's (no "0 instances"). */
 export async function buildCockpitDashboardData(
@@ -91,36 +94,18 @@ export type ProcessInstancesArgs = ProcessInstancesFilters & InstanceSearchArgs 
 // send the complement. businessKeyLike needs `%`, or it matches exactly. "With
 // incident" is c7-core's one reading (with-incident.ts): the runtime's open
 // incidents, on every history level, in the search body's form
-// (`withIncidentBody`), which never sends a false flag.
-function toProcessInstanceFilter(args: ProcessInstancesArgs) {
-  const { orQueries } = engineInstanceSearch(args.search)
+// (`withIncidentBody`), which never sends a false flag. The search box joins
+// these filters in c7-core's bodies only (`searchedInstances`, #717).
+function toProcessInstanceFilter(args: ProcessInstancesArgs): InstanceBodyFilters {
   return {
     processDefinitionKey: args.processDefinitionKey,
     ...complementaryFlags(args, "active", "suspended"),
     ...withIncidentBody(args.withIncidents),
-    businessKeyLike: orQueries ? undefined : engineLike(args.businessKeyLike),
-    orQueries,
+    businessKeyLike: engineLike(args.businessKeyLike),
   }
 }
 
-/**
- * The instance id breaks ties: most instances have no business key and the engine
- * adds no tie-break once a sort is given, so paging would repeat or skip rows.
- * Only the POST query takes two keys.
- */
-const INSTANCE_LIST_ORDER = [
-  { sortBy: "businessKey", sortOrder: "asc" },
-  { sortBy: "instanceId", sortOrder: "asc" },
-] as const
-
-type ProcessInstanceFilter = ReturnType<typeof toProcessInstanceFilter>
-
-interface RawInstance {
-  id?: string | null
-  definitionId?: string | null
-  businessKey?: string | null
-  suspended?: boolean | null
-}
+type InstanceReads = InstanceBodyReads<RawInstance>
 
 /**
  * Totals over the WHOLE set, never the page: each chip's count (All, With incident, Suspended) on
@@ -129,9 +114,9 @@ interface RawInstance {
  * read their intersection as a fourth count. `active` is no chip: it stays in the scope, where
  * nothing is suspended.
  */
-async function filteredTotals(client: Client, filter: ProcessInstanceFilter) {
-  const count = (body: ProcessInstanceFilter) =>
-    queryProcessInstancesCount({ client, body }).then(countOf)
+async function filteredTotals(reads: InstanceReads, filter: InstanceBodyFilters, search?: string) {
+  const count = (body: InstanceBodyFilters) =>
+    countSearchedInstances(reads, searchedInstances(body, search))
   const scope = { ...filter, withIncident: undefined, suspended: undefined }
   const all = count(scope)
   const withIncident = count({ ...scope, ...withIncidentBody(true) })
@@ -159,7 +144,7 @@ async function filteredTotals(client: Client, filter: ProcessInstanceFilter) {
 async function instancesWithIncident(
   client: Client,
   pageIds: string[],
-  filter: ProcessInstanceFilter,
+  filter: InstanceBodyFilters,
 ): Promise<ReadonlySet<string>> {
   if (filter.withIncident) return new Set(pageIds)
   return withIncidentAmong(enginePortFor(client), pageIds)
@@ -228,14 +213,15 @@ export async function buildProcessInstancesData(
 ): Promise<ProcessInstancesData> {
   const fetchedAt = new Date().toISOString()
   const filter = toProcessInstanceFilter(args)
+  const reads = instanceReads(client)
+  const searched = searchedInstances(filter, args.search)
 
   const [raw, totals, definition] = await Promise.all([
-    queryProcessInstances({
-      client,
-      query: { firstResult: args.firstResult ?? 0, maxResults: args.maxResults ?? LIST_PAGE_SIZE },
-      body: { ...filter, sorting: [...INSTANCE_LIST_ORDER] },
-    }).then((rows) => rowsOf<RawInstance>(rows)),
-    filteredTotals(client, filter),
+    pageSearchedInstances(reads, searched, {
+      firstResult: args.firstResult ?? 0,
+      maxResults: args.maxResults ?? LIST_PAGE_SIZE,
+    }),
+    filteredTotals(reads, filter, args.search),
     // An unknown key is the engine's 404, not "0 running instances".
     args.processDefinitionKey
       ? fetchLatestDefinition(client, args.processDefinitionKey)
@@ -274,9 +260,9 @@ export async function buildProcessInstancesData(
       active: args.active,
       suspended: args.suspended,
       withIncidents: args.withIncidents,
-      ...(filter.orQueries
-        ? { search: args.search?.trim() }
-        : { businessKeyLike: args.businessKeyLike }),
+      ...(searched.term === undefined
+        ? { businessKeyLike: args.businessKeyLike }
+        : { search: searched.term }),
     },
     fetchedAt,
     engineId,
