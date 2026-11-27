@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { complementaryFlags, engineKeyList, engineLike, trueOnly } from "./filters.js"
+import {
+  complementaryFlags,
+  engineKeyList,
+  engineLike,
+  tenantBody,
+  tenantQuery,
+  trueOnly,
+} from "./filters.js"
 
 describe("trueOnly: the engine ignores a false flag, so it is never sent", () => {
   it("keeps true and drops false and absent", () => {
@@ -67,5 +74,17 @@ describe("engineKeyList: single and list inputs become one comma list", () => {
     expect(engineKeyList(undefined, ["", "b"])).toBe("b")
     expect(engineKeyList(undefined, [])).toBeUndefined()
     expect(engineKeyList()).toBeUndefined()
+  })
+})
+
+describe("tenantQuery and tenantBody: one tenant's runs, none for the runs of no tenant", () => {
+  it("names the tenant in tenantIdIn, a list in a body", () => {
+    expect(tenantQuery("north")).toEqual({ tenantIdIn: "north" })
+    expect(tenantBody("north")).toEqual({ tenantIdIn: ["north"] })
+  })
+
+  it("asks for the runs without a tenant, never an empty tenantIdIn", () => {
+    expect(tenantQuery(null)).toEqual({ withoutTenantId: true })
+    expect(tenantBody(null)).toEqual({ withoutTenantId: true })
   })
 })

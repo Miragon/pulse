@@ -61,3 +61,27 @@ export function engineKeyList(...parts: (string | readonly string[] | undefined)
   const values = [...new Set(parts.flat().filter((value): value is string => !!value))]
   return values.length > 0 ? values.join(",") : undefined
 }
+
+/**
+ * One tenant's runs in a read of the runtime or the history (instances, jobs): a query's
+ * `tenantIdIn` naming the tenant, or `withoutTenantId` for the runs of no tenant (null), never an
+ * empty `tenantIdIn`, which the engine reads as no filter. A run's tenant is its version's, but
+ * where Camunda 7's shared definitions run instances a tenant id provider gave a tenant: such a run
+ * reads under that tenant, while the definition statistics count it under its version's. `GET
+ * /incident` takes no `withoutTenantId` (it would read every tenant's), so a process's incidents
+ * are read by its versions' ids instead (`ElementRef.definitionIds`).
+ */
+export type TenantQuery = { readonly tenantIdIn: string } | { readonly withoutTenantId: true }
+
+/** The query of one tenant's runs (`TenantQuery`), as a `GET` read's query spells it. */
+export function tenantQuery(tenantId: string | null): TenantQuery {
+  return tenantId === null ? { withoutTenantId: true } : { tenantIdIn: tenantId }
+}
+
+/** The same filter as a `POST` read's body spells it, `tenantIdIn` a list. */
+export type TenantBody = { readonly tenantIdIn: string[] } | { readonly withoutTenantId: true }
+
+/** The body of one tenant's runs (`tenantQuery` as a body spells it). */
+export function tenantBody(tenantId: string | null): TenantBody {
+  return tenantId === null ? { withoutTenantId: true } : { tenantIdIn: [tenantId] }
+}

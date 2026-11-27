@@ -24,6 +24,9 @@ import { engineLike } from "./filters.js"
  */
 export interface InstanceBodyFilters {
   readonly processDefinitionKey?: string | undefined
+  /** One tenant's instances (`tenantBody`): a process's, its key in that tenant. */
+  readonly tenantIdIn?: string[] | undefined
+  readonly withoutTenantId?: true | undefined
   readonly active?: true | undefined
   readonly suspended?: true | undefined
   readonly withIncident?: true | undefined

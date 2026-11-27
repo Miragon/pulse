@@ -133,4 +133,12 @@ describe("ProcessTenants: a process named by its key without a tenant", () => {
     expect(ProcessTenants.summaryOf(both, KEY)?.latest.tenantId).toBeNull()
     expect(ProcessTenants.summaryOf(summaries, BpmnProcessId("unknown"))).toBeUndefined()
   })
+
+  test("is the tenant among a key's listed tenants, none where one is listed and none of none", () => {
+    const [north, south] = [TenantId("north"), TenantId("south")]
+    expect(ProcessTenants.tenantOf([south, null, north])).toBeNull()
+    expect(ProcessTenants.tenantOf([south, north, south])).toBe("north")
+    expect(ProcessTenants.tenantOf(new Set([TenantId("b"), TenantId("B")]))).toBe("B")
+    expect(ProcessTenants.tenantOf([])).toBeUndefined()
+  })
 })
