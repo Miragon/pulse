@@ -147,8 +147,16 @@ server image builds the page beside the server and serves it from `/app/web`.
   chat's overview's), read per Camunda 7 engine through the app-only feed
   `engine_screen_verdict_data` (`src/screens/engine/verdict-feed.ts`: `hasVerdict` names the
   dialects the server decides one for, which `test/nav-sections.test.tsx` holds to the feeds it
-  registers per dialect), beside the engine screen's read, which the server reads it beside too,
-  so no engine is asked twice: its mark of its own shape in the kit's verdict tone (an ok
+  registers per dialect), once the engine screen's read answered and again after each new answer
+  of it, never started while the screen reads (a retry of it paused in a hidden tab included) nor
+  after a failed read of it (`judges` and `useVerdictsAfterScreens` in `start-reads.ts`,
+  `test/start-verdicts.test.tsx`), so an engine that hangs holds one connection and the verdict
+  reads its root incidents from the screen's list of processes on the server's floor, never a
+  second statistics; a verdict's read under way, its retries included, goes on beside the screen's
+  new read (a Refresh or the reader's return during it), its answer shown at once, and counts for
+  the screen's answer (two calls of one engine at once only while a verdict reads, its retries
+  included, when its screen is read again, or when the reader moves to the search while a verdict
+  reads): its mark of its own shape in the kit's verdict tone (an ok
   engine's dot, a degraded one's triangle, a critical one's crossed circle, the mark alone under
   28rem of the table) and its word (Stable, Degraded, Critical, Empty for an ok engine with nothing
   deployed, as the chat's overview badge says it), a failed read's icon and word in the
@@ -178,6 +186,14 @@ server image builds the page beside the server and serves it from `/app/web`.
   never where a read met a refusal no retry changes (`useEngineList`). What runs where says it reads
   while an engine still reads, its skeleton after 400 ms (widget-shell's `QueryFallback`). It writes
   nothing and hands nothing to a chat; the page scrolls (no `fill`).
+- The reads across engines, the start page's engine screens and the search's finds, go one call
+  per engine at a time (`src/engine-lanes.ts`, around the page's caller in `src/start.ts`;
+  `test/engine-lanes.test.tsx`): the next once the one before answered or failed, across the page's
+  moves too, so an engine that hangs holds one of the browser's six HTTP/1.1 connections, never one
+  per read, and the other engines' rows show beside it (a proxy that serves the page over HTTP/2
+  lifts the cap, `docs/web/sign-in.md`); a call that asks what a queued one asks joins it. Every
+  other call of the page goes out at once, the verdict too (the start page reads it after its
+  engine's figures), so a screen of one engine reads its feeds side by side.
 - The page's own screens (`src/screens`, owner decision D10 of 2026-11-19), its first the engine
   screen (`src/screens/engine`): at an engine's own address an engine's processes, each with its
   latest version, its running instances, its instances with incident and its open root incidents
@@ -343,7 +359,9 @@ server image builds the page beside the server and serves it from `/app/web`.
   engine, from the search's feed (`engine_screen_find_data`, an app-only read of the engine contract
   in every dialect, the screens' `Finder`), one call per engine of the frame's one read of the
   engine list, all at once, as the start page reads each engine, so each engine's failure is its
-  own; a refused profile is read nothing of, its refusal the list's reason in the server's words
+  own, said from its first failed attempt while the query client retries behind it, as on the start
+  page, which settles the engine for what the search shows until a later answer replaces it; a
+  refused profile is read nothing of, its refusal the list's reason in the server's words
   (`search-reads.ts`, `refusalOf`). Its bar: what was searched as the h1 (none: "Find an instance" and how to
   search, nothing read), once every engine settled how many instances were found on how many
   engines and that the search is exact, the Refresh (every engine again), when the hits were read
@@ -363,10 +381,12 @@ server image builds the page beside the server and serves it from `/app/web`.
   searched; an engine that failed for a reason a retry may change keeps the search, and so does one
   whose history misses running instances, whose notice stays to be read) replaces the address by
   its instance's (the router's `navigate` with `replace`), so Back leads to where the search
-  started; it is decided once per entry, when every engine first settled, and the router marks the
-  entry (`seen`, `markSeen`, in the entry's state), so neither a Refresh nor a return to the entry
-  (Back, Forward, a reload) leaves it. Another search is a new entry and starts the screen anew. It
-  writes nothing and hands nothing to a chat.
+  started; it is decided once per entry, once every engine answered or failed with no retry left
+  (`searchedOut`: an engine said down at its first failed attempt holds the decision while it is
+  retried, its retry paused while the tab is hidden too, so a retry that answers still opens the
+  one hit), and the router marks the entry (`seen`, `markSeen`, in the entry's state), so neither
+  a Refresh nor a return to the entry (Back, Forward, a reload) leaves it. Another search is a new
+  entry and starts the screen anew. It writes nothing and hands nothing to a chat.
 - A screen of the page's fills the window's height from 64rem on (`SessionLayout`'s `fill`, which
   bounds the sheet; widget-shell's `WidgetShell` and `ListTable` `fill`; pulse-ui's
   `NavigationFocus` `className`): the engine screen's list and the process and instance screens'

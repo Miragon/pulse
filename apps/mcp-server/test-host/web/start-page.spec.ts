@@ -181,10 +181,9 @@ test.describe("the start page", () => {
     const engineReads = engineReadsOf(calls, FEED)
     expect(engineReads.filter((engine) => engine === HEALTHY_ENGINE)).toHaveLength(1)
     expect([...new Set(engineReads)].sort()).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
-    // Each Camunda 7 engine's verdict, read beside its engine screen, the healthy one's once.
-    const verdictReads = engineReadsOf(calls, VERDICT_FEED)
-    expect(verdictReads.filter((engine) => engine === HEALTHY_ENGINE)).toHaveLength(1)
-    expect([...new Set(verdictReads)].sort()).toEqual([BROKEN_ENGINE, HEALTHY_ENGINE].sort())
+    // A Camunda 7 engine's verdict once its engine screen answered: the healthy one's once, the
+    // down one's never, since its engine screen failed.
+    expect(engineReadsOf(calls, VERDICT_FEED)).toEqual([HEALTHY_ENGINE])
     await expect(page.getByText(/\bchat\b/i)).toHaveCount(0)
     await rendered(page)
     expect(errors).toEqual([])

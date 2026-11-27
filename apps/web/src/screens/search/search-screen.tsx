@@ -23,7 +23,12 @@ import { EngineFailure } from "../engine-failure.js"
 import { RefreshButton } from "../screen-chrome.js"
 import { targetUrl, usePageSlots } from "../slots.js"
 import { useWide } from "../use-wide.js"
-import { MOST_BY_BUSINESS_KEY, type EngineSearch, useSearchReads } from "./search-reads.js"
+import {
+  MOST_BY_BUSINESS_KEY,
+  type EngineSearch,
+  searchedOut,
+  useSearchReads,
+} from "./search-reads.js"
 
 /**
  * The search's entry of the page's history (the router's): whether the search decided there before
@@ -132,11 +137,12 @@ function Unsearched({
  * a row opening its instance screen by the one row convention, shown as they arrive; while no hit
  * is on screen the search says it searches until every engine settled, so it never says an instance
  * is missing that a slower engine may hold. Exactly one hit replaces the address by its instance's
- * (`replace`), decided once for the entry (`entry`), so Back leads to where the search started and a
- * Refresh or a return never leaves it; none says what was searched and that the search is exact,
- * of the engines that could be searched alone where some could not, and a search no engine answered
- * says so. A text longer than an id or a business key can be reads nothing and says so. It writes
- * nothing and hands nothing to a chat.
+ * (`replace`), decided once for the entry (`entry`) once every engine answered or failed with no
+ * retry left (`searchedOut`), so a retry that answers still opens the one hit, Back leads to where
+ * the search started and a Refresh or a return never leaves it; none says what was searched and
+ * that the search is exact, of the engines that could be searched alone where some could not, and
+ * a search no engine answered says so. A text longer than an id or a business key can be reads
+ * nothing and says so. It writes nothing and hands nothing to a chat.
  */
 export function SearchScreen({
   text,
@@ -159,7 +165,8 @@ export function SearchScreen({
   const { list, searches, refetch } = useSearchReads(searched)
   const found = searches.flatMap(({ found: screen }) => (screen === undefined ? [] : [screen]))
   const settled = searches.every(({ pending }) => !pending)
-  const complete = searched !== "" && list.data !== undefined && settled
+  // The one hit is decided once no engine still retries, whose next attempt may answer.
+  const complete = searched !== "" && list.data !== undefined && searches.every(searchedOut)
   const refreshing = searches.some(({ fetching }) => fetching)
   const only = onlyHitOf(searches)
   const decided = useRef(false)

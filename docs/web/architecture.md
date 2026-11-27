@@ -98,7 +98,11 @@ a version's variable names when the condition dialog does. The reads that load a
 (an engine's processes with their counts, a version's element statistics, an instance list's first
 page with its counts, the variable names, a search, its engine's history gap apart for every text,
 the verdict's incident scan beside its engine's processes, whose read it shares, on the processes page once they show) stand on a floor of
-30 s per signed-in user and arguments at the server, so a Refresh within it shows the same read. Its router gives each view its address and leads Back, Forward and its links to the
+30 s per signed-in user and arguments at the server, so a Refresh within it shows the same read.
+The start page and the search read every engine at once, one call per engine at a time, the
+start page a verdict after its engine's processes (`apps/web/src/engine-lanes.ts`): an engine
+that hangs holds one of the browser's six connections over HTTP/1.1 (two only while a verdict
+reads, its retries included, when its screen is read again, or when the reader moves to the search while a verdict reads), and a proxy that serves the page over HTTP/2 lifts that cap ([Behind a proxy](sign-in.md#behind-a-proxy)). Its router gives each view its address and leads Back, Forward and its links to the
 view, which goes there itself or starts anew there, never loading the page; it replaces an old
 `/app/cockpit?view=…` by the view's own address, `/app/fleet` by `/app`. It reads its session with `readWebSession()` and calls tools through
 `webToolCaller(session)`, which posts each call with the CSRF token and rejects a refusal as a
