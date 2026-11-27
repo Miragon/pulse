@@ -4,6 +4,7 @@
  * names).
  */
 
+import { RuntimeError } from "@miragon/pulse-engine-core"
 import type {
   AdvanceOption,
   Candidate,
@@ -83,7 +84,7 @@ export type WorkflowErrorReason =
       readonly workerId: string
       readonly lockExpirationTime?: string
     }
-  // migration plans
+  // migration plans, the status triage's definition statistics
   /**
    * The engine answered `operationId` in a shape the REST API does not document; `problem` says
    * what is wrong in it (`instructions is not a list`).
@@ -103,4 +104,20 @@ export class WorkflowError extends Error {
 
 export function isWorkflowError(error: unknown): error is WorkflowError {
   return error instanceof WorkflowError
+}
+
+/**
+ * What `read` gives; an answer to `operationId` it cannot read (`RuntimeError("unexpectedResponse")`
+ * of `JsonView`) fails as the reason `unexpected-answer`, as the main entry fails what its caller
+ * words.
+ */
+export async function readable<T>(operationId: string, read: () => T | Promise<T>): Promise<T> {
+  try {
+    return await read()
+  } catch (error) {
+    if (error instanceof RuntimeError && error.failure === "unexpectedResponse") {
+      throw new WorkflowError({ kind: "unexpected-answer", operationId, problem: error.message })
+    }
+    throw error
+  }
 }

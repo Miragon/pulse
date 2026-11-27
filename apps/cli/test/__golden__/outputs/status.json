@@ -4,7 +4,9 @@
   ],
   "exitCode": 0,
   "sent": [
-    "GET /engine-rest/batch/statistics?maxResults=100",
+    "GET /engine-rest/batch/statistics/count",
+    "GET /engine-rest/batch/statistics/count?withFailures=true",
+    "GET /engine-rest/batch/statistics?maxResults=100&withFailures=true",
     "GET /engine-rest/external-task/count",
     "GET /engine-rest/external-task?firstResult=0&maxResults=500",
     "GET /engine-rest/incident/count",

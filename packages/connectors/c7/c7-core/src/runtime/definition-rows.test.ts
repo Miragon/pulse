@@ -1,104 +1,12 @@
 import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import { fakeFailure, fakePort } from "../testing/fake-port.js"
-import { diagramReadOf, readDefinitionStatistics, readDiagramXml } from "./definition-rows.js"
-
-const FULL = {
-  id: "invoice:2:x",
-  key: "invoice",
-  version: 2,
-  name: "Invoice Receipt",
-  deploymentId: "d2",
-  versionTag: "stable",
-}
-const BARE = { id: "order:1:y", key: "order", version: 1 }
-
-function statisticsPort(answer: unknown) {
-  return fakePort({ getProcessDefinitionStatistics: () => answer })
-}
+import { diagramReadOf, readDiagramXml } from "./definition-rows.js"
 
 async function expectUnexpected(read: Promise<unknown>, message: string): Promise<void> {
   await expect(read).rejects.toBeInstanceOf(RuntimeError)
   await expect(read).rejects.toMatchObject({ failure: "unexpectedResponse", message })
 }
-
-describe("readDefinitionStatistics", () => {
-  it("reads every version with its running instances and root incidents, in one request", async () => {
-    const port = statisticsPort([
-      { definition: FULL, instances: 3, failedJobs: 0, incidents: [] },
-      { definition: { ...BARE, name: null, deploymentId: null }, instances: 0 },
-    ])
-    expect(await readDefinitionStatistics(port)).toStrictEqual([
-      { definition: FULL, instances: 3, rootIncidents: 0 },
-      { definition: BARE, instances: 0, rootIncidents: 0 },
-    ])
-    expect(port.calls).toEqual([
-      {
-        operationId: "getProcessDefinitionStatistics",
-        input: { pathArgs: [], query: { rootIncidents: "true" } },
-      },
-    ])
-  })
-
-  it("sums the root incidents of every incident type of a version", async () => {
-    const port = statisticsPort([
-      {
-        definition: FULL,
-        instances: 5,
-        incidents: [
-          { incidentType: "failedJob", incidentCount: 2 },
-          { incidentType: "failedExternalTask", incidentCount: 1 },
-        ],
-      },
-      { definition: BARE, instances: 1, incidents: null },
-    ])
-    expect(await readDefinitionStatistics(port)).toStrictEqual([
-      { definition: FULL, instances: 5, rootIncidents: 3 },
-      { definition: BARE, instances: 1, rootIncidents: 0 },
-    ])
-  })
-
-  it.each([
-    ["an answer that is no list", {}, "definition statistics is not a list"],
-    ["a row that is no object", [1], "definition statistics[0] is not an object"],
-    ["a row without its definition", [{ instances: 1 }], "statistics definition is not an object"],
-    ["a row without its count", [{ definition: BARE }], "instances is missing"],
-    ["a definition without its id", [{ definition: { key: "a", version: 1 } }], "id is missing"],
-    ["a definition without its key", [{ definition: { id: "a", version: 1 } }], "key is missing"],
-    [
-      "a definition without its version",
-      [{ definition: { id: "a", key: "a" }, instances: 1 }],
-      "version is missing",
-    ],
-    [
-      "a name that is no text",
-      [{ definition: { ...BARE, name: 1 }, instances: 1 }],
-      "name is not a string",
-    ],
-    [
-      "a deployment that is no text",
-      [{ definition: { ...BARE, deploymentId: 1 }, instances: 1 }],
-      "deploymentId is not a string",
-    ],
-    [
-      "a version tag that is no text",
-      [{ definition: { ...BARE, versionTag: 1 }, instances: 1 }],
-      "versionTag is not a string",
-    ],
-    [
-      "incidents that are no list",
-      [{ definition: BARE, instances: 1, incidents: 2 }],
-      "incidents is not a list",
-    ],
-    [
-      "an incident type without its count",
-      [{ definition: BARE, instances: 1, incidents: [{ incidentType: "failedJob" }] }],
-      "incidentCount is missing",
-    ],
-  ])("fails %s as unexpected", async (_kind, answer, message) => {
-    await expectUnexpected(readDefinitionStatistics(statisticsPort(answer)), message)
-  })
-})
 
 describe("readDiagramXml", () => {
   it("reads the XML a version was deployed with, by its id", async () => {

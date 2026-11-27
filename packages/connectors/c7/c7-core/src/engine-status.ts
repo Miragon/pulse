@@ -6,11 +6,13 @@
  */
 
 import { EXECUTABLE } from "./conditions.js"
+import { definitionStatisticsOf, definitionStatisticsQuery } from "./definition-statistics.js"
+import { readable } from "./errors.js"
 import { type EngineStatus, type Finding, findings } from "./findings.js"
 import { incidentCause } from "./inspect.js"
 import { type EnginePort, PARALLEL, type PlannedRequest, pageQuery, type Query } from "./port.js"
 import { engineFormat } from "./dates.js"
-import { amount, countOf, type Rec, records, str } from "./records.js"
+import { amount, countOf, records, str } from "./records.js"
 import { queryInput } from "./requests.js"
 import {
   type DefinitionStatus,
@@ -25,6 +27,7 @@ import {
   topicStatus,
   unknownKeys,
 } from "./status.js"
+import { BATCH_REQUESTS, batchesCut, readBatches } from "./status-batches.js"
 import { compact, mapLimit, omit } from "./util.js"
 import {
   causeKeyOf,
@@ -97,6 +100,7 @@ export interface StatusData {
   readonly externalTasks: readonly TopicStatus[]
   readonly jobs: JobStatus
   readonly tasks: { readonly open: number }
+  /** The running batches and those with failed jobs, both counted (`status-batches.ts`). */
   readonly batches?: { readonly running: number; readonly withFailures: number }
   readonly truncated?: readonly string[]
 }
@@ -109,7 +113,6 @@ export interface StatusDeps {
 /** Incidents and external tasks loaded at most. */
 const LIST_CAP = 2000
 const STALE_JOBS = 1000
-const BATCHES = 100
 const PAGE = 500
 
 interface Requests {
@@ -122,7 +125,7 @@ interface Requests {
   readonly externalTasks: Query
   readonly jobCounts: readonly PlannedRequest[]
   readonly staleJobs: readonly PlannedRequest[]
-  readonly batches?: PlannedRequest
+  readonly batches?: readonly PlannedRequest[]
 }
 
 function request(operationId: string, query: Query = {}): PlannedRequest {
@@ -136,10 +139,10 @@ function requests(options: Resolved, now: number): Requests {
   const createTimes = `lt_${engineFormat(now - options.staleAfterMs)}`
   return {
     version: request("getRestAPIVersion"),
-    statistics: request("getProcessDefinitionStatistics", {
-      failedJobs: "true",
-      rootIncidents: "true",
-    }),
+    statistics: request(
+      "getProcessDefinitionStatistics",
+      definitionStatisticsQuery({ failedJobs: true }),
+    ),
     incidentCount: request("getIncidentsCount", filter),
     externalTaskCount: request("getExternalTasksCount", filter),
     taskCount: request("getTasksCount", filter),
@@ -156,12 +159,7 @@ function requests(options: Resolved, now: number): Requests {
         processDefinitionKey: key,
       }),
     ),
-    ...compact({
-      batches:
-        keyIn === undefined
-          ? request("getBatchStatistics", { maxResults: String(BATCHES) })
-          : undefined,
-    }),
+    ...compact({ batches: keyIn === undefined ? BATCH_REQUESTS : undefined }),
   }
 }
 
@@ -178,7 +176,7 @@ export function statusRequests(options: StatusOptions, now: number): PlannedRequ
     ...all.jobCounts,
     ...all.staleJobs,
     all.taskCount,
-    ...(all.batches === undefined ? [] : [all.batches]),
+    ...(all.batches ?? []),
   ]
 }
 
@@ -220,11 +218,13 @@ async function roundOne(deps: StatusDeps, all: Requests) {
     counts(all.jobCounts),
     Promise.all(all.staleJobs.map(async (planned) => records(await value(port, planned)))),
     value(port, all.taskCount),
-    all.batches === undefined ? undefined : value(port, all.batches),
+    all.batches === undefined ? undefined : readBatches(port),
   ])
   return {
     ...version,
-    statistics: records(statistics),
+    statistics: await readable(all.statistics.operationId, () =>
+      definitionStatisticsOf(statistics),
+    ),
     incidents,
     incidentCount: countOf(incidentCount),
     externalTasks,
@@ -234,7 +234,7 @@ async function roundOne(deps: StatusDeps, all: Requests) {
     // a key's page that reached the cap may hide more overdue jobs, whatever the other keys hold
     staleJobsCut: staleJobs.some((page) => page.length >= STALE_JOBS),
     openTasks: countOf(openTasks),
-    ...compact({ batches: batches === undefined ? undefined : records(batches) }),
+    ...compact({ batches }),
   }
 }
 
@@ -249,6 +249,8 @@ function truncation(data: RoundOne, groups: number, options: Resolved): string[]
       `externalTasks: ${data.externalTasks.items.length} of ${data.externalTaskCount} loaded`,
     )
   if (data.staleJobsCut) notes.push(`jobs: the first ${STALE_JOBS} overdue candidates loaded`)
+  const batches = batchesCut(data.batches)
+  if (batches !== undefined) notes.push(batches)
   if (groups > options.maxGroups)
     notes.push(`incident groups: ${options.maxGroups} of ${groups} shown`)
   return notes
@@ -259,7 +261,9 @@ function truncation(data: RoundOne, groups: number, options: Resolved): string[]
  * and the root cause of each group shown.
  */
 async function incidentGroups(port: EnginePort, data: RoundOne, options: Resolved) {
-  const failedBatches = (data.batches ?? []).filter((batch) => amount(batch, "failedJobs") > 0)
+  const failedBatches = (data.batches?.failed ?? []).filter(
+    (batch) => amount(batch, "failedJobs") > 0,
+  )
   const grouped = groupIncidents(
     data.incidents.items,
     data.statistics,
@@ -320,7 +324,6 @@ export async function readStatus(
   const { grouped, incidents } = await incidentGroups(deps.port, data, options)
   const externalTasks = topicStatus(data.externalTasks.items, now)
   const jobs = jobStatus(data.executableJobs, data.staleJobs, now - options.staleAfterMs)
-  const batches = data.batches ?? []
   const definitions = definitionStatus(data.statistics, options.keys)
   const ofDefinitions = definitions.reduce((sum, definition) => sum + definition.incidents, 0)
   const counts = rootIncidentCounts(ofDefinitions, data.incidents.items)
@@ -329,7 +332,7 @@ export async function readStatus(
     jobs,
     incidents,
     externalTasks,
-    batches,
+    batches: data.batches?.failed ?? [],
     unknownKeys: unknownKeys(data.statistics, options.keys),
     staleAfterMs: options.staleAfterMs,
     now,
@@ -351,10 +354,7 @@ export async function readStatus(
       batches:
         data.batches === undefined
           ? undefined
-          : {
-              running: batches.length,
-              withFailures: batches.filter((batch: Rec) => amount(batch, "failedJobs") > 0).length,
-            },
+          : { running: data.batches.running, withFailures: data.batches.withFailures },
       truncated: notes.length > 0 ? notes : undefined,
     }),
   }

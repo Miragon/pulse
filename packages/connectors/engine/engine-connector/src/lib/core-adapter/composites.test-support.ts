@@ -81,8 +81,12 @@ export const status = (
   thresholds: VerdictThresholds = DEFAULT_VERDICT_THRESHOLDS,
 ) => engineStatusForModel(clientFor(engine), args, "fake", thresholds)
 
-/** The text a model reads for a failed inspect, as the registrar prints a thrown error. */
-export async function errorText(engine: FakeEngine, args: InspectArgs) {
-  const result = await withToolErrors(() => inspect(engine, args))()
+/** The text a model reads for a failed composite, as the registrar prints a thrown error. */
+export async function toolErrorText(run: () => Promise<unknown>) {
+  const result = await withToolErrors(run)()
   return (result as { content: { text: string }[] }).content[0]?.text
 }
+
+/** The text a model reads for a failed inspect. */
+export const errorText = (engine: FakeEngine, args: InspectArgs) =>
+  toolErrorText(() => inspect(engine, args))

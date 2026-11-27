@@ -4,18 +4,9 @@
  * clocks are assumed to agree, as for local containers).
  */
 
+import { type DefinitionStatisticsRow, statisticsByKey } from "./definition-statistics.js"
 import { isRetryable } from "./next.js"
-import {
-  amount,
-  compareText,
-  compareTime,
-  definitionKeyOf,
-  field,
-  num,
-  type Rec,
-  records,
-  str,
-} from "./records.js"
+import { compareText, compareTime, definitionKeyOf, field, num, type Rec, str } from "./records.js"
 import { engineTime } from "./dates.js"
 import { messageSignature } from "./message-signature.js"
 import { isRootIncident } from "./root-incident.js"
@@ -87,61 +78,40 @@ export interface JobStatus {
 /** Incident groups list at most this many instance ids. */
 const LISTED_INSTANCES = 3
 
-/** Process definitions of the statistics rows by id: key and version. */
-function definitionsById(statistics: readonly Rec[]): Map<string, Rec> {
-  return new Map(
-    statistics.flatMap((row) => {
-      const definition = row.definition
-      const dto = typeof definition === "object" && definition !== null ? (definition as Rec) : row
-      const id = str(dto, "id") ?? str(row, "id")
-      return id === undefined ? [] : [[id, dto] as const]
-    }),
-  )
-}
-
-function incidentCount(row: Rec): number {
-  return records(row.incidents).reduce((sum, entry) => sum + amount(entry, "incidentCount"), 0)
-}
-
-/** The definition key of a statistics row. */
-function statisticsKey(row: Rec): string {
-  return str(row.definition as Rec | undefined, "key") ?? definitionKeyOf(str(row, "id")) ?? ""
+/** The key of each deployed version of the statistics, by the version's id. */
+function keysById(statistics: readonly DefinitionStatisticsRow[]): Map<string, string> {
+  return new Map(statistics.map((row) => [row.definition.id, row.definition.key]))
 }
 
 /** Named keys without any deployed definition (a typo, or another engine). */
-export function unknownKeys(statistics: readonly Rec[], keys: readonly string[]): string[] {
-  const known = new Set(statistics.map(statisticsKey))
+export function unknownKeys(
+  statistics: readonly DefinitionStatisticsRow[],
+  keys: readonly string[],
+): string[] {
+  const known = new Set(statistics.map((row) => row.definition.key))
   return keys.filter((key) => !known.has(key))
 }
 
-/** Statistics summed per key; keys without instances, failed jobs and incidents only when named. */
+/**
+ * The statistics per key, as the one fold gives them (`statisticsByKey`: the latest version by its
+ * version number, the sums over every version); keys without instances, failed jobs and incidents
+ * only when named.
+ */
 export function definitionStatus(
-  statistics: readonly Rec[],
+  statistics: readonly DefinitionStatisticsRow[],
   keys: readonly string[],
 ): DefinitionStatus[] {
-  const byKey = new Map<string, Rec[]>()
-  for (const row of statistics) {
-    const key = statisticsKey(row)
-    byKey.set(key, [...(byKey.get(key) ?? []), row])
-  }
-  return [...byKey.entries()]
-    .filter(([key]) => keys.length === 0 || keys.includes(key))
-    .map(([key, rows]) => {
-      const definitions = rows.map((row) => (row.definition ?? {}) as Rec)
-      const latest = definitions.toSorted(
-        (left, right) => amount(right, "version") - amount(left, "version"),
-      )[0]
-      const sum = (read: (row: Rec) => number) => rows.reduce((total, row) => total + read(row), 0)
-      return {
-        key,
-        ...compact({ name: str(latest, "name") }),
-        latestVersion: amount(latest, "version"),
-        versions: rows.length,
-        instances: sum((row) => amount(row, "instances")),
-        failedJobs: sum((row) => amount(row, "failedJobs")),
-        incidents: sum(incidentCount),
-      }
-    })
+  return [...statisticsByKey(statistics).values()]
+    .filter((process) => keys.length === 0 || keys.includes(process.key))
+    .map((process) => ({
+      key: process.key,
+      ...compact({ name: process.latest.name }),
+      latestVersion: process.latest.version,
+      versions: process.versions.length,
+      instances: process.instances,
+      failedJobs: process.failedJobs,
+      incidents: process.rootIncidents,
+    }))
     .filter(
       (status) =>
         keys.includes(status.key) || status.instances + status.failedJobs + status.incidents > 0,
@@ -244,19 +214,18 @@ function groupOf(members: readonly Rec[]): IncidentGroup & { readonly newest: Re
  */
 export function groupIncidents(
   incidents: readonly Rec[],
-  statistics: readonly Rec[],
+  statistics: readonly DefinitionStatisticsRow[],
   batchJobDefinitions: ReadonlySet<string> = new Set(),
   compareSteps: (left: GroupStep, right: GroupStep) => number = defaultGroupOrder,
 ): GroupedIncidents {
-  const definitions = definitionsById(statistics)
+  const keyById = keysById(statistics)
   const roots = incidents
     .filter(isRootIncident)
     .filter((incident) => !batchJobDefinitions.has(field(incident, "jobDefinitionId")))
   const groups = new Map<string, Rec[]>()
   for (const incident of roots.toSorted(newestFirst)) {
     const definitionId = str(incident, "processDefinitionId")
-    const key =
-      str(definitions.get(definitionId ?? ""), "key") ?? definitionKeyOf(definitionId) ?? ""
+    const key = keyById.get(definitionId ?? "") ?? definitionKeyOf(definitionId) ?? ""
     const id = groupId(incident, key)
     groups.set(id, [...(groups.get(id) ?? []), { ...incident, processDefinitionKey: key }])
   }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { engineWith, status, stopFakeEngines } from "./composites.test-support.js"
+import { engineWith, status, stopFakeEngines, toolErrorText } from "./composites.test-support.js"
 import type { FakeRoutes } from "../../tools/test-support/fake-engine.js"
 import { DEFAULT_VERDICT_THRESHOLDS } from "@miragon/pulse-c7-core"
 import { FINDING_RULES, MAX_STATUS_ROWS, statusRule } from "./composites.js"
@@ -41,6 +41,7 @@ const STATUS_ROUTES: FakeRoutes = {
   "GET /job": { body: [] },
   "GET /task/count": { body: { count: 7 } },
   "GET /batch/statistics": { body: [] },
+  "GET /batch/statistics/count": { body: { count: 0 } },
 }
 
 describe("engineStatusForModel", () => {
@@ -77,6 +78,7 @@ describe("engineStatusForModel", () => {
         "/job",
         "/task/count",
         "/batch/statistics",
+        "/batch/statistics/count",
       ]),
     )
   })
@@ -167,6 +169,7 @@ describe("engineStatusForModel", () => {
       "GET /batch/statistics": {
         body: [{ id: "b1", type: "migration", failedJobs: 1, batchJobDefinitionId: "jd-b" }],
       },
+      "GET /batch/statistics/count": { body: { count: 1 } },
     }
     const text = () => ({ body: "", contentType: "text/plain" })
     const all = await status(await engineWith(routes, text), {})
@@ -251,6 +254,31 @@ describe("engineStatusForModel", () => {
       ["critical", "INCIDENTS_CRITICAL"],
       ["warning", "INCIDENTS"],
     ])
+  })
+
+  it("words an answer it cannot read: the request and what is wrong in it", async () => {
+    const text = () => ({ body: "", contentType: "text/plain" })
+    const versionless = await engineWith(
+      {
+        ...STATUS_ROUTES,
+        "GET /process-definition/statistics": {
+          body: [{ id: "x:1:a", instances: 1, definition: { id: "x:1:a", key: "x" } }],
+        },
+      },
+      text,
+    )
+    expect(await toolErrorText(() => status(versionless, {}))).toBe(
+      "[UNEXPECTED_ANSWER] The engine answered getProcessDefinitionStatistics in a shape the " +
+        "REST API does not document (engine fake): version is missing.",
+    )
+    const countless = await engineWith(
+      { ...STATUS_ROUTES, "GET /batch/statistics/count": { body: {} } },
+      text,
+    )
+    expect(await toolErrorText(() => status(countless, {}))).toBe(
+      "[UNEXPECTED_ANSWER] The engine answered getBatchStatisticsCount in a shape the REST API " +
+        "does not document (engine fake): count is missing.",
+    )
   })
 
   it("reads the named keys once each, without the batches and blank keys", async () => {

@@ -10,8 +10,7 @@
  * contract's `RuntimeError("unexpectedResponse")` for `MigrationReader`.
  */
 
-import { RuntimeError } from "@miragon/pulse-engine-core"
-import { WorkflowError } from "./errors.js"
+import { readable } from "./errors.js"
 import { JsonView } from "./json-view.js"
 import {
   instructionReportsOf,
@@ -81,18 +80,6 @@ function definitionOf(definition: JsonView): DefinitionAtVersion {
     id: definition.requiredString("id"),
     version: definition.requiredNumber("version"),
     ...(tenantId === undefined ? {} : { tenantId }),
-  }
-}
-
-/** What `read` answers; an answer it cannot read fails as the reason `unexpected-answer`. */
-async function readable<T>(operationId: string, read: () => Promise<T>): Promise<T> {
-  try {
-    return await read()
-  } catch (error) {
-    if (error instanceof RuntimeError && error.failure === "unexpectedResponse") {
-      throw new WorkflowError({ kind: "unexpected-answer", operationId, problem: error.message })
-    }
-    throw error
   }
 }
 

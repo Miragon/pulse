@@ -186,17 +186,9 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
       ...definitionRoutes([], 0),
       "GET /process-definition/statistics": {
         body: [
-          {
-            id: "b:1:x",
-            incidents: [{ incidentCount: 2 }],
-            definition: { key: "b", name: "B", version: 1 },
-          },
-          {
-            id: "b:2:x",
-            incidents: [{ incidentCount: 3 }],
-            definition: { key: "b", name: "B", version: 2 },
-          },
-          { id: V2, incidents: [], definition: { key: KEY, version: 2 } },
+          { ...at("b:1:x", 0, 2), definition: { id: "b:1:x", key: "b", name: "B", version: 1 } },
+          { ...at("b:2:x", 0, 3), definition: { id: "b:2:x", key: "b", name: "B", version: 2 } },
+          { ...at(V2, 0, 0), definition: { id: V2, key: KEY, version: 2 } },
         ],
       },
     })
@@ -448,9 +440,7 @@ describe("buildProcessIncidentsData: names from a Modeler pool", () => {
       "GET /process-definition": { body: [{ id: V2, key: KEY, name: null, version: 2 }] },
       [`GET /process-definition/${V2}/xml`]: { body: { id: V2, bpmn20Xml: pooled(KEY) } },
       "GET /process-definition/statistics": {
-        body: [
-          { id: "b:1:x", incidents: [{ incidentCount: 2 }], definition: { id: "b:1:x", key: "b" } },
-        ],
+        body: [{ ...at("b:1:x", 0, 2), definition: { id: "b:1:x", key: "b", version: 1 } }],
       },
       "GET /process-definition/b:1:x/xml": { body: { bpmn20Xml: pooled("b") } },
     })

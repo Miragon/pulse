@@ -3,6 +3,7 @@
  "getActivityInstanceTree": {"operationId":"getActivityInstanceTree","method":"GET","path":"/process-instance/{id}/activity-instances","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getActivityStatistics": {"operationId":"getActivityStatistics","method":"GET","path":"/process-definition/{id}/statistics","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getBatchStatistics": {"operationId":"getBatchStatistics","method":"GET","path":"/batch/statistics","effect":"read","engineScoped":true,"accepts":["application/json"]},
+ "getBatchStatisticsCount": {"operationId":"getBatchStatisticsCount","method":"GET","path":"/batch/statistics/count","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getEventSubscriptions": {"operationId":"getEventSubscriptions","method":"GET","path":"/event-subscription","effect":"read","engineScoped":true,"accepts":["application/json"]},
  "getExternalTaskErrorDetails": {"operationId":"getExternalTaskErrorDetails","method":"GET","path":"/external-task/{id}/errorDetails","effect":"read","engineScoped":true,"accepts":["text/plain"]},
  "getExternalTasks": {"operationId":"getExternalTasks","method":"GET","path":"/external-task","effect":"read","engineScoped":true,"accepts":["application/json"]},

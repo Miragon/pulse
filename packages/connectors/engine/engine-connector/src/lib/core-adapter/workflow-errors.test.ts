@@ -86,6 +86,23 @@ describe("asToolError", () => {
     expect((conflict as Error).message).not.toContain("prod-a")
   })
 
+  it("names the request and what is wrong in an answer it cannot read", () => {
+    const reason = {
+      kind: "unexpected-answer",
+      operationId: "getProcessDefinitionStatistics",
+      problem: "version is missing",
+    } as const
+    expect(asToolError(new WorkflowError(reason), "prod-a")).toMatchObject({
+      code: "UNEXPECTED_ANSWER",
+      message:
+        "The engine answered getProcessDefinitionStatistics in a shape the REST API does not document (engine prod-a): version is missing.",
+    })
+    expect(of(reason)).toEqual([
+      "UNEXPECTED_ANSWER",
+      "The engine answered getProcessDefinitionStatistics in a shape the REST API does not document: version is missing.",
+    ])
+  })
+
   it("keeps the kind of any other reason and returns other errors unchanged", () => {
     expect(of({ kind: "advance-suspended", id: "p1" })).toEqual(["WORKFLOW", "advance-suspended"])
     const other = new Error("[500] boom")

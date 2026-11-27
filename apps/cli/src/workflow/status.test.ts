@@ -1,6 +1,6 @@
 import fc from "fast-check"
 import { describe, expect, it } from "vitest"
-import { messageSignature } from "@miragon/pulse-c7-core"
+import { definitionStatisticsOf, messageSignature } from "@miragon/pulse-c7-core"
 import {
   definitionStatus,
   jobStatus,
@@ -54,12 +54,12 @@ describe("messageSignature, the mask pulse status groups by (the cockpit's)", ()
 })
 
 describe("definitionStatus", () => {
-  const rows = [
+  const rows = definitionStatisticsOf([
     statistics("order", 1, [2, 0, 0]),
     statistics("order", 2, [1, 1, 1]),
     statistics("idle", 1, [0, 0, 0]),
     statistics("busy", 1, [5, 0, 0]),
-  ]
+  ])
 
   it("sums per key, leaves out idle keys unless named and sorts by incidents, failed jobs, instances", () => {
     expect(definitionStatus(rows, [])).toEqual([
@@ -83,9 +83,10 @@ describe("definitionStatus", () => {
       },
     ])
     expect(definitionStatus(rows, ["idle"]).map((status) => status.key)).toEqual(["idle"])
-    expect(definitionStatus([{ id: "raw:1:x", instances: 1 }], [])).toEqual([
-      { key: "raw", latestVersion: 0, versions: 1, instances: 1, failedJobs: 0, incidents: 0 },
-    ])
+    // a row without its definition is no row to put under a key guessed from its id
+    expect(() => definitionStatisticsOf([{ id: "raw:1:x", instances: 1 }])).toThrow(
+      "statistics definition is not an object",
+    )
   })
 })
 
@@ -307,7 +308,8 @@ describe("incidents outside process definitions", () => {
   })
 
   it("names keys without any deployed definition", () => {
-    expect(unknownKeys([statistics("order", 1, [0, 0, 0])], ["order", "nope"])).toEqual(["nope"])
+    const order = definitionStatisticsOf([statistics("order", 1, [0, 0, 0])])
+    expect(unknownKeys(order, ["order", "nope"])).toEqual(["nope"])
     expect(unknownKeys([], [])).toEqual([])
   })
 })

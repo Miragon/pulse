@@ -12,15 +12,11 @@ import {
   type CalledProcess,
   type DefinitionId,
 } from "@miragon/pulse-engine-core"
+import { type DefinitionRow, readDefinitionStatistics } from "../definition-statistics.js"
 import type { EnginePort } from "../port.js"
 import { CALL_ACTIVITY_TAG } from "./call-activity-tags.js"
 import { definitionRefOf } from "./definition-refs.js"
-import {
-  type DefinitionRow,
-  type DiagramRead,
-  diagramReadOf,
-  readDefinitionStatistics,
-} from "./definition-rows.js"
+import { type DiagramRead, diagramReadOf } from "./definition-rows.js"
 
 type CalledElementBinding =
   | { readonly kind: "latest" | "deployment" }

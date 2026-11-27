@@ -81,15 +81,22 @@ describe("buildCockpitDashboardData: one row per KEY (#335 N60)", () => {
     expect(engine.requests[0].query).toEqual({ failedJobs: "true", rootIncidents: "true" })
   })
 
-  it("defaults missing counters and names, and skips rows without a key", async () => {
+  it("defaults missing failed jobs and names, and fails a row it cannot read, never skips it", async () => {
     const { client } = await engineWith({
       "GET /process-definition/statistics": {
-        body: [{ id: "K1:1:a", definition: { id: "K1:1:a", key: "K1", version: 1 } }, { id: "x" }],
+        body: [{ instances: 0, definition: { id: "K1:1:a", key: "K1", version: 1 } }],
       },
+    })
+    const sparse = await engineWith({
+      "GET /process-definition/statistics": { body: [{ id: "x", instances: 1 }] },
     })
 
     const data = await buildCockpitDashboardData(client, "engine-a")
 
+    await expect(buildCockpitDashboardData(sparse.client, "engine-a")).rejects.toMatchObject({
+      failure: "unexpectedResponse",
+      message: "statistics definition is not an object",
+    })
     expect(data.definitions).toEqual([
       {
         id: "K1:1:a",

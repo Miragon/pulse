@@ -11,10 +11,12 @@
  * planning rules (`definitionsAtVersion`, `proposeMigrationPlan`, `checkMigrationPlan`,
  * `migrationInstructions`) are the one home of a plan's requests and bodies, for the CLI's plan
  * file and the contract's `MigrationReader` alike; an answer they cannot read fails as the reason
- * `unexpected-answer`. Runs on a caller's `EnginePort`; returns data and throws `WorkflowError`
- * reasons, and names no command, flag or tool: next steps and error reasons are structured, the
- * caller words them. The pure rules behind these functions that only tests reach are exported from
- * `@miragon/pulse-c7-core/testing`.
+ * `unexpected-answer`. The definition statistics (`readDefinitionStatistics`, `statisticsByKey`)
+ * are the one read and fold of a process key's numbers, for the status triage, the contract's
+ * processes and the MCP server's views alike. Runs on a caller's `EnginePort`; returns data and
+ * throws `WorkflowError` reasons, and names no command, flag or tool: next steps and error reasons
+ * are structured, the caller words them. The pure rules behind these functions that only tests
+ * reach are exported from `@miragon/pulse-c7-core/testing`.
  */
 
 export {
@@ -148,6 +150,15 @@ export { activeTree, type InstanceTree } from "./tree.js"
 export { timelineOf } from "./timeline.js"
 export { waitId } from "./waits.js"
 export { byActivity, isAdvanceable, isSuspendedJob, itemStep } from "./next.js"
+export {
+  type DefinitionRow,
+  type DefinitionStatisticsRow,
+  definitionStatisticsOf,
+  type ProcessStatistics,
+  readDefinitionStatistics,
+  type StatisticsOptions,
+  statisticsByKey,
+} from "./definition-statistics.js"
 export type {
   DefinitionStatus,
   GroupStep,

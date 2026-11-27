@@ -1,12 +1,19 @@
 import type { Client } from "@miragon/pulse-c7-client"
-import { getProcessDefinitionStatistics, getProcessDefinitions } from "@miragon/pulse-c7-client/sdk"
-import { elementOfActivity } from "@miragon/pulse-c7-core"
+import { getProcessDefinitions } from "@miragon/pulse-c7-client/sdk"
+import {
+  type DefinitionStatisticsRow,
+  elementOfActivity,
+  type ProcessStatistics,
+  readDefinitionStatistics,
+  statisticsByKey,
+} from "@miragon/pulse-c7-core"
 import {
   bpmnProcessNameOf,
   readBpmnNames,
   type BpmnModelNames,
 } from "@miragon/pulse-widget-shell/server"
 import { fetchDefinitionXml } from "../lib/bpmn/definition-xml.js"
+import { enginePortFor } from "../lib/core-adapter/engine-port.js"
 import { rowsOf } from "./engine-reads.js"
 
 export { fetchDefinitionXml }
@@ -222,24 +229,13 @@ export async function fetchDefinitionsById(
   )
 }
 
-interface IncidentStatRow {
-  incidentType?: string | null
-  incidentCount?: number | null
-}
-
-interface DefinitionStatsRow {
-  id?: string | null
-  instances?: number | null
-  failedJobs?: number | null
-  incidents?: IncidentStatRow[] | null
-  definition?: RawDefinition | null
-}
-
 /**
- * A key's statistics over every version. Its incidents are its open ROOT incidents (the statistics
- * read with `rootIncidents=true`): an incident raised in one of its instances, never a call
- * activity's copy of a called instance's incident, which counts where it was raised (owner
- * decision D2, amended on 2026-11-19, followed by the cockpit on 2026-11-21).
+ * A key's statistics over every version, c7-core's one fold (`statisticsByKey`, which the status
+ * triage and the contract's processes read too) with its latest version as this module names one.
+ * Its incidents are its open ROOT incidents (the statistics read with `rootIncidents=true`): an
+ * incident raised in one of its instances, never a call activity's copy of a called instance's
+ * incident, which counts where it was raised (owner decision D2, amended on 2026-11-19, followed by
+ * the cockpit on 2026-11-21).
  */
 export interface KeyStats {
   latest: DefinitionInfo
@@ -254,51 +250,27 @@ export interface KeyStats {
   versionIds: string[]
 }
 
-function addVersion(
-  stats: KeyStats,
-  row: DefinitionStatsRow,
-  version: DefinitionInfo,
-  incidentType: string | undefined,
-): void {
-  stats.instances += row.instances ?? 0
-  stats.failedJobs += row.failedJobs ?? 0
-  let incidents = 0
-  for (const incident of row.incidents ?? []) {
-    const type = incident.incidentType ?? "unknown"
-    if (incidentType !== undefined && type !== incidentType) continue
-    const count = incident.incidentCount ?? 0
-    stats.incidentsByType.set(type, (stats.incidentsByType.get(type) ?? 0) + count)
-    incidents += count
+function keyStatsOf(process: ProcessStatistics): KeyStats {
+  const { id, key, name, version } = process.latest
+  return {
+    latest: { id, key, name: name ?? null, version },
+    instances: process.instances,
+    failedJobs: process.failedJobs,
+    incidentsByType: new Map(process.incidentsByType),
+    incidentCount: process.rootIncidents,
+    incidentVersionIds: [...process.incidentVersionIds],
+    versionIds: process.versions.map((row) => row.definition.id),
   }
-  stats.incidentCount += incidents
-  if (incidents > 0 && version.id) stats.incidentVersionIds.push(version.id)
-  if (version.id) stats.versionIds.push(version.id)
-  if (version.version > stats.latest.version) stats.latest = version
 }
 
-/**
- * Rows without a key cannot be attributed and are skipped. With `incidentType`, a key counts the
- * incidents of that type alone.
- */
-export function foldStatsByKey(rows: unknown, incidentType?: string): Map<string, KeyStats> {
-  const byKey = new Map<string, KeyStats>()
-  for (const row of rowsOf<DefinitionStatsRow>(rows)) {
-    const key = row.definition?.key
-    if (!key) continue
-    const version = toDefinitionInfo({ ...row.definition, id: row.definition?.id ?? row.id }, key)
-    const stats = byKey.get(key) ?? {
-      latest: version,
-      instances: 0,
-      failedJobs: 0,
-      incidentsByType: new Map<string, number>(),
-      incidentCount: 0,
-      incidentVersionIds: [],
-      versionIds: [],
-    }
-    addVersion(stats, row, version, incidentType)
-    byKey.set(key, stats)
-  }
-  return byKey
+/** The statistics per key; with `incidentType`, a key counts the incidents of that type alone. */
+export function foldStatsByKey(
+  rows: readonly DefinitionStatisticsRow[],
+  incidentType?: string,
+): Map<string, KeyStats> {
+  return new Map(
+    [...statisticsByKey(rows, incidentType)].map(([key, process]) => [key, keyStatsOf(process)]),
+  )
 }
 
 /** An id missing from the statistics (deployed since) falls back to the key it names; a bare one is null, never a UUID. */
@@ -321,11 +293,10 @@ export async function fetchStatsByKey(
   client: Client,
   query: { failedJobs?: boolean; incidentType?: string },
 ): Promise<Map<string, KeyStats>> {
-  const stats = await getProcessDefinitionStatistics({
-    client,
-    query: { failedJobs: query.failedJobs, rootIncidents: true },
+  const rows = await readDefinitionStatistics(enginePortFor(client), {
+    failedJobs: query.failedJobs === true,
   })
-  return foldStatsByKey(stats, query.incidentType)
+  return foldStatsByKey(rows, query.incidentType)
 }
 
 /** Statistics are read only for bare generated ids, so short keys cost no call. */

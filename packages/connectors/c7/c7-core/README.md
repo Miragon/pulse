@@ -73,14 +73,29 @@ missing.
   called instances, optionally variables, the history timeline and stacktraces (cut after
   `MAX_STACKTRACE_LINES` lines).
 - **Status:** `readStatus({ port, now }, options)` triages one engine: findings with severity, the
-  overall status, definitions, incident groups with their root cause, topics, jobs and batches,
-  every cut named in `truncated`. `engineVerdict` judges an engine `ok`, `warning` or `critical` by
-  thresholds you pass, over its open root incidents: `rootIncidentCounts` takes the processes' from
-  the statistics with `rootIncidents=true` and, of the open incidents read, those outside any
-  process and the largest cause over root incidents alone, so a chain of calls one failure stops
-  counts it once (`readStatus` names the basis `rootIncidentsTotal` beside `incidentsTotal`, every
-  open incident); `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group
-  incidents alike everywhere.
+  overall status, definitions, incident groups with their root cause, topics, jobs and batches
+  (the running ones and those with failed jobs counted, `/batch/statistics/count`, a count it
+  cannot read failing as the reason `unexpected-answer`; the first 100 with failed jobs listed for
+  their findings, cut only when that page is full and the engine counts more), every cut named in
+  `truncated`. `engineVerdict`
+  judges an engine `ok`, `warning` or `critical` by thresholds you pass, over its open root
+  incidents: `rootIncidentCounts` takes the processes' from the statistics with
+  `rootIncidents=true` and, of the open incidents read, those outside any process and the largest
+  cause over root incidents alone, so a chain of calls one failure stops counts it once
+  (`readStatus` names the basis `rootIncidentsTotal` beside `incidentsTotal`, every open
+  incident); `messageSignature` (the incident mask) and `causeKeyOf` (one cause) group incidents
+  alike everywhere.
+- **Definition statistics:** `readDefinitionStatistics(port, { failedJobs })` is the one read of
+  `/process-definition/statistics` with `rootIncidents=true` (each version's failed jobs on
+  request), `definitionStatisticsOf(answer)` its one parse and `statisticsByKey(rows, type?)` its
+  one fold per process key: the latest version by its version number (the first listed of equal
+  ones), the sums over every version, the open root incidents per type (of one type where one is
+  named) and the versions that hold one. The status triage's definitions, the runtime's
+  `DefinitionReader` and the MCP server's overview, incidents dashboard and process incidents take
+  a key's numbers from it, so a key counts the same on every surface. An answer it cannot read
+  fails (`RuntimeError("unexpectedResponse")`, in the status triage the reason
+  `unexpected-answer`), never as a row left out or put under a guessed key. A key sums over the
+  versions of every tenant.
 - **With incident:** one reading of "an instance with an incident" for every caller: an open
   incident the runtime holds now, which every history level answers alike (`WITH_INCIDENT`, the
   runtime's process-instance filter, and `withIncidentBody(flag)`, its typed form for a search
@@ -145,8 +160,8 @@ missing.
   your port. It asks one reader per
   question: `EngineReader` (the product and version telemetry names, else the REST API's version),
   `DefinitionReader` (every process by its latest version, its versions newest first, each with its
-  running instances, those "with incident" and its open root incidents, from one statistics read
-  with `rootIncidents=true`, a version's BPMN XML), `ElementStatisticsReader` (per
+  running instances, those "with incident" and its open root incidents, from the one statistics
+  read and its fold per key, a version's BPMN XML), `ElementStatisticsReader` (per
   element of a version the waiting tokens, the incidents raised there and those of called
   instances: the statistics with every incident at an element, root incidents wherever no copy can
   lie, and the incidents at the version's call activities that hold one read whole, sorted by id,

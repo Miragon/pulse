@@ -5,7 +5,6 @@ vi.mock("@miragon/pulse-c7-client/sdk", () => ({
   getHistoricProcessInstancesCount: vi.fn(),
   getIncidents: vi.fn(),
   getIncidentsCount: vi.fn(),
-  getProcessDefinitionStatistics: vi.fn(),
   getProcessInstances: vi.fn(),
 }))
 
@@ -14,7 +13,6 @@ import {
   getHistoricProcessInstancesCount,
   getIncidents,
   getIncidentsCount,
-  getProcessDefinitionStatistics,
   getProcessInstances,
 } from "@miragon/pulse-c7-client/sdk"
 import type { Client } from "@miragon/pulse-c7-client"
@@ -37,7 +35,13 @@ import { buildEngineHealthData, healthVerdictRule } from "./health-data.js"
 
 const mockedGetIncidents = vi.mocked(getIncidents)
 
-const client = {} as Client
+/** The engine's statistics answer, which c7-core reads over its port through the client's `get`. */
+const statistics = vi.fn<() => unknown>()
+const client = {
+  get: vi.fn((call: { url: string }) =>
+    Promise.resolve(call.url === "/process-definition/statistics" ? statistics() : undefined),
+  ),
+} as unknown as Client
 
 interface IncidentRowFixture {
   id: string
@@ -99,7 +103,7 @@ describe("buildEngineHealthData verdict", () => {
 
   async function verdict(sizes: number[], roots = sizes.reduce((a, b) => a + b, 0)) {
     mockedGetIncidents.mockResolvedValue(scan(sizes))
-    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue(rootStatistics(roots))
+    statistics.mockReturnValue(rootStatistics(roots))
     vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
     return buildEngineHealthData(client, "eng1", T)
   }
@@ -134,7 +138,7 @@ describe("buildEngineHealthData verdict", () => {
       ...scan([2]).map((row) => ({ ...row, processDefinitionId: "K2:1:x" })),
     ]
     mockedGetIncidents.mockResolvedValue(rows)
-    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue(rootStatistics(4))
+    statistics.mockReturnValue(rootStatistics(4))
     vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
     const data = await buildEngineHealthData(client, "eng1", T)
     expect(largestCause(rows)?.count).toBe(4)
@@ -188,7 +192,7 @@ describe("causes from root incidents alone", () => {
     const rows = calledFailures(3)
     mockedGetIncidents.mockResolvedValue(rows)
     // The statistics with `rootIncidents=true`: the called process's three, none at the caller.
-    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue([
+    statistics.mockReturnValue([
       {
         id: "Check:1:c",
         instances: 3,
@@ -201,7 +205,7 @@ describe("causes from root incidents alone", () => {
         incidents: [],
         definition: { id: "Leasing:1:l", key: "Leasing", version: 1 },
       },
-    ] as never)
+    ])
     vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
 
     const data = await buildEngineHealthData(client, "eng1")
@@ -214,22 +218,23 @@ describe("causes from root incidents alone", () => {
     expect(data.summary.totalIncidents).toBe(3)
     expect(data.summary.affectedActivities).toBe(1)
     expect(data.summary.affectedDefinitions).toBe(1)
-    expect(vi.mocked(getProcessDefinitionStatistics).mock.lastCall?.[0]?.query).toMatchObject({
-      rootIncidents: true,
+    expect(vi.mocked(client.get).mock.lastCall?.[0]).toMatchObject({
+      url: "/process-definition/statistics",
+      query: { rootIncidents: "true" },
     })
   })
 
   it("judges the root incidents alone, as engine_status judges: a copy raises neither count", async () => {
     const rows = calledFailures(2)
     mockedGetIncidents.mockResolvedValue(rows)
-    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue([
+    statistics.mockReturnValue([
       {
         id: "Check:1:c",
         instances: 2,
         incidents: [{ incidentType: "failedJob", incidentCount: 2 }],
         definition: { id: "Check:1:c", key: "Check", version: 1 },
       },
-    ] as never)
+    ])
     vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
     // Four open incidents with the copies, two at the call activity: critical at either.
     const T: VerdictThresholds = { criticalIncidents: 3, criticalClusterSize: 3 }
@@ -262,14 +267,14 @@ describe("causes from root incidents alone", () => {
       incidentMessage: null,
     }))
     mockedGetIncidents.mockResolvedValue([root, ...copies])
-    vi.mocked(getProcessDefinitionStatistics).mockResolvedValue([
+    statistics.mockReturnValue([
       {
         id: "Label:1:x",
         instances: 1,
         incidents: [{ incidentType: "failedJob", incidentCount: 1 }],
         definition: { id: "Label:1:x", key: "Label", version: 1 },
       },
-    ] as never)
+    ])
     vi.mocked(getHistoricProcessInstancesCount).mockResolvedValue({ count: 0 })
 
     const data = await buildEngineHealthData(client, "eng1", {

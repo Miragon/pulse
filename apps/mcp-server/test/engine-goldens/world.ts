@@ -209,6 +209,7 @@ const ROUTES: Readonly<Record<string, EngineReply>> = {
   "/incident": { body: [incident] },
   "/incident/count": { body: { count: 1 } },
   "/batch/statistics": { body: [] },
+  "/batch/statistics/count": { body: { count: 0 } },
   "/external-task/count": { body: { count: 1 } },
   "/task": { body: [task] },
   "/task/count": { body: { count: 1 } },

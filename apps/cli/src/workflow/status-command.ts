@@ -8,6 +8,7 @@ import * as core from "@miragon/pulse-c7-core"
 import type { EnginePort, PlannedRequest } from "../engine-port/engine-port.js"
 import { maskUrl } from "../output/secrets.js"
 import { compact } from "../util.js"
+import { renderedAsync } from "./error-text.js"
 import { checkFailure } from "./findings.js"
 import { findingCommand, groupCommand } from "./next-text.js"
 import type { WorkflowResult } from "./types.js"
@@ -70,7 +71,9 @@ export async function status(
   options: StatusOptions,
 ): Promise<WorkflowResult<StatusView>> {
   if (options.dryRun) return { kind: "dry-run", requests: statusRequests(options, deps.now()) }
-  const data = await core.readStatus(deps, { ...options, compareGroupSteps: groupOrder })
+  const data = await renderedAsync(
+    core.readStatus(deps, { ...options, compareGroupSteps: groupOrder }),
+  )
   const findings = data.findings.map(renderFinding)
   const view: StatusView = {
     ...data,

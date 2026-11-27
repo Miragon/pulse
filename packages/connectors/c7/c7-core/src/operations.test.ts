@@ -76,6 +76,7 @@ describe("the declared operations", () => {
       getIncidents: () => [{ ...APPROVE_INCIDENT, processDefinitionId: "order:1:x" }],
       getStacktrace: () => "boom",
       getExternalTasks: () => [{ id: "e1", topicName: "mail", errorMessage: "x", retries: 0 }],
+      getBatchStatisticsCount: () => ({ count: 0 }),
     }
     const port = fakePort(only(STATUS_OPERATIONS, routes))
     await readStatus({ port, now: () => NOW }, { keys: [], staleAfterMs: 300_000, maxGroups: 10 })

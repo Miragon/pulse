@@ -10,7 +10,6 @@ vi.mock("@miragon/pulse-c7-client/sdk", () => ({
   getIncidentsCount: vi.fn(),
   getProcessDefinitionBpmn20Xml: vi.fn(),
   getProcessDefinitionByKey: vi.fn(),
-  getProcessDefinitionStatistics: vi.fn(),
   getProcessDefinitions: vi.fn(),
   getProcessInstance: vi.fn(),
   getProcessInstanceVariables: vi.fn(),
@@ -27,7 +26,6 @@ import {
   getIncidents,
   getIncidentsCount,
   getProcessDefinitionBpmn20Xml,
-  getProcessDefinitionStatistics,
   getProcessDefinitions,
   getProcessInstance,
   getProcessInstanceVariables,
@@ -45,7 +43,6 @@ const mockedIncident = vi.mocked(getIncident)
 const mockedIncidents = vi.mocked(getIncidents)
 const mockedIncidentsCount = vi.mocked(getIncidentsCount)
 const mockedBpmn = vi.mocked(getProcessDefinitionBpmn20Xml)
-const mockedStatistics = vi.mocked(getProcessDefinitionStatistics)
 const mockedDefinitions = vi.mocked(getProcessDefinitions)
 const mockedInstance = vi.mocked(getProcessInstance)
 const mockedVariables = vi.mocked(getProcessInstanceVariables)
@@ -54,11 +51,13 @@ const mockedTasksCount = vi.mocked(getTasksCount)
 const mockedFormSchema = vi.mocked(buildTaskFormSchema)
 
 type FakeClient = Parameters<typeof buildInstanceDetailData>[0]
-// A fresh client per test: the XML read is cached per engine client.
+// A fresh client per test: the XML read is cached per engine client. Its `get` is what c7-core's
+// reads would send (the statistics among them), so a test can tell none was sent.
 let fakeClient = {} as FakeClient
+const sentThroughCore = () => vi.mocked(fakeClient.get)
 
 beforeEach(() => {
-  fakeClient = {} as FakeClient
+  fakeClient = { get: vi.fn() } as unknown as FakeClient
   vi.clearAllMocks()
 })
 
@@ -300,7 +299,7 @@ describe("buildInstanceDetailData", () => {
     // The drill to the process takes the key the id names: no further read.
     expect(data.definitionKey).toBe("K1")
     expect(mockedDefinitions).not.toHaveBeenCalled()
-    expect(mockedStatistics).not.toHaveBeenCalled()
+    expect(sentThroughCore()).not.toHaveBeenCalled()
   })
 
   describe("the key of a bare generated definition id (the drill and the cockpit links)", () => {
@@ -338,7 +337,7 @@ describe("buildInstanceDetailData", () => {
         query: { processDefinitionIdIn: UUID, maxResults: 1 },
       })
       // An instance has one key: never the engine-wide statistics.
-      expect(mockedStatistics).not.toHaveBeenCalled()
+      expect(sentThroughCore()).not.toHaveBeenCalled()
     })
 
     it("are null when that read fails (enrichment), never the UUID as a key", async () => {
@@ -374,7 +373,7 @@ describe("buildInstanceDetailData", () => {
       // The resolved key also names the process from its diagram.
       expect(data.processDefinitionName).toBe("Customer onboarding")
       expect(mockedDefinitions).toHaveBeenCalledTimes(1)
-      expect(mockedStatistics).not.toHaveBeenCalled()
+      expect(sentThroughCore()).not.toHaveBeenCalled()
     })
   })
 

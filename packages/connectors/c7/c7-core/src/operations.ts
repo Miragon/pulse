@@ -39,6 +39,7 @@ export const STATUS_OPERATIONS = [
   "getJobs",
   "getTasksCount",
   "getBatchStatistics",
+  "getBatchStatisticsCount",
   "getStacktrace",
   "getExternalTaskErrorDetails",
 ] as const
