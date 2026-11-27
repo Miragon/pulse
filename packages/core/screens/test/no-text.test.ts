@@ -278,7 +278,7 @@ async function processForms(): Promise<unknown[]> {
   const read = (bpmnProcessId: string) =>
     ProcessScreen.read(
       "prod-a",
-      { bpmnProcessId: BpmnProcessId(bpmnProcessId) },
+      { bpmnProcessId: BpmnProcessId(bpmnProcessId), tenantId: null },
       runtime,
       () => ScreenWorld.AS_OF,
     )
@@ -287,7 +287,7 @@ async function processForms(): Promise<unknown[]> {
     read("pulse-dispatch"),
     ProcessScreen.read(
       "prod-a",
-      { bpmnProcessId: BpmnProcessId("pulse-dispatch") },
+      { bpmnProcessId: BpmnProcessId("pulse-dispatch"), tenantId: null },
       ScreenWorld.world({
         getDiagramXml: () => Promise.resolve(undefined),
         getElementStatistics: () => Promise.reject(new Error("down")),

@@ -36,7 +36,7 @@ export class CallLinks {
 
   private static processTarget(called: CalledProcess): CallTarget {
     return called.definition === undefined
-      ? { kind: "missing", bpmnProcessId: called.bpmnProcessId }
+      ? { kind: "missing", bpmnProcessId: called.bpmnProcessId, tenantId: called.tenantId }
       : { kind: "definition", definition: called.definition }
   }
 

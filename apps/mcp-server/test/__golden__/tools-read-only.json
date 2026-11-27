@@ -490,6 +490,11 @@
           ],
           "type": "string"
         },
+        "tenantId": {
+          "description": "process.",
+          "minLength": 1,
+          "type": "string"
+        },
         "version": {
           "description": "process: the version's number; the latest without it.",
           "minimum": 1,
@@ -2659,6 +2664,11 @@
         },
         "process": {
           "description": "The process's BPMN process ID.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "tenantId": {
+          "description": "The process's tenant, if it has one.",
           "minLength": 1,
           "type": "string"
         },

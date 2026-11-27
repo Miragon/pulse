@@ -45,7 +45,12 @@ export interface BoardFormData {
 /** The screen a call asks for, with the ids it reads by. */
 export type ScreenFormTarget =
   | { readonly screen: "engine" }
-  | { readonly screen: "process"; readonly process: string; readonly version?: number | undefined }
+  | {
+      readonly screen: "process"
+      readonly process: string
+      readonly tenantId?: string | undefined
+      readonly version?: number | undefined
+    }
   | { readonly screen: "instance"; readonly instanceId: string }
 
 /** A feed's payload without what only the web app reads beside the form: the form alone. */
@@ -68,8 +73,9 @@ export async function readScreenForm(
       return { screen: "engine", formatVersion, data }
     }
     case "process": {
-      const { process, version } = target
-      const data = formOf(await buildProcessScreenData(engine, { process, version }), ["webApp"])
+      const { process, tenantId, version } = target
+      const request = { process, tenantId, version }
+      const data = formOf(await buildProcessScreenData(engine, request), ["webApp"])
       return { screen: "process", formatVersion, data }
     }
     case "instance": {

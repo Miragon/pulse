@@ -30,6 +30,7 @@ export interface ProcessScreenData {
   readonly engine: string
   readonly asOf: string
   readonly bpmnProcessId: string
+  readonly tenantId?: string
   readonly selected: DefinitionRefData | null
   readonly versions: readonly VersionData[]
   readonly badges: readonly ElementBadgeData[]

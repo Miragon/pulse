@@ -17,6 +17,7 @@ export class Processes {
     return {
       id: DefinitionId(`order:${String(version)}`),
       bpmnProcessId: Processes.ORDER,
+      tenantId: null,
       version,
       ...(name === undefined ? {} : { name }),
     }
@@ -46,6 +47,7 @@ export class Processes {
       engine: "prod-a",
       asOf: Processes.AS_OF,
       bpmnProcessId: Processes.ORDER,
+      tenantId: null,
       versions: [Processes.version(3, 1, 0), Processes.version(2, 4, 1)],
       selected: undefined,
       diagramXml: "<process />",

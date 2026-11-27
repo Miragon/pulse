@@ -103,8 +103,11 @@ describe("runtimeOf: the engine contract's runtime of an engine the server resol
     const first = runtimeOf({ client, provider })
     expect(await first.getDiagramXml(DefinitionId("order:1:d"))).toContain("Call")
     expect(
-      await runtimeOf({ client, provider }).getCalledProcesses(DefinitionId("order:1:d")),
-    ).toStrictEqual([{ elementId: "Call", bpmnProcessId: "label" }])
+      await runtimeOf({ client, provider }).getCalledProcesses({
+        id: DefinitionId("order:1:d"),
+        tenantId: null,
+      }),
+    ).toStrictEqual([{ elementId: "Call", bpmnProcessId: "label", tenantId: null }])
     // A version the engine does not know reads as none, and is asked for again.
     expect(await first.getDiagramXml(DefinitionId("gone:1:d"))).toBeUndefined()
     expect(await first.getDiagramXml(DefinitionId("gone:1:d"))).toBeUndefined()

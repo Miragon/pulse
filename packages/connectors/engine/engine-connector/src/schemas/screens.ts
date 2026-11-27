@@ -7,14 +7,16 @@ const SCREEN_KINDS = ["engine", "process", "instance"] as const
 export type ScreenKind = (typeof SCREEN_KINDS)[number]
 
 /**
- * One screen and the ids it takes, as the cockpit's `view` names them: a process by its key (every
- * version's counts, the badges of one version, the latest without `version`), an instance by its
+ * One screen and the ids it takes, as the cockpit's `view` names them: a process by its key and its
+ * tenant (every version's counts, the badges of one version, the latest without `version`; without
+ * `tenantId` the process its key names alone, engine-core's `ProcessTenants`), an instance by its
  * id. Which screen takes which id is the tool's rule (tools/screens.ts), since the registrar takes
  * a flat shape.
  */
 export const getScreenInput = z.object({
   screen: z.enum(SCREEN_KINDS),
   processDefinitionKey: z.string().min(1).optional().describe("process (required)."),
+  tenantId: z.string().min(1).optional().describe("process."),
   version: z
     .number()
     .int()

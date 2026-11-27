@@ -48,7 +48,9 @@ const ABOUT =
   "The status world of @miragon/pulse-c7-core/testing (seedC7StatusWorld: a call chain whose " +
   "call activity holds a copy of the called instance's root incident, a multi-instance body's " +
   "root incident beside an instance whose three items wait at the same element, a suspended " +
-  "batch's incident outside any process) seeded into operaton/operaton:2.1.5 twice, at history " +
+  "batch's incident outside any process, the label's key deployed once more in each of two " +
+  "tenants, the chain's call starting the label in pulse-north) " +
+  "seeded into operaton/operaton:2.1.5 twice, at history " +
   "level full and at none; each engine's answers to the reads of engine_status (and pulse status, " +
   "both c7-core's readStatus), the web app's verdict feed and the chat overview's health feed at " +
   "asOf, what each of them gives and what the server's three judge at the two thresholds on the " +

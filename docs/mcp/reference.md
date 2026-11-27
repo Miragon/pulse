@@ -62,10 +62,10 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 - **Boards:** with `ENGINE_BOARDS_DIR`, `list_engines` names them, `open_cockpit` (`view` `board`,
   its id) shows one, built by `engine_board_data` ([Boards](boards.md), [Camunda 8](camunda8.md))
 - **Screens and boards as JSON** (`screens`): `engine_get_screen` (`screen` `engine`; `process` with
-  `processDefinitionKey` and `version`; `instance` with `processInstanceId`) and `engine_get_board`
-  return a web app screen's or a board's JSON form, `{ formatVersion, data }`, which a page renders
-  with `@miragon/pulse-blocks`; data only, every dialect, built by the web app's and the cockpit's
-  builders, kept 30 s per caller as theirs, an instance's screen read anew on every call
+  `processDefinitionKey`, `tenantId` (without it none, else the key's first tenant by id) and
+  `version`; `instance` with `processInstanceId`) and `engine_get_board` return a web app screen's
+  or a board's JSON form, `{ formatVersion, data }`, for `@miragon/pulse-blocks`; data only, every
+  dialect, by the web app's and the cockpit's builders, kept 30 s per caller, an instance's not
 
 ### Toolsets
 

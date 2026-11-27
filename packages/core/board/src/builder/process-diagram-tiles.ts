@@ -1,4 +1,4 @@
-import type { DefinitionRef } from "@miragon/pulse-engine-core"
+import { BpmnProcessId, ProcessTenants, type DefinitionRef } from "@miragon/pulse-engine-core"
 import type { ProcessDiagramWidget } from "../format/board-definition.js"
 import type { ProcessDiagramModel } from "./board-model.js"
 import { DiagramBadges } from "./diagram-badges.js"
@@ -21,7 +21,7 @@ export class ProcessDiagramTiles {
     if (reads === undefined || summaries === undefined) {
       return tile
     }
-    const summary = summaries.find((entry) => entry.latest.bpmnProcessId === widget.process)
+    const summary = ProcessTenants.summaryOf(summaries, BpmnProcessId(widget.process))
     if (summary === undefined) {
       return { ...tile, notDeployed: true }
     }

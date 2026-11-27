@@ -38,6 +38,7 @@ export interface CountData {
 export interface DefinitionData {
   readonly id: string
   readonly bpmnProcessId: string
+  readonly tenantId?: string
   readonly version: number
   readonly name?: string
 }

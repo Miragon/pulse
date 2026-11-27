@@ -89,6 +89,7 @@ const processScreenFeed = contractFeed({
   dialects: EVERY_DIALECT,
   shape: {
     process: z.string().min(1).describe("The process's BPMN process ID."),
+    tenantId: z.string().min(1).optional().describe("The process's tenant, if it has one."),
     version: z
       .number()
       .int()
@@ -97,7 +98,8 @@ const processScreenFeed = contractFeed({
       .describe("The number of the version to show; the latest without it."),
   },
   engines: "contract",
-  read: ({ process, version }, engine) => buildProcessScreenData(engine, { process, version }),
+  read: ({ process, tenantId, version }, engine) =>
+    buildProcessScreenData(engine, { process, tenantId, version }),
 })
 
 const instancesFeed = contractFeed({

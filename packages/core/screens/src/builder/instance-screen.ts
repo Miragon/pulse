@@ -38,7 +38,7 @@ export class InstanceScreen {
     const diagram = reads.getDiagramXml(definition.id).catch(() => undefined)
     const [diagramXml, calledProcesses, caller] = await Promise.all([
       diagram,
-      CalledProcesses.read(reads, definition.id, diagram),
+      CalledProcesses.read(reads, definition, diagram),
       InstanceScreen.callerOf(reads, parentInstanceId),
     ])
     return InstanceScreen.of({ engine, asOf, detail, diagramXml, calledProcesses, caller })

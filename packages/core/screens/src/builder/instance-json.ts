@@ -39,6 +39,7 @@ export class InstanceJson {
             instances: target.choices.map(({ instance, withIncident }) => ({
               id: instance.id,
               bpmnProcessId: instance.bpmnProcessId,
+              ...Fields.tenant(instance.tenantId),
               state: instance.state,
               withIncident,
             })),
@@ -50,7 +51,12 @@ export class InstanceJson {
             definition: DefinitionJson.of(target.definition),
           }
         case "missing":
-          return { elementId, kind: "missing", bpmnProcessId: target.bpmnProcessId }
+          return {
+            elementId,
+            kind: "missing",
+            bpmnProcessId: target.bpmnProcessId,
+            ...Fields.tenant(target.tenantId),
+          }
       }
     })
   }

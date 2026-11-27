@@ -24,8 +24,10 @@
  * incident search and every verdict names it apart, never in a process's count
  * (contract-cases.test-support.ts), an instance's history of more steps than a
  * page, started within milliseconds, comes in one total order, each step once across pages
- * (history-order.test-support.ts), and an activity's page lists each root incident once by its
- * cursor where many were raised at one instant (activity-page.test-support.ts).
+ * (history-order.test-support.ts), an activity's page lists each root incident once by its
+ * cursor where many were raised at one instant (activity-page.test-support.ts), and a key deployed
+ * in two tenants is a process in each, a call resolved in its caller's tenant
+ * (tenant-world.test-support.ts).
  *
  * `pnpm --fail-if-no-match --filter @miragon/pulse-engine-connector test:engines` (Docker); its
  * own container start, since no package shares a Node test helper with another.
@@ -76,6 +78,7 @@ import { fakeWorldBoard, recordedBoard } from "./compared-boards.test-support.js
 import { ACTIVITY_PAGE_CASES } from "./activity-page.test-support.js"
 import { CONTRACT_CASES } from "./contract-cases.test-support.js"
 import { HISTORY_ORDER_CASES } from "./history-order.test-support.js"
+import { TENANT_CASES } from "./tenant-world.test-support.js"
 import { engineImageOf } from "./engine-image.test-support.js"
 import { COCKPIT_SEARCH_CHECKS } from "./cockpit-search.test-support.js"
 import { PROCESS_NUMBER_CHECKS } from "./process-numbers.test-support.js"
@@ -406,10 +409,12 @@ describe.skipIf(ENGINE_IMAGE.dialect !== "c7")(
       ...CONTRACT_CASES,
       ...HISTORY_ORDER_CASES,
       ...ACTIVITY_PAGE_CASES,
+      ...TENANT_CASES,
     ]) {
       test(name, () => {
         const { url, harness } = prepared()
-        return check({ url, runtime: harness.runtime, resolve: boardEngineAt(url) })
+        const { runtime, world } = harness
+        return check({ url, runtime, world, resolve: boardEngineAt(url) })
       })
     }
   },

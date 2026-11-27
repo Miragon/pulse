@@ -25,6 +25,7 @@ import { BoardParser } from "@miragon/pulse-board"
 import { BoardFigures } from "@miragon/pulse-board/testing"
 import { C7_BOARD_ENGINE } from "@miragon/pulse-c7-core/testing"
 import { BpmnProcessId, DefinitionId, type ProcessRuntime } from "@miragon/pulse-engine-core"
+import type { SeededWorld } from "@miragon/pulse-engine-core/testing"
 import { expect } from "vitest"
 import { buildActivityCountsData } from "../../data/activity-counts-data.js"
 import { buildBoardData } from "../../data/board-data.js"
@@ -40,10 +41,14 @@ import {
   processRoots,
 } from "./outside-process.test-support.js"
 
-/** The seeded engine a case runs on: its REST root, the contract's runtime, the board resolver. */
+/**
+ * The seeded engine a case runs on: its REST root, the contract's runtime, the kit's world seeded
+ * there, the board resolver.
+ */
 export interface ContractSuite {
   readonly url: string
   readonly runtime: ProcessRuntime
+  readonly world: SeededWorld
   readonly resolve: (name: string) => ResolvedEngine
 }
 

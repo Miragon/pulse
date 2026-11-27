@@ -31,7 +31,10 @@ const engineOf = (engineId: string): RuntimeEngine =>
 
 describe("the process screen feed", () => {
   it("refuses a process the engine has no version of, by a code no retry changes", async () => {
-    runtime.current = { listVersions: vi.fn().mockResolvedValue([]) }
+    runtime.current = {
+      listVersions: vi.fn().mockResolvedValue([]),
+      listDefinitions: vi.fn().mockResolvedValue([]),
+    }
 
     await expect(buildProcessScreenData(engineOf("c8"), { process: "nope" })).rejects.toMatchObject(
       {

@@ -229,7 +229,14 @@ export class BoardJson {
     }
   }
 
-  private static definition({ id, bpmnProcessId, version, name }: DefinitionRef): DefinitionData {
-    return { id, bpmnProcessId, version, ...(name === undefined ? {} : { name }) }
+  private static definition(definition: DefinitionRef): DefinitionData {
+    const { id, bpmnProcessId, tenantId, version, name } = definition
+    return {
+      id,
+      bpmnProcessId,
+      ...(tenantId === null ? {} : { tenantId }),
+      version,
+      ...(name === undefined ? {} : { name }),
+    }
   }
 }

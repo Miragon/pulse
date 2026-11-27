@@ -27,12 +27,14 @@ export class Instances {
   static readonly ORDER: DefinitionRef = {
     id: DefinitionId("order:1"),
     bpmnProcessId: BpmnProcessId("order"),
+    tenantId: null,
     version: 1,
     name: "Order fulfillment",
   }
   static readonly SCORING: DefinitionRef = {
     id: DefinitionId("scoring:3"),
     bpmnProcessId: BpmnProcessId("scoring"),
+    tenantId: null,
     version: 3,
   }
 
@@ -97,6 +99,7 @@ export class Instances {
       id,
       parentInstanceId,
       bpmnProcessId: BpmnProcessId("scoring"),
+      tenantId: null,
       state: "running",
       calledFromElementId: Instances.CALL,
       ...changes,
@@ -118,6 +121,7 @@ export class Instances {
         Instances.called(Instances.CHILD, Instances.ROOT),
         Instances.called(Instances.GRANDCHILD, Instances.CHILD, {
           bpmnProcessId: BpmnProcessId("bureau"),
+          tenantId: null,
           calledFromElementId: ElementId("Activity_AskBureau"),
         }),
       ],

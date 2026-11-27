@@ -141,9 +141,13 @@ its name and its reads (`BoardReads`, seven reads of `ProcessRuntime`: `describe
   `tenants` (`tenantsNotRead`). A counter's count per engine with a lower bound
   (`atLeast`) carried into the sum and a threshold's `above` or, for a lower bound at or below it,
   `undecided`; an instance list's first page per engine with its total; the instances with
-  incident per engine or per process, most first; an incident list's first incidents per engine and
-  whether more are open; a diagram's latest version (`DefinitionRef`) with its badges, the counts
-  per element rolled up onto collapsed sub-processes, or `notDeployed`.
+  incident per engine or per process (a key in one tenant: a key deployed in two tenants is a
+  row each), most first; an incident list's first incidents per engine and whether more are open;
+  a diagram's latest version (`DefinitionRef`) with its badges, the counts per element rolled up
+  onto collapsed sub-processes, or `notDeployed`. A diagram names its process by its key alone: of
+  a key deployed in several tenants it draws the one engine-core's `ProcessTenants` names, the
+  process without a tenant, else the first tenant's by id. In the JSON form a version names its
+  tenant (`tenantId`) only where it has one.
 - its notes (`notes`, none when it has none): a diagram longer than the builder reads (over 4 Mi
   characters) keeps the badges of its elements, rolls nothing up, and gets the note
   `diagramTooLong` at its tile's path (`rows[1].row[0]`), whose values name the tile as its card

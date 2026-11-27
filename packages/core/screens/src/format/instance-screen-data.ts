@@ -21,6 +21,7 @@ export type ValueKindCode =
 export interface DefinitionRefData {
   readonly id: string
   readonly bpmnProcessId: string
+  readonly tenantId?: string
   readonly version: number
   readonly name?: string
 }
@@ -82,6 +83,7 @@ export interface MarkerData {
 export interface CalledInstanceData {
   readonly id: string
   readonly bpmnProcessId: string
+  readonly tenantId?: string
   readonly state: InstanceStateCode
   readonly withIncident: boolean
 }
@@ -97,7 +99,12 @@ export type CallLinkData =
       readonly kind: "definition"
       readonly definition: DefinitionRefData
     }
-  | { readonly elementId: string; readonly kind: "missing"; readonly bpmnProcessId: string }
+  | {
+      readonly elementId: string
+      readonly kind: "missing"
+      readonly bpmnProcessId: string
+      readonly tenantId?: string
+    }
 
 export interface RootIncidentData {
   readonly id: string

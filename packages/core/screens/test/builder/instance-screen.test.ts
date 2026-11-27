@@ -35,9 +35,9 @@ function counted(runtime: ProcessRuntime): Counted {
         calls.push(`getDiagramXml ${id}`)
         return runtime.getDiagramXml(id)
       },
-      getCalledProcesses: (id) => {
-        calls.push(`getCalledProcesses ${id}`)
-        return runtime.getCalledProcesses(id)
+      getCalledProcesses: (version) => {
+        calls.push(`getCalledProcesses ${version.id}`)
+        return runtime.getCalledProcesses(version)
       },
       searchInstances: (filter, page) => {
         calls.push("searchInstances")
