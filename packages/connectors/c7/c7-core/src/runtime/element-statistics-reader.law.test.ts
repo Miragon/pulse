@@ -5,12 +5,14 @@
  * element with incidents and no token too (as Operaton 2.1.5 and CIB seven 2.2.0 answer); its
  * incidents filter by version and element, by page, those of one millisecond in no fixed order
  * unless sorted by id; a copy of a called instance's incident lies at the caller's call activity
- * and names its root, however deep that lies.
+ * and names its root, however deep that lies; a multi-instance body is an element of its own
+ * (`<id>#multiInstanceBody`) whose counts lie on the activity it repeats.
  */
 
 import { DefinitionId, type ElementStatistics } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import type { OperationInput } from "../port.js"
+import { elementOfActivity } from "../multi-instance-body.js"
 import { isRootIncident } from "../root-incident.js"
 import { fakeFailure, fakePort, type FakePort } from "../testing/fake-port.js"
 import { ElementStatisticsReader } from "./element-statistics-reader.js"
@@ -124,18 +126,30 @@ function portOf(world: VersionWorld): FakePort {
   })
 }
 
-/** The counts a read of every incident of the version gives, the law's reference. */
+/**
+ * The counts a read of every incident of the version gives, the law's reference: per element the
+ * engine reports, then a multi-instance body's added to the activity it repeats.
+ */
 function wholeRead(world: VersionWorld): ElementStatistics[] {
-  return elementsOf(world).map((elementId) => {
-    const here = world.incidents.filter((incident) => incident.activityId === elementId)
+  const byElement = new Map<string, ElementStatistics>()
+  for (const activityId of elementsOf(world)) {
+    const here = world.incidents.filter((incident) => incident.activityId === activityId)
     const incidents = here.filter((incident) => isRootIncident(incident)).length
-    return {
-      elementId: elementId as ElementStatistics["elementId"],
-      active: Math.max(0, (world.tokens[elementId] ?? 0) - incidents),
-      incidents,
-      incidentsInCalledInstances: here.length - incidents,
+    const elementId = elementOfActivity(activityId) as ElementStatistics["elementId"]
+    const sum = byElement.get(elementId) ?? {
+      elementId,
+      active: 0,
+      incidents: 0,
+      incidentsInCalledInstances: 0,
     }
-  })
+    byElement.set(elementId, {
+      elementId,
+      active: sum.active + Math.max(0, (world.tokens[activityId] ?? 0) - incidents),
+      incidents: sum.incidents + incidents,
+      incidentsInCalledInstances: sum.incidentsInCalledInstances + here.length - incidents,
+    })
+  }
+  return [...byElement.values()]
 }
 
 const byElement = (statistics: readonly ElementStatistics[]) =>
@@ -246,6 +260,20 @@ const WORLDS: Readonly<Record<string, VersionWorld>> = {
       `$&\n<bpmn:callActivity id="Call_Quoted" name='5" pipe' calledElement="label" />`,
     ),
   },
+  "a multi-instance task whose body holds a failed job's root incident beside its items": {
+    tokens: { Task_Approve: 3, "Task_Approve#multiInstanceBody": 1 },
+    incidents: [root("r-body", "Task_Approve#multiInstanceBody")],
+    xml: diagramOf(["Task_Approve"], []),
+  },
+  "a multi-instance call activity whose body holds a root incident and its items copies": {
+    tokens: { Call_Each: 2, "Call_Each#multiInstanceBody": 1 },
+    incidents: [
+      root("r-each", "Call_Each#multiInstanceBody"),
+      copy("c-each-1", "Call_Each", "deep-1"),
+      copy("c-each-2", "Call_Each", "deep-2"),
+    ],
+    xml: diagramOf([], ["Call_Each"]),
+  },
   "more incidents of one millisecond at a call activity than a page holds": {
     tokens: { Call_Label: 600 },
     incidents: [
@@ -296,6 +324,11 @@ describe("the element statistics' law", () => {
       ["every@0", "every@500"],
     ],
     ["a call activity whose start tag holds the other quote in a value", ["Call_Quoted@0"]],
+    ["a multi-instance task whose body holds a failed job's root incident beside its items", []],
+    [
+      "a multi-instance call activity whose body holds a root incident and its items copies",
+      ["Call_Each@0"],
+    ],
     [
       "more incidents of one millisecond at a call activity than a page holds",
       ["Call_Label@0", "Call_Label@500"],

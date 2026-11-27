@@ -2,8 +2,12 @@
  * The open incidents of an engine (`searchIncidents` of the engine contract): the runtime's
  * incidents newest first, paged by offset, root incidents only (one copied up from a called
  * instance is its caller's view of the same failure), each with the version it was raised in from
- * one read of the definition statistics, never one call per incident, and the job or external task
- * `incidentRecovery` names. An id of the filter no engine assigns fails as `misconfigured`. The
+ * one read of the definition statistics, never one call per incident, the element of the diagram
+ * it was raised at (a multi-instance body's on the activity it repeats, `elementOfActivity`) and
+ * the job or external task `incidentRecovery` names. An incident outside any process (a failed job
+ * of a batch or of the history cleanup, without element or instance) is no incident of the
+ * contract: the engine-wide search passes over it and never fails on it. An id of the filter no
+ * engine assigns fails as `misconfigured`. The
  * engine orders by `incidentTimestamp` alone, its one sort key, so incidents raised at the same
  * instant come in any order; a page reads them whole and orders them by id (`tied-pages.ts`), so
  * the order is newest first and then by id on every read and across pages, and a page keeps what
@@ -20,6 +24,7 @@ import {
   type Page,
   type PageRequest,
 } from "@miragon/pulse-engine-core"
+import { elementOfActivity } from "../multi-instance-body.js"
 import type { EnginePort } from "../port.js"
 import { compareText } from "../records.js"
 import { queryInput } from "../requests.js"
@@ -41,22 +46,28 @@ function optionalEngineId(value: string | undefined): string | undefined {
 
 /**
  * `row` as the contract's incident: none for an incident copied up from a called instance, without
- * its instance or of a version the engine does not list.
+ * its element or instance (one outside any process) or of a version the engine does not list.
  */
 function incidentOf(
   row: IncidentRow,
   definitionsById: ReadonlyMap<string, DefinitionRef>,
 ): Incident | undefined {
+  const { activityId, processInstanceId } = row
   const definition = definitionsById.get(row.processDefinitionId ?? "")
-  if (!isRootIncident(row) || row.processInstanceId === undefined || definition === undefined) {
+  if (
+    !isRootIncident(row) ||
+    activityId === undefined ||
+    processInstanceId === undefined ||
+    definition === undefined
+  ) {
     return undefined
   }
   const jobId = recoveryIdOf(row)
   return {
     id: IncidentId(row.id),
-    instanceId: InstanceId(row.processInstanceId),
+    instanceId: InstanceId(processInstanceId),
     definition,
-    elementId: ElementId(row.activityId),
+    elementId: ElementId(elementOfActivity(activityId)),
     type: row.incidentType,
     message: row.incidentMessage ?? "",
     createdAt: timestampOf(row.incidentTimestamp),

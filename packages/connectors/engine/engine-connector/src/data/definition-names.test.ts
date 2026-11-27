@@ -76,6 +76,10 @@ describe("names from a Modeler diagram", () => {
     expect(processNameIn(names, LEASING_V1, "miraveloLeasing")).toBe("Miravelo - Bike Leasing")
     expect(elementNameIn(names, LEASING_V1, "Activity_Check")).toBe("Rechnung prüfen")
     expect(elementNameIn(names, LEASING_V1, "Activity_Approve")).toBe("Prüfen & Freigeben")
+    // A multi-instance body's id, which the diagram does not draw, by the activity it repeats.
+    expect(elementNameIn(names, LEASING_V1, "Activity_Approve#multiInstanceBody")).toBe(
+      "Prüfen & Freigeben",
+    )
     // Unknown version, process, element or a missing id: null, the id stands in.
     expect(processNameIn(names, "other:1:d", "miraveloLeasing")).toBeNull()
     expect(processNameIn(names, LEASING_V1, "other")).toBeNull()

@@ -6,6 +6,7 @@
  * so an integer beyond 2^53 that the wire kept as raw JSON keeps its digits.
  */
 
+import { elementOfActivity } from "../multi-instance-body.js"
 import type { EnginePort } from "../port.js"
 import { compact } from "../util.js"
 import { RAW_VARIABLES_QUERY } from "../variables.js"
@@ -22,21 +23,21 @@ export interface VariableRow {
 /** The typed variables read at most; a detail with as many says its variables are cut. */
 export const VARIABLE_PAGE_SIZE = 500
 
-/** The suffix of a multi-instance body's activity id, which names the activity it repeats. */
-const MULTI_INSTANCE_BODY = "#multiInstanceBody"
-
 /** The JSON text of a value; an absent one is null. */
 function jsonOf(value: unknown): string {
   return JSON.stringify(value ?? null)
 }
 
-/** The element a variable is local to; none for the process scope (the instance's own id). */
+/**
+ * The element a variable is local to (a multi-instance body's variable to the activity it
+ * repeats); none for the process scope (the instance's own id).
+ */
 function scopeElementOf(activityInstanceId: string, processInstanceId: string): string | undefined {
   if (activityInstanceId === processInstanceId) {
     return undefined
   }
   const [elementId = activityInstanceId] = activityInstanceId.split(":")
-  return elementId.replace(MULTI_INSTANCE_BODY, "")
+  return elementOfActivity(elementId)
 }
 
 /** The typed variables of every scope of `instanceId`, the first 500 the engine lists. */

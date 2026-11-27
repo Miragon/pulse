@@ -6,7 +6,14 @@
  * tree, an XML it cannot read) skips the check.
  */
 
-import { activeTree, type Condition, definitionKeyOf, records, str } from "@miragon/pulse-c7-core"
+import {
+  activeTree,
+  type Condition,
+  definitionKeyOf,
+  elementOfActivity,
+  records,
+  str,
+} from "@miragon/pulse-c7-core"
 import type { EnginePort } from "../engine-port/engine-port.js"
 import { PulseCliError, usageError } from "../errors.js"
 import { closeNames } from "../util.js"
@@ -17,8 +24,6 @@ const ID_ATTRIBUTE = /\sid\s*=\s*(["'])(.*?)\1/g
 const CALL_ACTIVITY = /<(?:[\w.-]+:)?callActivity\b([^>]*)>/g
 const CALLED_ELEMENT = /\scalledElement\s*=\s*(["'])(.*?)\1/
 const BINDING = /\s(?:[\w.-]+:)?calledElementBinding\s*=\s*(["'])(.*?)\1/
-/** Activity instances of a multi-instance body carry this suffix after the activity id. */
-const BODY_SUFFIX = /#multiInstanceBody$/
 
 interface Bpmn {
   readonly ids: readonly string[]
@@ -96,7 +101,8 @@ interface Wanted {
 function wantedOf(conditions: readonly Condition[]): Wanted[] {
   return conditions.flatMap((condition): Wanted[] => {
     if (condition.kind === "activity") {
-      return [{ label: `activity:${condition.id}`, id: condition.id.replace(BODY_SUFFIX, "") }]
+      // A multi-instance body (`<id>#multiInstanceBody`) is in the BPMN as the activity it repeats.
+      return [{ label: `activity:${condition.id}`, id: elementOfActivity(condition.id) }]
     }
     if (condition.kind === "task" && condition.key !== undefined) {
       return [{ label: `task:${condition.key}`, id: condition.key }]

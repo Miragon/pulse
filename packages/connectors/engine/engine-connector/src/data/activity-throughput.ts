@@ -3,10 +3,10 @@ import {
   getHistoricActivityStatistics,
   getHistoricProcessInstancesCount,
 } from "@miragon/pulse-c7-client/sdk"
-import { mapLimit, toEngineDate } from "@miragon/pulse-c7-core"
+import { isMultiInstanceBody, mapLimit, toEngineDate } from "@miragon/pulse-c7-core"
 import { createCallerCache, oneAtATime } from "../lib/engine/per-engine.js"
 import type { ActivityThroughputActivity, ActivityThroughputData } from "../view-models.js"
-import { MULTI_INSTANCE_BODY, placeOnDiagram, readDiagramXml } from "./activity-diagram.js"
+import { placeOnDiagram, readDiagramXml } from "./activity-diagram.js"
 import { HOUR_MS } from "./cluster-scan.js"
 import {
   fetchDefinitionVersions,
@@ -214,7 +214,7 @@ type ElementCounts = Pick<ActivityThroughputActivity, "passed" | "running" | "ca
 function countsPerElement(rows: HistoryStatsRow[]): Map<string, ElementCounts> {
   const byElement = new Map<string, ElementCounts>()
   for (const row of rows) {
-    if (!row.id || MULTI_INSTANCE_BODY.test(row.id)) continue
+    if (!row.id || isMultiInstanceBody(row.id)) continue
     const counts = byElement.get(row.id) ?? { passed: 0, running: 0, canceled: 0 }
     counts.passed += row.finished ?? 0
     counts.running += row.instances ?? 0

@@ -5,6 +5,7 @@ import {
   startFakeEngine,
   type FakeEngine,
   type FakeRoutes,
+  type RecordedRequest,
 } from "../tools/test-support/fake-engine.js"
 import { buildProcessIncidentsData } from "./process-incidents-data.js"
 
@@ -110,4 +111,24 @@ export function atActivity(
       query.activityId === undefined ||
       (incident as { activityId: string }).activityId === query.activityId,
   )
+}
+
+/**
+ * The engine's incidents at each activity id, as `/incident` and `/incident/count` answer a query
+ * by one (its `activityId`), paged by `firstResult` and `maxResults`; none at any other id, such
+ * as a multi-instance body that holds none.
+ */
+export function incidentsAt(byActivity: Readonly<Record<string, readonly unknown[]>>): FakeRoutes {
+  const at = (query: Readonly<Record<string, string>>) =>
+    Object.hasOwn(byActivity, query.activityId ?? "") ? byActivity[query.activityId ?? ""] : []
+  return {
+    "GET /incident": (r: RecordedRequest) => {
+      const first = Number(r.query.firstResult ?? 0)
+      const rows = at(r.query)
+      return { body: rows.slice(first, first + Number(r.query.maxResults ?? rows.length)) }
+    },
+    "GET /incident/count": (r: RecordedRequest) => ({
+      body: { count: at(r.query).length },
+    }),
+  }
 }

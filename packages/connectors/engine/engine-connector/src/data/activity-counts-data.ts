@@ -1,6 +1,6 @@
 import type { Client } from "@miragon/pulse-c7-client"
 import { getTasks, getTasksCount } from "@miragon/pulse-c7-client/sdk"
-import { isRootIncident, mapLimit, PARALLEL } from "@miragon/pulse-c7-core"
+import { elementOfActivity, isRootIncident, mapLimit, PARALLEL } from "@miragon/pulse-c7-core"
 import { DiagramBadges } from "@miragon/pulse-board/builder"
 import { ElementId } from "@miragon/pulse-engine-core"
 import {
@@ -12,7 +12,7 @@ import { bpmnProcessNameOf, readBpmnNames } from "@miragon/pulse-widget-shell/se
 import { bpmnActivityIds, bpmnUserTaskIds } from "../lib/bpmn/bpmn-parse.js"
 import { createCallerCache } from "../lib/engine/per-engine.js"
 import { boundFailureText } from "../lib/mcp/failure-text.js"
-import { MULTI_INSTANCE_BODY, placeOnDiagram } from "./activity-diagram.js"
+import { placeOnDiagram } from "./activity-diagram.js"
 import {
   type DefinitionVersion,
   fetchDefinitionVersions,
@@ -153,11 +153,14 @@ interface LatestIncidents {
   called?: IncidentRow
 }
 
-/** Per element, the newest incident of each kind the scan (newest first) holds. */
+/**
+ * Per element, the newest incident of each kind the scan (newest first) holds, one at a
+ * multi-instance body at the activity it repeats, where the counts lie (`elementOfActivity`).
+ */
 function latestIncidents(rows: readonly IncidentRow[]): Map<string, LatestIncidents> {
   const latest = new Map<string, LatestIncidents>()
   for (const row of rows) {
-    const element = row.activityId.replace(MULTI_INSTANCE_BODY, "")
+    const element = elementOfActivity(row.activityId)
     const rowsOfElement = latest.get(element) ?? {}
     rowsOfElement[isRootIncident(row) ? "own" : "called"] ??= row
     latest.set(element, rowsOfElement)
