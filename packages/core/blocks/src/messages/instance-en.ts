@@ -22,7 +22,8 @@ export const instanceEn = {
     `Waits at ${String(element)} on an incident in a called instance since ${String(time)}`,
   "headline.incidentInCalledInstanceAnywhere": ({ time }) =>
     `Waits on an incident in a called instance since ${String(time)}`,
-  "headline.incidents": ({ count }) => countOf(count, "incident", "incidents"),
+  "headline.incidents": ({ count, bound }) =>
+    `${String(count)} ${isOne(bound ?? count) ? "incident" : "incidents"}`,
   "headline.suspendedToo": "{title} · suspended",
   "headline.suspended": "This instance is suspended.",
   "headline.completed": "This instance is completed.",

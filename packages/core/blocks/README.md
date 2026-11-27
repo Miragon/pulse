@@ -189,7 +189,8 @@ The blocks of an instance read the instance screen's JSON form of `@miragon/puls
   words) and when it started or ended, to the millisecond.
 - `HeadlineStrip`: the strip that says where the instance stands, from the screen's head strip
   code: it waits at an incident here or in an instance it called, several incidents with the
-  first's cause, suspended, ended.
+  first's cause (at least so many, `incidentsAtLeast` worded `≥ n` by the kit's `formatCount`,
+  where the instance's lists are cut), suspended, ended.
 - `IncidentCard`: a root incident of the instance's tree, its type at its element and since when,
   the line its root cause stands on (`rootCauseLine`, by its source: a stack trace, a worker's
   error, the engine's message), the message where the cause does not hold it, the called instance

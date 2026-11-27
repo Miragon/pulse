@@ -48,12 +48,12 @@ older versions that still run, its diagram with the counts on each element (inci
 instances apart) and its instances, 50 at a time with **Load more**, by scope, element, exact
 business key and variable conditions; a count's click filters to its element, Escape clears it
 (Camunda 8: a count it stopped at reads 10k+, titled ≥ 10,000; a condition it refuses is disabled).
-An instance shows where it stands and why, its diagram with what it did, where it waits and its
-incidents, a multi-instance activity's own at its shape, and the tabs History, Incidents, Waiting
-and Variables (from 64rem on under the diagram at the window's height, the split movable by mouse or
-keyboard). An incident in an instance it called says where it lies and opens there in focus: its
-stack trace read in place, the root cause's line marked, copy and wrap; **Open caller** leads back.
-It is the instance Pulse for VS Code shows.
+An instance shows where it stands and why (≥ n incidents where the engine cut its lists), its
+diagram with what it did, where it waits and its incidents, a multi-instance activity's own at its
+shape, and the tabs History, Incidents, Waiting and Variables (from 64rem on under the diagram at
+the window's height, the split movable by mouse or keyboard). An incident in an instance it called
+says where it lies and opens there in focus: its stack trace read in place, the root cause's line
+marked, copy and wrap; **Open caller** leads back. It is the instance Pulse for VS Code shows.
 The search asks every engine at once for the instance with that ID and up to 20 with that exact
 business key (never a part of one, at most 256 characters), running and ended. An engine it could
 not search, refused or down, says so at once above the others' hits, and "nothing found" then speaks

@@ -87,6 +87,23 @@ describe("the head strip of an instance", () => {
     expect(stripOf({ code: "incidents", count: 1, suspended: false }).text).toBe("1 incident")
   })
 
+  it("counts the incidents of cut lists as a lower bound, in either language", () => {
+    const atLeast = (count: number, suspended = false) =>
+      ({ code: "incidentsAtLeast", count, suspended }) as const
+
+    const one = stripOf(atLeast(1), [CAUSE])
+    expect([one.text, one.tone]).toEqual([
+      "≥ 1 incidentMissingBean: Cannot resolve identifier",
+      "danger",
+    ])
+    cleanup()
+    expect(stripOf(atLeast(1_204, true)).text).toBe("≥ 1,204 incidents · suspended")
+    cleanup()
+    expect(stripOf(atLeast(1), [], "de").text).toBe("≥ 1 Incident")
+    cleanup()
+    expect(stripOf(atLeast(2, true), [], "de").text).toBe("≥ 2 Incidents · ausgesetzt")
+  })
+
   it("says that the instance is suspended or how it ended, as a note", () => {
     const suspended = stripOf({ code: "suspended" })
     expect([suspended.text, suspended.tone]).toEqual(["This instance is suspended.", "info"])

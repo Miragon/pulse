@@ -160,6 +160,10 @@ describe("an instance's words", () => {
       words("en", "headline.incidents", "1"),
       words("en", "headline.incidents", "1,204"),
     ]).toEqual(["1 incident", "1,204 incidents"])
+    expect([
+      words("de", "headline.incidents", "1"),
+      words("de", "headline.incidents", "1.204"),
+    ]).toEqual(["1 Incident", "1.204 Incidents"])
     expect([words("de", "wait.retriesLeft", "1"), words("de", "wait.retriesLeft", "0")]).toEqual([
       "1 Versuch übrig",
       "0 Versuche übrig",
