@@ -320,11 +320,39 @@ describe("scopesFor: the MCP server's engine suite runs for what it runs", () =>
     }
   })
 
+  it("runs it for the status surfaces the status world's suite holds to the recording", () => {
+    for (const file of [
+      `${CONNECTOR}/src/tools/engines.ts`,
+      `${CONNECTOR}/src/data/feeds.ts`,
+      `${CONNECTOR}/src/data/screen-feeds.ts`,
+      `${CONNECTOR}/src/data/health-data.ts`,
+      `${CONNECTOR}/src/data/health-floor.ts`,
+      `${CONNECTOR}/src/data/cluster-scan.ts`,
+      `${CONNECTOR}/src/data/scan-verdict.ts`,
+      `${CONNECTOR}/src/data/statistics-floor.ts`,
+      `${CONNECTOR}/src/data/started-completed.ts`,
+      `${CONNECTOR}/src/data/history-recorded.ts`,
+      `${CONNECTOR}/src/data/answer-parts.ts`,
+      `${CONNECTOR}/src/data/screens/verdict-data.ts`,
+      `${CONNECTOR}/src/data/screens/engine-screen-data.ts`,
+      `${CONNECTOR}/src/data/screens/screen-floor.ts`,
+    ]) {
+      assert.ok(existsSync(path.join(repoRoot, file)), file)
+      assert.ok(scopes(file).includes("mcp-engines"), file)
+    }
+    for (const file of [
+      `${CONNECTOR}/src/data/health-data.test.ts`,
+      `${CONNECTOR}/src/data/screens/process-screen-data.ts`,
+      `${CONNECTOR}/src/tools/engines.test.ts`,
+    ]) {
+      assert.ok(!scopes(file).includes("mcp-engines"), file)
+    }
+  })
+
   it("leaves it off for the rest of those packages and for every other package", () => {
     for (const file of [
       `${CONNECTOR}/src/tools/process-instances.ts`,
       `${CONNECTOR}/src/widgets/views.tsx`,
-      `${CONNECTOR}/src/data/feeds.ts`,
       `${CONNECTOR}/src/data/boards.ts`,
       `${CONNECTOR}/src/data/cockpit-start.ts`,
       `${CONNECTOR}/src/lib/bpmn/bpmn-parse.ts`,

@@ -462,6 +462,58 @@ in one run, never joined from another recording, whose ids are another engine's 
 is a run of its own). An answer that is no JSON (a job's stack trace) keeps its text and content type
 (`C7RecordedAnswer`).
 
+`seedC7StatusWorld` seeds the status world into an engine of the family over the same
+`C7SeedEngine`, its diagrams part of the package (`C7_STATUS_WORLD` names its processes, instances
+and the job its batch names): the cases where the status triage, the chat overview's health and
+the web app's verdict could count apart, none of which the conformance world, shared with Camunda
+8, holds. A call chain: `pulse-status-dispatch` calls `pulse-status-label`, whose service task
+fails, so the label holds the root incident and the call activity a copy. A multi-instance user
+task, `Activity_ApproveEach`: one instance's three items wait there, another's body
+(`Activity_ApproveEach#multiInstanceBody`) fails. A batch that sets the retries of a job no engine
+holds, whose incident lies outside any process; the seed suspends it once its incident stands, so
+its monitor job is no executable job and the jobs the status counts hold still. Each case is
+seeded once the one before settled, so the incidents come in one order.
+
+`C7_STATUS_ENGINE` is that world recorded on operaton/operaton:2.1.5 twice, at history level FULL
+and at NONE (`engines`, named `full` and `none`): each engine's answers to the reads of
+`engine_status` and of the CLI's `pulse status` (both `readStatus`, its round one and the root
+causes of round two), of the web app's verdict feed and of the chat overview's health feed at one
+instant (`asOf`), and what each of the four gives from them (`expected`: `cliStatus`, what
+`pulse status` prints, the recorded engine's port left out; `engineStatus`; `verdict`; `health`),
+and what the MCP server's three judge at the two thresholds on the world's edge (`atEdges`:
+`ENGINE_HEALTH_CRITICAL_INCIDENTS` at the root incidents `engine_status` counts, where each says
+critical, and at one more, where each says warning; the CLI takes no threshold). The CLI over its
+own wire and the MCP server's tool and feeds over the generated SDK serve the answers on
+`startRecordedEngine` with the clock at `asOf` and must give exactly that JSON and those verdicts
+(`apps/cli/src/cli/status-world.numbers.test.ts`, and in the engine connector
+`src/tools/engine-status.numbers.test.ts`, `src/data/screens/verdict-data.numbers.test.ts` and
+`src/data/health-data.numbers.test.ts`), so a surface that counts a copy, the body or the incident
+outside any process otherwise fails its own test, and a verdict that counts a root incident once
+too often or not at all turns at one of the edges. `src/testing/status-engine.test.ts` holds the
+four to each other where they relate (the verdicts alike, the health's processes' count, last
+hour, affected activities and causes over the processes' root incidents alone, the incident
+outside any process apart) and each case to what it means, and the engine connector's engine suite
+holds the world seeded on CIB seven or Operaton to the recorded figures
+(`packages/connectors/engine/engine-connector/src/lib/core-adapter/status-world.engine.test.ts`).
+Capped reads (more than 2,000 open incidents, more than 100 batches with failed jobs) stay cases
+of a fake port. Unlike the board's and the screens' recordings, a script records it, after
+`pnpm build`, with Docker, from the repository's root:
+
+```sh
+pnpm record:status-world
+```
+
+Its first half, the engine connector's `record:status-world`, starts the two engines, seeds the
+world into both, puts a recording proxy in front of each, reads the three server surfaces with the
+clock held at the second after the seeds, by default and at the two edges, and writes the answers
+and what the surfaces gave into `packages/connectors/c7/c7-core/src/testing/status-engine.json`,
+failing on an answer the recorded engine could not replay (no 200, a parameter twice, a body that
+is no JSON, a request answered otherwise when asked again). It sorts the answers by their method,
+their path with the engine's ids masked and their query's names, so a recording made anew moves
+only what changed. Its second half, the CLI's, runs `pulse status` over the answers just written,
+fails on a request they do not answer and writes what it printed. Two runs give the same
+expectations but for the engines' ids and instants.
+
 ## Help and feedback
 
 - **Documentation:** the Pulse servers, CLI and modules built on these rules are explained at [miragon.github.io/pulse](https://miragon.github.io/pulse/).

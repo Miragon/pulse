@@ -150,7 +150,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
     ])
   })
 
-  it("export exactly the fixtures, the fake port, the world's seed, the recorded board and screen engines and the test seams from ./testing", () => {
+  it("export exactly the fixtures, the fake port, the worlds' seeds, the recorded board, screen and status engines and the test seams from ./testing", () => {
     expect(Object.keys(testing).sort()).toEqual([
       "APPROVE_INCIDENT",
       "ASYNC",
@@ -158,6 +158,8 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "C",
       "C7_BOARD_ENGINE",
       "C7_SCREEN_ENGINE",
+      "C7_STATUS_ENGINE",
+      "C7_STATUS_WORLD",
       "CHILD_DEF",
       "CHILD_NODE",
       "CONDITIONAL",
@@ -209,6 +211,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "plainVariables",
       "runtimeDto",
       "seedC7CommandWorld",
+      "seedC7StatusWorld",
       "seedC7World",
       "statistics",
       "topicStatus",

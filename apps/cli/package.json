@@ -53,6 +53,7 @@
     "lint:fix": "eslint src scripts test *.config.ts --fix",
     "test": "vitest run",
     "test:engines": "vitest run --config vitest.integration.config.ts",
+    "record:status-world": "RECORD_STATUS_WORLD=1 vitest run src/cli/status-world.numbers.test.ts --coverage.enabled=false",
     "golden:update": "turbo run build --filter=@miragon/pulse-cli^... --output-logs=errors-only && GOLDEN_UPDATE=1 vitest run --coverage.enabled=false"
   },
   "dependencies": {

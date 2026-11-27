@@ -505,7 +505,13 @@ for every workspace package.
      gates are each dialect's recorded answers (`C7_BOARD_ENGINE`, `C8_BOARD_ENGINE`), which the
      server's wire
      (`packages/connectors/engine/engine-connector/src/data/board-data.numbers.test.ts`) and each
-     adapter must build exactly.
+     adapter must build exactly. The status surfaces' gate is `C7_STATUS_ENGINE`, the status world
+     `pnpm record:status-world` records, which `pulse status` and the server's `engine_status`,
+     verdict feed and health build exactly in their numbers tests
+     (`apps/cli/src/cli/status-world.numbers.test.ts`,
+     `packages/connectors/engine/engine-connector/src/data/health-data.numbers.test.ts` and its
+     siblings), held to each other by
+     `packages/connectors/c7/c7-core/src/testing/status-engine.test.ts`.
    - **Locale on the server.** Tool results for the model are English only; a verdict travels as
      data and the widget words it. The server never titles a view.
    - **What a widget tells the model** is built by `askAiPrompt`/`modelContextText`

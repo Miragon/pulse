@@ -22,11 +22,13 @@ interface IncidentAnswer {
   readonly rootCauseIncidentId?: string
 }
 
-function jsonRequest(method: string, body: unknown): C7SeedRequest {
+/** A request with a JSON body. */
+export function jsonRequest(method: string, body: unknown): C7SeedRequest {
   return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
 }
 
-async function sent(engine: C7SeedEngine, path: string, request?: C7SeedRequest) {
+/** The answer of a request under the engine's REST root; an answer not ok fails. */
+export async function sent(engine: C7SeedEngine, path: string, request?: C7SeedRequest) {
   const url = `${engine.url}${path}`
   const answer = await engine.send(url, request)
   if (!answer.ok) {
@@ -37,7 +39,8 @@ async function sent(engine: C7SeedEngine, path: string, request?: C7SeedRequest)
   return answer
 }
 
-async function engineCall<Body>(
+/** The JSON answer of a request under the engine's REST root; an answer not ok fails. */
+export async function engineCall<Body>(
   engine: C7SeedEngine,
   path: string,
   request?: C7SeedRequest,

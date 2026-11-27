@@ -1,0 +1,1713 @@
+{
+  "about": "The status world of @miragon/pulse-c7-core/testing (seedC7StatusWorld: a call chain whose call activity holds a copy of the called instance's root incident, a multi-instance body's root incident beside an instance whose three items wait at the same element, a suspended batch's incident outside any process) seeded into operaton/operaton:2.1.5 twice, at history level full and at none; each engine's answers to the reads of engine_status (and pulse status, both c7-core's readStatus), the web app's verdict feed and the chat overview's health feed at asOf, what each of them gives and what the server's three judge at the two thresholds on the world's edge (ENGINE_HEALTH_CRITICAL_INCIDENTS at the root incidents engine_status counts and at one more), recorded by pnpm record:status-world.",
+  "asOf": "2026-11-27T14:34:18.000Z",
+  "engines": [
+    {
+      "engine": "full",
+      "historyLevel": "full",
+      "answers": [
+        {
+          "method": "GET",
+          "path": "/engine-rest/batch/statistics",
+          "query": {
+            "maxResults": "100",
+            "withFailures": "true"
+          },
+          "answer": [
+            {
+              "id": "9f92236e-ea6f-11f1-ba07-922da4d86bb8",
+              "type": "set-job-retries",
+              "totalJobs": 1,
+              "jobsCreated": 1,
+              "batchJobsPerSeed": 100,
+              "invocationsPerBatchJob": 1,
+              "seedJobDefinitionId": "9f92e6bf-ea6f-11f1-ba07-922da4d86bb8",
+              "monitorJobDefinitionId": "9f92e6c0-ea6f-11f1-ba07-922da4d86bb8",
+              "batchJobDefinitionId": "9f92e6c1-ea6f-11f1-ba07-922da4d86bb8",
+              "suspended": true,
+              "tenantId": null,
+              "createUserId": null,
+              "startTime": "2026-11-27T14:34:16.456+0000",
+              "executionStartTime": null,
+              "remainingJobs": 1,
+              "completedJobs": 0,
+              "failedJobs": 1
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/batch/statistics/count",
+          "answer": {
+            "count": 1
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/batch/statistics/count",
+          "query": {
+            "withFailures": "true"
+          },
+          "answer": {
+            "count": 1
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/external-task",
+          "query": {
+            "firstResult": "0",
+            "maxResults": "500"
+          },
+          "answer": []
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/external-task/count",
+          "answer": {
+            "count": 0
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/history/process-instance/count",
+          "query": {
+            "finishedAfter": "2026-11-26T14:34:18.000+0000"
+          },
+          "answer": {
+            "count": 0
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/history/process-instance/count",
+          "query": {
+            "startedAfter": "2026-11-26T14:34:18.000+0000"
+          },
+          "answer": {
+            "count": 4
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/incident",
+          "query": {
+            "sortBy": "incidentTimestamp",
+            "sortOrder": "desc",
+            "firstResult": "0",
+            "maxResults": "500"
+          },
+          "answer": [
+            {
+              "id": "9f9d6e24-ea6f-11f1-ba07-922da4d86bb8",
+              "processDefinitionId": null,
+              "processInstanceId": null,
+              "executionId": null,
+              "incidentTimestamp": "2026-11-27T14:34:16.536+0000",
+              "incidentType": "failedJob",
+              "activityId": null,
+              "failedActivityId": null,
+              "causeIncidentId": "9f9d6e24-ea6f-11f1-ba07-922da4d86bb8",
+              "rootCauseIncidentId": "9f9d6e24-ea6f-11f1-ba07-922da4d86bb8",
+              "configuration": "9f9509a5-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentMessage": "ENGINE-13053 No job found with id '00000000-0000-4000-8000-000000000139'.'",
+              "tenantId": null,
+              "jobDefinitionId": "9f92e6c1-ea6f-11f1-ba07-922da4d86bb8",
+              "annotation": null
+            },
+            {
+              "id": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+              "processDefinitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+              "processInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+              "executionId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentTimestamp": "2026-11-27T14:34:15.453+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_ApproveEach#multiInstanceBody",
+              "failedActivityId": "Activity_ApproveEach#multiInstanceBody",
+              "causeIncidentId": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+              "rootCauseIncidentId": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+              "configuration": "9eeb0ded-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentMessage": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+              "tenantId": null,
+              "jobDefinitionId": "9df84948-ea6f-11f1-ba07-922da4d86bb8",
+              "annotation": null
+            },
+            {
+              "id": "9e30976c-ea6f-11f1-ba07-922da4d86bb8",
+              "processDefinitionId": "pulse-status-dispatch:1:9def4894-ea6f-11f1-ba07-922da4d86bb8",
+              "processInstanceId": "9e0f7ac9-ea6f-11f1-ba07-922da4d86bb8",
+              "executionId": "9e14aaeb-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentTimestamp": "2026-11-27T14:34:14.145+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_PrintLabel",
+              "failedActivityId": "Activity_PrintLabel",
+              "causeIncidentId": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "rootCauseIncidentId": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "configuration": null,
+              "incidentMessage": null,
+              "tenantId": null,
+              "jobDefinitionId": null,
+              "annotation": null
+            },
+            {
+              "id": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "processDefinitionId": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+              "processInstanceId": "9e15954d-ea6f-11f1-ba07-922da4d86bb8",
+              "executionId": "9e15954d-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentTimestamp": "2026-11-27T14:34:14.135+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_RenderLabel",
+              "failedActivityId": "Activity_RenderLabel",
+              "causeIncidentId": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "rootCauseIncidentId": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "configuration": "9e16589f-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentMessage": "Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+              "tenantId": null,
+              "jobDefinitionId": "9dd86531-ea6f-11f1-ba07-922da4d86bb8",
+              "annotation": null
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/incident",
+          "query": {
+            "maxResults": "2000",
+            "sortBy": "incidentTimestamp",
+            "sortOrder": "desc"
+          },
+          "answer": [
+            {
+              "id": "9f9d6e24-ea6f-11f1-ba07-922da4d86bb8",
+              "processDefinitionId": null,
+              "processInstanceId": null,
+              "executionId": null,
+              "incidentTimestamp": "2026-11-27T14:34:16.536+0000",
+              "incidentType": "failedJob",
+              "activityId": null,
+              "failedActivityId": null,
+              "causeIncidentId": "9f9d6e24-ea6f-11f1-ba07-922da4d86bb8",
+              "rootCauseIncidentId": "9f9d6e24-ea6f-11f1-ba07-922da4d86bb8",
+              "configuration": "9f9509a5-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentMessage": "ENGINE-13053 No job found with id '00000000-0000-4000-8000-000000000139'.'",
+              "tenantId": null,
+              "jobDefinitionId": "9f92e6c1-ea6f-11f1-ba07-922da4d86bb8",
+              "annotation": null
+            },
+            {
+              "id": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+              "processDefinitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+              "processInstanceId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+              "executionId": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentTimestamp": "2026-11-27T14:34:15.453+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_ApproveEach#multiInstanceBody",
+              "failedActivityId": "Activity_ApproveEach#multiInstanceBody",
+              "causeIncidentId": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+              "rootCauseIncidentId": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+              "configuration": "9eeb0ded-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentMessage": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+              "tenantId": null,
+              "jobDefinitionId": "9df84948-ea6f-11f1-ba07-922da4d86bb8",
+              "annotation": null
+            },
+            {
+              "id": "9e30976c-ea6f-11f1-ba07-922da4d86bb8",
+              "processDefinitionId": "pulse-status-dispatch:1:9def4894-ea6f-11f1-ba07-922da4d86bb8",
+              "processInstanceId": "9e0f7ac9-ea6f-11f1-ba07-922da4d86bb8",
+              "executionId": "9e14aaeb-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentTimestamp": "2026-11-27T14:34:14.145+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_PrintLabel",
+              "failedActivityId": "Activity_PrintLabel",
+              "causeIncidentId": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "rootCauseIncidentId": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "configuration": null,
+              "incidentMessage": null,
+              "tenantId": null,
+              "jobDefinitionId": null,
+              "annotation": null
+            },
+            {
+              "id": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "processDefinitionId": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+              "processInstanceId": "9e15954d-ea6f-11f1-ba07-922da4d86bb8",
+              "executionId": "9e15954d-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentTimestamp": "2026-11-27T14:34:14.135+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_RenderLabel",
+              "failedActivityId": "Activity_RenderLabel",
+              "causeIncidentId": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "rootCauseIncidentId": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "configuration": "9e16589f-ea6f-11f1-ba07-922da4d86bb8",
+              "incidentMessage": "Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+              "tenantId": null,
+              "jobDefinitionId": "9dd86531-ea6f-11f1-ba07-922da4d86bb8",
+              "annotation": null
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/incident/count",
+          "answer": {
+            "count": 4
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/job",
+          "query": {
+            "executable": "true",
+            "active": "true",
+            "createTimes": "lt_2026-11-27T14:29:18.000+0000",
+            "maxResults": "1000"
+          },
+          "answer": []
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/job/9eeb0ded-ea6f-11f1-ba07-922da4d86bb8/stacktrace",
+          "text": "org.operaton.bpm.engine.ProcessEngineException: Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:66)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:53)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.MultiInstanceActivityBehavior.resolveLoopCardinality(MultiInstanceActivityBehavior.java:147)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.MultiInstanceActivityBehavior.resolveNrOfInstances(MultiInstanceActivityBehavior.java:110)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.MultiInstanceActivityBehavior.execute(MultiInstanceActivityBehavior.java:64)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.lambda$execute$1(PvmAtomicOperationActivityExecute.java:57)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueIfExecutionDoesNotAffectNextOperation(PvmExecutionImpl.java:2061)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:44)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:31)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.lambda$dispatchDelayedEventsAndPerformOperation$4(PvmExecutionImpl.java:2007)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueExecutionIfNotCanceled(PvmExecutionImpl.java:2067)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2022)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2006)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:62)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:29)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:70)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionCreateScope.scopeCreated(PvmAtomicOperationTransitionCreateScope.java:41)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:55)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:28)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:127)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:81)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:40)\n\tat org.operaton.bpm.engine.impl.persistence.entity.JobEntity.execute(JobEntity.java:123)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:106)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:41)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandExecutorImpl.execute(CommandExecutorImpl.java:29)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandContextInterceptor.execute(CommandContextInterceptor.java:113)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.lambda$execute$0(SpringTransactionInterceptor.java:64)\n\tat org.springframework.transaction.support.TransactionTemplate.execute(TransactionTemplate.java:137)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.execute(SpringTransactionInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.ProcessApplicationContextInterceptor.execute(ProcessApplicationContextInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandCounterInterceptor.execute(CommandCounterInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.LogInterceptor.execute(LogInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.ExceptionCodeInterceptor.execute(ExceptionCodeInterceptor.java:55)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobHelper.executeJob(ExecuteJobHelper.java:62)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.executeJob(ExecuteJobsRunnable.java:110)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.run(ExecuteJobsRunnable.java:71)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)\n\tat java.base/java.lang.Thread.run(Thread.java:840)\nCaused by: jakarta.el.PropertyNotFoundException: Cannot resolve identifier 'copies'\n\tat org.operaton.bpm.impl.juel.AstIdentifier.eval(AstIdentifier.java:93)\n\tat org.operaton.bpm.impl.juel.AstEval.eval(AstEval.java:53)\n\tat org.operaton.bpm.impl.juel.AstNode.getValue(AstNode.java:27)\n\tat org.operaton.bpm.impl.juel.TreeValueExpression.getValue(TreeValueExpression.java:115)\n\tat org.operaton.bpm.engine.impl.delegate.ExpressionGetInvocation.invoke(ExpressionGetInvocation.java:42)\n\tat org.operaton.bpm.engine.impl.delegate.DelegateInvocation.proceed(DelegateInvocation.java:59)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocationInContext(DefaultDelegateInterceptor.java:88)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocation(DefaultDelegateInterceptor.java:59)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:63)\n\t... 71 more\n",
+          "contentType": "text/plain"
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/job/9e16589f-ea6f-11f1-ba07-922da4d86bb8/stacktrace",
+          "text": "org.operaton.bpm.engine.ProcessEngineException: Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:66)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:53)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.ServiceTaskExpressionActivityBehavior.lambda$performExecution$0(ServiceTaskExpressionActivityBehavior.java:46)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.AbstractBpmnActivityBehavior.executeWithErrorPropagation(AbstractBpmnActivityBehavior.java:90)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.ServiceTaskExpressionActivityBehavior.performExecution(ServiceTaskExpressionActivityBehavior.java:44)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.TaskActivityBehavior.execute(TaskActivityBehavior.java:69)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.lambda$execute$1(PvmAtomicOperationActivityExecute.java:57)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueIfExecutionDoesNotAffectNextOperation(PvmExecutionImpl.java:2061)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:44)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:31)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.lambda$dispatchDelayedEventsAndPerformOperation$4(PvmExecutionImpl.java:2007)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueExecutionIfNotCanceled(PvmExecutionImpl.java:2067)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2022)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2006)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:62)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:29)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:70)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionCreateScope.scopeCreated(PvmAtomicOperationTransitionCreateScope.java:41)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:55)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:28)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:127)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:81)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:40)\n\tat org.operaton.bpm.engine.impl.persistence.entity.JobEntity.execute(JobEntity.java:123)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:106)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:41)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandExecutorImpl.execute(CommandExecutorImpl.java:29)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandContextInterceptor.execute(CommandContextInterceptor.java:113)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.lambda$execute$0(SpringTransactionInterceptor.java:64)\n\tat org.springframework.transaction.support.TransactionTemplate.execute(TransactionTemplate.java:137)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.execute(SpringTransactionInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.ProcessApplicationContextInterceptor.execute(ProcessApplicationContextInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandCounterInterceptor.execute(CommandCounterInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.LogInterceptor.execute(LogInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.ExceptionCodeInterceptor.execute(ExceptionCodeInterceptor.java:55)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobHelper.executeJob(ExecuteJobHelper.java:62)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.executeJob(ExecuteJobsRunnable.java:110)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.run(ExecuteJobsRunnable.java:71)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)\n\tat java.base/java.lang.Thread.run(Thread.java:840)\nCaused by: jakarta.el.PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'\n\tat org.operaton.bpm.impl.juel.AstIdentifier.eval(AstIdentifier.java:93)\n\tat org.operaton.bpm.impl.juel.AstMethod.invoke(AstMethod.java:88)\n\tat org.operaton.bpm.impl.juel.AstMethod.eval(AstMethod.java:83)\n\tat org.operaton.bpm.impl.juel.AstEval.eval(AstEval.java:53)\n\tat org.operaton.bpm.impl.juel.AstNode.getValue(AstNode.java:27)\n\tat org.operaton.bpm.impl.juel.TreeValueExpression.getValue(TreeValueExpression.java:115)\n\tat org.operaton.bpm.engine.impl.delegate.ExpressionGetInvocation.invoke(ExpressionGetInvocation.java:42)\n\tat org.operaton.bpm.engine.impl.delegate.DelegateInvocation.proceed(DelegateInvocation.java:59)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocationInContext(DefaultDelegateInterceptor.java:88)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocation(DefaultDelegateInterceptor.java:59)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:63)\n\t... 80 more\n",
+          "contentType": "text/plain"
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/job/count",
+          "query": {
+            "executable": "true",
+            "active": "true"
+          },
+          "answer": {
+            "count": 0
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-definition/pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8/xml",
+          "answer": {
+            "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+            "bpmn20Xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:camunda=\"http://camunda.org/schema/1.0/bpmn\" targetNamespace=\"http://bpmn.io/schema/bpmn\" id=\"Definitions_pulse-status-approval\">\n  <bpmn:process id=\"pulse-status-approval\" name=\"Approve items\" isExecutable=\"true\" camunda:historyTimeToLive=\"1\">\n    <bpmn:startEvent id=\"Event_Start\" />\n    <bpmn:sequenceFlow id=\"Flow_Event_Start_Activity_ApproveEach\" sourceRef=\"Event_Start\" targetRef=\"Activity_ApproveEach\" />\n    <bpmn:userTask id=\"Activity_ApproveEach\" name=\"Approve each\" camunda:asyncBefore=\"true\">\n      <bpmn:multiInstanceLoopCharacteristics>\n        <bpmn:loopCardinality>${copies}</bpmn:loopCardinality>\n      </bpmn:multiInstanceLoopCharacteristics>\n    </bpmn:userTask>\n    <bpmn:sequenceFlow id=\"Flow_Activity_ApproveEach_Event_End\" sourceRef=\"Activity_ApproveEach\" targetRef=\"Event_End\" />\n    <bpmn:endEvent id=\"Event_End\" />\n  </bpmn:process>\n</bpmn:definitions>\n"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-definition/pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8/xml",
+          "answer": {
+            "id": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+            "bpmn20Xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:camunda=\"http://camunda.org/schema/1.0/bpmn\" targetNamespace=\"http://bpmn.io/schema/bpmn\" id=\"Definitions_pulse-status-label\">\n  <bpmn:process id=\"pulse-status-label\" name=\"Print parcel label\" isExecutable=\"true\" camunda:historyTimeToLive=\"1\">\n    <bpmn:startEvent id=\"Event_Start\" />\n    <bpmn:sequenceFlow id=\"Flow_Event_Start_Activity_RenderLabel\" sourceRef=\"Event_Start\" targetRef=\"Activity_RenderLabel\" />\n    <bpmn:serviceTask id=\"Activity_RenderLabel\" name=\"Render label\" camunda:asyncBefore=\"true\" camunda:expression=\"${labelPrinter.print(parcelId)}\" />\n    <bpmn:sequenceFlow id=\"Flow_Activity_RenderLabel_Event_End\" sourceRef=\"Activity_RenderLabel\" targetRef=\"Event_End\" />\n    <bpmn:endEvent id=\"Event_End\" />\n  </bpmn:process>\n</bpmn:definitions>\n"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-definition/statistics",
+          "query": {
+            "failedJobs": "true",
+            "rootIncidents": "true"
+          },
+          "answer": [
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+              "instances": 2,
+              "failedJobs": 1,
+              "incidents": [
+                {
+                  "incidentType": "failedJob",
+                  "incidentCount": 1
+                }
+              ],
+              "definition": {
+                "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+                "key": "pulse-status-approval",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Approve items",
+                "version": 1,
+                "resource": "pulse-status-approval.bpmn",
+                "deploymentId": "9df1b995-ea6f-11f1-ba07-922da4d86bb8",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            },
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-dispatch:1:9def4894-ea6f-11f1-ba07-922da4d86bb8",
+              "instances": 1,
+              "failedJobs": 0,
+              "incidents": [],
+              "definition": {
+                "id": "pulse-status-dispatch:1:9def4894-ea6f-11f1-ba07-922da4d86bb8",
+                "key": "pulse-status-dispatch",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Ship parcel",
+                "version": 1,
+                "resource": "pulse-status-dispatch.bpmn",
+                "deploymentId": "9de55d82-ea6f-11f1-ba07-922da4d86bb8",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            },
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+              "instances": 1,
+              "failedJobs": 1,
+              "incidents": [
+                {
+                  "incidentType": "failedJob",
+                  "incidentCount": 1
+                }
+              ],
+              "definition": {
+                "id": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+                "key": "pulse-status-label",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Print parcel label",
+                "version": 1,
+                "resource": "pulse-status-label.bpmn",
+                "deploymentId": "9db6101e-ea6f-11f1-ba07-922da4d86bb8",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-definition/statistics",
+          "query": {
+            "rootIncidents": "true"
+          },
+          "answer": [
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+              "instances": 2,
+              "failedJobs": 0,
+              "incidents": [
+                {
+                  "incidentType": "failedJob",
+                  "incidentCount": 1
+                }
+              ],
+              "definition": {
+                "id": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+                "key": "pulse-status-approval",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Approve items",
+                "version": 1,
+                "resource": "pulse-status-approval.bpmn",
+                "deploymentId": "9df1b995-ea6f-11f1-ba07-922da4d86bb8",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            },
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-dispatch:1:9def4894-ea6f-11f1-ba07-922da4d86bb8",
+              "instances": 1,
+              "failedJobs": 0,
+              "incidents": [],
+              "definition": {
+                "id": "pulse-status-dispatch:1:9def4894-ea6f-11f1-ba07-922da4d86bb8",
+                "key": "pulse-status-dispatch",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Ship parcel",
+                "version": 1,
+                "resource": "pulse-status-dispatch.bpmn",
+                "deploymentId": "9de55d82-ea6f-11f1-ba07-922da4d86bb8",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            },
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+              "instances": 1,
+              "failedJobs": 0,
+              "incidents": [
+                {
+                  "incidentType": "failedJob",
+                  "incidentCount": 1
+                }
+              ],
+              "definition": {
+                "id": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+                "key": "pulse-status-label",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Print parcel label",
+                "version": 1,
+                "resource": "pulse-status-label.bpmn",
+                "deploymentId": "9db6101e-ea6f-11f1-ba07-922da4d86bb8",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-instance",
+          "query": {
+            "withIncident": "true",
+            "sortBy": "instanceId",
+            "sortOrder": "asc",
+            "firstResult": "0",
+            "maxResults": "500"
+          },
+          "answer": [
+            {
+              "links": [],
+              "id": "9e0f7ac9-ea6f-11f1-ba07-922da4d86bb8",
+              "definitionId": "pulse-status-dispatch:1:9def4894-ea6f-11f1-ba07-922da4d86bb8",
+              "businessKey": "DSP-139",
+              "caseInstanceId": null,
+              "ended": false,
+              "suspended": false,
+              "tenantId": null,
+              "definitionKey": "pulse-status-dispatch"
+            },
+            {
+              "links": [],
+              "id": "9e15954d-ea6f-11f1-ba07-922da4d86bb8",
+              "definitionId": "pulse-status-label:1:9dd83e20-ea6f-11f1-ba07-922da4d86bb8",
+              "businessKey": null,
+              "caseInstanceId": null,
+              "ended": false,
+              "suspended": false,
+              "tenantId": null,
+              "definitionKey": "pulse-status-label"
+            },
+            {
+              "links": [],
+              "id": "9eea98bb-ea6f-11f1-ba07-922da4d86bb8",
+              "definitionId": "pulse-status-approval:1:9df84947-ea6f-11f1-ba07-922da4d86bb8",
+              "businessKey": "APR-139-2",
+              "caseInstanceId": null,
+              "ended": false,
+              "suspended": false,
+              "tenantId": null,
+              "definitionKey": "pulse-status-approval"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/task/count",
+          "answer": {
+            "count": 3
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/version",
+          "answer": {
+            "version": "2.1.5"
+          }
+        }
+      ],
+      "expected": {
+        "cliStatus": {
+          "engine": {
+            "url": "http://127.0.0.1:<port>/engine-rest",
+            "version": "2.1.5",
+            "latencyMs": 0
+          },
+          "status": "warning",
+          "findings": [
+            {
+              "severity": "warning",
+              "code": "BATCH_FAILURES",
+              "message": "batch 9f92236e-ea6f-11f1-ba07-922da4d86bb8 (set-job-retries): 1 failed job",
+              "next": "pulse job list --job-definition-id 9f92e6c1-ea6f-11f1-ba07-922da4d86bb8 --with-exception"
+            },
+            {
+              "severity": "warning",
+              "code": "INCIDENTS",
+              "message": "1 failedJob incident at pulse-status-approval/Activity_ApproveEach#multiInstanceBody: PropertyNotFoundException: Cannot resolve identifier 'copies'",
+              "next": "pulse retry --process-definition-key pulse-status-approval --activity-id 'Activity_ApproveEach#multiInstanceBody' --dry-run"
+            },
+            {
+              "severity": "warning",
+              "code": "INCIDENTS",
+              "message": "1 failedJob incident at pulse-status-label/Activity_RenderLabel: PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'",
+              "next": "pulse retry --process-definition-key pulse-status-label --activity-id Activity_RenderLabel --dry-run"
+            }
+          ],
+          "definitions": [
+            {
+              "key": "pulse-status-approval",
+              "name": "Approve items",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 2,
+              "failedJobs": 1,
+              "incidents": 1
+            },
+            {
+              "key": "pulse-status-label",
+              "name": "Print parcel label",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 1,
+              "failedJobs": 1,
+              "incidents": 1
+            },
+            {
+              "key": "pulse-status-dispatch",
+              "name": "Ship parcel",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 1,
+              "failedJobs": 0,
+              "incidents": 0
+            }
+          ],
+          "incidents": [
+            {
+              "processDefinitionKey": "pulse-status-approval",
+              "activityId": "Activity_ApproveEach#multiInstanceBody",
+              "type": "failedJob",
+              "message": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+              "count": 1,
+              "firstAt": "2026-11-27T14:34:15.453+0000",
+              "lastAt": "2026-11-27T14:34:15.453+0000",
+              "processInstanceIds": [
+                "9eea98bb-ea6f-11f1-ba07-922da4d86bb8"
+              ],
+              "next": "pulse retry --process-definition-key pulse-status-approval --activity-id 'Activity_ApproveEach#multiInstanceBody' --dry-run",
+              "rootCause": "PropertyNotFoundException: Cannot resolve identifier 'copies'"
+            },
+            {
+              "processDefinitionKey": "pulse-status-label",
+              "activityId": "Activity_RenderLabel",
+              "type": "failedJob",
+              "message": "Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+              "count": 1,
+              "firstAt": "2026-11-27T14:34:14.135+0000",
+              "lastAt": "2026-11-27T14:34:14.135+0000",
+              "processInstanceIds": [
+                "9e15954d-ea6f-11f1-ba07-922da4d86bb8"
+              ],
+              "next": "pulse retry --process-definition-key pulse-status-label --activity-id Activity_RenderLabel --dry-run",
+              "rootCause": "PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'"
+            }
+          ],
+          "rootIncidentsTotal": 3,
+          "outsideAnyProcess": {
+            "count": 1,
+            "atLeast": false
+          },
+          "incidentsTotal": 4,
+          "propagated": 1,
+          "externalTasks": [],
+          "jobs": {
+            "executable": 0,
+            "overdue": 0
+          },
+          "tasks": {
+            "open": 3
+          },
+          "batches": {
+            "running": 1,
+            "withFailures": 1
+          }
+        },
+        "engineStatus": {
+          "engine": {
+            "id": "full",
+            "version": "2.1.5",
+            "latencyMs": 0
+          },
+          "status": "warning",
+          "findings": [
+            {
+              "severity": "warning",
+              "code": "BATCH_FAILURES",
+              "message": "batch 9f92236e-ea6f-11f1-ba07-922da4d86bb8 (set-job-retries): 1 failed job"
+            },
+            {
+              "severity": "warning",
+              "code": "INCIDENTS",
+              "message": "1 failedJob incident at pulse-status-approval/Activity_ApproveEach#multiInstanceBody: PropertyNotFoundException: Cannot resolve identifier 'copies'"
+            },
+            {
+              "severity": "warning",
+              "code": "INCIDENTS",
+              "message": "1 failedJob incident at pulse-status-label/Activity_RenderLabel: PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'"
+            }
+          ],
+          "definitions": [
+            {
+              "key": "pulse-status-approval",
+              "name": "Approve items",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 2,
+              "failedJobs": 1,
+              "incidents": 1
+            },
+            {
+              "key": "pulse-status-label",
+              "name": "Print parcel label",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 1,
+              "failedJobs": 1,
+              "incidents": 1
+            },
+            {
+              "key": "pulse-status-dispatch",
+              "name": "Ship parcel",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 1,
+              "failedJobs": 0,
+              "incidents": 0
+            }
+          ],
+          "incidents": [
+            {
+              "processDefinitionKey": "pulse-status-approval",
+              "activityId": "Activity_ApproveEach#multiInstanceBody",
+              "type": "failedJob",
+              "message": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+              "count": 1,
+              "firstAt": "2026-11-27T14:34:15.453+0000",
+              "lastAt": "2026-11-27T14:34:15.453+0000",
+              "processInstanceIds": [
+                "9eea98bb-ea6f-11f1-ba07-922da4d86bb8"
+              ],
+              "rootCause": "PropertyNotFoundException: Cannot resolve identifier 'copies'"
+            },
+            {
+              "processDefinitionKey": "pulse-status-label",
+              "activityId": "Activity_RenderLabel",
+              "type": "failedJob",
+              "message": "Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+              "count": 1,
+              "firstAt": "2026-11-27T14:34:14.135+0000",
+              "lastAt": "2026-11-27T14:34:14.135+0000",
+              "processInstanceIds": [
+                "9e15954d-ea6f-11f1-ba07-922da4d86bb8"
+              ],
+              "rootCause": "PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'"
+            }
+          ],
+          "rootIncidentsTotal": 3,
+          "outsideAnyProcess": {
+            "count": 1,
+            "atLeast": false
+          },
+          "incidentsTotal": 4,
+          "propagated": 1,
+          "externalTasks": [],
+          "jobs": {
+            "executable": 0,
+            "overdue": 0
+          },
+          "tasks": {
+            "open": 3
+          },
+          "batches": {
+            "running": 1,
+            "withFailures": 1
+          },
+          "statusRule": "critical: >=50 open root incidents or >=25 of one cause, executable jobs overdue (is the job executor running?); warning: any open root incident (incident groups), topics without a worker, topics with expired locks, failed batch jobs, keys not deployed; else ok. rootIncidentsTotal counts the open root incidents the status judges, outsideAnyProcess (the whole engine's) those of them outside any process, which no definition counts (atLeast where the incidents loaded were cut), incidentsTotal every open incident, propagated the copies on calling instances among those loaded; the incident groups and definitions count root incidents."
+        },
+        "verdict": {
+          "status": "warning",
+          "outsideAnyProcess": {
+            "count": 1,
+            "atLeast": false
+          }
+        },
+        "health": {
+          "status": "warning",
+          "statusRule": "From the engine's open root incidents (a copy at a call activity never counts), read live: critical at >=50 open root incidents or >=25 of one cause, warning with any, else ok.",
+          "summary": {
+            "totalIncidents": 2,
+            "outsideAnyProcess": {
+              "count": 1,
+              "atLeast": false
+            },
+            "lastHourIncidents": 2,
+            "affectedActivities": 2,
+            "affectedDefinitions": 2,
+            "runningInstances": 4,
+            "totalDefinitions": 3,
+            "started24h": 4,
+            "completed24h": 0,
+            "historyRecorded": true
+          },
+          "clusters": [
+            {
+              "id": "Activity_ApproveEach#multiInstanceBody::failedJob::unknown property used in expression: ${copies}. cause: cannot resolve identifier '<v>'",
+              "activityId": "Activity_ApproveEach#multiInstanceBody",
+              "activityName": "Approve each",
+              "incidentType": "failedJob",
+              "messageSignature": "unknown property used in expression: ${copies}. cause: cannot resolve identifier '<v>'",
+              "incidentCount": 1,
+              "scannedIncidentCount": 1,
+              "processDefinitionKeys": [
+                "pulse-status-approval"
+              ],
+              "processDefinitionName": "Approve items",
+              "representativeMessage": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+              "representativeIncidentId": "9ef82d5c-ea6f-11f1-ba07-922da4d86bb8",
+              "latestIncident": "2026-11-27T14:34:15.453+0000"
+            },
+            {
+              "id": "Activity_RenderLabel::failedJob::unknown property used in expression: ${labelprinter.print(parcelid)}. cause: cannot resolve identifier '<v>'",
+              "activityId": "Activity_RenderLabel",
+              "activityName": "Render label",
+              "incidentType": "failedJob",
+              "messageSignature": "unknown property used in expression: ${labelprinter.print(parcelid)}. cause: cannot resolve identifier '<v>'",
+              "incidentCount": 1,
+              "scannedIncidentCount": 1,
+              "processDefinitionKeys": [
+                "pulse-status-label"
+              ],
+              "processDefinitionName": "Print parcel label",
+              "representativeMessage": "Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+              "representativeIncidentId": "9e2f10cb-ea6f-11f1-ba07-922da4d86bb8",
+              "latestIncident": "2026-11-27T14:34:14.135+0000"
+            }
+          ],
+          "fetchedAt": "2026-11-27T14:34:18.000Z",
+          "engineId": "full"
+        },
+        "atEdges": [
+          {
+            "criticalIncidents": 3,
+            "verdict": {
+              "status": "critical",
+              "outsideAnyProcess": {
+                "count": 1,
+                "atLeast": false
+              }
+            },
+            "engineStatus": "critical",
+            "health": "critical"
+          },
+          {
+            "criticalIncidents": 4,
+            "verdict": {
+              "status": "warning",
+              "outsideAnyProcess": {
+                "count": 1,
+                "atLeast": false
+              }
+            },
+            "engineStatus": "warning",
+            "health": "warning"
+          }
+        ]
+      }
+    },
+    {
+      "engine": "none",
+      "historyLevel": "none",
+      "answers": [
+        {
+          "method": "GET",
+          "path": "/engine-rest/batch/statistics",
+          "query": {
+            "maxResults": "100",
+            "withFailures": "true"
+          },
+          "answer": [
+            {
+              "id": "9f81f666-ea6f-11f1-9b18-125685819e33",
+              "type": "set-job-retries",
+              "totalJobs": 1,
+              "jobsCreated": 1,
+              "batchJobsPerSeed": 100,
+              "invocationsPerBatchJob": 1,
+              "seedJobDefinitionId": "9f832ee7-ea6f-11f1-9b18-125685819e33",
+              "monitorJobDefinitionId": "9f832ee8-ea6f-11f1-9b18-125685819e33",
+              "batchJobDefinitionId": "9f832ee9-ea6f-11f1-9b18-125685819e33",
+              "suspended": true,
+              "tenantId": null,
+              "createUserId": null,
+              "startTime": "2026-11-27T14:34:16.351+0000",
+              "executionStartTime": null,
+              "remainingJobs": 1,
+              "completedJobs": 0,
+              "failedJobs": 1
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/batch/statistics/count",
+          "answer": {
+            "count": 1
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/batch/statistics/count",
+          "query": {
+            "withFailures": "true"
+          },
+          "answer": {
+            "count": 1
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/external-task",
+          "query": {
+            "firstResult": "0",
+            "maxResults": "500"
+          },
+          "answer": []
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/external-task/count",
+          "answer": {
+            "count": 0
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/history/process-instance",
+          "query": {
+            "unfinished": "true",
+            "maxResults": "1"
+          },
+          "answer": []
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/history/process-instance/count",
+          "query": {
+            "finishedAfter": "2026-11-26T14:34:18.000+0000"
+          },
+          "answer": {
+            "count": 0
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/history/process-instance/count",
+          "query": {
+            "startedAfter": "2026-11-26T14:34:18.000+0000"
+          },
+          "answer": {
+            "count": 0
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/incident",
+          "query": {
+            "sortBy": "incidentTimestamp",
+            "sortOrder": "desc",
+            "firstResult": "0",
+            "maxResults": "500"
+          },
+          "answer": [
+            {
+              "id": "9f8be180-ea6f-11f1-9b18-125685819e33",
+              "processDefinitionId": null,
+              "processInstanceId": null,
+              "executionId": null,
+              "incidentTimestamp": "2026-11-27T14:34:16.421+0000",
+              "incidentType": "failedJob",
+              "activityId": null,
+              "failedActivityId": null,
+              "causeIncidentId": "9f8be180-ea6f-11f1-9b18-125685819e33",
+              "rootCauseIncidentId": "9f8be180-ea6f-11f1-9b18-125685819e33",
+              "configuration": "9f86151c-ea6f-11f1-9b18-125685819e33",
+              "incidentMessage": "ENGINE-13053 No job found with id '00000000-0000-4000-8000-000000000139'.'",
+              "tenantId": null,
+              "jobDefinitionId": "9f832ee9-ea6f-11f1-9b18-125685819e33",
+              "annotation": null
+            },
+            {
+              "id": "9ee47de4-ea6f-11f1-9b18-125685819e33",
+              "processDefinitionId": "pulse-status-approval:1:9df95b66-ea6f-11f1-9b18-125685819e33",
+              "processInstanceId": "9ed64d0a-ea6f-11f1-9b18-125685819e33",
+              "executionId": "9ed64d0a-ea6f-11f1-9b18-125685819e33",
+              "incidentTimestamp": "2026-11-27T14:34:15.324+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_ApproveEach#multiInstanceBody",
+              "failedActivityId": "Activity_ApproveEach#multiInstanceBody",
+              "causeIncidentId": "9ee47de4-ea6f-11f1-9b18-125685819e33",
+              "rootCauseIncidentId": "9ee47de4-ea6f-11f1-9b18-125685819e33",
+              "configuration": "9ed6741c-ea6f-11f1-9b18-125685819e33",
+              "incidentMessage": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+              "tenantId": null,
+              "jobDefinitionId": "9df98277-ea6f-11f1-9b18-125685819e33",
+              "annotation": null
+            },
+            {
+              "id": "9e35a024-ea6f-11f1-9b18-125685819e33",
+              "processDefinitionId": "pulse-status-dispatch:1:9df05ab3-ea6f-11f1-9b18-125685819e33",
+              "processInstanceId": "9e148488-ea6f-11f1-9b18-125685819e33",
+              "executionId": "9e17b8da-ea6f-11f1-9b18-125685819e33",
+              "incidentTimestamp": "2026-11-27T14:34:14.178+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_PrintLabel",
+              "failedActivityId": "Activity_PrintLabel",
+              "causeIncidentId": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "rootCauseIncidentId": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "configuration": null,
+              "incidentMessage": null,
+              "tenantId": null,
+              "jobDefinitionId": null,
+              "annotation": null
+            },
+            {
+              "id": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "processDefinitionId": "pulse-status-label:1:9dde805f-ea6f-11f1-9b18-125685819e33",
+              "processInstanceId": "9e187c2c-ea6f-11f1-9b18-125685819e33",
+              "executionId": "9e187c2c-ea6f-11f1-9b18-125685819e33",
+              "incidentTimestamp": "2026-11-27T14:34:14.167+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_RenderLabel",
+              "failedActivityId": "Activity_RenderLabel",
+              "causeIncidentId": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "rootCauseIncidentId": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "configuration": "9e19186e-ea6f-11f1-9b18-125685819e33",
+              "incidentMessage": "Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+              "tenantId": null,
+              "jobDefinitionId": "9dde8060-ea6f-11f1-9b18-125685819e33",
+              "annotation": null
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/incident",
+          "query": {
+            "maxResults": "2000",
+            "sortBy": "incidentTimestamp",
+            "sortOrder": "desc"
+          },
+          "answer": [
+            {
+              "id": "9f8be180-ea6f-11f1-9b18-125685819e33",
+              "processDefinitionId": null,
+              "processInstanceId": null,
+              "executionId": null,
+              "incidentTimestamp": "2026-11-27T14:34:16.421+0000",
+              "incidentType": "failedJob",
+              "activityId": null,
+              "failedActivityId": null,
+              "causeIncidentId": "9f8be180-ea6f-11f1-9b18-125685819e33",
+              "rootCauseIncidentId": "9f8be180-ea6f-11f1-9b18-125685819e33",
+              "configuration": "9f86151c-ea6f-11f1-9b18-125685819e33",
+              "incidentMessage": "ENGINE-13053 No job found with id '00000000-0000-4000-8000-000000000139'.'",
+              "tenantId": null,
+              "jobDefinitionId": "9f832ee9-ea6f-11f1-9b18-125685819e33",
+              "annotation": null
+            },
+            {
+              "id": "9ee47de4-ea6f-11f1-9b18-125685819e33",
+              "processDefinitionId": "pulse-status-approval:1:9df95b66-ea6f-11f1-9b18-125685819e33",
+              "processInstanceId": "9ed64d0a-ea6f-11f1-9b18-125685819e33",
+              "executionId": "9ed64d0a-ea6f-11f1-9b18-125685819e33",
+              "incidentTimestamp": "2026-11-27T14:34:15.324+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_ApproveEach#multiInstanceBody",
+              "failedActivityId": "Activity_ApproveEach#multiInstanceBody",
+              "causeIncidentId": "9ee47de4-ea6f-11f1-9b18-125685819e33",
+              "rootCauseIncidentId": "9ee47de4-ea6f-11f1-9b18-125685819e33",
+              "configuration": "9ed6741c-ea6f-11f1-9b18-125685819e33",
+              "incidentMessage": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+              "tenantId": null,
+              "jobDefinitionId": "9df98277-ea6f-11f1-9b18-125685819e33",
+              "annotation": null
+            },
+            {
+              "id": "9e35a024-ea6f-11f1-9b18-125685819e33",
+              "processDefinitionId": "pulse-status-dispatch:1:9df05ab3-ea6f-11f1-9b18-125685819e33",
+              "processInstanceId": "9e148488-ea6f-11f1-9b18-125685819e33",
+              "executionId": "9e17b8da-ea6f-11f1-9b18-125685819e33",
+              "incidentTimestamp": "2026-11-27T14:34:14.178+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_PrintLabel",
+              "failedActivityId": "Activity_PrintLabel",
+              "causeIncidentId": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "rootCauseIncidentId": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "configuration": null,
+              "incidentMessage": null,
+              "tenantId": null,
+              "jobDefinitionId": null,
+              "annotation": null
+            },
+            {
+              "id": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "processDefinitionId": "pulse-status-label:1:9dde805f-ea6f-11f1-9b18-125685819e33",
+              "processInstanceId": "9e187c2c-ea6f-11f1-9b18-125685819e33",
+              "executionId": "9e187c2c-ea6f-11f1-9b18-125685819e33",
+              "incidentTimestamp": "2026-11-27T14:34:14.167+0000",
+              "incidentType": "failedJob",
+              "activityId": "Activity_RenderLabel",
+              "failedActivityId": "Activity_RenderLabel",
+              "causeIncidentId": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "rootCauseIncidentId": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "configuration": "9e19186e-ea6f-11f1-9b18-125685819e33",
+              "incidentMessage": "Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+              "tenantId": null,
+              "jobDefinitionId": "9dde8060-ea6f-11f1-9b18-125685819e33",
+              "annotation": null
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/incident/count",
+          "answer": {
+            "count": 4
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/job",
+          "query": {
+            "executable": "true",
+            "active": "true",
+            "createTimes": "lt_2026-11-27T14:29:18.000+0000",
+            "maxResults": "1000"
+          },
+          "answer": []
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/job/9ed6741c-ea6f-11f1-9b18-125685819e33/stacktrace",
+          "text": "org.operaton.bpm.engine.ProcessEngineException: Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:66)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:53)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.MultiInstanceActivityBehavior.resolveLoopCardinality(MultiInstanceActivityBehavior.java:147)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.MultiInstanceActivityBehavior.resolveNrOfInstances(MultiInstanceActivityBehavior.java:110)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.MultiInstanceActivityBehavior.execute(MultiInstanceActivityBehavior.java:64)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.lambda$execute$1(PvmAtomicOperationActivityExecute.java:57)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueIfExecutionDoesNotAffectNextOperation(PvmExecutionImpl.java:2061)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:44)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:31)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.lambda$dispatchDelayedEventsAndPerformOperation$4(PvmExecutionImpl.java:2007)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueExecutionIfNotCanceled(PvmExecutionImpl.java:2067)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2022)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2006)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:62)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:29)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:70)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionCreateScope.scopeCreated(PvmAtomicOperationTransitionCreateScope.java:41)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:55)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:28)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:127)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:81)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:40)\n\tat org.operaton.bpm.engine.impl.persistence.entity.JobEntity.execute(JobEntity.java:123)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:106)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:41)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandExecutorImpl.execute(CommandExecutorImpl.java:29)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandContextInterceptor.execute(CommandContextInterceptor.java:113)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.lambda$execute$0(SpringTransactionInterceptor.java:64)\n\tat org.springframework.transaction.support.TransactionTemplate.execute(TransactionTemplate.java:137)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.execute(SpringTransactionInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.ProcessApplicationContextInterceptor.execute(ProcessApplicationContextInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandCounterInterceptor.execute(CommandCounterInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.LogInterceptor.execute(LogInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.ExceptionCodeInterceptor.execute(ExceptionCodeInterceptor.java:55)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobHelper.executeJob(ExecuteJobHelper.java:62)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.executeJob(ExecuteJobsRunnable.java:110)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.run(ExecuteJobsRunnable.java:71)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)\n\tat java.base/java.lang.Thread.run(Thread.java:840)\nCaused by: jakarta.el.PropertyNotFoundException: Cannot resolve identifier 'copies'\n\tat org.operaton.bpm.impl.juel.AstIdentifier.eval(AstIdentifier.java:93)\n\tat org.operaton.bpm.impl.juel.AstEval.eval(AstEval.java:53)\n\tat org.operaton.bpm.impl.juel.AstNode.getValue(AstNode.java:27)\n\tat org.operaton.bpm.impl.juel.TreeValueExpression.getValue(TreeValueExpression.java:115)\n\tat org.operaton.bpm.engine.impl.delegate.ExpressionGetInvocation.invoke(ExpressionGetInvocation.java:42)\n\tat org.operaton.bpm.engine.impl.delegate.DelegateInvocation.proceed(DelegateInvocation.java:59)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocationInContext(DefaultDelegateInterceptor.java:88)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocation(DefaultDelegateInterceptor.java:59)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:63)\n\t... 63 more\n",
+          "contentType": "text/plain"
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/job/9e19186e-ea6f-11f1-9b18-125685819e33/stacktrace",
+          "text": "org.operaton.bpm.engine.ProcessEngineException: Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:66)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:53)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.ServiceTaskExpressionActivityBehavior.lambda$performExecution$0(ServiceTaskExpressionActivityBehavior.java:46)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.AbstractBpmnActivityBehavior.executeWithErrorPropagation(AbstractBpmnActivityBehavior.java:90)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.ServiceTaskExpressionActivityBehavior.performExecution(ServiceTaskExpressionActivityBehavior.java:44)\n\tat org.operaton.bpm.engine.impl.bpmn.behavior.TaskActivityBehavior.execute(TaskActivityBehavior.java:69)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.lambda$execute$1(PvmAtomicOperationActivityExecute.java:57)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueIfExecutionDoesNotAffectNextOperation(PvmExecutionImpl.java:2061)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:44)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationActivityExecute.execute(PvmAtomicOperationActivityExecute.java:31)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.lambda$dispatchDelayedEventsAndPerformOperation$4(PvmExecutionImpl.java:2007)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.continueExecutionIfNotCanceled(PvmExecutionImpl.java:2067)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2022)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.PvmExecutionImpl.dispatchDelayedEventsAndPerformOperation(PvmExecutionImpl.java:2006)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:62)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionNotifyListenerStart.eventNotificationsCompleted(PvmAtomicOperationTransitionNotifyListenerStart.java:29)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:70)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:638)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperationSync(ExecutionEntity.java:615)\n\tat org.operaton.bpm.engine.impl.core.operation.AbstractEventAtomicOperation.execute(AbstractEventAtomicOperation.java:66)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:120)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:629)\n\tat org.operaton.bpm.engine.impl.persistence.entity.ExecutionEntity.performOperation(ExecutionEntity.java:605)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationTransitionCreateScope.scopeCreated(PvmAtomicOperationTransitionCreateScope.java:41)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:55)\n\tat org.operaton.bpm.engine.impl.pvm.runtime.operation.PvmAtomicOperationCreateScope.execute(PvmAtomicOperationCreateScope.java:28)\n\tat org.operaton.bpm.engine.impl.interceptor.AtomicOperationInvocation.execute(AtomicOperationInvocation.java:100)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.invokeNext(CommandInvocationContext.java:140)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performNext(CommandInvocationContext.java:127)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:98)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandInvocationContext.performOperation(CommandInvocationContext.java:86)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:81)\n\tat org.operaton.bpm.engine.impl.jobexecutor.AsyncContinuationJobHandler.execute(AsyncContinuationJobHandler.java:40)\n\tat org.operaton.bpm.engine.impl.persistence.entity.JobEntity.execute(JobEntity.java:123)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:106)\n\tat org.operaton.bpm.engine.impl.cmd.ExecuteJobsCmd.execute(ExecuteJobsCmd.java:41)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandExecutorImpl.execute(CommandExecutorImpl.java:29)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandContextInterceptor.execute(CommandContextInterceptor.java:113)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.lambda$execute$0(SpringTransactionInterceptor.java:64)\n\tat org.springframework.transaction.support.TransactionTemplate.execute(TransactionTemplate.java:137)\n\tat org.operaton.bpm.engine.spring.SpringTransactionInterceptor.execute(SpringTransactionInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.ProcessApplicationContextInterceptor.execute(ProcessApplicationContextInterceptor.java:64)\n\tat org.operaton.bpm.engine.impl.interceptor.CommandCounterInterceptor.execute(CommandCounterInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.LogInterceptor.execute(LogInterceptor.java:34)\n\tat org.operaton.bpm.engine.impl.interceptor.ExceptionCodeInterceptor.execute(ExceptionCodeInterceptor.java:55)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobHelper.executeJob(ExecuteJobHelper.java:62)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.executeJob(ExecuteJobsRunnable.java:110)\n\tat org.operaton.bpm.engine.impl.jobexecutor.ExecuteJobsRunnable.run(ExecuteJobsRunnable.java:71)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)\n\tat java.base/java.lang.Thread.run(Thread.java:840)\nCaused by: jakarta.el.PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'\n\tat org.operaton.bpm.impl.juel.AstIdentifier.eval(AstIdentifier.java:93)\n\tat org.operaton.bpm.impl.juel.AstMethod.invoke(AstMethod.java:88)\n\tat org.operaton.bpm.impl.juel.AstMethod.eval(AstMethod.java:83)\n\tat org.operaton.bpm.impl.juel.AstEval.eval(AstEval.java:53)\n\tat org.operaton.bpm.impl.juel.AstNode.getValue(AstNode.java:27)\n\tat org.operaton.bpm.impl.juel.TreeValueExpression.getValue(TreeValueExpression.java:115)\n\tat org.operaton.bpm.engine.impl.delegate.ExpressionGetInvocation.invoke(ExpressionGetInvocation.java:42)\n\tat org.operaton.bpm.engine.impl.delegate.DelegateInvocation.proceed(DelegateInvocation.java:59)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocationInContext(DefaultDelegateInterceptor.java:88)\n\tat org.operaton.bpm.engine.impl.delegate.DefaultDelegateInterceptor.handleInvocation(DefaultDelegateInterceptor.java:59)\n\tat org.operaton.bpm.engine.impl.el.JuelExpression.getValue(JuelExpression.java:63)\n\t... 72 more\n",
+          "contentType": "text/plain"
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/job/count",
+          "query": {
+            "executable": "true",
+            "active": "true"
+          },
+          "answer": {
+            "count": 0
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-definition/pulse-status-approval:1:9df95b66-ea6f-11f1-9b18-125685819e33/xml",
+          "answer": {
+            "id": "pulse-status-approval:1:9df95b66-ea6f-11f1-9b18-125685819e33",
+            "bpmn20Xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:camunda=\"http://camunda.org/schema/1.0/bpmn\" targetNamespace=\"http://bpmn.io/schema/bpmn\" id=\"Definitions_pulse-status-approval\">\n  <bpmn:process id=\"pulse-status-approval\" name=\"Approve items\" isExecutable=\"true\" camunda:historyTimeToLive=\"1\">\n    <bpmn:startEvent id=\"Event_Start\" />\n    <bpmn:sequenceFlow id=\"Flow_Event_Start_Activity_ApproveEach\" sourceRef=\"Event_Start\" targetRef=\"Activity_ApproveEach\" />\n    <bpmn:userTask id=\"Activity_ApproveEach\" name=\"Approve each\" camunda:asyncBefore=\"true\">\n      <bpmn:multiInstanceLoopCharacteristics>\n        <bpmn:loopCardinality>${copies}</bpmn:loopCardinality>\n      </bpmn:multiInstanceLoopCharacteristics>\n    </bpmn:userTask>\n    <bpmn:sequenceFlow id=\"Flow_Activity_ApproveEach_Event_End\" sourceRef=\"Activity_ApproveEach\" targetRef=\"Event_End\" />\n    <bpmn:endEvent id=\"Event_End\" />\n  </bpmn:process>\n</bpmn:definitions>\n"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-definition/pulse-status-label:1:9dde805f-ea6f-11f1-9b18-125685819e33/xml",
+          "answer": {
+            "id": "pulse-status-label:1:9dde805f-ea6f-11f1-9b18-125685819e33",
+            "bpmn20Xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:camunda=\"http://camunda.org/schema/1.0/bpmn\" targetNamespace=\"http://bpmn.io/schema/bpmn\" id=\"Definitions_pulse-status-label\">\n  <bpmn:process id=\"pulse-status-label\" name=\"Print parcel label\" isExecutable=\"true\" camunda:historyTimeToLive=\"1\">\n    <bpmn:startEvent id=\"Event_Start\" />\n    <bpmn:sequenceFlow id=\"Flow_Event_Start_Activity_RenderLabel\" sourceRef=\"Event_Start\" targetRef=\"Activity_RenderLabel\" />\n    <bpmn:serviceTask id=\"Activity_RenderLabel\" name=\"Render label\" camunda:asyncBefore=\"true\" camunda:expression=\"${labelPrinter.print(parcelId)}\" />\n    <bpmn:sequenceFlow id=\"Flow_Activity_RenderLabel_Event_End\" sourceRef=\"Activity_RenderLabel\" targetRef=\"Event_End\" />\n    <bpmn:endEvent id=\"Event_End\" />\n  </bpmn:process>\n</bpmn:definitions>\n"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-definition/statistics",
+          "query": {
+            "failedJobs": "true",
+            "rootIncidents": "true"
+          },
+          "answer": [
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-approval:1:9df95b66-ea6f-11f1-9b18-125685819e33",
+              "instances": 2,
+              "failedJobs": 1,
+              "incidents": [
+                {
+                  "incidentType": "failedJob",
+                  "incidentCount": 1
+                }
+              ],
+              "definition": {
+                "id": "pulse-status-approval:1:9df95b66-ea6f-11f1-9b18-125685819e33",
+                "key": "pulse-status-approval",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Approve items",
+                "version": 1,
+                "resource": "pulse-status-approval.bpmn",
+                "deploymentId": "9df340e4-ea6f-11f1-9b18-125685819e33",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            },
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-dispatch:1:9df05ab3-ea6f-11f1-9b18-125685819e33",
+              "instances": 1,
+              "failedJobs": 0,
+              "incidents": [],
+              "definition": {
+                "id": "pulse-status-dispatch:1:9df05ab3-ea6f-11f1-9b18-125685819e33",
+                "key": "pulse-status-dispatch",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Ship parcel",
+                "version": 1,
+                "resource": "pulse-status-dispatch.bpmn",
+                "deploymentId": "9dea4031-ea6f-11f1-9b18-125685819e33",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            },
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-label:1:9dde805f-ea6f-11f1-9b18-125685819e33",
+              "instances": 1,
+              "failedJobs": 1,
+              "incidents": [
+                {
+                  "incidentType": "failedJob",
+                  "incidentCount": 1
+                }
+              ],
+              "definition": {
+                "id": "pulse-status-label:1:9dde805f-ea6f-11f1-9b18-125685819e33",
+                "key": "pulse-status-label",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Print parcel label",
+                "version": 1,
+                "resource": "pulse-status-label.bpmn",
+                "deploymentId": "9db59b9d-ea6f-11f1-9b18-125685819e33",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-definition/statistics",
+          "query": {
+            "rootIncidents": "true"
+          },
+          "answer": [
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-approval:1:9df95b66-ea6f-11f1-9b18-125685819e33",
+              "instances": 2,
+              "failedJobs": 0,
+              "incidents": [
+                {
+                  "incidentType": "failedJob",
+                  "incidentCount": 1
+                }
+              ],
+              "definition": {
+                "id": "pulse-status-approval:1:9df95b66-ea6f-11f1-9b18-125685819e33",
+                "key": "pulse-status-approval",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Approve items",
+                "version": 1,
+                "resource": "pulse-status-approval.bpmn",
+                "deploymentId": "9df340e4-ea6f-11f1-9b18-125685819e33",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            },
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-dispatch:1:9df05ab3-ea6f-11f1-9b18-125685819e33",
+              "instances": 1,
+              "failedJobs": 0,
+              "incidents": [],
+              "definition": {
+                "id": "pulse-status-dispatch:1:9df05ab3-ea6f-11f1-9b18-125685819e33",
+                "key": "pulse-status-dispatch",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Ship parcel",
+                "version": 1,
+                "resource": "pulse-status-dispatch.bpmn",
+                "deploymentId": "9dea4031-ea6f-11f1-9b18-125685819e33",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            },
+            {
+              "@class": "org.operaton.bpm.engine.rest.dto.repository.ProcessDefinitionStatisticsResultDto",
+              "id": "pulse-status-label:1:9dde805f-ea6f-11f1-9b18-125685819e33",
+              "instances": 1,
+              "failedJobs": 0,
+              "incidents": [
+                {
+                  "incidentType": "failedJob",
+                  "incidentCount": 1
+                }
+              ],
+              "definition": {
+                "id": "pulse-status-label:1:9dde805f-ea6f-11f1-9b18-125685819e33",
+                "key": "pulse-status-label",
+                "category": "http://bpmn.io/schema/bpmn",
+                "description": null,
+                "name": "Print parcel label",
+                "version": 1,
+                "resource": "pulse-status-label.bpmn",
+                "deploymentId": "9db59b9d-ea6f-11f1-9b18-125685819e33",
+                "diagram": null,
+                "suspended": false,
+                "tenantId": null,
+                "versionTag": null,
+                "historyTimeToLive": null,
+                "startableInTasklist": true
+              }
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-instance",
+          "query": {
+            "withIncident": "true",
+            "sortBy": "instanceId",
+            "sortOrder": "asc",
+            "firstResult": "0",
+            "maxResults": "500"
+          },
+          "answer": [
+            {
+              "links": [],
+              "id": "9e148488-ea6f-11f1-9b18-125685819e33",
+              "definitionId": "pulse-status-dispatch:1:9df05ab3-ea6f-11f1-9b18-125685819e33",
+              "businessKey": "DSP-139",
+              "caseInstanceId": null,
+              "ended": false,
+              "suspended": false,
+              "tenantId": null,
+              "definitionKey": "pulse-status-dispatch"
+            },
+            {
+              "links": [],
+              "id": "9e187c2c-ea6f-11f1-9b18-125685819e33",
+              "definitionId": "pulse-status-label:1:9dde805f-ea6f-11f1-9b18-125685819e33",
+              "businessKey": null,
+              "caseInstanceId": null,
+              "ended": false,
+              "suspended": false,
+              "tenantId": null,
+              "definitionKey": "pulse-status-label"
+            },
+            {
+              "links": [],
+              "id": "9ed64d0a-ea6f-11f1-9b18-125685819e33",
+              "definitionId": "pulse-status-approval:1:9df95b66-ea6f-11f1-9b18-125685819e33",
+              "businessKey": "APR-139-2",
+              "caseInstanceId": null,
+              "ended": false,
+              "suspended": false,
+              "tenantId": null,
+              "definitionKey": "pulse-status-approval"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/process-instance",
+          "query": {
+            "maxResults": "1"
+          },
+          "answer": [
+            {
+              "links": [],
+              "id": "9e148488-ea6f-11f1-9b18-125685819e33",
+              "definitionId": "pulse-status-dispatch:1:9df05ab3-ea6f-11f1-9b18-125685819e33",
+              "businessKey": "DSP-139",
+              "caseInstanceId": null,
+              "ended": false,
+              "suspended": false,
+              "tenantId": null,
+              "definitionKey": "pulse-status-dispatch"
+            }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/task/count",
+          "answer": {
+            "count": 3
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/engine-rest/version",
+          "answer": {
+            "version": "2.1.5"
+          }
+        }
+      ],
+      "expected": {
+        "cliStatus": {
+          "engine": {
+            "url": "http://127.0.0.1:<port>/engine-rest",
+            "version": "2.1.5",
+            "latencyMs": 0
+          },
+          "status": "warning",
+          "findings": [
+            {
+              "severity": "warning",
+              "code": "BATCH_FAILURES",
+              "message": "batch 9f81f666-ea6f-11f1-9b18-125685819e33 (set-job-retries): 1 failed job",
+              "next": "pulse job list --job-definition-id 9f832ee9-ea6f-11f1-9b18-125685819e33 --with-exception"
+            },
+            {
+              "severity": "warning",
+              "code": "INCIDENTS",
+              "message": "1 failedJob incident at pulse-status-approval/Activity_ApproveEach#multiInstanceBody: PropertyNotFoundException: Cannot resolve identifier 'copies'",
+              "next": "pulse retry --process-definition-key pulse-status-approval --activity-id 'Activity_ApproveEach#multiInstanceBody' --dry-run"
+            },
+            {
+              "severity": "warning",
+              "code": "INCIDENTS",
+              "message": "1 failedJob incident at pulse-status-label/Activity_RenderLabel: PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'",
+              "next": "pulse retry --process-definition-key pulse-status-label --activity-id Activity_RenderLabel --dry-run"
+            }
+          ],
+          "definitions": [
+            {
+              "key": "pulse-status-approval",
+              "name": "Approve items",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 2,
+              "failedJobs": 1,
+              "incidents": 1
+            },
+            {
+              "key": "pulse-status-label",
+              "name": "Print parcel label",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 1,
+              "failedJobs": 1,
+              "incidents": 1
+            },
+            {
+              "key": "pulse-status-dispatch",
+              "name": "Ship parcel",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 1,
+              "failedJobs": 0,
+              "incidents": 0
+            }
+          ],
+          "incidents": [
+            {
+              "processDefinitionKey": "pulse-status-approval",
+              "activityId": "Activity_ApproveEach#multiInstanceBody",
+              "type": "failedJob",
+              "message": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+              "count": 1,
+              "firstAt": "2026-11-27T14:34:15.324+0000",
+              "lastAt": "2026-11-27T14:34:15.324+0000",
+              "processInstanceIds": [
+                "9ed64d0a-ea6f-11f1-9b18-125685819e33"
+              ],
+              "next": "pulse retry --process-definition-key pulse-status-approval --activity-id 'Activity_ApproveEach#multiInstanceBody' --dry-run",
+              "rootCause": "PropertyNotFoundException: Cannot resolve identifier 'copies'"
+            },
+            {
+              "processDefinitionKey": "pulse-status-label",
+              "activityId": "Activity_RenderLabel",
+              "type": "failedJob",
+              "message": "Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+              "count": 1,
+              "firstAt": "2026-11-27T14:34:14.167+0000",
+              "lastAt": "2026-11-27T14:34:14.167+0000",
+              "processInstanceIds": [
+                "9e187c2c-ea6f-11f1-9b18-125685819e33"
+              ],
+              "next": "pulse retry --process-definition-key pulse-status-label --activity-id Activity_RenderLabel --dry-run",
+              "rootCause": "PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'"
+            }
+          ],
+          "rootIncidentsTotal": 3,
+          "outsideAnyProcess": {
+            "count": 1,
+            "atLeast": false
+          },
+          "incidentsTotal": 4,
+          "propagated": 1,
+          "externalTasks": [],
+          "jobs": {
+            "executable": 0,
+            "overdue": 0
+          },
+          "tasks": {
+            "open": 3
+          },
+          "batches": {
+            "running": 1,
+            "withFailures": 1
+          }
+        },
+        "engineStatus": {
+          "engine": {
+            "id": "none",
+            "version": "2.1.5",
+            "latencyMs": 0
+          },
+          "status": "warning",
+          "findings": [
+            {
+              "severity": "warning",
+              "code": "BATCH_FAILURES",
+              "message": "batch 9f81f666-ea6f-11f1-9b18-125685819e33 (set-job-retries): 1 failed job"
+            },
+            {
+              "severity": "warning",
+              "code": "INCIDENTS",
+              "message": "1 failedJob incident at pulse-status-approval/Activity_ApproveEach#multiInstanceBody: PropertyNotFoundException: Cannot resolve identifier 'copies'"
+            },
+            {
+              "severity": "warning",
+              "code": "INCIDENTS",
+              "message": "1 failedJob incident at pulse-status-label/Activity_RenderLabel: PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'"
+            }
+          ],
+          "definitions": [
+            {
+              "key": "pulse-status-approval",
+              "name": "Approve items",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 2,
+              "failedJobs": 1,
+              "incidents": 1
+            },
+            {
+              "key": "pulse-status-label",
+              "name": "Print parcel label",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 1,
+              "failedJobs": 1,
+              "incidents": 1
+            },
+            {
+              "key": "pulse-status-dispatch",
+              "name": "Ship parcel",
+              "latestVersion": 1,
+              "versions": 1,
+              "instances": 1,
+              "failedJobs": 0,
+              "incidents": 0
+            }
+          ],
+          "incidents": [
+            {
+              "processDefinitionKey": "pulse-status-approval",
+              "activityId": "Activity_ApproveEach#multiInstanceBody",
+              "type": "failedJob",
+              "message": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+              "count": 1,
+              "firstAt": "2026-11-27T14:34:15.324+0000",
+              "lastAt": "2026-11-27T14:34:15.324+0000",
+              "processInstanceIds": [
+                "9ed64d0a-ea6f-11f1-9b18-125685819e33"
+              ],
+              "rootCause": "PropertyNotFoundException: Cannot resolve identifier 'copies'"
+            },
+            {
+              "processDefinitionKey": "pulse-status-label",
+              "activityId": "Activity_RenderLabel",
+              "type": "failedJob",
+              "message": "Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+              "count": 1,
+              "firstAt": "2026-11-27T14:34:14.167+0000",
+              "lastAt": "2026-11-27T14:34:14.167+0000",
+              "processInstanceIds": [
+                "9e187c2c-ea6f-11f1-9b18-125685819e33"
+              ],
+              "rootCause": "PropertyNotFoundException: Cannot resolve identifier 'labelPrinter'"
+            }
+          ],
+          "rootIncidentsTotal": 3,
+          "outsideAnyProcess": {
+            "count": 1,
+            "atLeast": false
+          },
+          "incidentsTotal": 4,
+          "propagated": 1,
+          "externalTasks": [],
+          "jobs": {
+            "executable": 0,
+            "overdue": 0
+          },
+          "tasks": {
+            "open": 3
+          },
+          "batches": {
+            "running": 1,
+            "withFailures": 1
+          },
+          "statusRule": "critical: >=50 open root incidents or >=25 of one cause, executable jobs overdue (is the job executor running?); warning: any open root incident (incident groups), topics without a worker, topics with expired locks, failed batch jobs, keys not deployed; else ok. rootIncidentsTotal counts the open root incidents the status judges, outsideAnyProcess (the whole engine's) those of them outside any process, which no definition counts (atLeast where the incidents loaded were cut), incidentsTotal every open incident, propagated the copies on calling instances among those loaded; the incident groups and definitions count root incidents."
+        },
+        "verdict": {
+          "status": "warning",
+          "outsideAnyProcess": {
+            "count": 1,
+            "atLeast": false
+          }
+        },
+        "health": {
+          "status": "warning",
+          "statusRule": "From the engine's open root incidents (a copy at a call activity never counts), read live: critical at >=50 open root incidents or >=25 of one cause, warning with any, else ok.",
+          "summary": {
+            "totalIncidents": 2,
+            "outsideAnyProcess": {
+              "count": 1,
+              "atLeast": false
+            },
+            "lastHourIncidents": 2,
+            "affectedActivities": 2,
+            "affectedDefinitions": 2,
+            "runningInstances": 4,
+            "totalDefinitions": 3,
+            "started24h": null,
+            "completed24h": null,
+            "historyRecorded": false
+          },
+          "clusters": [
+            {
+              "id": "Activity_ApproveEach#multiInstanceBody::failedJob::unknown property used in expression: ${copies}. cause: cannot resolve identifier '<v>'",
+              "activityId": "Activity_ApproveEach#multiInstanceBody",
+              "activityName": "Approve each",
+              "incidentType": "failedJob",
+              "messageSignature": "unknown property used in expression: ${copies}. cause: cannot resolve identifier '<v>'",
+              "incidentCount": 1,
+              "scannedIncidentCount": 1,
+              "processDefinitionKeys": [
+                "pulse-status-approval"
+              ],
+              "processDefinitionName": "Approve items",
+              "representativeMessage": "Unknown property used in expression: ${copies}. Cause: Cannot resolve identifier 'copies'",
+              "representativeIncidentId": "9ee47de4-ea6f-11f1-9b18-125685819e33",
+              "latestIncident": "2026-11-27T14:34:15.324+0000"
+            },
+            {
+              "id": "Activity_RenderLabel::failedJob::unknown property used in expression: ${labelprinter.print(parcelid)}. cause: cannot resolve identifier '<v>'",
+              "activityId": "Activity_RenderLabel",
+              "activityName": "Render label",
+              "incidentType": "failedJob",
+              "messageSignature": "unknown property used in expression: ${labelprinter.print(parcelid)}. cause: cannot resolve identifier '<v>'",
+              "incidentCount": 1,
+              "scannedIncidentCount": 1,
+              "processDefinitionKeys": [
+                "pulse-status-label"
+              ],
+              "processDefinitionName": "Print parcel label",
+              "representativeMessage": "Unknown property used in expression: ${labelPrinter.print(parcelId)}. Cause: Cannot resolve identifier 'labelPrinter'",
+              "representativeIncidentId": "9e33f273-ea6f-11f1-9b18-125685819e33",
+              "latestIncident": "2026-11-27T14:34:14.167+0000"
+            }
+          ],
+          "fetchedAt": "2026-11-27T14:34:18.000Z",
+          "engineId": "none"
+        },
+        "atEdges": [
+          {
+            "criticalIncidents": 3,
+            "verdict": {
+              "status": "critical",
+              "outsideAnyProcess": {
+                "count": 1,
+                "atLeast": false
+              }
+            },
+            "engineStatus": "critical",
+            "health": "critical"
+          },
+          {
+            "criticalIncidents": 4,
+            "verdict": {
+              "status": "warning",
+              "outsideAnyProcess": {
+                "count": 1,
+                "atLeast": false
+              }
+            },
+            "engineStatus": "warning",
+            "health": "warning"
+          }
+        ]
+      }
+    }
+  ]
+}
