@@ -21,6 +21,8 @@ import { instanceDe } from "./instance-de.js"
 import { instanceEn } from "./instance-en.js"
 import { instanceTranslate } from "./instance-words.js"
 import { humanized } from "./message.js"
+import { outsideDe } from "./outside-de.js"
+import { outsideEn } from "./outside-en.js"
 import { processDe } from "./process-de.js"
 import { processEn } from "./process-en.js"
 import { processTranslate } from "./process-words.js"
@@ -62,6 +64,8 @@ const LANGUAGES = [
   ["the search's English", findEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
   ["the engines' German", enginesDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
   ["the engines' English", enginesEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
+  ["the line outside any process' German", outsideDe, [...PRODUCT_GLOSSARY.de, ...DE_RULES]],
+  ["the line outside any process' English", outsideEn, [...PRODUCT_GLOSSARY.en, ...EN_RULES]],
 ] as const
 
 describe.each(LANGUAGES)("the glossary holds in %s", (_language, catalog, rules) => {
@@ -265,5 +269,19 @@ describe("the words of the engines side by side", () => {
       enginesDe["engines.column.withIncident"],
       enginesDe["matrix.column.withIncident"],
     ]).toEqual([COUNT_TERMS.withIncident.de, COUNT_TERMS.withIncident.de])
+  })
+
+  it("name the incidents and, beside those outside any process, their scope with the count terms", () => {
+    expect([enginesEn["engines.column.incidents"], enginesDe["engines.column.incidents"]]).toEqual([
+      COUNT_TERMS.incidents.en,
+      COUNT_TERMS.incidents.de,
+    ])
+    expect([
+      enginesEn["engines.column.incidentsInProcesses"],
+      enginesDe["engines.column.incidentsInProcesses"],
+    ]).toEqual([
+      `${COUNT_TERMS.incidents.en} ${COUNT_TERMS.inProcesses.en}`,
+      `${COUNT_TERMS.incidents.de} ${COUNT_TERMS.inProcesses.de}`,
+    ])
   })
 })

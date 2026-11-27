@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef } from "react"
-import { useFleetSums, type EngineRowData, type EngineVerdict } from "@miragon/pulse-blocks"
+import {
+  useFleetSums,
+  type EngineRowData,
+  type EngineVerdict,
+  type OutsideAnyProcessData,
+} from "@miragon/pulse-blocks"
 import type { FleetSumsData } from "@miragon/pulse-screens"
 import {
   describeError,
@@ -19,6 +24,7 @@ import {
   engineVerdictKey,
   type EngineVerdictFeed,
   hasVerdict,
+  outsideOf,
   verdictOf,
 } from "../engine/verdict-feed.js"
 import { READ_AGAIN_AFTER_MS } from "../read-on-return.js"
@@ -44,6 +50,8 @@ export interface EngineRead {
    * read of it, none for an engine of another dialect or a refused profile).
    */
   readonly verdict: EngineVerdict
+  /** The root incidents outside any process its verdict judged, where it shows one. */
+  readonly outside?: OutsideAnyProcessData
 }
 
 /**
@@ -83,18 +91,31 @@ type VerdictQuery = VerdictState & {
   readonly refetch: Refetch
 }
 
+/** What a verdict's read gives an engine's read: its state, and what it judged outside any process. */
+type Judged = Pick<EngineRead, "verdict" | "outside">
+
+/** The verdict's part of an engine's read, from its query where the server decides one. */
+function verdictPartOf(judged: { readonly query: VerdictState | undefined } | undefined): Judged {
+  const outside = outsideOf(judged?.query, judged !== undefined)
+  return {
+    verdict: verdictOf(judged?.query, judged !== undefined),
+    ...(outside === undefined ? {} : { outside }),
+  }
+}
+
 /**
  * One engine's read from its query, pending while its query has not started: its failure from its
  * first failed attempt on, as the query client retries quietly behind it, so a down engine says so
  * at once; beside it the engine's verdict where the server decides one (`judged`: its query, none
- * before the engine's screen answered, which reads again after each new answer of the engine's).
+ * before the engine's screen answered, which reads again after each new answer of the engine's)
+ * and the root incidents outside any process that verdict judged.
  */
 export function readOf(
   engine: string,
   query: ScreenQuery | undefined,
   judged?: { readonly query: VerdictState | undefined },
 ): EngineRead {
-  const verdict = verdictOf(judged?.query, judged !== undefined)
+  const state = verdictPartOf(judged)
   if (query === undefined) {
     return {
       engine,
@@ -104,7 +125,7 @@ export function readOf(
       fetching: false,
       readAt: 0,
       refetch: () => Promise.resolve(),
-      verdict,
+      ...state,
     }
   }
   return {
@@ -115,7 +136,7 @@ export function readOf(
     fetching: query.isFetching,
     readAt: Math.max(query.dataUpdatedAt, query.errorUpdatedAt),
     refetch: (options) => query.refetch(options),
-    verdict,
+    ...state,
   }
 }
 
@@ -134,14 +155,21 @@ function refusedRead(engine: string, reason: string | undefined): EngineRead {
 }
 
 /**
- * An engine's row of the engine table: its sums once read, else where its read stands; a page's
- * ended session a quiet row that read nothing, no failure of the engine's (the frame's notice says
- * it once).
+ * An engine's row of the engine table: its sums once read, with its verdict and what that judged
+ * outside any process (the column then names its incidents in processes), else where its read
+ * stands; a page's ended session a quiet row that read nothing, no failure of the engine's (the
+ * frame's notice says it once).
  */
 function rowOf(read: EngineRead, sums: FleetSumsData): EngineRowData {
   const summed = sums.engines.find(({ engine }) => engine === read.engine)
   if (summed !== undefined) {
-    return { engine: read.engine, state: "read", sums: summed, verdict: read.verdict }
+    return {
+      engine: read.engine,
+      state: "read",
+      sums: summed,
+      verdict: read.verdict,
+      outside: read.outside,
+    }
   }
   if (read.error === null) return { engine: read.engine, state: "loading" }
   if (isSessionEnded(read.error)) return { engine: read.engine, state: "unread" }

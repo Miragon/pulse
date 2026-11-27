@@ -14,22 +14,27 @@
  * - the newest open incidents are the cockpit overview's scan (`scanOpenIncidents`), whose root
  *   incidents give those outside any process and the largest cause, lower bounds where it stops.
  *
+ * Beside the verdict it answers the root incidents outside any process it judged (a batch's or the
+ * history cleanup's failed job, which no process row counts), so the page shows them as a line of
+ * their own without a read of its own (owner decision of 2026-11-26, `scanVerdict`).
+ *
  * The verdict stands on a floor of 30 s per caller of its own (`screen-floor.ts`), so a page's
  * Refresh within it reads nothing again. A failed read fails the feed, and the page shows the
  * verdict's failure beside the figures it read apart.
  */
 
-import { type EngineStatus, engineVerdict, rootIncidentCounts } from "@miragon/pulse-c7-core"
 import type { VerdictThresholds } from "@miragon/pulse-c7-core"
 import type { ResolvedEngine } from "../../lib/engine/resolve-engine.js"
 import { scanOpenIncidents } from "../cluster-scan.js"
+import { type ScanVerdict, scanVerdict } from "../scan-verdict.js"
 import { readEngineProcesses } from "./engine-screen-data.js"
 import { screenFloor } from "./screen-floor.js"
 
-/** The verdict feed's answer: the engine's live verdict, `ok`, `warning` or `critical`. */
-export interface EngineVerdictData {
-  readonly status: EngineStatus
-}
+/**
+ * The verdict feed's answer: the engine's live verdict, `ok`, `warning` or `critical`, and the root
+ * incidents outside any process it judged, `atLeast` where the scan stops.
+ */
+export type EngineVerdictData = ScanVerdict
 
 const verdictFloor = screenFloor<EngineVerdictData>()
 
@@ -44,6 +49,6 @@ export function buildEngineVerdictData(
       scanOpenIncidents(engine.client),
     ])
     const ofProcesses = processes.definitions.reduce((sum, process) => sum + process.incidents, 0)
-    return { status: engineVerdict(rootIncidentCounts(ofProcesses, incidents), thresholds) }
+    return scanVerdict(ofProcesses, incidents, thresholds)
   })
 }

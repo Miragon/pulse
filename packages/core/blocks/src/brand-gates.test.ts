@@ -1,4 +1,3 @@
-import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   scanColors,
@@ -9,10 +8,11 @@ import {
 } from "@miragon/pulse-ui/testing"
 import { describe, expect, it } from "vitest"
 
+/**
+ * Every source of the package, so a folder of blocks added later (the verdict's line, `verdict/`)
+ * is under the gates from its first file on.
+ */
 const SRC = fileURLToPath(new URL(".", import.meta.url))
-
-/** The folders of the blocks: a board's tiles and the screens' blocks. */
-const BLOCKS = ["board", "screens"].map((folder) => join(SRC, folder))
 
 /**
  * Each scan reads every source of the package from disk: 0.15 s alone, up to 2.3 s on the CI
@@ -27,18 +27,18 @@ describe("the building blocks keep the brand", SCAN, () => {
   })
 
   it("draw icons at the CI sizes, 16 and 24 px, and no 12 px icon", () => {
-    expect(BLOCKS.flatMap((folder) => scanIconSizes(folder))).toEqual([])
+    expect(scanIconSizes(SRC)).toEqual([])
   })
 
   it("colour through role names only, never a palette class or a raw colour", () => {
-    expect(BLOCKS.flatMap((folder) => scanColors(folder))).toEqual([])
+    expect(scanColors(SRC)).toEqual([])
   })
 
   it("write outline-hidden only under a focus state", () => {
-    expect(BLOCKS.flatMap((folder) => scanOutlines(folder))).toEqual([])
+    expect(scanOutlines(SRC)).toEqual([])
   })
 
   it("set text on the type scale: five steps, 13 px at least, weights 400, 600 and 700", () => {
-    expect(BLOCKS.flatMap((folder) => scanTypeScale(folder))).toEqual([])
+    expect(scanTypeScale(SRC)).toEqual([])
   })
 })

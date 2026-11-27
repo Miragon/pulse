@@ -102,6 +102,7 @@ describe("status", () => {
         ],
         incidents: [],
         rootIncidentsTotal: 0,
+        outsideAnyProcess: { count: 0, atLeast: false },
         incidentsTotal: 0,
         propagated: 0,
         externalTasks: [],

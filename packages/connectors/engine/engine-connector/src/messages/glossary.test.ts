@@ -10,6 +10,7 @@ import {
   type GlossaryRule,
 } from "@miragon/pulse-ui/testing"
 import { catalogs } from "./index.js"
+import { translator } from "./use-t.js"
 
 /** Each rule carries a probe it must catch, so a broken pattern fails instead of passing everything. */
 
@@ -155,6 +156,13 @@ describe("the count terms", () => {
     // A KPI tile names the same count spelled out, standing alone.
     ["engineHealth.colIncidents", COUNT_TERMS.incidents],
     ["engineHealth.kpiOpenIncidents", COUNT_TERMS.incidents.long],
+    [
+      "engineHealth.kpiOpenIncidentsInProcesses",
+      {
+        de: `${COUNT_TERMS.incidents.long.de} ${COUNT_TERMS.inProcesses.de}`,
+        en: `${COUNT_TERMS.incidents.long.en} ${COUNT_TERMS.inProcesses.en}`,
+      },
+    ],
     ["fleet.landscape.kpiIncidents", COUNT_TERMS.incidents.long],
     ["procIncKpi.openIncidents", COUNT_TERMS.incidents.long],
     ["procIncHeader.allVersions", COUNT_TERMS.allVersions],
@@ -162,6 +170,16 @@ describe("the count terms", () => {
   ])("%s", (key, term) => {
     expect(catalogs.de[key]).toBe(term.de)
     expect(catalogs.en[key]).toBe(term.en)
+  })
+
+  // An engine's row names its root incidents outside any process by their count term.
+  it("cockpit.landing.status.outside names the scope, its noun in its count's number", () => {
+    expect(translator("en", "cockpit.landing.status.outside", { count: "1" })).toBe(
+      `1 incident ${COUNT_TERMS.outsideAnyProcess.en}`,
+    )
+    expect(translator("de", "cockpit.landing.status.outside", { count: "2" })).toBe(
+      `2 Incidents ${COUNT_TERMS.outsideAnyProcess.de}`,
+    )
   })
 
   // A process view names the scope of all its counts once, in its bar (`procIncHeader.allVersions`

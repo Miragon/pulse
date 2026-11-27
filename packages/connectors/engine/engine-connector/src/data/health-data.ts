@@ -5,10 +5,8 @@ import {
   DEFAULT_VERDICT_THRESHOLDS,
   elementOfActivity,
   engineDateMillis,
-  engineVerdict,
   isRootIncident,
   latestEngineDate,
-  rootIncidentCounts,
   type VerdictThresholds,
 } from "@miragon/pulse-c7-core"
 import type { EngineHealthCluster, EngineHealthData } from "../view-models.js"
@@ -31,6 +29,7 @@ import {
   type NamesByDefinition,
 } from "./definition-info.js"
 import { DAY_MS } from "./engine-reads.js"
+import { scanVerdict } from "./scan-verdict.js"
 import { readStartedAndCompleted } from "./started-completed.js"
 
 const MAX_CLUSTERS = 6
@@ -220,7 +219,8 @@ async function readCauses(
  * counts are open ROOT incidents (owner decision D2, amended on 2026-11-19): the definition
  * statistics' (`rootIncidents=true`) summed over every process, and the scan's root incidents for the
  * clusters, the affected activities and the last hour. The verdict counts root incidents too (owner
- * decision of 2026-11-20): c7-core's `rootIncidentCounts` over the same statistics and scan.
+ * decision of 2026-11-20): c7-core's `rootIncidentCounts` over the same statistics and scan, whose
+ * root incidents outside any process the summary names apart (`scanVerdict`).
  */
 export async function buildEngineHealthData(
   client: Client,
@@ -244,16 +244,16 @@ export async function buildEngineHealthData(
   const { clusters, affectedActivities } = await readCauses(client, roots, coverage, statsByKey)
 
   // c7-core's verdict over the open root incidents, as engine_status judges: the processes' of
-  // the statistics and, of the scan, those outside any process and the largest cause over root
-  // incidents alone, lower bounds that never raise a false "critical". The verdict travels as
-  // data; each reader words it.
-  const status = engineVerdict(rootIncidentCounts(processes.totalIncidents, incidents), thresholds)
+  // the statistics and, of the scan, those outside any process (apart, a lower bound where it
+  // stops) and the largest cause, which never raise a false "critical". Each reader words it.
+  const { status, outsideAnyProcess } = scanVerdict(processes.totalIncidents, incidents, thresholds)
 
   return {
     status,
     statusRule: healthVerdictRule(thresholds),
     summary: {
       totalIncidents: processes.totalIncidents,
+      outsideAnyProcess,
       lastHourIncidents: rootsSince(roots, coverage, nowMs - HOUR_MS),
       affectedActivities,
       affectedDefinitions: processes.affectedDefinitions,

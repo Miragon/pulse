@@ -1,4 +1,4 @@
-import type { EngineStatus } from "@miragon/pulse-c7-core"
+import type { EngineStatus, OutsideAnyProcess } from "@miragon/pulse-c7-core"
 
 /** c7-core's live verdict (`engineVerdict`), the one `engine_status` gives too. */
 export type EngineHealthStatus = EngineStatus
@@ -50,6 +50,14 @@ export interface EngineHealthData {
   summary: {
     /** The open root incidents of every process (the definition statistics, `rootIncidents=true`). */
     totalIncidents: number
+    /**
+     * The open root incidents outside any process (a batch's or the history cleanup's failed job),
+     * which no process counts and `status` judges: a line of their own, never summed into
+     * `totalIncidents`; `atLeast` where the incident scan stops (`CLUSTER_SCAN_LIMIT`). Optional,
+     * since a view may meet a payload of a server before it (a rolling deploy, a stored result),
+     * which a reader takes as none.
+     */
+    outsideAnyProcess?: OutsideAnyProcess
     /**
      * Root incidents raised in the last hour, the "is it burning right now?" signal; null when the
      * scan does not reach back an hour (no count tells a root from a copy in a window).

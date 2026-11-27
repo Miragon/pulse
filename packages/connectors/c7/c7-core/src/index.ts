@@ -106,9 +106,11 @@ export {
   engineVerdict,
   type IncidentCauseKey,
   largestCause,
+  type OutsideAnyProcess,
   type RootIncidentCounts,
   rootIncidentCounts,
   type VerdictIncident,
+  type VerdictIncidents,
   type VerdictInput,
   type VerdictThresholds,
 } from "./verdict.js"

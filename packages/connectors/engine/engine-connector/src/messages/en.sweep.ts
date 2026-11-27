@@ -77,6 +77,8 @@ export const enSweep: MessageCatalog = {
   "engineHealth.kpiHealth": "Health",
   "engineHealth.kpiInLastHour": "({count} new in the last hour)",
   "engineHealth.kpiOpenIncidents": "Open incidents",
+  // The tile's label once the engine holds root incidents outside any process, a line of their own.
+  "engineHealth.kpiOpenIncidentsInProcesses": "Open incidents in processes",
   "engineHealth.kpiOpenIncidentsAria": "Show the incidents overview",
   "engineHealth.kpiRunningInstances": "Running instances",
   "engineHealth.kpiRunningInstancesAria": "Show all running instances",

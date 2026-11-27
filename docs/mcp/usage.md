@@ -99,9 +99,13 @@ assistant reads are English; it still answers you in your language.
 - An engine has one live verdict: the engine overview and `engine_status` rate it ok, warning or
   critical (by default critical at 50 open root incidents, never a call activity's copy, or 25 of
   one cause) and count one cause alike (activity, type, masked message); `engine_status` also judges
-  overdue jobs, workers and batches. Incident history, resolved ones included, answers "has this
-  activity failed before?". The overview's "Started and completed (24h)" reads the history: while
-  an instance runs, an engine that writes none (history level NONE) says so instead of 0 · 0.
+  overdue jobs, workers and batches. A root incident outside any process (a batch's or the history
+  cleanup's failed job) counts toward the verdict, never toward a process: the overview (its tile
+  then counting the incidents in processes), the landing, the cross-engine view, `engine_status`
+  (`outsideAnyProcess`) and the overview's result name it apart, a lower bound where the newest
+  2,000 incidents read stop. Incident history, resolved ones included, answers "has this activity
+  failed before?". The overview's "Started and completed (24h)" reads the history: while an
+  instance runs, an engine that writes none (history level NONE) says so instead of 0 · 0.
 - Camunda 7 copies an incident of a called instance to each call activity above it, without a
   message. "Incidents" are open root incidents on every view, as in the web app and Pulse for VS
   Code: a copy counts in the called process, never twice, and is no row of a process, an activity

@@ -29,6 +29,7 @@ import { AlarmCount, type CountAlarm } from "../lib/alarm-count.js"
 import { ENGINE_COCKPIT_OVERVIEW_DATA, ENGINE_JOB_BACKLOG_DATA } from "../../tool-names.js"
 import type { CockpitDashboardData, JobBacklogData } from "../../view-models.js"
 import { useEngineHealth } from "./engine-health.js"
+import { FleetRowWords } from "./engine-row-status.js"
 import { engineStatusKind, StatusMark } from "./engine-status.js"
 
 /**
@@ -208,11 +209,7 @@ function EngineRow({ engine: e, state, onEnter, t }: EngineRowProps) {
           {/* An engine id is short and one word ("prod-a"): never wrapped. */}
           <span className="font-semibold whitespace-nowrap">{e.engineId}</span>
           {/* The landing's words, which may wrap: the figures keep their room. */}
-          {state !== "read" && (
-            <span className="text-muted-foreground text-small">
-              {t(`cockpit.landing.status.${state}`)}
-            </span>
-          )}
+          <FleetRowWords engineId={e.engineId} state={state} t={t} />
         </span>
       </Td>
       <CountCell value={e.runningInstances} t={t} />

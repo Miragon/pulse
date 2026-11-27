@@ -373,8 +373,9 @@ engines run different processes, so a rate summed across them would measure thei
   not the engine's, a page's ended session, a quiet mark without a tone): its id, its product, its
   processes, running instances, instances with incident and open root incidents, each the figure
   its engine screen shows (its totals, its rows' incidents summed, a lower bound where the engine
-  stopped counting); a row without figures keeps its place, its state in words beside the id and a
-  dash per figure, why in the dash's title. The product, the processes and the running instances drop where
+  stopped counting), the last named "Incidents in processes" where a read row's `outside` (its
+  root incidents outside any process) holds one; a row without figures keeps its place, its state
+  in words beside the id and a dash per figure, why in the dash's title. The product, the processes and the running instances drop where
   a table that fits its region is narrower than 40rem. A row opens its engine and copies its id.
   With `withVerdict` the column State follows the engine: each engine's live state
   (`EngineVerdict` on a read row: the verdict the server decided, `ok`, `warning` or `critical`, a
@@ -394,6 +395,18 @@ engines run different processes, so a rate summed across them would measure thei
 The web app's start page renders both with its tables and id, its engine screen the badge; the
 editors show no engines side by side and no verdict, so their bundles leave the blocks and their
 words out.
+
+## Outside any process
+
+`OutsideAnyProcessNotice` is the line of an engine's open root incidents outside any process (a
+batch's or the history cleanup's failed job; `OutsideAnyProcessData`, `{ count, atLeast }`, as the
+server's verdict judged them): no process counts them, the engine's state does, so a surface shows
+them apart, never summed into its processes' incidents (owner decision of 2026-11-26). A strip in
+an open incident's tone (`SITUATION_TONES.openIncident`) names them, by their engine where a
+surface shows several (`engine`), a lower bound (`≥ n`) where the server's scan stopped, which it
+says; nothing without one, nor before the verdict answered. The chat's overview renders it under
+its bar as the web app's engine screen and start page do, so it is no screen block
+(`src/verdict/`) and keeps a catalog of its own.
 
 ## The slots of a board's tiles
 
@@ -454,9 +467,9 @@ and `unread`.
 
 ## Entries
 
-| Entry                   | Holds                                                                                                                                                                                                                                                                                                                               |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, `ScopeSegments`, an instance's and a process's blocks, `FindResults`, `FindHistoryNotice`, `EngineTable`, `EngineVerdictBadge`, `ProcessesByEngine`, `useFleetSums`, `JsonText` and the slots' types |
+| Entry                   | Holds                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@miragon/pulse-blocks` | `BoardGrid`, `BoardTile`, `ProblemList`, `useProblemWords`, `useNoteLines`, `ListFilterBar`, `ProcessTable`, `useProcessList`, `ScopeSegments`, an instance's and a process's blocks, `FindResults`, `FindHistoryNotice`, `EngineTable`, `EngineVerdictBadge`, `OutsideAnyProcessNotice`, `ProcessesByEngine`, `useFleetSums`, `JsonText` and the slots' types |
 
 ## Stability
 

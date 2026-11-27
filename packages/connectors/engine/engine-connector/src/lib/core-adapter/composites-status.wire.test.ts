@@ -64,6 +64,7 @@ describe("engineStatusForModel", () => {
     expect(triage).toMatchObject({
       status: "warning",
       rootIncidentsTotal: 12,
+      outsideAnyProcess: { count: 0, atLeast: false },
       incidentsTotal: 12,
       tasks: { open: 7 },
     })
@@ -204,8 +205,10 @@ describe("engineStatusForModel", () => {
       "critical: >=50 open root incidents or >=25 of one cause, executable jobs overdue (is the " +
         "job executor running?); warning: any open root incident (incident groups), topics " +
         "without a worker, topics with expired locks, failed batch jobs, keys not deployed; else " +
-        "ok. rootIncidentsTotal counts the open root incidents the status judges, incidentsTotal " +
-        "every open incident, propagated the copies on calling instances among those loaded; the " +
+        "ok. rootIncidentsTotal counts the open root incidents the status judges, " +
+        "outsideAnyProcess (the whole engine's) those of them outside any process, which no " +
+        "definition counts (atLeast where the incidents loaded were cut), incidentsTotal every " +
+        "open incident, propagated the copies on calling instances among those loaded; the " +
         "incident groups and definitions count root incidents.",
     )
   })

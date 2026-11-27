@@ -163,7 +163,11 @@ server image builds the page beside the server and serves it from `/app/web`.
   engine module's words and tones of a failed read (`healthFailureOf`, pulse-ui's
   `READ_FAILURE_TONES`), never the verdict read before it, its figures kept; a Camunda 8 cluster's a
   dash that says Pulse judges no state for it, since the server decides none; a page's ended session
-  a quiet dash. The page never decides a verdict;
+  a quiet dash. The page never decides a verdict; the root incidents outside any process a verdict
+  judged (the feed's `outsideAnyProcess`, `outsideOf`) show under the bar, one strip per engine
+  named by it (the blocks' `OutsideAnyProcessNotice`, `src/screens/start/start-outside.tsx`),
+  never summed into the table's incidents, which are its processes' and then say so (each row's
+  `outside`, the column "Incidents in processes");
   what runs where on the engines read where the server has more than one, once every engine settled
   (the blocks' `ProcessesByEngine`: each process's running instances per engine, its instances with
   incident over all of them, the note that engines run different processes so the view shows
@@ -222,7 +226,8 @@ server image builds the page beside the server and serves it from `/app/web`.
   state as the header's badge (the blocks' `EngineVerdictBadge` over the verdict feed, the start
   page's column State in a badge: its read apart once the numbers show, so its failure never hides
   them and a first load that fails says so once, in the screen's state, read again with the
-  screen's Refresh and on the reader's return); a Camunda 8 engine's shows none. It
+  screen's Refresh and on the reader's return), and under the bar the root incidents outside any
+  process that verdict judged (`OutsideAnyProcessNotice`); a Camunda 8 engine's shows none. It
   writes nothing. Its states are its own: a first load's skeleton after 400 ms, a
   failure in the kit's words (`describeError`) with Try again unless no retry changes it
   (`isPermanentError`: a refused profile, an engine whose dialect the server does not read), a

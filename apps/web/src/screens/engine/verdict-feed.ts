@@ -1,4 +1,4 @@
-import type { EngineVerdict } from "@miragon/pulse-blocks"
+import type { EngineVerdict, OutsideAnyProcessData } from "@miragon/pulse-blocks"
 import { healthFailureOf } from "@miragon/pulse-engine-connector/widgets"
 
 /**
@@ -6,7 +6,8 @@ import { healthFailureOf } from "@miragon/pulse-engine-connector/widgets"
  * `warning` or `critical`, c7-core's over its open root incidents by the server's thresholds,
  * an app-only read the page's forward admits (`test/page-reads.test.ts`). The page reads the
  * verdict and never decides one; the server reads it from the engine screen's list of processes,
- * whose read the two share.
+ * whose read the two share. Beside it the feed answers the root incidents outside any process the
+ * verdict judged, which the page shows as a line of their own (`outsideOf`).
  */
 export const ENGINE_VERDICT_FEED = "engine_screen_verdict_data"
 
@@ -30,6 +31,11 @@ export const engineVerdictKey = (engine: string): readonly unknown[] => [
 /** What the verdict feed answers. */
 export interface EngineVerdictFeed {
   readonly status: "ok" | "warning" | "critical"
+  /**
+   * The open root incidents outside any process it judged, `atLeast` where its scan stopped; none
+   * from a server before them (a rolling deploy), which the page takes as none.
+   */
+  readonly outsideAnyProcess?: OutsideAnyProcessData
 }
 
 /** What an engine's state takes of its verdict's read: TanStack's query result. */
@@ -53,4 +59,17 @@ export function verdictOf(query: VerdictQuery | undefined, shown: boolean): Engi
   if (query.data !== undefined) return query.data.status
   if (query.failureReason !== null) return healthFailureOf(query.failureReason) ?? "unread"
   return "loading"
+}
+
+/**
+ * The root incidents outside any process of the verdict an engine's state shows (`verdictOf`):
+ * none where it shows no verdict (none decided, a failed read, still reading), never a count of
+ * a read before.
+ */
+export function outsideOf(
+  query: VerdictQuery | undefined,
+  shown: boolean,
+): OutsideAnyProcessData | undefined {
+  if (!shown || query === undefined || query.error !== null) return undefined
+  return query.data?.outsideAnyProcess
 }

@@ -87,6 +87,7 @@ export function healthOf(args: Record<string, unknown>): EngineHealthData {
     statusRule: "ok without open incidents",
     summary: {
       totalIncidents: 0,
+      outsideAnyProcess: { count: 0, atLeast: false },
       lastHourIncidents: 0,
       affectedActivities: 0,
       affectedDefinitions: 0,

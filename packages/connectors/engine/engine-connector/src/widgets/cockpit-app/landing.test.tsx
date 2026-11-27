@@ -47,6 +47,9 @@ function overviewFeed(args: Record<string, unknown>) {
   }
 }
 
+/** The health feed of an ok engine, as much of it as the rows read. */
+const HEALTH_OK = { status: "ok", summary: { totalIncidents: 0 } }
+
 function renderLanding(
   onOpenFleet?: () => void,
   engines: Array<{ id: string; environment?: string }> = ENGINES,
@@ -257,7 +260,7 @@ describe("LandingChooser", () => {
             if (reads > 1) throw new Error("[503 ProcessEngineException] Busy (engine prod-b)")
             return overviewFeed(args)
           },
-          [ENGINE_HEALTH_DATA]: { status: "ok" },
+          [ENGINE_HEALTH_DATA]: HEALTH_OK,
         }}
         client={client}
       >
@@ -320,7 +323,7 @@ describe("LandingChooser", () => {
               if (reads > 1) throw ENDED()
               return overviewFeed(args)
             },
-            [ENGINE_HEALTH_DATA]: { status: "ok" },
+            [ENGINE_HEALTH_DATA]: HEALTH_OK,
           }}
           client={client}
           followUp="none"

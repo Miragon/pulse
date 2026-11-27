@@ -5,6 +5,17 @@ import { AlarmCount } from "./lib/alarm-count.js"
 import { useT } from "../messages/use-t.js"
 
 /**
+ * The open incidents' label: the processes' alone, which the tile counts, once the engine holds
+ * root incidents outside any process too, which the line under the bar counts apart (never summed
+ * into the tile: "0 open incidents in processes" beside "1 incident outside any process").
+ */
+function incidentsLabel(summary: EngineHealthData["summary"]) {
+  return (summary.outsideAnyProcess?.count ?? 0) > 0
+    ? "engineHealth.kpiOpenIncidentsInProcesses"
+    : "engineHealth.kpiOpenIncidents"
+}
+
+/**
  * Only open incidents carry a state; the other KPIs are neutral counts (#322 U14). The incidents
  * are open root incidents: a failure that runs through a chain of called instances counts once.
  */
@@ -31,7 +42,7 @@ export function HealthKpis({
           actionHint: t("engineHealth.kpiRunningInstancesAria"),
         },
         {
-          label: t("engineHealth.kpiOpenIncidents"),
+          label: t(incidentsLabel(summary)),
           // The derivative beats the absolute during an active incident: "9 new in the last hour"
           // = burning now; unknown (the scan does not reach back an hour) says nothing.
           value: (

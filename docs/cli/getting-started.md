@@ -116,8 +116,11 @@ fails from 50 open root incidents, 25 of one cause or overdue executable jobs (t
 whether the job executor is running). A root incident is a failure where it was raised: Camunda 7
 copies an incident of a called instance to each call activity above it, and the thresholds count
 no copy, so a chain of calls that one failure stops counts as one (`rootIncidentsTotal`, beside
-`incidentsTotal`, which counts every open incident). Either way the command exits with code 9
-(`CHECK_FAILED`).
+`incidentsTotal`, which counts every open incident). A root incident outside any process (a batch's
+or the history cleanup's failed job) counts too, yet no definition counts it: the status of the
+whole engine names those apart (`outsideAnyProcess`, `atLeast` where the newest 2,000 incidents
+loaded stop), and the table shows them on a row of their own. Either way the command exits with
+code 9 (`CHECK_FAILED`).
 
 ## Where next
 

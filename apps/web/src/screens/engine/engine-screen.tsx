@@ -2,6 +2,7 @@ import {
   EngineVerdictBadge,
   type EngineVerdict,
   ListFilterBar,
+  OutsideAnyProcessNotice,
   ProcessTable,
   useProcessList,
 } from "@miragon/pulse-blocks"
@@ -21,6 +22,7 @@ import {
   ENGINE_VERDICT_FEED,
   engineVerdictKey,
   type EngineVerdictFeed,
+  outsideOf,
   verdictOf,
 } from "./verdict-feed.js"
 
@@ -98,7 +100,8 @@ function EngineBar({
  * the verdict judges the numbers on screen, a first load that fails says so once (the screen's
  * state, never a second failure in the bar) and the server takes the root incidents from the
  * screen's own read; again when the reader comes back after 60 s and with the screen's Refresh
- * (`refetch`); none where the server decides none.
+ * (`refetch`); none where the server decides none. Beside it the root incidents outside any
+ * process that verdict judged (`outside`), which the screen shows as a line of their own.
  */
 function useVerdict(
   engine: string,
@@ -117,6 +120,7 @@ function useVerdict(
   useReadOnReturn(query, enabled)
   return {
     verdict: verdictOf(judged ? query : undefined, shown),
+    outside: outsideOf(judged ? query : undefined, shown),
     refetch: () => {
       if (enabled) void query.refetch()
     },
@@ -154,7 +158,9 @@ function IncidentsAtInstances() {
  * height and its list scrolls in its own region under its sticky head. A Camunda 7 engine's bar
  * shows its live state (`verdict`: the server's verdict over its open root incidents, read from the
  * verdict feed apart once the figures show, so its failure never hides them and a failed first load
- * shows no state, and with the screen's Refresh and on the reader's return); it writes nothing.
+ * shows no state, and with the screen's Refresh and on the reader's return), and under its bar the
+ * root incidents outside any process that verdict judged, which no process row counts; it writes
+ * nothing.
  * An engine whose dialect has no Incidents and Jobs on the page (`atInstances`: Camunda 8) says
  * where its incidents show; a Camunda 8 cluster it cannot read as set up (below the
  * version Pulse reads, without secondary storage) says so with the fix (`ScreenState`).
@@ -215,6 +221,7 @@ export function EngineScreen({
               onRefresh={ready ? refetch : undefined}
             />
             <RefreshNotice error={refreshError} onRetry={refetch} engine={engine} />
+            <OutsideAnyProcessNotice outside={judged.outside} />
             {atInstances && <IncidentsAtInstances />}
             {data !== undefined && (
               <ListFilterBar

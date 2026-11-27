@@ -93,6 +93,9 @@ async function boot(routes: FakeRoutes, env: Record<string, string> = {}) {
   return { engine, call }
 }
 
+/** None outside any process, read whole. */
+const NONE = { count: 0, atLeast: false }
+
 const paths = (engine: FakeEngine, path: string) =>
   engine.requests.filter((request) => request.path === path)
 
@@ -104,9 +107,12 @@ describe("the verdict feed", () => {
       ENGINE_HEALTH_CRITICAL_CLUSTER_SIZE: "2",
     })
     const verdict = feedPayload<EngineVerdictData>(await call(ENGINE_SCREEN_VERDICT_DATA))
-    expect(verdict).toEqual({ status: "warning" })
+    expect(verdict).toEqual({ status: "warning", outsideAnyProcess: NONE })
     expect(verdict.status).toBe(
-      engineVerdict(rootIncidentCounts(1, CHAIN), { criticalIncidents: 2, criticalClusterSize: 2 }),
+      engineVerdict(rootIncidentCounts(1, { items: CHAIN, truncated: false }), {
+        criticalIncidents: 2,
+        criticalClusterSize: 2,
+      }),
     )
     // The statistics with rootIncidents=true and the newest open incidents; no count of them all.
     expect(paths(engine, "/process-definition/statistics").map(({ query }) => query)).toEqual([
@@ -125,16 +131,22 @@ describe("the verdict feed", () => {
       "GET /process-definition/statistics": { body: [version("order", 25)] },
       "GET /incident": { body: many },
     })
-    expect(feedPayload(await call(ENGINE_SCREEN_VERDICT_DATA))).toEqual({ status: "critical" })
+    expect(feedPayload(await call(ENGINE_SCREEN_VERDICT_DATA))).toEqual({
+      status: "critical",
+      outsideAnyProcess: NONE,
+    })
   })
 
-  it("is ok without an open root incident, and adds one outside any process", async () => {
+  it("is ok without an open root incident, and adds one outside any process, named apart", async () => {
     const quiet = await boot({
       ...CHAIN_ROUTES,
       "GET /process-definition/statistics": { body: [version("order", 0)] },
       "GET /incident": { body: [] },
     })
-    expect(feedPayload(await quiet.call(ENGINE_SCREEN_VERDICT_DATA))).toEqual({ status: "ok" })
+    expect(feedPayload(await quiet.call(ENGINE_SCREEN_VERDICT_DATA))).toEqual({
+      status: "ok",
+      outsideAnyProcess: NONE,
+    })
     const cleanup = await boot({
       ...CHAIN_ROUTES,
       "GET /process-definition/statistics": { body: [version("order", 0)] },
@@ -142,6 +154,7 @@ describe("the verdict feed", () => {
     })
     expect(feedPayload(await cleanup.call(ENGINE_SCREEN_VERDICT_DATA))).toEqual({
       status: "warning",
+      outsideAnyProcess: { count: 1, atLeast: false },
     })
   })
 
@@ -174,7 +187,10 @@ describe("the verdict feed", () => {
       // The verdict read once its engine's screen answered, not beside it.
       const screen = feedPayload<{ info: unknown }>(await call(ENGINE_SCREEN_PROCESSES_DATA))
       expect(screen.info === null).toBe(routes !== CHAIN_ROUTES)
-      expect(feedPayload(await call(ENGINE_SCREEN_VERDICT_DATA))).toEqual({ status: "warning" })
+      expect(feedPayload(await call(ENGINE_SCREEN_VERDICT_DATA))).toEqual({
+        status: "warning",
+        outsideAnyProcess: NONE,
+      })
       expect(paths(engine, "/process-definition/statistics")).toHaveLength(1)
       expect(paths(engine, "/incident")).toHaveLength(1)
     },

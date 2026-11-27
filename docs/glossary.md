@@ -62,8 +62,10 @@ One word per count, and a word never names two counts. A count's header names it
 "all versions" for every version of a process, the version itself (v3) for one. The long form stands
 on a label away from the thing it counts, such as a key figure.
 
-| Count          | English       | German         | Long form                        | What it counts                                               |
-| -------------- | ------------- | -------------- | -------------------------------- | ------------------------------------------------------------ |
-| `incidents`    | Incidents     | Incidents      | Open incidents, Offene Incidents | the open root incidents of the thing shown                   |
-| `withIncident` | With incident | Mit Incident   |                                  | the instances that have an open incident                     |
-| `allVersions`  | all versions  | alle Versionen |                                  | the version scope of a count over every version of a process |
+| Count               | English             | German                  | Long form                        | What it counts                                                                                                                                                               |
+| ------------------- | ------------------- | ----------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `incidents`         | Incidents           | Incidents               | Open incidents, Offene Incidents | the open root incidents of the thing shown                                                                                                                                   |
+| `withIncident`      | With incident       | Mit Incident            |                                  | the instances that have an open incident                                                                                                                                     |
+| `allVersions`       | all versions        | alle Versionen          |                                  | the version scope of a count over every version of a process                                                                                                                 |
+| `inProcesses`       | in processes        | in Prozessen            |                                  | the scope of an engine's open root incidents its processes hold, beside those outside any process                                                                            |
+| `outsideAnyProcess` | outside any process | außerhalb von Prozessen |                                  | an engine's open root incidents no process holds (a batch's or the history cleanup's failed job), apart from those in processes, a lower bound where the incidents read stop |

@@ -21,7 +21,10 @@ export interface CountTerm extends Readonly<Record<GlossaryLanguage, string>> {
  * counts. A feature more than one surface shows shows the same numbers on every surface, from one
  * builder over one read. The surfaces may still read a different version scope (one version or
  * every one), so a count's version scope is always named in the header above it: "all versions"
- * for every version of a process, the version itself ("v3") for one.
+ * for every version of a process, the version itself ("v3") for one. An engine's open root
+ * incidents outside any process (a batch's or the history cleanup's failed job, which no process
+ * counts) are a count of their own beside those in processes, never summed into them (owner
+ * decision of 2026-11-26).
  */
 export const COUNT_TERMS = {
   incidents: {
@@ -39,5 +42,17 @@ export const COUNT_TERMS = {
     counts: "the version scope of a count over every version of a process",
     de: "alle Versionen",
     en: "all versions",
+  },
+  inProcesses: {
+    counts:
+      "the scope of an engine's open root incidents its processes hold, beside those outside any process",
+    de: "in Prozessen",
+    en: "in processes",
+  },
+  outsideAnyProcess: {
+    counts:
+      "an engine's open root incidents no process holds (a batch's or the history cleanup's failed job), apart from those in processes, a lower bound where the incidents read stop",
+    de: "außerhalb von Prozessen",
+    en: "outside any process",
   },
 } as const satisfies Readonly<Record<string, CountTerm>>

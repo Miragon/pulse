@@ -11,6 +11,7 @@ export const DEGRADED: EngineHealthData = {
   statusRule: RULE,
   summary: {
     totalIncidents: 51,
+    outsideAnyProcess: { count: 0, atLeast: false },
     lastHourIncidents: 9,
     affectedActivities: 3,
     affectedDefinitions: 2,
@@ -60,6 +61,7 @@ export const HEALTHY: EngineHealthData = {
   statusRule: RULE,
   summary: {
     totalIncidents: 0,
+    outsideAnyProcess: { count: 0, atLeast: false },
     lastHourIncidents: 0,
     affectedActivities: 0,
     affectedDefinitions: 0,

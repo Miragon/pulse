@@ -153,6 +153,9 @@ describe("incidentsAtThreshold", () => {
 })
 
 describe("rootIncidentCounts", () => {
+  /** Every open incident, read whole. */
+  const whole = (items: readonly VerdictIncident[]) => ({ items, truncated: false })
+
   /** A failed job raised at `activityId`, a root incident unless it copies `root`. */
   const raised = (
     id: string,
@@ -191,9 +194,10 @@ describe("rootIncidentCounts", () => {
 
   it("counts a chain of calls that one failure stops as that one failure", () => {
     // The statistics with rootIncidents=true count the label process's one root incident.
-    const counts = rootIncidentCounts(1, chain("f1", 4))
+    const counts = rootIncidentCounts(1, whole(chain("f1", 4)))
     expect(counts).toEqual({
       openRootIncidents: 1,
+      outsideAnyProcess: { count: 0, atLeast: false },
       largestCluster: 1,
       largestCause: causeKeyOf({
         activityId: "printLabel",
@@ -214,31 +218,60 @@ describe("rootIncidentCounts", () => {
       raised(name, `task-${name}`, `failed ${name}`),
       raised(`${name}-copy`, "callCheck", null, { root: name, processDefinitionId: "leasing:1:l" }),
     ])
-    const counts = rootIncidentCounts(4, incidents)
+    const counts = rootIncidentCounts(4, whole(incidents))
     expect(counts.largestCluster).toBe(1)
     expect(largestCause(incidents)?.count).toBe(4)
     expect(engineVerdict(counts, T)).toBe("warning")
   })
 
-  it("adds the root incidents outside any process, which no statistics row counts", () => {
-    const outside = [
-      raised("batch", "(batch)", "Migration failed", { processDefinitionId: null }),
-      raised("cleanup", "(cleanup)", "History cleanup failed", { processDefinitionId: "" }),
-      // A copy is never outside a process; one without its definition still counts as none.
-      raised("stray-copy", "call", null, { root: "batch", processDefinitionId: null }),
-    ]
-    expect(rootIncidentCounts(2, outside)).toMatchObject({
+  const outside = [
+    raised("batch", "(batch)", "Migration failed", { processDefinitionId: null }),
+    raised("cleanup", "(cleanup)", "History cleanup failed", { processDefinitionId: "" }),
+    // A copy is never outside a process; one without its definition still counts as none.
+    raised("stray-copy", "call", null, { root: "batch", processDefinitionId: null }),
+  ]
+
+  it("adds the root incidents outside any process, which no statistics row counts, and names them apart", () => {
+    expect(rootIncidentCounts(2, whole(outside))).toMatchObject({
       openRootIncidents: 4,
+      outsideAnyProcess: { count: 2, atLeast: false },
       largestCluster: 1,
     })
-    expect(rootIncidentCounts(0, [])).toEqual({ openRootIncidents: 0, largestCluster: 0 })
+    expect(rootIncidentCounts(0, whole([]))).toEqual({
+      openRootIncidents: 0,
+      outsideAnyProcess: { count: 0, atLeast: false },
+      largestCluster: 0,
+    })
+  })
+
+  it("counts those outside any process of a cut read as a lower bound, judged as a whole read", () => {
+    const cut = { items: outside, truncated: true }
+    expect(rootIncidentCounts(0, cut)).toMatchObject({
+      openRootIncidents: 2,
+      outsideAnyProcess: { count: 2, atLeast: true },
+    })
+    expect(rootIncidentCounts(0, { items: [], truncated: true }).outsideAnyProcess).toEqual({
+      count: 0,
+      atLeast: true,
+    })
+    // Degraded with no process's incident, as a whole read of the same incidents judges it.
+    expect(engineVerdict(rootIncidentCounts(0, cut), T)).toBe("warning")
+    expect(engineVerdict(rootIncidentCounts(0, whole(outside)), T)).toBe("warning")
   })
 
   it("reads an incident without a rootCauseIncidentId as a root, as c7-core's rule decides", () => {
-    const counts = rootIncidentCounts(0, [
-      { activityId: "a", incidentType: "failedJob", incidentMessage: "x" },
-      { activityId: "a", incidentType: "failedJob", incidentMessage: "x", processDefinitionId: 7 },
-    ])
+    const counts = rootIncidentCounts(
+      0,
+      whole([
+        { activityId: "a", incidentType: "failedJob", incidentMessage: "x" },
+        {
+          activityId: "a",
+          incidentType: "failedJob",
+          incidentMessage: "x",
+          processDefinitionId: 7,
+        },
+      ]),
+    )
     expect(counts).toMatchObject({ openRootIncidents: 2, largestCluster: 2 })
   })
 })

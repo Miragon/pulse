@@ -17,7 +17,8 @@
  *   engine holds, so its own job fails until its retries are used up: an incident without
  *   element, instance or version, and nothing a board counts changes. The engine-wide incident
  *   search answers as before, and the recorded board builds its engine-wide incident list with
- *   the same figures.
+ *   the same figures. The statistics never count it; `engine_status`, the chat's overview and the
+ *   web app's verdict feed judge it and name it apart (outside-process.test-support.ts).
  */
 
 import { BoardParser } from "@miragon/pulse-board"
@@ -34,6 +35,10 @@ import { buildProcessScreenData } from "../../data/screens/process-screen-data.j
 import type { ResolvedEngine } from "../engine/resolve-engine.js"
 import { recordedBoard } from "./compared-boards.test-support.js"
 import { expectInstanceScreensOnElement } from "./instance-body.test-support.js"
+import {
+  expectOutsideAnyProcessOnEverySurface,
+  processRoots,
+} from "./outside-process.test-support.js"
 
 /** The seeded engine a case runs on: its REST root, the contract's runtime, the board resolver. */
 export interface ContractSuite {
@@ -291,9 +296,10 @@ async function failedBatchIncident(url: string, batch: BatchAnswer): Promise<Inc
 async function incidentOutsideAnyProcess(suite: ContractSuite): Promise<void> {
   const { url, runtime, resolve } = suite
   const board = recordedBoard(C7_BOARD_ENGINE)
-  const [before, boardBefore] = await Promise.all([
+  const [before, boardBefore, rootsBefore] = await Promise.all([
     runtime.searchIncidents({}, { limit: 50 }),
     buildBoardData(board, resolve),
+    processRoots(url),
   ])
   const batch = await call<BatchAnswer>(`${url}/job/retries`, "POST", {
     jobIds: [UNKNOWN_JOB],
@@ -317,6 +323,7 @@ async function incidentOutsideAnyProcess(suite: ContractSuite): Promise<void> {
       .flatMap((tile) => (tile.kind === "incidentList" ? tile.groups : []))
     expect(groups.map((group) => group.incidents !== undefined)).toEqual([true])
     expect(BoardFigures.of(boardAfter)).toEqual(BoardFigures.of(boardBefore))
+    await expectOutsideAnyProcessOnEverySurface(url, resolve, rootsBefore)
   } finally {
     await call(`${url}/batch/${batch.id}?cascade=true`, "DELETE")
   }
@@ -331,7 +338,7 @@ export const CONTRACT_CASES: ReadonlyArray<
     multiInstanceBodyOnItsElement,
   ],
   [
-    "contract: an incident outside any process fails no engine-wide incident search, nor the board's list",
+    "contract: an incident outside any process fails no engine-wide incident search, nor the board's list, and every verdict names it apart",
     incidentOutsideAnyProcess,
   ],
 ]

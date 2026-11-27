@@ -246,7 +246,9 @@ describe("causes from root incidents alone", () => {
     const data = await buildEngineHealthData(client, "eng1", T)
 
     expect(data.status).toBe("warning")
-    expect(data.status).toBe(engineVerdict(rootIncidentCounts(2, rows), T))
+    expect(data.status).toBe(
+      engineVerdict(rootIncidentCounts(2, { items: rows, truncated: false }), T),
+    )
     expect(engineVerdict({ openRootIncidents: 4, largestCluster: 2 }, T)).toBe("critical")
   })
 

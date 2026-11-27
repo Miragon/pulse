@@ -12,6 +12,7 @@ import type { StatusView } from "./status-command.js"
 import type { InstanceView } from "./types.js"
 import {
   formatElapsed,
+  type HeaderRow,
   headerBlock,
   instanceLines,
   nextBlock,
@@ -90,6 +91,30 @@ export function deployText(view: DeployView, maxWidth: number): string {
   return text([...header, ...table, ...instanceBlock(view.instance, maxWidth)])
 }
 
+/** The root incidents outside any process, a row of their own; none without one. */
+function outsideRow(outside: StatusView["outsideAnyProcess"]): string | undefined {
+  if (outside === undefined || outside.count === 0) return undefined
+  const noun = outside.count === 1 ? "incident" : "incidents"
+  return `${outside.atLeast ? "at least " : ""}${outside.count} root ${noun}`
+}
+
+/**
+ * Every open incident, the root ones and the copies; the root incidents outside any process (a
+ * batch's or the history cleanup's failed job), which no definition counts, on a row of their own,
+ * never summed into the processes' root incidents, which their row then names as such.
+ */
+function incidentRows(view: StatusView): HeaderRow[] {
+  const outside = view.outsideAnyProcess?.count ?? 0
+  const root =
+    outside === 0
+      ? `${view.rootIncidentsTotal} root`
+      : `${view.rootIncidentsTotal - outside} root in processes`
+  return [
+    ["Incidents", `${view.incidentsTotal} open, ${root}, ${view.propagated} propagated`],
+    ["Outside any process", outsideRow(view.outsideAnyProcess)],
+  ]
+}
+
 function statusLines(view: StatusView): string[] {
   const { jobs, tasks, batches } = view
   const overdue =
@@ -105,10 +130,7 @@ function statusLines(view: StatusView): string[] {
         ? undefined
         : `${batches.running} running, ${batches.withFailures} with failures`,
     ],
-    [
-      "Incidents",
-      `${view.incidentsTotal} open, ${view.rootIncidentsTotal} root, ${view.propagated} propagated`,
-    ],
+    ...incidentRows(view),
     ["Truncated", view.truncated?.join("; ")],
   ])
 }
