@@ -141,7 +141,7 @@ function runningTree(): Routes {
       parseExact(
         '{"total":{"type":"Long","value":9007199254740993},"doc":{"type":"Json","value":"{}"}}',
       ),
-    getHistoricActivityInstances: () => [
+    queryHistoricActivityInstances: () => [
       { activityId: "call", startTime: SINCE, calledProcessInstanceId: "c1", canceled: true },
     ],
     getExternalTaskErrorDetails: () => "Boom\n\tat Worker\n",
@@ -155,7 +155,7 @@ function inspect(routes: Routes, id = "p1") {
 }
 
 function pathReads(calls: readonly { operationId: string; input: OperationInput }[]) {
-  return calls.filter((call) => call.operationId === "getHistoricActivityInstances")
+  return calls.filter((call) => call.operationId === "queryHistoricActivityInstances")
 }
 
 describe("InstanceInspection over the instance view's rounds", () => {
@@ -214,26 +214,28 @@ describe("InstanceInspection over the instance view's rounds", () => {
     ])
   })
 
-  it("reads the path once, in parallel, whole and in BPMN order, and no historic incident", async () => {
+  it("reads the path once, in parallel, whole and in the history's one order, and no historic incident", async () => {
     const { port, view } = inspect(runningTree())
     await view
 
     expect(pathReads(port.calls).map((call) => call.input)).toStrictEqual([
       {
         pathArgs: [],
-        query: {
+        query: { firstResult: "0", maxResults: "500" },
+        body: {
           processInstanceId: "p1",
-          sortBy: "occurrence",
-          sortOrder: "asc",
-          firstResult: "0",
-          maxResults: "500",
+          sorting: [
+            { sortBy: "startTime", sortOrder: "asc" },
+            { sortBy: "occurrence", sortOrder: "asc" },
+            { sortBy: "activityInstanceId", sortOrder: "asc" },
+          ],
         },
       },
     ])
     expect(port.calls.slice(0, 3).map((call) => call.operationId)).toStrictEqual([
       "getProcessInstance",
       "getHistoricProcessInstance",
-      "getHistoricActivityInstances",
+      "queryHistoricActivityInstances",
     ])
   })
 
@@ -271,7 +273,7 @@ describe("InstanceInspection over the instance view's rounds", () => {
   it("fails on a live instance whose path could not be read", async () => {
     const routes = {
       ...runningTree(),
-      getHistoricActivityInstances: () => {
+      queryHistoricActivityInstances: () => {
         throw fakeFailure(500, "ProcessEngineException")
       },
     }
@@ -283,7 +285,7 @@ describe("InstanceInspection over the instance view's rounds", () => {
     ["activityId", { startTime: SINCE }],
     ["startTime", { activityId: "call" }],
   ])("fails as an unexpected answer when a step of the path has no %s", async (field, step) => {
-    const routes = { ...runningTree(), getHistoricActivityInstances: () => [step] }
+    const routes = { ...runningTree(), queryHistoricActivityInstances: () => [step] }
     const failure = await inspect(routes).view.catch((error: unknown) => error)
 
     expect(failure).toBeInstanceOf(RuntimeError)
@@ -291,7 +293,7 @@ describe("InstanceInspection over the instance view's rounds", () => {
   })
 
   it("fails as an unexpected answer on a step that is no object", async () => {
-    const routes = { ...runningTree(), getHistoricActivityInstances: () => ["call"] }
+    const routes = { ...runningTree(), queryHistoricActivityInstances: () => ["call"] }
 
     await expect(inspect(routes).view).rejects.toMatchObject({
       failure: "unexpectedResponse",
@@ -352,7 +354,7 @@ describe("InstanceInspection of the tree", () => {
       getExternalTasks: () => [],
       getJobDefinitions: () => [],
       getProcessDefinitions: () => [{ id: ORDER, key: "order", version: 2 }],
-      getHistoricActivityInstances: () => [],
+      queryHistoricActivityInstances: () => [],
     }).view
 
     expect(view?.waitingAt).toEqual([

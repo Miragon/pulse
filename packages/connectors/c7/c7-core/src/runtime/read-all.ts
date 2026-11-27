@@ -16,18 +16,21 @@ function pathOf(operationId: string): string {
 
 /**
  * Every row `operationId` lists for `query`: pages of 500 (`firstResult`, then `maxResults`,
- * after the query's own values) until a page holds fewer.
+ * after the query's own values) until a page holds fewer. A `body` (the query of a POST, its
+ * order a total one so no page repeats or skips a row) goes with every page as it is.
  */
 export async function readAll(
   port: EnginePort,
   operationId: string,
   query: Query,
+  body?: unknown,
 ): Promise<unknown[]> {
   const rows: unknown[] = []
   for (;;) {
     const page: unknown = await port.json(operationId, {
       pathArgs: [],
       query: pageQuery(query, rows.length, PAGE_SIZE),
+      ...(body === undefined ? {} : { body }),
     })
     if (!Array.isArray(page)) {
       throw new RuntimeError("unexpectedResponse", `${pathOf(operationId)} is not a list`)

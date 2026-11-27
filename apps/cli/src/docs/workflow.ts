@@ -74,12 +74,12 @@ export const WORKFLOW_DOCS: readonly WorkflowDoc[] = [
     description:
       "Shows where a process instance waits and why in one call: its wait states (user tasks, external tasks, messages, timers, jobs, ...) across the called instances below it, the open root incidents with their root cause, the called instances and the variables. Finds ended instances through the history; --history adds the timeline.",
     requests:
-      "the selection (GET /history/process-instance and GET /process-instance, filters only), GET /process-instance/{id} and GET /history/process-instance/{id}, the tree of called instances (GET /process-instance?superProcessInstance=, one round per level), per instance its activity instances, incidents and event subscriptions, once the tasks, external tasks, jobs, process definitions and job definitions of the tree, the variables, with --history the activity and incident history, and the root causes (job stacktraces, external task error details)",
+      "the selection (GET /history/process-instance and GET /process-instance, filters only), GET /process-instance/{id} and GET /history/process-instance/{id}, the tree of called instances (GET /process-instance?superProcessInstance=, one round per level), per instance its activity instances, incidents and event subscriptions, once the tasks, external tasks, jobs, process definitions and job definitions of the tree, the variables, with --history the activity history (POST /history/activity-instance, by start, occurrence and id) and the incident history, and the root causes (job stacktraces, external task error details)",
     effect: "read",
     arguments: [INSTANCE_ARGUMENT],
     options: INSPECT_OPTIONS,
     calls: calls(SELECTION_CALLS, VIEW_CALLS, [
-      "getHistoricActivityInstances",
+      "queryHistoricActivityInstances",
       "getHistoricIncidents",
     ]),
     examples: [

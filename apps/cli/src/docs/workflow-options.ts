@@ -109,7 +109,7 @@ export const INSPECT_OPTIONS: readonly OptionDoc[] = [
   option(
     "history",
     "presence",
-    "Add the timeline: activities in BPMN order with their incidents, from the history",
+    "Add the timeline: activities by start, then occurrence, then id, each once, with their incidents, from the history",
   ),
   option("stacktrace", "presence", "Add the stacktrace (at most 200 lines) to each incident"),
 ]

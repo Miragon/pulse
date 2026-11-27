@@ -1,7 +1,8 @@
 /**
  * The inspection of an instance for its detail: `loadInstance`'s rounds (with variables and stack
  * traces, without history) and, in parallel, the path the history recorded, read whole
- * (`GET /history/activity-instance` in BPMN order, each step checked for where and when it ran).
+ * (`POST /history/activity-instance` in the history's one total order, `INSTANCE_HISTORY_ORDER`,
+ * so no page boundary repeats or skips a step, each step checked for where and when it ran).
  * The history option of `loadInstance` would read every historic incident of the instance on each
  * live refresh too, so the path is read here. The path of an instance that no longer runs is read
  * once more after the rounds, so one that ended during them shows its whole path. The view
@@ -13,6 +14,7 @@ import { isWorkflowError } from "../errors.js"
 import { type InspectOptions, loadInstance } from "../inspect.js"
 import type { EnginePort } from "../port.js"
 import { records } from "../records.js"
+import { instanceHistoryQuery } from "../sorting.js"
 import { timelineOf } from "../timeline.js"
 import type { DefinitionView, InstanceView, TimelineEntry } from "../types.js"
 import { JsonView } from "../json-view.js"
@@ -80,11 +82,12 @@ export class InstanceInspection implements Inspection {
   }
 
   private async pathOf(id: string): Promise<TimelineEntry[]> {
-    const rows = await readAll(this.port, "getHistoricActivityInstances", {
-      processInstanceId: id,
-      sortBy: "occurrence",
-      sortOrder: "asc",
-    })
+    const rows = await readAll(
+      this.port,
+      "queryHistoricActivityInstances",
+      {},
+      instanceHistoryQuery(id),
+    )
     for (const step of JsonView.listOf(rows, "activity instance")) {
       step.requiredString("activityId")
       step.requiredString("startTime")

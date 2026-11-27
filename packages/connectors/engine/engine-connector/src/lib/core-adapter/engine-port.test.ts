@@ -158,11 +158,12 @@ describe("the runtime's reading POSTs", () => {
       },
     )
 
-  it("are the history's instance query, its count and its variables and the migration pair", () => {
+  it("are the history's instance query, its count, its variables and an instance's path, and the migration pair", () => {
     expect(posts).toEqual([
       "queryHistoricProcessInstances",
       "queryHistoricProcessInstancesCount",
       "queryHistoricVariableInstances",
+      "queryHistoricActivityInstances",
       "generateMigrationPlan",
       "validateMigrationPlan",
     ])

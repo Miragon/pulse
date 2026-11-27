@@ -251,7 +251,7 @@ exports[`workflow command describe > describes the options of inspect 1`] = `
       "type": "boolean",
     },
     {
-      "description": "Add the timeline: activities in BPMN order with their incidents, from the history",
+      "description": "Add the timeline: activities by start, then occurrence, then id, each once, with their incidents, from the history",
       "flag": "--history",
       "required": false,
       "type": "boolean",
@@ -983,29 +983,29 @@ OPTIONS
                                   started instance
   --latest                        Take the most recently started instance that matches the filters
   --no-variables                  Leave out the variables of the instance view (and their request)
-  --history                       Add the timeline: activities in BPMN order with their incidents,
-                                  from the history
+  --history                       Add the timeline: activities by start, then occurrence, then id,
+                                  each once, with their incidents, from the history
   --stacktrace                    Add the stacktrace (at most 200 lines) to each incident
 
 REQUESTS
-  getHistoricProcessInstances   pulse historic-process-instance list
-  getProcessInstances           pulse process-instance list
-  getProcessInstance            pulse process-instance get
-  getHistoricProcessInstance    pulse historic-process-instance get
-  getHistoricVariableInstances  pulse historic-variable-instance list
-  getActivityInstanceTree       pulse process-instance get-activity-instance-tree
-  getIncidents                  pulse incident list
-  getEventSubscriptions         pulse event-subscription list
-  getTasks                      pulse task list
-  getExternalTasks              pulse external-task list
-  getJobs                       pulse job list
-  getProcessDefinitions         pulse process-definition list
-  getJobDefinitions             pulse job-definition list
-  getProcessInstanceVariables   pulse process-instance get-variables
-  getStacktrace                 pulse job get-stacktrace
-  getExternalTaskErrorDetails   pulse external-task get-error-details
-  getHistoricActivityInstances  pulse historic-activity-instance list
-  getHistoricIncidents          pulse historic-incident list
+  getHistoricProcessInstances     pulse historic-process-instance list
+  getProcessInstances             pulse process-instance list
+  getProcessInstance              pulse process-instance get
+  getHistoricProcessInstance      pulse historic-process-instance get
+  getHistoricVariableInstances    pulse historic-variable-instance list
+  getActivityInstanceTree         pulse process-instance get-activity-instance-tree
+  getIncidents                    pulse incident list
+  getEventSubscriptions           pulse event-subscription list
+  getTasks                        pulse task list
+  getExternalTasks                pulse external-task list
+  getJobs                         pulse job list
+  getProcessDefinitions           pulse process-definition list
+  getJobDefinitions               pulse job-definition list
+  getProcessInstanceVariables     pulse process-instance get-variables
+  getStacktrace                   pulse job get-stacktrace
+  getExternalTaskErrorDetails     pulse external-task get-error-details
+  queryHistoricActivityInstances  pulse historic-activity-instance query
+  getHistoricIncidents            pulse historic-incident list
 
 EXAMPLES
   pulse inspect $INSTANCE_ID
@@ -1081,8 +1081,8 @@ exports[`workflow command describe text > renders the description of inspect 2`]
     "operationId": "getExternalTaskErrorDetails",
   },
   {
-    "command": "historic-activity-instance list",
-    "operationId": "getHistoricActivityInstances",
+    "command": "historic-activity-instance query",
+    "operationId": "queryHistoricActivityInstances",
   },
   {
     "command": "historic-incident list",

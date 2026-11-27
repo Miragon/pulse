@@ -51,6 +51,9 @@ const ROUTES: Readonly<Record<string, EngineReply>> = {
 
 export const inspectWorld: EngineAnswer = (request) => {
   const path = new URL(request.target, "http://engine").pathname.replace(/^\/engine-rest/, "")
+  if (request.method === "POST" && path === "/history/activity-instance") {
+    return { body: [] }
+  }
   if (request.method !== "GET") {
     return undefined
   }

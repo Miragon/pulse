@@ -11,6 +11,7 @@ import { providerForEntry } from "../../providers/index.js"
 import type { EngineDialect } from "../../view-models.js"
 import { PROFILE_REFUSED, profileRefusalText } from "../shared/profile-refusal.js"
 import type { EngineLink } from "./cockpit-url.js"
+import { isReadingPost } from "./engine-connection.js"
 
 /** A configured engine of the Camunda 7 REST API: its address and provider, its client and its write gate. */
 interface C7Backend extends EngineLink {
@@ -287,7 +288,10 @@ function c7BackendFor(
   return { engineId, backend }
 }
 
-/** The Camunda 7 engine `engineId` as a call resolves it: its client bound to the caller's signal. */
+/**
+ * The Camunda 7 engine `engineId` as a call resolves it: its client bound to the caller's signal,
+ * its reads (a POST that only reads, by the route table, included) aborting with it.
+ */
 function resolvedC7(
   engineId: string,
   backend: C7Backend,
@@ -298,7 +302,7 @@ function resolvedC7(
     baseUrl,
     cockpitUrl,
     provider,
-    client: withCallerSignal(backend.client, call?.mcpReq?.signal),
+    client: withCallerSignal(backend.client, call?.mcpReq?.signal, isReadingPost),
     engineId,
   }
 }

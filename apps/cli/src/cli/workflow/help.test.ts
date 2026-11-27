@@ -36,7 +36,8 @@ describe("workflow command help", () => {
       /process-instance?superProcessInstance=, one round per level), per instance its
       activity instances, incidents and event subscriptions, once the tasks, external
       tasks, jobs, process definitions and job definitions of the tree, the variables,
-      with --history the activity and incident history, and the root causes (job
+      with --history the activity history (POST /history/activity-instance, by start,
+      occurrence and id) and the incident history, and the root causes (job
       stacktraces, external task error details).
 
       Effect: read
@@ -54,8 +55,9 @@ describe("workflow command help", () => {
                                         matches the filters
         --no-variables                  Leave out the variables of the instance view
                                         (and their request)
-        --history                       Add the timeline: activities in BPMN order
-                                        with their incidents, from the history
+        --history                       Add the timeline: activities by start, then
+                                        occurrence, then id, each once, with their
+                                        incidents, from the history
         --stacktrace                    Add the stacktrace (at most 200 lines) to each
                                         incident
 

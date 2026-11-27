@@ -202,7 +202,10 @@ export interface InstanceData {
   readonly jobDefinitions: readonly Rec[]
   /** The variable map of the process scope; absent unless variables were asked for. */
   readonly variables?: Rec
-  /** Historic activity instances in BPMN order; only when the history was asked for. */
+  /**
+   * Historic activity instances by start, then occurrence, then id (`INSTANCE_HISTORY_ORDER`), each
+   * once; only when the history was asked for.
+   */
   readonly timeline?: readonly Rec[]
   readonly historicIncidents?: readonly Rec[]
   /** Root causes by incident id. */

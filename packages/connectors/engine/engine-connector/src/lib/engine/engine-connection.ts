@@ -39,6 +39,15 @@ export function intentOfRequest(root: string, request: Request): Intent {
   return intentOf(route, request.method)
 }
 
+/**
+ * Whether a POST of the SDK only reads, by its path template (`/history/activity-instance`) and the
+ * route the generated table holds for it: a query with a body, which the caller's cancellation
+ * aborts as it aborts a GET (`withCallerSignal`).
+ */
+export function isReadingPost(url: string): boolean {
+  return intentOf(routeOf(ROUTES, "POST", url), "POST") === "read"
+}
+
 /** Why a path value cannot be sent, for the model: the value is "", "." or "..", never more. */
 function pathValueError(value: string, ctx: EngineErrorContext): EngineRequestError | undefined {
   const problem = pathValueProblem(value)

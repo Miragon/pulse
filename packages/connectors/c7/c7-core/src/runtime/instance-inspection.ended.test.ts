@@ -34,14 +34,16 @@ function inspect(routes: Routes, id = "p1") {
 }
 
 function pathReads(calls: readonly { operationId: string; input: OperationInput }[]) {
-  return calls.filter((call) => call.operationId === "getHistoricActivityInstances")
+  return calls.filter((call) => call.operationId === "queryHistoricActivityInstances")
 }
 
 describe("InstanceInspection of an instance that is not running", () => {
   it("is undefined for an instance neither the runtime nor the history knows", async () => {
     const routes = { getProcessInstance: missing, getHistoricProcessInstance: missing }
 
-    expect(await inspect({ ...routes, getHistoricActivityInstances: missing }).view).toBeUndefined()
+    expect(
+      await inspect({ ...routes, queryHistoricActivityInstances: missing }).view,
+    ).toBeUndefined()
   })
 
   it("reads an ended instance from its history alone, its path once more after the rounds", async () => {
@@ -55,7 +57,7 @@ describe("InstanceInspection of an instance that is not running", () => {
           { name: "local", type: "String", value: "x", activityInstanceId: "task:1" },
         ],
         getProcessDefinitions: () => [{ id: ORDER, key: "order", version: 1 }],
-        getHistoricActivityInstances: () => [],
+        queryHistoricActivityInstances: () => [],
       },
       "e1",
     )
@@ -78,7 +80,7 @@ describe("InstanceInspection of an instance that is not running", () => {
       getProcessInstance: missing,
       getHistoricProcessInstance: () => history("p1", { state: "COMPLETED" }),
       getHistoricVariableInstances: () => [],
-      getHistoricActivityInstances: () => {
+      queryHistoricActivityInstances: () => {
         pathRead += 1
         if (pathRead === 1) throw fakeFailure(500, "ProcessEngineException")
         return [{ activityId: "end", startTime: LATER }]
@@ -98,7 +100,7 @@ describe("InstanceInspection of an instance that is not running", () => {
       getProcessDefinitions: () => [{ id: ORDER, key: "order", version: 4 }],
       ...emptyLists(),
       getJobDefinitions: () => [],
-      getHistoricActivityInstances: () => [],
+      queryHistoricActivityInstances: () => [],
     })
 
     expect(await view).toMatchObject({
@@ -129,7 +131,7 @@ describe("InstanceInspection of an instance that ends while it is read", () => {
         throw fakeFailure(500, "NullValueException")
       },
       getHistoricVariableInstances: () => [],
-      getHistoricActivityInstances: path,
+      queryHistoricActivityInstances: path,
     }
   }
 

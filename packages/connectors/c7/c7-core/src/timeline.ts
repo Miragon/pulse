@@ -1,6 +1,7 @@
 /**
  * The history timeline of an instance: its historic activity instances in the
- * order of the history (BPMN order), each with the historic incidents of its activity. Pure.
+ * order of the history (`INSTANCE_HISTORY_ORDER`: by start, occurrence and id), each with the
+ * historic incidents of its activity. Pure.
  */
 
 import { compact } from "./util.js"

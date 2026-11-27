@@ -18,6 +18,7 @@ describe("the @miragon/pulse-c7-core entries", () => {
       "DEFAULT_VERDICT_THRESHOLDS",
       "ENGINE_DATE_INPUT_FORMS",
       "EXECUTABLE",
+      "INSTANCE_HISTORY_ORDER",
       "MAX_STACKTRACE_LINES",
       "MESSAGE_SIGNATURE_LENGTH",
       "OFFSET_REQUIRED",

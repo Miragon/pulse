@@ -255,14 +255,17 @@ const DETAIL_ROUTES: readonly RestRoute[] = [
   ]),
   detailRoute("/job-definition", []),
   detailRoute("/process-instance/p1/variables", { route: { type: "String", value: "x" } }),
-  detailRoute("/history/activity-instance", [
-    {
-      activityId: "call",
-      activityType: "callActivity",
-      startTime: DETAIL_SINCE,
-      calledProcessInstanceId: "c1",
-    },
-  ]),
+  {
+    route: "POST /history/activity-instance",
+    answer: [
+      {
+        activityId: "call",
+        activityType: "callActivity",
+        startTime: DETAIL_SINCE,
+        calledProcessInstanceId: "c1",
+      },
+    ],
+  },
   detailRoute(
     "/job/j1/stacktrace",
     new Response("org.x.PrinterException: offline\n\tat org.x.Printer.print(Printer.java:7)\n"),
@@ -701,25 +704,29 @@ describe("the C7 runtime over recorded engine answers", () => {
     expect(routesOf(engine)).toHaveLength(DETAIL_ROUTES.length + 2)
   })
 
-  test("reads an instance's detail in one round of four reads, then the history of a called instance", async () => {
+  test("reads an instance's detail in one round of four reads in any order, then the history of a called instance", async () => {
     const { runtime, engine } = fakeRuntime(DETAIL_ROUTES)
 
     await runtime.getInstanceDetail(InstanceId("p1"))
 
-    const [timeline, variables] = engine.requests.slice(2, 4)
+    const round = engine.requests.slice(0, 4)
+    const timeline = round.find(({ route }) => route === "POST /history/activity-instance")
+    const variables = round.find(({ route }) => route === "GET /variable-instance")
     const history = engine.requests.at(-1)
-    expect(routesOf(engine).slice(0, 4)).toEqual([
-      "GET /process-instance/p1",
+    expect(routesOf(engine).slice(0, 4).sort()).toEqual([
       "GET /history/process-instance/p1",
-      "GET /history/activity-instance",
+      "GET /process-instance/p1",
       "GET /variable-instance",
+      "POST /history/activity-instance",
     ])
-    expect(timeline?.query).toEqual({
+    expect(timeline?.query).toEqual({ firstResult: "0", maxResults: "500" })
+    expect(JSON.parse(timeline?.body ?? "")).toEqual({
       processInstanceId: "p1",
-      sortBy: "occurrence",
-      sortOrder: "asc",
-      firstResult: "0",
-      maxResults: "500",
+      sorting: [
+        { sortBy: "startTime", sortOrder: "asc" },
+        { sortBy: "occurrence", sortOrder: "asc" },
+        { sortBy: "activityInstanceId", sortOrder: "asc" },
+      ],
     })
     expect(Object.entries(variables?.query ?? {})).toEqual([
       ["processInstanceIdIn", "p1"],

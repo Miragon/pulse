@@ -51,6 +51,20 @@ describe("readAll", () => {
     ])
   })
 
+  it("sends a body with every page as it is, and none without one", async () => {
+    const answers = [rows(500), rows(1, 500)]
+    const port = fakePort({ queryHistoricActivityInstances: () => answers.shift() })
+    const body = { processInstanceId: "p1", sorting: [{ sortBy: "startTime", sortOrder: "asc" }] }
+    expect(await readAll(port, "queryHistoricActivityInstances", {}, body)).toEqual(rows(501))
+    expect(port.calls.map((call) => call.input)).toEqual([
+      { pathArgs: [], query: { firstResult: "0", maxResults: "500" }, body },
+      { pathArgs: [], query: { firstResult: "500", maxResults: "500" }, body },
+    ])
+    const bodiless = pagedPort([])
+    await readAll(bodiless, "getIncidents", {})
+    expect(bodiless.calls[0]?.input).not.toHaveProperty("body")
+  })
+
   it("reads one more page after a full one, even when it is empty", async () => {
     const port = pagedPort(rows(500), [])
     expect(await readAll(port, "getIncidents", {})).toHaveLength(500)

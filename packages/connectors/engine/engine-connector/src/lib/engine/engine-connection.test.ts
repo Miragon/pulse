@@ -6,7 +6,12 @@ import { type Client, withCallerSignal } from "@miragon/pulse-c7-client"
 import { getProcessInstanceVariables } from "@miragon/pulse-c7-client/sdk"
 import { runWithMcpRequestInfo } from "@miragon/pulse-widget-shell/server"
 import type { EngineAuth } from "../../engine-provider.js"
-import { createEngineConnection, intentOfRequest, pathUnder } from "./engine-connection.js"
+import {
+  createEngineConnection,
+  intentOfRequest,
+  isReadingPost,
+  pathUnder,
+} from "./engine-connection.js"
 import { EngineRequestError } from "./engine-error.js"
 import {
   hang,
@@ -252,6 +257,14 @@ describe("the intent of an SDK request", () => {
     expect(intentOfRequest(root, new Request("http://other.example/job", { method: "POST" }))).toBe(
       "write",
     )
+  })
+
+  it("tells a reading POST by its path template, as the SDK names it, for the caller's cancellation", () => {
+    expect(isReadingPost("/history/activity-instance")).toBe(true)
+    expect(isReadingPost("/history/process-instance/count")).toBe(true)
+    expect(isReadingPost("/process-instance/{id}/modification")).toBe(false)
+    expect(isReadingPost("/process-definition/{id}/start")).toBe(false)
+    expect(isReadingPost("/no-such-route")).toBe(false)
   })
 
   it("takes the path below the root, the root at an origin's path included", () => {
