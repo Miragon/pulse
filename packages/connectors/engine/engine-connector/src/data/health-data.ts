@@ -25,7 +25,7 @@ import {
   definitionKeyResolver,
   elementNameIn,
   fetchNamesByDefinition,
-  fetchStatsByKey,
+  fetchStatsRead,
   processNameIn,
   type KeyStats,
   type NamesByDefinition,
@@ -231,9 +231,10 @@ export async function buildEngineHealthData(
   // be a tool error, never a confident "ok" verdict. The day's started and completed instances
   // are enrichment, since history level "none" is a healthy engine. Totals come from
   // statistics; the capped scan feeds the clusters and the verdict's lower bounds.
-  const [incidents, statsByKey, day] = await Promise.all([
+  // The statistics are this caller's floored read (`fetchStatsRead`), whose time `fetchedAt` names.
+  const [incidents, { statsByKey, readAt }, day] = await Promise.all([
     scanOpenIncidents(client),
-    fetchStatsByKey(client, {}),
+    fetchStatsRead(client),
     readStartedAndCompleted(client, Date.now() - DAY_MS),
   ])
   const nowMs = Date.now()
@@ -263,7 +264,7 @@ export async function buildEngineHealthData(
       historyRecorded: day.historyRecorded,
     },
     clusters,
-    fetchedAt: new Date(nowMs).toISOString(),
+    fetchedAt: new Date(readAt).toISOString(),
     engineId,
   }
 }

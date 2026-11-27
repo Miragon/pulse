@@ -51,7 +51,7 @@ export async function buildCockpitDashboardData(
   client: Client,
   engineId: string,
 ): Promise<CockpitDashboardData> {
-  const statsByKey = await fetchStatsByKey(client, { failedJobs: true })
+  const statsByKey = await fetchStatsByKey(client)
 
   const definitions: DefinitionStat[] = [...statsByKey.entries()].map(([key, stats]) => ({
     id: stats.latest.id,

@@ -359,12 +359,14 @@ describe("buildProcessInstancesData: totals and page-scoped incident flags (#335
 
     const data = await buildProcessInstancesData(client, "engine-a", {})
 
-    // No key lookup, only the page's names, ONE read over its versions (#322 U13).
+    // No key lookup, only the page's names, ONE read over its versions (#322 U13), and the bare
+    // id the statistics do not list read by its id once more for its key.
     expect(calls(engine, "/process-definition").map((r) => r.query)).toEqual([
       { processDefinitionIdIn: "K1:7:dep,legacy-id", maxResults: "2" },
+      { processDefinitionIdIn: "legacy-id", maxResults: "1" },
     ])
     expect(data.instances.map((i) => i.processDefinitionName)).toEqual(["Order", "Order", null])
-    // Only p3's bare id needs the statistics; they do not list it: null, not "legacy-id".
+    // Only p3's bare id needs the statistics; neither read names its key: null, not "legacy-id".
     expect(calls(engine, "/process-definition/statistics")).toHaveLength(1)
     expect(data.instances.map((i) => i.processDefinitionKey)).toEqual(["K1", "K1", null])
     expect(data.processDefinitionKey).toBeNull()

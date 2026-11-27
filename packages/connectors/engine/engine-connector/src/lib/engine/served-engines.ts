@@ -10,6 +10,7 @@ import {
   EngineReadOnlyError,
   type EngineRegistry,
 } from "./resolve-engine.js"
+import { dropAfterWrite, engineClientKey } from "./per-engine.js"
 import { engineParamShape, engineParamShapeFor } from "./with-engine.js"
 
 /**
@@ -140,12 +141,23 @@ function engineArg(args: unknown): string | undefined {
 }
 
 /**
+ * After a write that answered, on the engine it went to: the floors a write changes
+ * (`dropOnWrite`: the definition statistics and the health) drop that engine's entries for every
+ * caller, so the views the write invalidates count anew (`dropAfterWrite`).
+ */
+function afterWrite(registry: EngineRegistry, engineId: string): void {
+  const backend = registry.backends.get(engineId)
+  if (backend?.dialect === "c7") dropAfterWrite(engineClientKey(backend.client))
+}
+
+/**
  * Every registrar tool by its mark: registered only where a configured engine serves it (a write
  * only where one is writable), the `engine` placeholder's enum the engines it offers, and the
  * call-time net (`engineServing`) before the handler of every tool that goes to an engine, by an
- * `engine` field of any shape or as a write, so the net never hangs on the placeholder. A read
- * without an `engine` field (the engine list, which reads none) keeps its config as it is; a tool
- * with its own `engine` field keeps that field.
+ * `engine` field of any shape or as a write, so the net never hangs on the placeholder; after a
+ * write that answered, its engine's floors that a write changes go (`afterWrite`). A read without
+ * an `engine` field (the engine list, which reads none) keeps its config as it is; a tool with its
+ * own `engine` field keeps that field.
  */
 export function withServedEngines(
   register: ToolRegistrar<EngineRegistry>,
@@ -169,8 +181,10 @@ export function withServedEngines(
       ...config,
       ...offered,
       handler: async (reg, args, ctx) => {
-        engineServing(engineArg(args), reg, mark)
-        return await handler(reg, args, ctx)
+        const engineId = engineServing(engineArg(args), reg, mark)
+        const result = await handler(reg, args, ctx)
+        if (mark.write === true) afterWrite(reg, engineId)
+        return result
       },
     })
   }

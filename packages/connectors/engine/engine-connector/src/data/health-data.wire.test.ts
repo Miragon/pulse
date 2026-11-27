@@ -104,7 +104,7 @@ describe("buildEngineHealthData: exact totals", () => {
     expect(engine.requests.filter((r) => r.path === "/incident/count")).toEqual([])
     expect(data.status).toBe("warning")
     const statistics = engine.requests.filter((r) => r.path === "/process-definition/statistics")
-    expect(statistics.map((r) => r.query)).toEqual([{ rootIncidents: "true" }])
+    expect(statistics.map((r) => r.query)).toEqual([{ failedJobs: "true", rootIncidents: "true" }])
     // N71: the cluster's latest incident by instant, not by string.
     expect(data.clusters[0].latestIncident).toBe(AFTER_FALL_BACK)
   })

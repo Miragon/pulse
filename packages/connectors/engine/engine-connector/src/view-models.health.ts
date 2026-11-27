@@ -73,7 +73,10 @@ export interface EngineHealthData {
     historyRecorded: boolean | null
   }
   clusters: EngineHealthCluster[]
-  /** When this snapshot was computed (ISO), rendered as "as of …" for ops trust. */
+  /**
+   * When the statistics it counts were read (ISO), the oldest of its reads, since the server keeps
+   * them per caller for 30 seconds: rendered as "as of …" for ops trust.
+   */
   fetchedAt: string
   engineId: string
 }

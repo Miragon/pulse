@@ -1,3 +1,6 @@
+import type { Client } from "@miragon/pulse-c7-client"
+import { partMissed } from "./answer-parts.js"
+
 /** A `/…/count` reply's number; a reply without one is a REST contract breach, not a 0. */
 export function countOf(res: unknown): number {
   const count = (res as { count?: unknown } | null)?.count
@@ -15,9 +18,16 @@ export function rowsOf<T>(res: unknown): T[] {
   return res as T[]
 }
 
-/** An ENRICHMENT read: its failure degrades to `null` (rendered "—"), never to an empty value. */
-export function optional<T>(read: Promise<T>): Promise<T | null> {
-  return read.catch(() => null)
+/**
+ * An ENRICHMENT read: its failure degrades to `null` (rendered "—"), never to an empty value. Read
+ * over a floor's build (`client`, the view `withPartsWatched` hands it), the failure tells the
+ * build its answer misses that part (`partMissed`), so no floor keeps it.
+ */
+export function optional<T>(read: Promise<T>, client?: Client): Promise<T | null> {
+  return read.catch((error: unknown) => {
+    if (client !== undefined) partMissed(client, error)
+    return null
+  })
 }
 
 /** The scan feeds enrichment, never a total: totals come from `/count` and statistics. */

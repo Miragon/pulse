@@ -19,7 +19,7 @@ import {
   type DefinitionVersion,
   fetchDefinitionVersions,
   fetchDefinitionXml,
-  fetchStatsByKey,
+  fetchStatsRead,
   unknownKeyError,
 } from "./definition-info.js"
 import { countOf, DAY_MS, rowsOf } from "./engine-reads.js"
@@ -415,7 +415,7 @@ async function readProcessStats(
       client,
       query: { processDefinitionKey: key, ...filter },
     }).then(countOf)
-  const [versions, running, withIncident, failedJobs, openTasks, statsByKey, ...history] =
+  const [versions, running, withIncident, failedJobs, openTasks, statistics, ...history] =
     await Promise.all([
       // Primary: an unknown key is a not-found error, never a view of zeros.
       fetchDefinitionVersions(client, key),
@@ -423,7 +423,7 @@ async function readProcessStats(
       countWithIncident(enginePortFor(client), { processDefinitionKey: key }),
       countFailedJobs(client, key),
       getTasksCount({ client, query: { processDefinitionKey: key } }).then(countOf),
-      fetchStatsByKey(client, {}),
+      fetchStatsRead(client),
       count(startedIn(whole)),
       count(endedIn(whole)),
       count(startedIn(day)),
@@ -460,7 +460,7 @@ async function readProcessStats(
     engine: engineId,
     processDefinitionKey: key,
     processDefinitionName: latest.name ?? bpmnProcessNameOf(readBpmnNames(latestXml ?? ""), key),
-    asOf: iso(nowMs),
+    asOf: iso(Math.min(nowMs, statistics.readAt)),
     versions: {
       count: versions.length,
       latestVersion: latest.version,
@@ -468,7 +468,7 @@ async function readProcessStats(
     },
     now: {
       running,
-      incidents: statsByKey.get(key)?.incidentCount ?? 0,
+      incidents: statistics.statsByKey.get(key)?.incidentCount ?? 0,
       withIncident,
       failedJobs,
       openTasks,

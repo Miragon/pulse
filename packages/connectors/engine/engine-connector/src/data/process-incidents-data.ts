@@ -13,7 +13,7 @@ import { bpmnActivityIds } from "../lib/bpmn/bpmn-parse.js"
 import {
   fetchDefinitionXml,
   fetchLatestDefinition,
-  fetchStatsByKey,
+  fetchStatsRead,
   nameUnnamedDefinitions,
   type KeyStats,
 } from "./definition-info.js"
@@ -66,14 +66,15 @@ export async function buildProcessIncidentsData(
   const key = options.processDefinitionKey
   const nowMs = Date.now()
   const byKey = { processDefinitionKeyIn: key }
-  const [definition, runningInstances, failedJobs, statsByKey, scan] = await Promise.all([
-    // Primary: an unknown key is a not-found error, never a view of zeros.
-    fetchLatestDefinition(client, key),
-    countRunningInstances(client, key),
-    countFailedJobs(client, key),
-    fetchStatsByKey(client, {}),
-    scanIncidents(client, byKey),
-  ])
+  const [definition, runningInstances, failedJobs, { statsByKey, readAt }, scan] =
+    await Promise.all([
+      // Primary: an unknown key is a not-found error, never a view of zeros.
+      fetchLatestDefinition(client, key),
+      countRunningInstances(client, key),
+      countFailedJobs(client, key),
+      fetchStatsRead(client),
+      scanIncidents(client, byKey),
+    ])
 
   const stats = statsByKey.get(key)
   const incidentCount = stats?.incidentCount ?? 0
@@ -111,7 +112,8 @@ export async function buildProcessIncidentsData(
     latestIncident: latestEngineDate(roots.map((r) => r.incidentTimestamp)),
     activities,
     siblingsWithIncidents,
-    fetchedAt: new Date(nowMs).toISOString(),
+    // The older read's time: the statistics may answer from this caller's floor (30 s).
+    fetchedAt: new Date(Math.min(nowMs, readAt)).toISOString(),
     engineVendor: options.provider.branding.displayName,
   }
 }

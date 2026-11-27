@@ -111,6 +111,7 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
     const scanQuery = requests.find((r) => r.path === "/incident")?.query
     expect(scanQuery).toEqual({ maxResults: "200", sortBy: "incidentTimestamp", sortOrder: "desc" })
     expect(requests.find((r) => r.path === "/process-definition/statistics")?.query).toEqual({
+      failedJobs: "true",
       rootIncidents: "true",
     })
     // The total is the cards' sum: no /count, which counts a call activity's copies too.
@@ -234,6 +235,7 @@ describe("buildIncidentsDashboardData: exact cards beyond the scan (#335 N61)", 
     expect(requests.find((r) => r.path === "/incident")?.query).toMatchObject(filter)
     // `rootIncidents=true` takes no type of its own (nor `incidentsForType` beside it).
     expect(requests.find((r) => r.path === "/process-definition/statistics")?.query).toEqual({
+      failedJobs: "true",
       rootIncidents: "true",
     })
   })

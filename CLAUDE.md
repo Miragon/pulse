@@ -526,10 +526,13 @@ for every workspace package.
      board's numbers degrade per engine and tile instead of failing the call
      (`data/honest-numbers.degrade.test.ts`).
    - **Expensive reads have floors.** What loads the engine's database (the screen feeds, a
-     board's build, the cockpit's element counts, a process's numbers of `engine_process_stats`
-     and `engine_activity_counts` over the cockpit's builders) is kept 30 s per caller and
-     arguments (`callerCacheKey`, so a renewed token reads anew), never an answer that misses a
-     part. The process flow's "Throughput" reads a 30-day window cut to the shortest
+     board's build, the cockpit's element counts, the engine-wide definition statistics each view
+     folds per call (`data/statistics-floor.ts`) with the chat's health on them, both dropped for
+     every caller by a write tool on their engine (`dropOnWrite`), a process's numbers of
+     `engine_process_stats` and `engine_activity_counts` over the cockpit's builders) is kept 30 s
+     per caller and arguments (`callerCacheKey`, so a renewed token reads anew), never an answer
+     that misses a part; a view on the floored statistics names that read's time in its bar (the
+     older of its reads). The process flow's "Throughput" reads a 30-day window cut to the shortest
      `historyTimeToLive`, one read at a time per engine (`oneAtATime`), outside the cockpit's
      Refresh; `engine_process_stats` counts per bucket by `/count`, a bucket older than that time
      to live as a lower bound, every history count unknown where the engine writes no history.

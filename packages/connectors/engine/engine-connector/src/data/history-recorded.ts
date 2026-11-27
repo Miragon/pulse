@@ -9,11 +9,12 @@ import { optional, rowsOf } from "./engine-reads.js"
  */
 export async function recordsHistory(client: Client): Promise<boolean | null> {
   const [running, open] = await Promise.all([
-    optional(getProcessInstances({ client, query: { maxResults: 1 } }).then(rowsOf)),
+    optional(getProcessInstances({ client, query: { maxResults: 1 } }).then(rowsOf), client),
     optional(
       getHistoricProcessInstances({ client, query: { unfinished: true, maxResults: 1 } }).then(
         rowsOf,
       ),
+      client,
     ),
   ])
   if (running === null || open === null) return null

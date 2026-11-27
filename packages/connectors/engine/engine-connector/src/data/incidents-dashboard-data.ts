@@ -12,7 +12,7 @@ import {
   definitionKeyResolver,
   elementNameIn,
   fetchNamesByDefinition,
-  fetchStatsByKey,
+  fetchStatsRead,
   nameUnnamedDefinitions,
   unknownKeyError,
   type KeyStats,
@@ -39,14 +39,14 @@ export async function buildIncidentsDashboardData(
   client: Client,
   options: IncidentsDashboardOptions,
 ): Promise<IncidentsDashboardData> {
-  const fetchedAt = new Date().toISOString()
+  const startedAt = Date.now()
   const filter = {
     processDefinitionKeyIn: options.processDefinitionKey,
     incidentType: options.incidentType,
   }
-  const [scan, statsByKey] = await Promise.all([
+  const [scan, { statsByKey, readAt }] = await Promise.all([
     scanIncidents(client, filter),
-    fetchStatsByKey(client, { incidentType: options.incidentType }),
+    fetchStatsRead(client, { incidentType: options.incidentType }),
   ])
 
   if (options.processDefinitionKey !== undefined && !statsByKey.has(options.processDefinitionKey)) {
@@ -94,7 +94,8 @@ export async function buildIncidentsDashboardData(
       processDefinitionKey: options.processDefinitionKey,
       incidentType: options.incidentType,
     },
-    fetchedAt,
+    // The older read's time: the statistics may answer from this caller's floor (30 s).
+    fetchedAt: new Date(Math.min(startedAt, readAt)).toISOString(),
     engineVendor: options.provider.branding.displayName,
   }
 }
