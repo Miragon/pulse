@@ -31,6 +31,7 @@ import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { engineModule } from "../../module.js"
 import { ENGINE_SCREEN_INCIDENT_TEXT_DATA, ENGINE_SCREEN_INSTANCE_DATA } from "../../tool-names.js"
 import { feedPayload } from "../../tools/test-support/feed-payload.js"
+import { definitionSearches, LATEST_LABEL } from "./definition-searches.test-support.js"
 import type { IncidentTextFeedData } from "./incident-text-data.js"
 import type { InstanceScreenFeedData } from "./instance-screen-data.js"
 
@@ -280,6 +281,16 @@ describe.each([
     }
     expect(result.isError).toBe(true)
     expect(result.content[0]?.text).toMatch(/^\[UNKNOWN_INCIDENT\]/)
+  })
+})
+
+describe("the instance screen feed over c8-core's recorded screen engine", () => {
+  it("reads the latest version of the process DSP-3001 calls by its id, never every process", async () => {
+    const { engine, call } = await boot(RECORDED_C8, RECORDED_C8.screen.answers)
+
+    await readInstance(call, expectedOf(RECORDED_C8, "instance").instance.id)
+
+    expect(definitionSearches(engine)).toEqual([LATEST_LABEL])
   })
 })
 

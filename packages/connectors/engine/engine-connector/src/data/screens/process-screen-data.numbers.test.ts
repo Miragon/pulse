@@ -30,6 +30,7 @@ import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { engineModule } from "../../module.js"
 import { ENGINE_SCREEN_INSTANCES_DATA, ENGINE_SCREEN_PROCESS_DATA } from "../../tool-names.js"
 import { feedPayload } from "../../tools/test-support/feed-payload.js"
+import { definitionSearches, LATEST_LABEL } from "./definition-searches.test-support.js"
 import type { ProcessScreenFeedData } from "./process-screen-data.js"
 import { SCREEN_FLOOR_MS } from "./screen-floor.js"
 
@@ -281,13 +282,6 @@ describe.each([
   })
 })
 
-/** The filters of the process definition searches a Camunda 8 cluster saw, in code unit order. */
-const definitionSearches = (engine: RecordedEngine) =>
-  engine.seen
-    .filter(({ target }) => target === "/v2/process-definitions/search")
-    .map(({ body }) => JSON.stringify((JSON.parse(body) as { filter: unknown }).filter))
-    .sort()
-
 describe("the process screen's feeds over c8-core's recorded screen engine", () => {
   it("read the latest versions of the processes a version calls by their ids, never every process", async () => {
     const { engine, call } = await boot(RECORDED_C8)
@@ -296,7 +290,7 @@ describe("the process screen's feeds over c8-core's recorded screen engine", () 
 
     expect(definitionSearches(engine)).toEqual([
       '{"processDefinitionId":"pulse-dispatch"}',
-      '{"processDefinitionId":{"$in":["pulse-label"]},"isLatestVersion":true}',
+      LATEST_LABEL,
     ])
   })
 })
