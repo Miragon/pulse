@@ -50,7 +50,7 @@ function incidentsOf(rows: readonly object[]): Route {
 function searchOver(rows: readonly object[]) {
   const port = fakePort({
     getIncidents: incidentsOf(rows),
-    getProcessDefinitionStatistics: () => [{ definition: ORDER_1, instances: 1 }],
+    getProcessDefinitions: () => [ORDER_1],
   })
   return new IncidentSearch(port, new DefinitionReader(port))
 }

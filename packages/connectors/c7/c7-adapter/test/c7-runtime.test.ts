@@ -9,6 +9,7 @@ import {
 } from "@miragon/pulse-engine-core"
 import { describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
+import { definitionsNamed } from "./support/definitions-route.js"
 import { fakeRuntime } from "./support/fake-engine.js"
 import {
   engineFailure,
@@ -729,7 +730,10 @@ describe("the C7 runtime over recorded engine answers", () => {
   })
 
   test("lists root incidents only, newest first, each with the version it was raised in", async () => {
-    const { runtime, engine } = fakeRuntime([ROUTE.allIncidents, ROUTE.definitionStatistics])
+    const { runtime, engine } = fakeRuntime([
+      ROUTE.allIncidents,
+      definitionsNamed("processDefinitionIdIn", [WORLD_IDS.order1, WORLD_IDS.label1]),
+    ])
 
     const page = await runtime.searchIncidents({}, { limit: 50 })
 
@@ -782,7 +786,7 @@ describe("the C7 runtime over recorded engine answers", () => {
         route: "GET /incident",
         answer: [rowOf("external", "failedExternalTask"), rowOf("custom", "invoiceMismatch")],
       },
-      ROUTE.definitionStatistics,
+      definitionsNamed("processDefinitionIdIn", [WORLD_IDS.order1]),
     ])
 
     const page = await runtime.searchIncidents({}, { limit: 50 })
@@ -812,7 +816,7 @@ describe("the C7 runtime over recorded engine answers", () => {
           rowOf("no-job", "failedJob", null),
         ],
       },
-      ROUTE.definitionStatistics,
+      definitionsNamed("processDefinitionIdIn", [WORLD_IDS.order1]),
     ])
 
     const page = await runtime.searchIncidents({}, { limit: 50 })

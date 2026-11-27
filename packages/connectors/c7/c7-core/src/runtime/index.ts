@@ -38,3 +38,4 @@ export {
 } from "./historic-instances.js"
 export { JsonView } from "../json-view.js"
 export type { OffsetWindow } from "./offset-paging.js"
+export type { WithIncidentCounting, WithIncidentPath } from "./with-incident-per-version.js"

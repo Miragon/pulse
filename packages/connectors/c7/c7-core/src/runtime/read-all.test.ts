@@ -2,7 +2,7 @@ import { RuntimeError } from "@miragon/pulse-engine-core"
 import { describe, expect, it } from "vitest"
 import { fakeFailure, fakePort } from "../testing/fake-port.js"
 import type { OperationInput } from "../port.js"
-import { readAll } from "./read-all.js"
+import { readAll, readFrom, readPage } from "./read-all.js"
 
 const rows = (count: number, from = 0) =>
   Array.from({ length: count }, (_, index) => ({ id: `i${String(from + index)}` }))
@@ -110,5 +110,41 @@ describe("readAll", () => {
       },
     })
     await expect(readAll(port, "getIncidents", {})).rejects.toBe(failure)
+  })
+})
+
+describe("readPage", () => {
+  it("reads one page in its window, even a full one, with the body as it is", async () => {
+    const port = pagedPort(rows(2))
+    const read = { operationId: "getIncidents", query: { sortBy: "id" }, body: { a: 1 } }
+    expect(await readPage(port, read, { firstResult: 4, maxResults: 2 })).toEqual(rows(2))
+    expect(port.calls.map((call) => call.input)).toEqual([
+      {
+        pathArgs: [],
+        query: { sortBy: "id", firstResult: "4", maxResults: "2" },
+        body: { a: 1 },
+      },
+    ])
+  })
+
+  it("fails an answer that is no list", async () => {
+    const read = { operationId: "getIncidents", query: {} }
+    await expect(
+      readPage(pagedPort({}), read, { firstResult: 0, maxResults: 2 }),
+    ).rejects.toMatchObject({ failure: "unexpectedResponse", message: "/incident is not a list" })
+  })
+})
+
+describe("readFrom", () => {
+  it("reads on from a row in pages of the window's size until one holds fewer", async () => {
+    const port = pagedPort(rows(2, 2), rows(2, 4), rows(1, 6))
+    const read = { operationId: "getIncidents", query: {} }
+    expect(await readFrom(port, read, { firstResult: 2, maxResults: 2 })).toEqual(rows(5, 2))
+    expect(port.calls.map((call) => queryOf(call.input))).toEqual([
+      { firstResult: "2", maxResults: "2" },
+      { firstResult: "4", maxResults: "2" },
+      { firstResult: "6", maxResults: "2" },
+    ])
+    expect(port.calls[0]?.input).not.toHaveProperty("body")
   })
 })

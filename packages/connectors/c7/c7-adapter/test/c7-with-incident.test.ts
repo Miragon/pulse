@@ -106,6 +106,67 @@ describe("with incident in the C7 adapter: an open incident the runtime holds no
     })
   })
 
+  describe("past a full page of a process's instances with an incident, one count of them", () => {
+    const statistics = JSON.parse(fixture("definition-statistics.json")) as {
+      readonly definition: { readonly key: string }
+    }[]
+    const order = statistics.filter((row) => row.definition.key === "pulse-order")
+    const order2 = "pulse-order:2:63bcbc19-cd7f-11f1-86d2-667bc3771e0d"
+    const listed = (from: string) => (url: URL) =>
+      url.searchParams.get("withIncident") === "true" &&
+      url.searchParams.get("firstResult") === from
+    const page = Array.from({ length: 500 }, (_, at) => ({
+      id: `p${String(at).padStart(4, "0")}`,
+      definitionId: WORLD_IDS.order1,
+    }))
+    const counted = (scope: string, id: string | null, count: number): RestRoute => ({
+      route: "GET /process-instance/count",
+      when: (url) =>
+        url.searchParams.get("withIncident") === "true" &&
+        url.searchParams.get("processDefinitionKey") === (id === null ? scope : null) &&
+        url.searchParams.get("processDefinitionId") === id,
+      answer: { count },
+    })
+
+    test.each([
+      [
+        "counts each running version on its own where they are fewer than the pages left",
+        1501,
+        [counted("", WORLD_IDS.order1, 1501), counted("", order2, 0)],
+        [undefined, "500", undefined, undefined, undefined],
+      ],
+      [
+        "reads the page left where it is as few as the running versions",
+        501,
+        [
+          {
+            route: "GET /process-instance",
+            when: listed("500"),
+            answer: [{ id: "p0500", definitionId: WORLD_IDS.order1 }],
+          },
+        ],
+        [undefined, "500", undefined, "500"],
+      ],
+    ] as const)("%s", async (_name, count, routes, maxResults) => {
+      const { runtime, engine } = fakeRuntime([
+        { route: "GET /process-definition/statistics", answer: order },
+        { route: "GET /process-instance", when: listed("0"), answer: page },
+        counted("pulse-order", null, count),
+        ...routes,
+      ])
+
+      const versions = await runtime.listVersions(BpmnProcessId("pulse-order"))
+
+      expect(versions.map((version) => [version.definition.version, version.withIncident])).toEqual(
+        [
+          [2, 0],
+          [1, count],
+        ],
+      )
+      expect(engine.requests.map((request) => request.query.maxResults)).toEqual(maxResults)
+    })
+  })
+
   test("asks the runtime nothing for a page of ended instances", async () => {
     const ended = rowsOf("historic-instances-order.json").filter(
       (row) => row.businessKey === "ORD-1003",

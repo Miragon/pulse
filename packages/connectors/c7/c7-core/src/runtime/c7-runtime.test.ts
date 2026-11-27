@@ -183,9 +183,7 @@ describe("C7Runtime", () => {
           rootCauseIncidentId: "i9",
         },
       ],
-      getProcessDefinitionStatistics: () => [
-        { definition: { id: "label:1:l", key: "label", version: 1 }, instances: 0 },
-      ],
+      getProcessDefinitions: () => [{ id: "label:1:l", key: "label", version: 1 }],
     })
     const asked: string[] = []
     const runtime = C7Runtime.over(port, {
@@ -228,7 +226,6 @@ describe("C7Runtime", () => {
           incidentTimestamp: "2026-11-21T12:00:00.000+0000",
         },
       ],
-      getProcessDefinitionStatistics: () => [],
     })
     const runtime = C7Runtime.over(port, {
       failureOf: (error) => {
@@ -249,6 +246,51 @@ describe("C7Runtime", () => {
     ])
     expect(seen).toStrictEqual([failed, failed])
   })
+
+  it.each([
+    [
+      undefined,
+      [["getProcessInstancesCount", { withIncident: "true", processDefinitionId: "order:1:x" }]],
+    ],
+    [
+      "listing",
+      [
+        ["getProcessInstances", expect.objectContaining({ firstResult: "1", maxResults: "1" })],
+        ["getProcessInstances", expect.objectContaining({ firstResult: "2", maxResults: "1" })],
+      ],
+    ],
+  ] as const)(
+    "counts with incident per version by withIncidentCounting, past a page of one by the path %s",
+    async (path, past) => {
+      const definition = { id: "order:1:x", key: "order", version: 1 }
+      const failing = [
+        { id: "p1", definitionId: definition.id },
+        { id: "p2", definitionId: definition.id },
+      ]
+      const port = fakePort({
+        getProcessDefinitionStatistics: () => [{ definition, instances: 3, incidents: [] }],
+        getProcessInstances: ({ query }) => failing.slice(Number(query.firstResult)).slice(0, 1),
+        getProcessInstancesCount: () => ({ count: 2 }),
+      })
+      const runtime = C7Runtime.over(port, {
+        failureOf: (error) => new RuntimeError("engineFailure", String(error)),
+        withIncidentCounting: path === undefined ? { pageSize: 1 } : { pageSize: 1, path },
+      })
+
+      expect(await runtime.listVersions(BpmnProcessId("order"))).toMatchObject([
+        { running: 3, withIncident: 2 },
+      ])
+      expect(port.calls.map(({ operationId, input }) => [operationId, input.query])).toStrictEqual([
+        ["getProcessDefinitionStatistics", { rootIncidents: "true" }],
+        [
+          "getProcessInstances",
+          expect.objectContaining({ processDefinitionKey: "order", maxResults: "1" }),
+        ],
+        ["getProcessInstancesCount", { withIncident: "true", processDefinitionKey: "order" }],
+        ...past,
+      ])
+    },
+  )
 
   it("answers through the readers over the port", async () => {
     const { runtime } = runtimeOver({

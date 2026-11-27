@@ -50,15 +50,15 @@ const RECORDING = JSON.parse(
 
 /** The calling instance and the one it called, as the recording names them. */
 export const CHAIN = {
-  dispatch: "4d229eb1-ea25-11f1-95af-ee06bb95dee2",
-  label: "4d24e8a7-ea25-11f1-95af-ee06bb95dee2",
-  rootIncident: "4d393411-ea25-11f1-95af-ee06bb95dee2",
-  copyIncident: "4d393412-ea25-11f1-95af-ee06bb95dee2",
+  dispatch: "0488e88f-ea3a-11f1-bff2-824fc9c3c53e",
+  label: "0489d2f7-ea3a-11f1-bff2-824fc9c3c53e",
+  rootIncident: "0497b5bb-ea3a-11f1-bff2-824fc9c3c53e",
+  copyIncident: "0497dccc-ea3a-11f1-bff2-824fc9c3c53e",
   /** An ended instance of "Dispatch order", which the history alone holds. */
-  ended: "7f0c0eb3-ea25-11f1-95af-ee06bb95dee2",
+  ended: "7f0c0eb3-ea3a-11f1-bff2-824fc9c3c53e",
 } as const
 
-const DISPATCH_V1 = "pulse-dispatch:1:4ccb56ca-ea25-11f1-95af-ee06bb95dee2"
+const DISPATCH_V1 = "pulse-dispatch:1:04594ce4-ea3a-11f1-bff2-824fc9c3c53e"
 
 /** A JSON value as text, the keys of each of its objects in order, so two spellings compare equal. */
 function canonical(value: unknown): string {
@@ -195,7 +195,10 @@ function incidentRoute(route: string): Reply | null {
 /** The versions the recording names: its process definitions' rows. */
 const DEFINITIONS = answersAt(`${ROOT}/process-definition`).flat() as Array<Record<string, unknown>>
 
-/** A version by its id, and the versions of a key (the latest alone where asked). */
+/**
+ * A version by its id, the versions of a key (the latest alone where asked), and those a read names
+ * by their ids or keys (`processDefinitionIdIn`, `keysIn`).
+ */
 function definitionRoute(route: string, url: URL): Reply | null {
   const byId = new RegExp(`^${ROOT}/process-definition/([^/]+)$`).exec(route)
   if (byId) {
@@ -203,9 +206,18 @@ function definitionRoute(route: string, url: URL): Reply | null {
     return definition === undefined ? NOT_FOUND : { status: 200, body: definition }
   }
   const key = url.searchParams.get("key")
-  if (route !== `${ROOT}/process-definition` || key === null) return null
+  const ids = url.searchParams.get("processDefinitionIdIn")?.split(",")
+  const keys = url.searchParams.get("keysIn")?.split(",") ?? (key === null ? undefined : [key])
+  if (route !== `${ROOT}/process-definition` || (ids === undefined && keys === undefined)) {
+    return null
+  }
   const unique = new Map(DEFINITIONS.map((definition) => [definition.id, definition]))
-  return { status: 200, body: [...unique.values()].filter((definition) => definition.key === key) }
+  const named = [...unique.values()].filter(
+    (definition) =>
+      (ids === undefined || ids.includes(String(definition.id))) &&
+      (keys === undefined || keys.includes(String(definition.key))),
+  )
+  return { status: 200, body: named }
 }
 
 /** The running instances of the recording, as the runtime lists them. */
@@ -243,27 +255,27 @@ function instanceListRoute(method: string, route: string, body: unknown): Reply 
 }
 
 /** "Order fulfillment" v2, which runs one instance the statistics count and no recorded read lists. */
-const ORDER_V2 = "pulse-order:2:4cc0cf76-ea25-11f1-95af-ee06bb95dee2"
+const ORDER_V2 = "pulse-order:2:04533260-ea3a-11f1-bff2-824fc9c3c53e"
 
 /** The history of ORD-2001, the instance of "Order fulfillment" v2, as the history lists one. */
 const ORD_2001 = {
   ...DISPATCH_HISTORY,
-  id: "1118b0d3-ea25-11f1-95af-ee06bb95dee2",
+  id: "1118b0d3-ea3a-11f1-bff2-824fc9c3c53e",
   businessKey: "ORD-2001",
   processDefinitionId: ORDER_V2,
   processDefinitionKey: "pulse-order",
   processDefinitionVersion: 2,
   processDefinitionName: "Order fulfillment",
-  rootProcessInstanceId: "1118b0d3-ea25-11f1-95af-ee06bb95dee2",
+  rootProcessInstanceId: "1118b0d3-ea3a-11f1-bff2-824fc9c3c53e",
   startActivityId: "Event_OrderReceived",
-  startTime: "2026-11-27T05:42:15.334+0000",
+  startTime: "2026-11-27T08:10:33.001+0000",
   state: "ACTIVE",
 }
 
 /** DSP-2900 to DSP-2959: ended instances of "Dispatch order", one a minute before DSP-2999. */
 const ENDED_DISPATCHES = Array.from({ length: 60 }, (_, index) => {
   const at = Date.parse("2026-11-20T09:00:00.000Z") + index * 60_000
-  const id = `7f0c${String(index).padStart(4, "0")}-ea25-11f1-95af-ee06bb95dee2`
+  const id = `7f0c${String(index).padStart(4, "0")}-ea3a-11f1-bff2-824fc9c3c53e`
   const stamp = (ms: number) => new Date(ms).toISOString().replace("Z", "+0000")
   return {
     ...ENDED_HISTORY,
@@ -325,8 +337,8 @@ const WAITS_AT: Readonly<Record<string, string>> = {
   [CHAIN.dispatch]: "Activity_PrintShippingLabel",
   [CHAIN.label]: "Activity_RenderLabel",
   // ORD-1001 at its review, ORD-1002 at the payment its incident holds, ORD-2001 at its review.
-  "4ce2fd7b-ea25-11f1-95af-ee06bb95dee2": "Activity_ReviewOrder",
-  "4cfa7d24-ea25-11f1-95af-ee06bb95dee2": "Activity_ChargePayment",
+  "046ad915-ea3a-11f1-bff2-824fc9c3c53e": "Activity_ReviewOrder",
+  "047b53de-ea3a-11f1-bff2-824fc9c3c53e": "Activity_ChargePayment",
   [ORD_2001.id]: "Activity_ReviewOrder",
 }
 
@@ -352,7 +364,7 @@ function historyOf(query: HistoryQuery): Array<Record<string, unknown>> {
 /**
  * The process screen's lists: the histories of a version (or a process) by lifecycle, business key,
  * element and ids, a page by offset and their count, and the runtime's instances with an incident
- * of a version or among ids, and their count. Null for a read by ids alone, which the other routes
+ * of a version, a process or among ids, and their count. Null for a read by ids alone, which the other routes
  * answer, and for every other request.
  */
 function processListRoute(method: string, route: string, url: URL, body: unknown): Reply | null {
@@ -370,10 +382,12 @@ function processListRoute(method: string, route: string, url: URL, body: unknown
   }
   if (method !== "GET" || url.searchParams.get("withIncident") !== "true") return null
   const version = url.searchParams.get("processDefinitionId")
+  const key = url.searchParams.get("processDefinitionKey")
   const ids = url.searchParams.get("processInstanceIds")?.split(",")
   const rows = WITH_INCIDENT.filter(
     (row) =>
       (version === null || row.definitionId === version) &&
+      (key === null || row.definitionKey === key) &&
       (ids === undefined || ids.includes(String(row.id))),
   )
   if (route === `${ROOT}/process-instance/count`)

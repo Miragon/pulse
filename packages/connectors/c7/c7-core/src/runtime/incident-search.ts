@@ -1,8 +1,9 @@
 /**
  * The open incidents of an engine (`searchIncidents` of the engine contract): the runtime's
  * incidents newest first, paged by offset, root incidents only (one copied up from a called
- * instance is its caller's view of the same failure), each with the version it was raised in from
- * one read of the definition statistics, never one call per incident, the element of the diagram
+ * instance is its caller's view of the same failure), each with the version it was raised in, read
+ * by the ids of the versions a window's incidents name, each once per search (`refsOf`), never one
+ * call per incident nor the statistics of the whole engine, the element of the diagram
  * it was raised at (a multi-instance body's on the activity it repeats, `elementOfActivity`) and
  * the job or external task `incidentRecovery` names. An incident outside any process (a failed job
  * of a batch or of the history cleanup, without element or instance) is no incident of the
@@ -48,6 +49,15 @@ function optionalEngineId(value: string | undefined): string | undefined {
 }
 
 /**
+ * The version `row` names where it can be an incident of the contract: none for an incident copied
+ * up from a called instance or without its element or instance (one outside any process).
+ */
+function versionIdOf(row: IncidentRow): string | undefined {
+  const placed = isRootIncident(row) && row.activityId !== undefined
+  return placed && row.processInstanceId !== undefined ? row.processDefinitionId : undefined
+}
+
+/**
  * `row` as the contract's incident: none for an incident copied up from a called instance, without
  * its element or instance (one outside any process) or of a version the engine does not list.
  */
@@ -56,13 +66,9 @@ function incidentOf(
   definitionsById: ReadonlyMap<string, DefinitionRef>,
 ): Incident | undefined {
   const { activityId, processInstanceId } = row
-  const definition = definitionsById.get(row.processDefinitionId ?? "")
-  if (
-    !isRootIncident(row) ||
-    activityId === undefined ||
-    processInstanceId === undefined ||
-    definition === undefined
-  ) {
+  const versionId = versionIdOf(row)
+  const definition = versionId === undefined ? undefined : definitionsById.get(versionId)
+  if (activityId === undefined || processInstanceId === undefined || definition === undefined) {
     return undefined
   }
   const jobId = recoveryIdOf(row)
@@ -83,6 +89,24 @@ function newerFirst(left: Incident, right: Incident): number {
   return compareText(right.createdAt, left.createdAt)
 }
 
+/** The versions a search's incidents name, each read once per search, by its id. */
+class SearchedVersions {
+  private readonly known = new Map<string, DefinitionRef>()
+  private readonly asked = new Set<string>()
+
+  constructor(private readonly definitions: DefinitionReader) {}
+
+  /** The versions `rows` name, by their ids: those of earlier windows kept, the others read. */
+  async of(rows: readonly IncidentRow[]): Promise<ReadonlyMap<string, DefinitionRef>> {
+    const ids = rows.flatMap((row) => versionIdOf(row) ?? [])
+    const unread = [...new Set(ids)].filter((id) => !this.asked.has(id))
+    if (unread.length === 0) return this.known
+    for (const id of unread) this.asked.add(id)
+    for (const [id, ref] of await this.definitions.refsOf(unread)) this.known.set(id, ref)
+    return this.known
+  }
+}
+
 /** Searches the open incidents of an engine over its port. */
 export class IncidentSearch {
   constructor(
@@ -92,12 +116,10 @@ export class IncidentSearch {
 
   /** A page of the root incidents `filter` finds, newest first. */
   async search(filter: IncidentFilter, page: PageRequest): Promise<Page<Incident>> {
-    let definitions: Promise<ReadonlyMap<string, DefinitionRef>> | undefined
+    const versions = new SearchedVersions(this.definitions)
     const found = await new TiedPages(page).pageOf(async (window) => {
-      const [rows, definitionsById] = await Promise.all([
-        this.rows(filter, window),
-        (definitions ??= this.definitions.refsById()),
-      ])
+      const rows = await this.rows(filter, window)
+      const definitionsById = await versions.of(rows)
       return rows.map((row) => tiedIncident(row, incidentOf(row, definitionsById)))
     })
     return { ...found, items: [...found.items].sort(newerFirst) }

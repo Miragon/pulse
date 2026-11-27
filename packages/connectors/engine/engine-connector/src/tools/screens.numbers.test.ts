@@ -19,7 +19,11 @@ import { recordingModuleServer } from "@miragon/pulse-widget-shell/testing"
 import { BoardVocabulary } from "@miragon/pulse-board"
 import { C7_BOARD_ENGINE, C7_SCREEN_ENGINE } from "@miragon/pulse-c7-core/testing"
 import { C8_BOARD_ENGINE, C8_SCREEN_ENGINE } from "@miragon/pulse-c8-core/testing"
-import { type RecordedEngine, startRecordedEngine } from "@miragon/pulse-http/testing/loopback"
+import {
+  type RecordedAnswer,
+  type RecordedEngine,
+  startRecordedEngine,
+} from "@miragon/pulse-http/testing/loopback"
 import {
   type InstanceScreenData,
   type ProcessScreenData,
@@ -91,8 +95,11 @@ function serverOf(env: Record<string, string>) {
 }
 
 /** The server over `recorded`'s screen engine, with its engine. */
-async function bootScreens(recorded: Recorded) {
-  const engine = await startRecordedEngine(recorded.screen.answers)
+async function bootScreens(
+  recorded: Recorded,
+  answers: readonly RecordedAnswer[] = recorded.screen.answers,
+) {
+  const engine = await startRecordedEngine(answers)
   engines.push(engine)
   const profiles = { [recorded.screen.engine]: recorded.profile(engine.origin) }
   const server = serverOf({ ENGINES_JSON: JSON.stringify({ profiles }) })
@@ -264,6 +271,44 @@ describe.each([
   })
 })
 
+/** A request the recorded engine saw. */
+type Seen = RecordedEngine["seen"][number]
+
+/** The parameters of a listing of instances with an incident that leave its scope the whole engine. */
+const UNSCOPED = new Set(["withIncident", "sortBy", "sortOrder", "firstResult", "maxResults"])
+
+/** The scope of a Camunda 7 listing of instances with an incident: a process key, or the engine. */
+function withIncidentScopeOf({ method, target }: Seen): string | undefined {
+  const url = new URL(target, "http://loopback")
+  if (method !== "GET" || url.pathname !== "/engine-rest/process-instance") return undefined
+  if (url.searchParams.get("withIncident") !== "true") return undefined
+  const names = [...url.searchParams.keys()]
+  if (names.every((name) => UNSCOPED.has(name))) return "the engine"
+  return url.searchParams.get("processDefinitionKey") ?? undefined
+}
+
+describe("with incident over c7-core's recorded screen engine: what each screen lists (#691, F21)", () => {
+  it("lists the whole engine's instances with an incident for the engine screen", async () => {
+    const { engine, call } = await bootScreens(RECORDED_C7)
+    await call("engine_get_screen", { screen: "engine" })
+    expect(engine.unanswered).toEqual([])
+    expect(engine.seen.map(withIncidentScopeOf)).toContain("the engine")
+  })
+
+  it.each(["process", "olderVersion", "callingProcess"] as const)(
+    "lists its own process's instances with an incident for the %s screen, never the whole engine's",
+    async (name) => {
+      const { engine, call } = await bootScreens(RECORDED_C7)
+      const args = processArgs(RECORDED_C7, name)
+      await call("engine_get_screen", args)
+      const scopes = engine.seen.map(withIncidentScopeOf).filter((scope) => scope !== undefined)
+      expect(engine.unanswered).toEqual([])
+      expect(scopes).toContain(args.processDefinitionKey)
+      expect(scopes).not.toContain("the engine")
+    },
+  )
+})
+
 describe("what the screen tool refuses, before it reads", () => {
   it.each([
     [{ screen: "engine", processInstanceId: "pi-1" }, "Screen engine takes no processInstanceId."],
@@ -291,7 +336,21 @@ describe("what the screen tool refuses, before it reads", () => {
   })
 
   it("names a process the engine has no version of, as a refusal of its own", async () => {
-    const { call } = await bootScreens(RECORDED_C7)
+    // Its versions' read asks for its instances with an incident beside the statistics: none.
+    const none: RecordedAnswer = {
+      method: "GET",
+      path: "/engine-rest/process-instance",
+      query: {
+        withIncident: "true",
+        processDefinitionKey: "no-such-process",
+        sortBy: "instanceId",
+        sortOrder: "asc",
+        firstResult: "0",
+        maxResults: "500",
+      },
+      answer: [],
+    }
+    const { call } = await bootScreens(RECORDED_C7, [...C7_SCREEN_ENGINE.answers, none])
     const process = await call("engine_get_screen", {
       screen: "process",
       processDefinitionKey: "no-such-process",

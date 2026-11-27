@@ -55,6 +55,7 @@ import { InstanceDetailReader, type InstanceDetailWithCauses } from "./instance-
 import { InstanceSearch } from "./instance-search.js"
 import { MigrationReader } from "./migration-reader.js"
 import { VariableNameReader } from "./variable-name-reader.js"
+import type { WithIncidentCounting } from "./with-incident-per-version.js"
 
 /** How a surface takes part in the runtime's reads. */
 export interface C7RuntimeOptions {
@@ -77,6 +78,15 @@ export interface C7RuntimeOptions {
    * meet the laws on the few instances of its world.
    */
   readonly historyIdChunk?: number
+  /**
+   * How the processes and a process's versions count "with incident" per version
+   * (`withIncidentPerVersion`): the rows of a page of the instances with an open incident, 500
+   * without it, and the path past a full first page, the rest of the listing or one count per
+   * version that runs an instance, the one that sends fewer requests without it. An engine suite
+   * sets a page of one and each path in turn, so both meet the laws on the few instances of its
+   * world.
+   */
+  readonly withIncidentCounting?: WithIncidentCounting
 }
 
 interface C7Readers {
@@ -104,7 +114,7 @@ export class C7Runtime implements ProcessRuntime {
   /** The runtime over `port`, a surface's wire whose failures `options.failureOf` words. */
   static over(port: EnginePort, options: C7RuntimeOptions): C7Runtime {
     const diagram = diagramReadOf(port, options.diagramXml)
-    const definitions = new DefinitionReader(port, diagram)
+    const definitions = new DefinitionReader(port, diagram, options.withIncidentCounting)
     return new C7Runtime(
       {
         engine: new EngineReader(port),

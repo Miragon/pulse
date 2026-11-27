@@ -69,10 +69,30 @@ describe("IncidentSearch.search", () => {
         },
       ],
     })
-    expect(port.calls.map((call) => call.operationId)).toStrictEqual([
-      "getIncidents",
-      "getProcessDefinitionStatistics",
+    // The versions of the incidents it lists, by their ids alone; a copy names none.
+    expect(port.calls.map(({ operationId, input }) => [operationId, input.query])).toStrictEqual([
+      ["getIncidents", expect.anything()],
+      [
+        "getProcessDefinitions",
+        {
+          processDefinitionIdIn: `${ORDER_1.id},${LABEL_1.id}`,
+          sortBy: "id",
+          sortOrder: "asc",
+          firstResult: "0",
+          maxResults: "500",
+        },
+      ],
     ])
+  })
+
+  it("asks for no version where no incident of the window becomes one of the page", async () => {
+    const { port, search } = searchOver(() => [
+      { ...ROOT, rootCauseIncidentId: "inc-9" },
+      { ...ROOT, id: "inc-2", rootCauseIncidentId: "inc-2", activityId: undefined },
+    ])
+
+    expect(await search.search({}, { limit: 50 })).toStrictEqual({ items: [] })
+    expect(port.calls.map((call) => call.operationId)).toStrictEqual(["getIncidents"])
   })
 
   it("lists no job where incident recovery names none", async () => {
@@ -163,7 +183,7 @@ describe("IncidentSearch.search", () => {
     ["a process", { bpmnProcessId: BpmnProcessId("order,label") }, "order,label"],
     ["an instance", { instanceId: InstanceId("p1&x=1") }, "p1&x=1"],
   ])(
-    "fails %s no engine assigns as misconfigured, before the incidents are asked for",
+    "fails %s no engine assigns as misconfigured, before anything is asked for",
     async (_name, filter, id) => {
       const { port, search } = searchOver(() => [])
 
@@ -174,9 +194,7 @@ describe("IncidentSearch.search", () => {
         failure: "misconfigured",
         message: `"${id}" as an identifier is not accepted`,
       })
-      expect(port.calls.map((call) => call.operationId)).toStrictEqual([
-        "getProcessDefinitionStatistics",
-      ])
+      expect(port.calls).toStrictEqual([])
     },
   )
 
@@ -209,7 +227,7 @@ describe("IncidentSearch.search", () => {
     expect(page.next).toBe("2")
     expect(port.calls.map((call) => call.operationId)).toStrictEqual([
       "getIncidents",
-      "getProcessDefinitionStatistics",
+      "getProcessDefinitions",
       "getIncidents",
     ])
     // The full window's last incident may tie with the next: read again at the next window's start.

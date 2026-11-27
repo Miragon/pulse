@@ -165,8 +165,12 @@ const BOARD_PLACES: Record<string, (data: BoardStartData) => unknown> = {
   ) => tileOf(data, "processDiagram")?.badges,
   [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: BoardStartData) =>
     tileOf(data, "processDiagram")?.badges,
+  // The open incidents, and the versions they name, by their ids.
   "GET /incident?firstResult&maxResults&sortBy&sortOrder": (data: BoardStartData) =>
     tileOf(data, "incidentList")?.groups[0]?.incidents,
+  "GET /process-definition?firstResult&maxResults&processDefinitionIdIn&sortBy&sortOrder": (
+    data: BoardStartData,
+  ) => tileOf(data, "incidentList")?.groups[0]?.incidents,
 }
 
 /** The board's places in the start data of `engine_open_cockpit` view `board`. */
