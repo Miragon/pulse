@@ -14,10 +14,11 @@ type KnownSummaries = Required<EngineSummaries>
 export class IncidentSummaryTiles {
   static async build(
     widget: IncidentSummaryWidget,
-    engines: readonly ProbedEngine[],
+    engines: readonly Promise<ProbedEngine>[],
   ): Promise<IncidentSummaryModel> {
     const read = await Promise.all(
-      engines.map(async (engine): Promise<EngineSummaries> => {
+      engines.map(async (probed): Promise<EngineSummaries> => {
+        const engine = await probed
         const summaries =
           engine.reads === undefined
             ? undefined

@@ -74,7 +74,7 @@ brings a skill that writes a board from your BPMN models and profiles and checks
 ## Several engines
 
 Every row and every number keeps the engine it came from, and a click opens the instance or the
-process on that engine. An engine that cannot be read, or that is not in your `.pulse.json` or CLI
-config, gets one strip on top and "not read" in its cells; a total then says how many engines it
-counts. A click on a count in a diagram opens the process filtered to that element. A broken widget
-lists its problems in its place, a broken file over its last valid version.
+process on that engine. An engine that cannot be read, answers nothing within 15 seconds or is not
+in your `.pulse.json` or CLI config gets one strip on top and "not read" in its cells; a total then
+says how many engines it counts. A click on a count in a diagram opens the process filtered to that
+element. A broken widget lists its problems in its place, a broken file over its last valid version.

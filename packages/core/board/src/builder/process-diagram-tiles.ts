@@ -9,14 +9,14 @@ import { XmlTags } from "./xml-tags.js"
 export class ProcessDiagramTiles {
   static async build(
     widget: ProcessDiagramWidget,
-    engines: readonly ProbedEngine[],
+    engines: readonly Promise<ProbedEngine>[],
   ): Promise<ProcessDiagramModel> {
     const tile: ProcessDiagramModel = {
       kind: "processDiagram",
       widget,
       engine: widget.engines[0] ?? "",
     }
-    const reads = engines[0]?.reads
+    const reads = (await engines[0])?.reads
     const summaries = reads === undefined ? undefined : EngineReads.valueOf(await reads.summaries())
     if (reads === undefined || summaries === undefined) {
       return tile
