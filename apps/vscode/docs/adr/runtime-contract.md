@@ -385,7 +385,10 @@ flowchart LR
 holds 55 read laws and 15 command laws as executable cases, modelled on
 `@miragon/modeler-api/conformance`:
 `new ConformanceKit(test).registerRuntimeLaws(prepare)` and `.registerCommandLaws(prepare)`
-bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails. Command laws run on
+bind them to any `(name, fn)` runner and throw a `ConformanceViolation` when a law fails;
+`registerRuntimeLaws(prepare, ConformanceKit.instanceLaws())` binds the instance, page and
+variable laws alone, which the C7 adapter's engine suite runs once more with two instance ids per
+request to the history, so its chunked reads meet them. Command laws run on
 their own instances (`CMD-*`, seeded after the read laws) so that writes never change
 what the read laws see: a retry closes exactly that incident; an unknown or already
 closed incident is rejected; a changed variable reads back with its value, kind and
@@ -406,15 +409,18 @@ finds and counts exactly two known ids among 1000, combines the ids with the lif
 and with a `definitionId` (an id of the other version is not found), and finds and counts
 nothing for an empty list. The read law `instances: filter by the element they wait at`
 also finds an instance whose token waits before an asynchronous task. `instances: the newest
-come first, in the same order on every read` holds the order of a search;
+come first, in the same order on every read` holds the order of a process's search and of the
+whole engine's instances with an incident;
 `instances: filter and flag instances with an incident` also finds a caller by an incident in
-its called instance; `instances: counts agree with the search` requires exact counts, and
+its called instance; `instances: counts agree with the search` requires exact counts, over the
+whole engine too (the world's three instances with an incident, those without one, those with
+one at the call activity), and
 `instances: no count is below 0, in any scope, lifecycle or incident filter` counts 27 filters
 (the engine, a process and a version, each lifecycle, with an incident, without one or either). The
 lists a board reads have three laws more: incidents come newest first, in the same order on
 every read and across pages of one; the root incidents in pages of one come once each, every
 page but the last full; and so do the instances of a process with an incident and without one,
-whose pages of one together give the search of 50. The
+and those of the whole engine with one, whose pages of one together give the search of 50. The
 variable laws read `?` in a `like` pattern as itself and hold a declared refusal to an
 `unsupported` failure of the search and the count. Two read laws cover migration plans, on a
 runtime that plans (and fail one that has only half the pair): the proposal from order v1 to
@@ -526,7 +532,7 @@ the instances it called there too, where Camunda 7 finds the caller alone.
   documented exception.
 - Every change to the contract is a change to a published package: a new port, read model or
   law lands in `packages/connectors/engine/engine-core` with its saboteur, and the kit's
-  self-tests run there (`packages/connectors/engine/engine-core/test`, 89 saboteurs). Below 1.0 the package makes no
+  self-tests run there (`packages/connectors/engine/engine-core/test`, 93 saboteurs). Below 1.0 the package makes no
   stability promise; its laws and its fake follow the extension.
 - Panel loads have fixed engine-call budgets (definition ≤ 7, three of them the scope
   counts queried in parallel with the page; instance ≤ 2 plus lazy details; both + 1

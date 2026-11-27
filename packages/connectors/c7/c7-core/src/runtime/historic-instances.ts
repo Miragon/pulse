@@ -1,14 +1,21 @@
 /**
  * The history's process instances (`POST /history/process-instance` and its count): the query in
- * the body, so a thousand instance ids fit, the rows newest first and then by id, so no page
- * repeats or skips one, each read through `JsonView`; and a row as the engine contract's
- * `InstanceSummary`.
+ * the body, the rows newest first and then by id, so no page repeats or skips one, each read
+ * through `JsonView`; and a row as the engine contract's `InstanceSummary`. A query that names
+ * more instance ids than one request carries (500 by default) goes in chunks of them, its count
+ * the sum of theirs and its window the merge of theirs (`history-chunks.ts`).
  */
 
 import { InstanceId, type InstanceSummary } from "@miragon/pulse-engine-core"
-import type { EnginePort } from "../port.js"
-import { compact } from "../util.js"
+import { type EnginePort, PARALLEL } from "../port.js"
+import { compact, mapLimit } from "../util.js"
 import { definitionRefOfInstance } from "./definition-refs.js"
+import {
+  chunkedQueries,
+  HISTORY_ID_CHUNK,
+  mergedNewestFirst,
+  NEWEST_FIRST,
+} from "./history-chunks.js"
 import { instanceStateOf } from "./instance-states.js"
 import { JsonView } from "../json-view.js"
 import type { OffsetWindow } from "./offset-paging.js"
@@ -47,12 +54,6 @@ export interface HistoricInstanceQuery {
   readonly variables?: readonly VariableQueryCondition[]
 }
 
-/** The newest instance first; the id breaks a tie, so a page is stable. */
-const NEWEST_FIRST = [
-  { sortBy: "startTime", sortOrder: "desc" },
-  { sortBy: "instanceId", sortOrder: "asc" },
-] as const
-
 function rowOf(record: JsonView): HistoricInstanceRow {
   return {
     id: record.requiredString("id"),
@@ -70,8 +71,8 @@ function rowOf(record: JsonView): HistoricInstanceRow {
   }
 }
 
-/** The rows `window` of the instances `query` finds, newest first. */
-export async function readHistoricInstances(
+/** The rows `window` of the instances `query` finds, newest first, in one request. */
+async function readWindow(
   port: EnginePort,
   query: HistoricInstanceQuery,
   window: OffsetWindow,
@@ -84,17 +85,50 @@ export async function readHistoricInstances(
   return JsonView.listOf(answer, "historic process instances").map((record) => rowOf(record))
 }
 
-/** How many instances `query` finds. */
-export async function countHistoricInstances(
+/**
+ * The rows `window` of the instances `query` finds, newest first: in one request while it names
+ * at most `chunk` instance ids, else the merge of each chunk's rows from the first up to the
+ * window's end, at most `chunk` of them, as the history holds one row per instance.
+ */
+export async function readHistoricInstances(
   port: EnginePort,
   query: HistoricInstanceQuery,
-): Promise<number> {
+  window: OffsetWindow,
+  chunk = HISTORY_ID_CHUNK,
+): Promise<HistoricInstanceRow[]> {
+  const queries = chunkedQueries(query, chunk)
+  if (queries.length === 1) {
+    return readWindow(port, queries[0], window)
+  }
+  const end = window.firstResult + window.maxResults
+  const rows = { firstResult: 0, maxResults: Math.min(end, chunk) }
+  const chunks = await mapLimit(queries, PARALLEL, (part) => readWindow(port, part, rows))
+  return mergedNewestFirst(chunks, end).slice(window.firstResult)
+}
+
+/** How many instances `query` finds, in one request. */
+async function countOnce(port: EnginePort, query: HistoricInstanceQuery): Promise<number> {
   const answer = await port.json("queryHistoricProcessInstancesCount", {
     pathArgs: [],
     query: {},
     body: query,
   })
   return JsonView.of(answer, "historic process instance count").requiredNumber("count")
+}
+
+/**
+ * How many instances `query` finds: one count while it names at most `chunk` instance ids, else
+ * the sum of each chunk's count.
+ */
+export async function countHistoricInstances(
+  port: EnginePort,
+  query: HistoricInstanceQuery,
+  chunk = HISTORY_ID_CHUNK,
+): Promise<number> {
+  const counts = await mapLimit(chunkedQueries(query, chunk), PARALLEL, (part) =>
+    countOnce(port, part),
+  )
+  return counts.reduce((sum, count) => sum + count, 0)
 }
 
 /** `row` as the contract's summary of an instance, flagged when it holds an open incident. */

@@ -173,20 +173,23 @@ const instancesPaging: ConformanceCase = {
 const instancesNewestFirst: ConformanceCase = {
   name: CASE.instancesNewestFirst,
   async run(harness) {
-    const first = await InstanceReads.search(harness, { bpmnProcessId: ORDER })
-    const started = first.map((item) => item.startedAt ?? "")
-    Ensure.that(
-      started.every((at, index) => index === 0 || (started[index - 1] ?? "") >= at),
-      this.name,
-      `started ${Ensure.describe(started)}`,
-    )
-    const second = await InstanceReads.search(harness, { bpmnProcessId: ORDER })
-    Ensure.that(
-      Ensure.describe(first.map((item) => item.id)) ===
-        Ensure.describe(second.map((item) => item.id)),
-      this.name,
-      "two reads returned another order",
-    )
+    for (const filter of [{ bpmnProcessId: ORDER }, { withIncident: true }]) {
+      const law = `${this.name} (${JSON.stringify(filter)})`
+      const first = await InstanceReads.search(harness, filter)
+      const started = first.map((item) => item.startedAt ?? "")
+      Ensure.that(
+        started.every((at, index) => index === 0 || (started[index - 1] ?? "") >= at),
+        law,
+        `started ${Ensure.describe(started)}`,
+      )
+      const second = await InstanceReads.search(harness, filter)
+      Ensure.that(
+        Ensure.describe(first.map((item) => item.id)) ===
+          Ensure.describe(second.map((item) => item.id)),
+        law,
+        "two reads returned another order",
+      )
+    }
   },
 }
 

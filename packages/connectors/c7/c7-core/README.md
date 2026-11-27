@@ -89,9 +89,10 @@ missing.
   key with one, `countWithIncident` counts them, `withIncidentAmong(port, ids)` flags listed
   instances and `withIncidentByVersion` counts per version; the runtime's `InstanceSearch` pages
   the history's rows of those instances and counts them in one runtime count where the runtime
-  knows the whole filter. The history's incident filters find nothing below history level FULL,
-  which writes no incident to the history: `unrecordedIncidents(port)` tells that from a true
-  "none" before a history query by incident answers.
+  knows the whole filter; however many there are, no request to the history carries more than 500
+  of their ids. The history's incident filters find nothing below history level FULL, which
+  writes no incident to the history: `unrecordedIncidents(port)` tells that from a true "none"
+  before a history query by incident answers.
 - **Instance search:** `searchedInstances(filters, term)` builds the bodies of the runtime's
   process-instance query (POST, and its count) for a search box, a business key fragment OR a whole
   instance id, beside the scope and the true-only flags. The engine drops `withIncident` beside the
@@ -158,7 +159,13 @@ missing.
   incident it counts the history's instances minus those of them the runtime holds an open incident
   for, the history's count of the runtime's ids, so the count is what the search lists and never
   below 0; at history level NONE, whose history holds no instance, it finds none and counts 0, the
-  runtime's count with an incident where the runtime knows the filter whole),
+  runtime's count with an incident where the runtime knows the filter whole; an id list longer
+  than 500 goes to the history in chunks of 500, each id once, its count the sum of theirs, its
+  page the merge of each chunk's rows up to the page's end, newest first and then by id, so a page
+  takes one request per chunk; `historyIdChunk` of `C7RuntimeOptions` sets a smaller chunk, with
+  which the C7 adapter's engine suite runs the instance laws once more and pages six ids by one,
+  three per request: the first page of one asks each chunk for two of its three rows, as a page of
+  50 asks a chunk of 500 for 51),
   `VariableNameReader` (the variable names of a version's newest 50 instances),
   `InstanceDetailReader` (an instance's detail: `loadInstance`'s rounds without history and its path
   from the history, in parallel with its typed variables of every scope, which the inspection's

@@ -12,7 +12,7 @@ import { INSTANCE_LAWS } from "./laws/instance-laws.js"
 import { MIGRATION_LAWS } from "./laws/migration-laws.js"
 import { MIGRATION_PLAN_LAWS } from "./laws/migration-plan-laws.js"
 import { MOVE_LAWS } from "./laws/move-laws.js"
-import { PAGE_LAWS } from "./laws/page-laws.js"
+import { INSTANCE_PAGE_LAWS, PAGE_LAWS } from "./laws/page-laws.js"
 import { VARIABLE_LAWS } from "./laws/variable-laws.js"
 
 export type TestRunner = (name: string, body: () => Promise<void>) => unknown
@@ -39,12 +39,19 @@ export class ConformanceKit {
     ]
   }
 
+  static instanceLaws(): readonly ConformanceCase[] {
+    return [...INSTANCE_LAWS, ...VARIABLE_LAWS, ...INSTANCE_PAGE_LAWS]
+  }
+
   static commandLaws(): readonly CommandConformanceCase[] {
     return [...COMMAND_LAWS, ...MOVE_LAWS, ...BULK_LAWS, ...MIGRATION_LAWS]
   }
 
-  registerRuntimeLaws(prepare: PrepareHarness): void {
-    this.register(ConformanceKit.runtimeLaws(), prepare)
+  registerRuntimeLaws(
+    prepare: PrepareHarness,
+    laws: readonly ConformanceCase[] = ConformanceKit.runtimeLaws(),
+  ): void {
+    this.register(laws, prepare)
   }
 
   registerCommandLaws(prepare: PrepareCommandHarness): void {

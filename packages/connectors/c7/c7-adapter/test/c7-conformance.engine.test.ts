@@ -1,5 +1,14 @@
+import { createEnginePort } from "@miragon/pulse-c7-core"
+import { C7Runtime } from "@miragon/pulse-c7-core/runtime"
 import { C7_BOARD_ENGINE, C7_SCREEN_ENGINE } from "@miragon/pulse-c7-core/testing"
-import { BpmnProcessId, DefinitionId, InstanceId } from "@miragon/pulse-engine-core"
+import {
+  BpmnProcessId,
+  DefinitionId,
+  InstanceId,
+  type InstanceFilter,
+  type PageCursor,
+  type ProcessRuntime,
+} from "@miragon/pulse-engine-core"
 import {
   ConformanceKit,
   FakeEngine,
@@ -26,6 +35,8 @@ import {
 import { ScreenFigures, WORLD_SCREENS } from "@miragon/pulse-screens/testing"
 import { afterAll, beforeAll, describe, expect, test } from "vitest"
 import { C7Adapter } from "../src/index.js"
+import { EngineHttp, HttpEngineTransport } from "../src/engine-rest/index.js"
+import { ErrorTranslation } from "../src/errors/error-translation.js"
 import { RecordedBoard } from "./support/recorded-board.js"
 import {
   ENGINE_IMAGE,
@@ -41,8 +52,69 @@ const BATCHES_RUN_WITHIN = {
   wait: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
 }
 
+const IDS_PER_HISTORY_REQUEST_BELOW_THE_THREE_WITH_AN_INCIDENT = 2
+const IDS_PER_HISTORY_REQUEST_HALF_THE_SIX_INSTANCES = 3
+
 function connectionTo(endpoint: string) {
   return { endpoint, credentials: { kind: "none" } } as const
+}
+
+interface HistoryRequest {
+  readonly ids: number
+  readonly maxResults: string | null
+}
+
+function historyRequestOf(
+  input: Parameters<typeof fetch>[0],
+  init: RequestInit | undefined,
+): HistoryRequest | undefined {
+  const url = new URL(input instanceof Request ? input.url : String(input))
+  if (!url.pathname.includes("/history/process-instance") || typeof init?.body !== "string") {
+    return undefined
+  }
+  const body = JSON.parse(init.body) as { readonly processInstanceIds?: readonly unknown[] }
+  return body.processInstanceIds === undefined
+    ? undefined
+    : { ids: body.processInstanceIds.length, maxResults: url.searchParams.get("maxResults") }
+}
+
+function runtimeSendingHistoryIdsInChunks(
+  url: string,
+  chunk: number,
+  sent: HistoryRequest[],
+): ProcessRuntime {
+  const http = new EngineHttp({
+    url,
+    credentials: { kind: "none" },
+    writes: false,
+    send: (input, init) => {
+      const request = historyRequestOf(input, init)
+      if (request !== undefined) sent.push(request)
+      return fetch(input, init)
+    },
+  })
+  return C7Runtime.over(createEnginePort(HttpEngineTransport.over(http)), {
+    failureOf: (error) => ErrorTranslation.runtimeError(error),
+    historyIdChunk: chunk,
+  })
+}
+
+async function idsInPagesOfOne(
+  runtime: ProcessRuntime,
+  filter: InstanceFilter,
+  most: number,
+): Promise<string[][]> {
+  const pages: string[][] = []
+  let after: PageCursor | undefined
+  do {
+    const page = await runtime.searchInstances(
+      filter,
+      after === undefined ? { limit: 1 } : { limit: 1, after },
+    )
+    pages.push(page.items.map(({ id }) => id))
+    after = page.next
+  } while (after !== undefined && pages.length < most)
+  return pages
 }
 
 describe.skipIf(!RUNS_ON_CAMUNDA_7)(`the C7 adapter against ${ENGINE_IMAGE}`, () => {
@@ -70,6 +142,52 @@ describe.skipIf(!RUNS_ON_CAMUNDA_7)(`the C7 adapter against ${ENGINE_IMAGE}`, ()
       return Promise.reject(new Error("the engine did not start"))
     }
     return Promise.resolve(harness)
+  })
+
+  const chunk = IDS_PER_HISTORY_REQUEST_BELOW_THE_THREE_WITH_AN_INCIDENT
+  const sentByTheLaws: HistoryRequest[] = []
+
+  describe(`with ${String(chunk)} instance ids per request to the history`, () => {
+    new ConformanceKit(test).registerRuntimeLaws(() => {
+      if (engine === undefined || harness === undefined) {
+        return Promise.reject(new Error("the engine did not start"))
+      }
+      return Promise.resolve({
+        ...harness,
+        runtime: runtimeSendingHistoryIdsInChunks(engine.url, chunk, sentByTheLaws),
+      })
+    }, ConformanceKit.instanceLaws())
+
+    test("the laws' longer id lists went to the history in chunks, none longer", () => {
+      const lengths = sentByTheLaws.map(({ ids }) => ids)
+
+      expect(lengths.length).toBeGreaterThan(0)
+      expect(Math.max(...lengths)).toBe(chunk)
+    })
+  })
+
+  const half = IDS_PER_HISTORY_REQUEST_HALF_THE_SIX_INSTANCES
+
+  describe(`with ${String(half)} instance ids per request to the history`, () => {
+    test("instances: the first page of one over the world's six ids asks each chunk for two of its three rows, as a page of 50 asks a chunk of 500 for 51, and the six pages give the whole search in its order", async () => {
+      if (engine === undefined || harness === undefined) {
+        throw new Error("the engine did not start")
+      }
+      const sent: HistoryRequest[] = []
+      const chunked = runtimeSendingHistoryIdsInChunks(engine.url, half, sent)
+      const whole = await harness.runtime.searchInstances({}, { limit: 50 })
+      const ids = whole.items.map(({ id }) => id)
+      expect(ids).toHaveLength(2 * half)
+
+      const pages = await idsInPagesOfOne(chunked, { instanceIds: ids }, 2 * ids.length)
+
+      expect(pages).toEqual(ids.map((id) => [id]))
+      expect(sent.slice(0, 2)).toEqual([
+        { ids: half, maxResults: "2" },
+        { ids: half, maxResults: "2" },
+      ])
+      expect(Math.max(...sent.map((request) => request.ids))).toBe(half)
+    })
   })
 
   test("board: c7-core's recorded board over the seeded world has the numbers of the kit's world", async () => {

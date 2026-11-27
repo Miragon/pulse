@@ -10,12 +10,17 @@ const ORDER = BpmnProcessId(WORLD_PROCESS.order)
 const ONE_PER_PAGE = 1
 const PAGE = { limit: 50 } as const
 
+const PAGED_IN_A_PROCESS_AND_WITH_AN_INCIDENT_IN_THE_WHOLE_ENGINE: readonly InstanceFilter[] = [
+  { bpmnProcessId: ORDER, withIncident: false },
+  { bpmnProcessId: ORDER, withIncident: true },
+  { withIncident: true },
+]
+
 const instancesPagesFull: ConformanceCase = {
   name: CASE.instancesPagesFull,
   async run(harness) {
-    for (const withIncident of [false, true]) {
-      const law = `${this.name} (withIncident ${String(withIncident)})`
-      const filter: InstanceFilter = { bpmnProcessId: ORDER, withIncident }
+    for (const filter of PAGED_IN_A_PROCESS_AND_WITH_AN_INCIDENT_IN_THE_WHOLE_ENGINE) {
+      const law = `${this.name} (${JSON.stringify(filter)})`
       const pages = await PageWalk.pages(
         (page) => harness.runtime.searchInstances(filter, page),
         ONE_PER_PAGE,
@@ -48,4 +53,6 @@ const incidentsPaging: ConformanceCase = {
   },
 }
 
-export const PAGE_LAWS: readonly ConformanceCase[] = [instancesPagesFull, incidentsPaging]
+export const INSTANCE_PAGE_LAWS: readonly ConformanceCase[] = [instancesPagesFull]
+
+export const PAGE_LAWS: readonly ConformanceCase[] = [...INSTANCE_PAGE_LAWS, incidentsPaging]

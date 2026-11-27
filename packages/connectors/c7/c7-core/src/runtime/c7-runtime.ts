@@ -65,6 +65,13 @@ export interface C7RuntimeOptions {
    * activities of its element statistics); without it each reads over the port.
    */
   readonly diagramXml?: DiagramRead
+  /**
+   * The most instance ids one request to the history's instances carries, 500 without it
+   * (`HISTORY_ID_CHUNK`): a search or count over more, such as the instances with an incident in
+   * a scope, sends them in chunks of it. An engine suite sets a small one, so the chunked reads
+   * meet the laws on the few instances of its world.
+   */
+  readonly historyIdChunk?: number
 }
 
 interface C7Readers {
@@ -98,7 +105,7 @@ export class C7Runtime implements ProcessRuntime {
         definitions,
         statistics: new ElementStatisticsReader(port, diagram),
         calls: new CalledProcessReader(port, diagram),
-        instances: new InstanceSearch(port),
+        instances: new InstanceSearch(port, options.historyIdChunk),
         variableNames: new VariableNameReader(port),
         instanceDetails: new InstanceDetailReader(port),
         incidents: new IncidentSearch(port, definitions),
