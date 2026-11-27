@@ -18,11 +18,21 @@ import { type WatchedAnswer, withPartsWatched } from "./answer-parts.js"
 import { buildEngineHealthData } from "./health-data.js"
 import { STATISTICS_FLOOR_MS } from "./statistics-floor.js"
 
-/** Health answers kept per engine client at most; past it the least recently used one goes. */
-const HEALTH_FLOOR_ENTRIES = 64
+/**
+ * Health answers kept per engine client and caller (one per thresholds); past it the caller's least
+ * recently used one goes.
+ */
+const HEALTH_FLOOR_ENTRIES = 2
+
+/**
+ * Callers whose health an engine client keeps; past it the least recently active caller's goes.
+ * Per engine at most HEALTH_FLOOR_CALLERS × HEALTH_FLOOR_ENTRIES (64) answers.
+ */
+const HEALTH_FLOOR_CALLERS = 32
 
 const healthFloor = createOwnerCache<WatchedAnswer<EngineHealthData>>({
   maxEntries: HEALTH_FLOOR_ENTRIES,
+  maxCallers: HEALTH_FLOOR_CALLERS,
   ttlMs: STATISTICS_FLOOR_MS,
   now: () => Date.now(),
   keep: ({ complete }) => complete,

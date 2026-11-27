@@ -23,8 +23,18 @@ import type { RuntimeEngine } from "../lib/engine/resolve-engine.js"
 /** How long a build of a board, and each of its reads, answers again for the same caller. */
 export const BOARD_FLOOR_MS = 30_000
 
-/** Answers per engine and read at most; past it the least recently used one goes. */
-const BOARD_READ_ENTRIES = 256
+/**
+ * Answers per engine, read and caller; past it the caller's least recently used one goes. A board
+ * holds 12 widgets at most (`BoardVocabulary.MAX_WIDGETS`), so a caller keeps every answer of a
+ * kind one build of a board takes.
+ */
+const BOARD_READ_ENTRIES = 16
+
+/**
+ * Callers kept per engine and read; past it the least recently active caller's answers go: 256
+ * answers per engine and read at most (`createHeldCache`).
+ */
+const BOARD_READ_CALLERS = 16
 
 /** The answer of one of a board's reads, and when that read started (ms since the epoch). */
 interface FlooredAnswer<T> {
@@ -83,6 +93,7 @@ export const NO_FLOORS: BoardReadFloors = {
 function boardReadFloor<T>(keep: (value: T) => boolean = () => true): BoardReadFloor<T> {
   const cached = createHeldCache<FlooredAnswer<T>>({
     maxEntries: BOARD_READ_ENTRIES,
+    maxCallers: BOARD_READ_CALLERS,
     ttlMs: BOARD_FLOOR_MS,
     now: () => Date.now(),
     keep: ({ value }) => keep(value),

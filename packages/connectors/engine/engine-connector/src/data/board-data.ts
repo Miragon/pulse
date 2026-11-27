@@ -58,8 +58,11 @@ import { boardReadsOf, leaveFloor, newReadLog, type ReadLog, refusedReads } from
 /** How long each engine of a board has to answer its reads, from the start of the build. */
 export const BOARD_ENGINE_DEADLINE_MS = 15_000
 
-/** Builds kept per board: one per caller; past it the least recently used goes. */
-const BOARD_CACHE_ENTRIES = 64
+/**
+ * Callers whose build a board keeps, one each (a board is one build); past it the least recently
+ * active caller's goes: 64 builds per board at most.
+ */
+const BOARD_CACHE_CALLERS = 64
 
 /**
  * The engine a board names, as the call resolves it by name (`resolveRuntimeEngine`, never the
@@ -177,7 +180,8 @@ export async function buildBoardData(
 }
 
 const boards = createOwnerCache<BoardBuild>({
-  maxEntries: BOARD_CACHE_ENTRIES,
+  maxEntries: 1,
+  maxCallers: BOARD_CACHE_CALLERS,
   ttlMs: BOARD_FLOOR_MS,
   now: () => Date.now(),
   keep: ({ complete }) => complete,

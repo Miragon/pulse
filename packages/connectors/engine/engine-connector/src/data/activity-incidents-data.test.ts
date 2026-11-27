@@ -20,6 +20,7 @@ import {
   V1,
   V2,
 } from "./process-incidents-data.test-support.js"
+import { readStatistics } from "./statistics-floor.js"
 
 closeEnginesAfterEach()
 
@@ -183,8 +184,9 @@ describe("buildActivityIncidentsData: a page of an activity's root incidents by 
   })
 
   it("counts a first page with more as its group does, never below its rows and one more", async () => {
-    // The process flow read v2's element counts while the call activity held none (their floor
-    // keeps them 30 s); then 12 root incidents are raised there.
+    // The process route read the statistics and v2's element counts while the call activity held
+    // none (both kept 30 s, the counts under that statistics read); then 12 root incidents are
+    // raised there.
     const listed: ReturnType<typeof row>[] = []
     const world: Record<string, ReturnType<typeof row>[]> = { callCheck: listed }
     const { client, engine, page } = await activityEngine({
@@ -193,6 +195,7 @@ describe("buildActivityIncidentsData: a page of an activity's root incidents by 
       ...incidentsAt(world),
       ...ROUTE_COUNTS,
     })
+    await readStatistics(client)
     await readElementCounts(client, [V2])
     listed.push(...Array.from({ length: 12 }, (_, n) => row(n, "callCheck", V2)))
 

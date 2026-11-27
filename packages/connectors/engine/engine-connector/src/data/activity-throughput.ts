@@ -28,7 +28,12 @@ import { recordsHistory } from "./history-recorded.js"
 const THROUGHPUT_WINDOW_DAYS = 30
 /** How long one read answers for the same key and window, per engine client and caller. */
 const THROUGHPUT_CACHE_TTL_MS = HOUR_MS
-const THROUGHPUT_CACHE_ENTRIES = 128
+/**
+ * Reads kept per engine client and caller, and the callers per engine client, the least recently
+ * used going first: 128 reads per engine at most.
+ */
+const THROUGHPUT_CACHE_ENTRIES = 8
+const THROUGHPUT_CACHE_CALLERS = 16
 /** Cohort counts in flight at once; the statistics themselves go one at a time per engine. */
 const COUNTS_AT_ONCE = 3
 /**
@@ -42,6 +47,7 @@ type Throughput = Omit<ActivityThroughputData, "engineId">
 
 const throughputCache = createCallerCache<Throughput>({
   maxEntries: THROUGHPUT_CACHE_ENTRIES,
+  maxCallers: THROUGHPUT_CACHE_CALLERS,
   ttlMs: THROUGHPUT_CACHE_TTL_MS,
 })
 

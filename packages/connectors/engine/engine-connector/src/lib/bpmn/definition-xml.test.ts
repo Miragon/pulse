@@ -112,17 +112,45 @@ describe("fetchDefinitionXml", () => {
     expect(xmlReads()).toBe(1)
   })
 
-  it("holds at most 64 diagrams per client, dropping the least recently used", async () => {
+  it("keeps the diagrams 5 callers read in turn, each with a token of its own", async () => {
     const { client, xmlReads } = await engineWith(byPath)
-    for (let version = 1; version <= 65; version++) {
+    const users = ["ada", "bob", "cy", "dee", "eve"]
+    for (let round = 0; round < 2; round++) {
+      for (const user of users) {
+        await runWithMcpRequestInfo({ authorization: `Bearer ${user}` }, async () => {
+          await fetchDefinitionXml(client, "order:1:a")
+          await fetchDefinitionXml(client, "order:2:b")
+        })
+      }
+    }
+    expect(xmlReads()).toBe(10)
+  })
+
+  it("keeps 8 diagrams each for 16 callers reading in turn", async () => {
+    const { client, xmlReads } = await engineWith(byPath)
+    const users = Array.from({ length: 16 }, (_, user) => `user-${String(user)}`)
+    const versions = Array.from({ length: 8 }, (_, version) => `order:${String(version + 1)}:d`)
+    for (let round = 0; round < 2; round++) {
+      for (const user of users) {
+        await runWithMcpRequestInfo({ authorization: `Bearer ${user}` }, async () => {
+          for (const version of versions) await fetchDefinitionXml(client, version)
+        })
+      }
+    }
+    expect(xmlReads()).toBe(16 * 8)
+  })
+
+  it("holds at most 128 diagrams for the calls that send no token, dropping the least recently used", async () => {
+    const { client, xmlReads } = await engineWith(byPath)
+    for (let version = 1; version <= 129; version++) {
       await fetchDefinitionXml(client, `order:${version}:d`)
     }
-    expect(xmlReads()).toBe(65)
+    expect(xmlReads()).toBe(129)
     // Version 1 was the least recently used: dropped, read again.
     await fetchDefinitionXml(client, "order:1:d")
-    expect(xmlReads()).toBe(66)
-    // Version 65 is still there.
-    await fetchDefinitionXml(client, "order:65:d")
-    expect(xmlReads()).toBe(66)
+    expect(xmlReads()).toBe(130)
+    // Version 129 is still there.
+    await fetchDefinitionXml(client, "order:129:d")
+    expect(xmlReads()).toBe(130)
   })
 })

@@ -85,8 +85,14 @@ export interface ActivityCountsArgs {
   version?: number
 }
 
-/** The answers kept per engine and caller at most; past it the least recently used one goes. */
-const COUNTS_FLOOR_ENTRIES = 128
+/** The answers kept per engine and caller at most; past it the caller's least recently used one goes. */
+const COUNTS_FLOOR_ENTRIES = 4
+
+/**
+ * Callers whose answers an engine keeps; past it the least recently active caller's go. Per engine
+ * at most COUNTS_FLOOR_CALLERS × COUNTS_FLOOR_ENTRIES (128) answers.
+ */
+const COUNTS_FLOOR_CALLERS = 32
 
 /**
  * The floor under the counts: a caller's same call within SCREEN_FLOOR_MS (30 s) gets the answer
@@ -95,6 +101,7 @@ const COUNTS_FLOOR_ENTRIES = 128
  */
 const countsFloor = createCallerCache<ActivityCountsData>({
   maxEntries: COUNTS_FLOOR_ENTRIES,
+  maxCallers: COUNTS_FLOOR_CALLERS,
   ttlMs: SCREEN_FLOOR_MS,
   now: () => Date.now(),
 })
