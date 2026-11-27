@@ -3,17 +3,23 @@ import {
   getHistoricActivityStatistics,
   getHistoricProcessInstancesCount,
 } from "@miragon/pulse-c7-client/sdk"
-import { isMultiInstanceBody, mapLimit, toEngineDate } from "@miragon/pulse-c7-core"
+import {
+  isMultiInstanceBody,
+  mapLimit,
+  type TenantQuery,
+  tenantQuery,
+  toEngineDate,
+} from "@miragon/pulse-c7-core"
 import { createCallerCache, oneAtATime } from "../lib/engine/per-engine.js"
 import type { ActivityThroughputActivity, ActivityThroughputData } from "../view-models.js"
 import { placeOnDiagram, readDiagramXml } from "./activity-diagram.js"
-import { HOUR_MS } from "./cluster-scan.js"
 import {
-  fetchDefinitionVersions,
-  fetchLatestDefinition,
-  fetchVersionIdsDeployedAfter,
-  type DefinitionVersion,
-} from "./definition-info.js"
+  type CockpitProcess,
+  type ProcessVersions,
+  readProcessVersions,
+} from "./cockpit-process.js"
+import { HOUR_MS } from "./cluster-scan.js"
+import { fetchVersionIdsDeployedAfter, type DefinitionVersion } from "./definition-info.js"
 import { countOf, DAY_MS, rowsOf } from "./engine-reads.js"
 import { recordsHistory } from "./history-recorded.js"
 
@@ -26,7 +32,7 @@ import { recordsHistory } from "./history-recorded.js"
 
 /** The window: fixed, since the work grows with it (90 days cost about twice what 30 do). */
 const THROUGHPUT_WINDOW_DAYS = 30
-/** How long one read answers for the same key and window, per engine client and caller. */
+/** How long one read answers for the same process and window, per engine client and caller. */
 const THROUGHPUT_CACHE_TTL_MS = HOUR_MS
 /**
  * Reads kept per engine client and caller, and the callers per engine client, the least recently
@@ -67,8 +73,26 @@ interface HistoryStatsRow {
   canceled?: number | null
 }
 
-function countStarted(client: Client, query: Record<string, string>): Promise<number> {
-  return getHistoricProcessInstancesCount({ client, query }).then(countOf)
+/** The instances `query` names started in the window, of one tenant (`tenant`) where named. */
+function countStarted(
+  client: Client,
+  query: Record<string, string>,
+  tenant?: TenantQuery,
+): Promise<number> {
+  return getHistoricProcessInstancesCount({ client, query: { ...query, ...tenant } }).then(countOf)
+}
+
+/**
+ * The instances of the process started since `startedAfter`: its key's where it is alone, else
+ * its key's in its tenant (`tenantQuery`).
+ */
+function countProcessStarted(
+  client: Client,
+  process: CockpitProcess,
+  startedAfter: string,
+): Promise<number> {
+  const tenant = process.alone ? undefined : tenantQuery(process.tenantId)
+  return countStarted(client, { processDefinitionKey: process.key, startedAfter }, tenant)
 }
 
 /**
@@ -95,14 +119,14 @@ function likelyVersions(
 interface Cohorts {
   /** Per version counted: its instances started in the window. */
   byVersion: Map<string, number>
-  /** The key's instances in the window on no version counted: older ones past the cap, or none. */
+  /** The process's instances in the window on no version counted: older ones past the cap. */
   uncounted: number
 }
 
 /**
  * Instances started since `startedAfter` per version: the candidates in turn until their counts
- * cover the key's `total`, so a key whose instances run on its newest versions is not counted
- * version by version. A candidate left out started nothing in the window.
+ * cover the process's `total`, so a process whose instances run on its newest versions is not
+ * counted version by version. A candidate left out started nothing in the window.
  */
 async function countCohorts(
   client: Client,
@@ -160,14 +184,14 @@ function shortestTimeToLive(versions: readonly DefinitionVersion[]): number | nu
  */
 async function throughputWindow(
   client: Client,
-  key: string,
-  versions: readonly DefinitionVersion[],
+  process: ProcessVersions,
   nowMs: number,
 ): Promise<Window> {
+  const { versions } = process
   const startedAfter = toEngineDate(new Date(windowStart(nowMs, THROUGHPUT_WINDOW_DAYS)))
   const [total, deployedSince] = await Promise.all([
-    countStarted(client, { processDefinitionKey: key, startedAfter }),
-    fetchVersionIdsDeployedAfter(client, key, startedAfter),
+    countProcessStarted(client, process, startedAfter),
+    fetchVersionIdsDeployedAfter(client, process.key, startedAfter),
   ])
   const likely = likelyVersions(versions, deployedSince)
   const older = versions.filter((v) => !likely.has(v.id)).slice(0, OLDER_VERSIONS_COUNTED)
@@ -191,7 +215,7 @@ async function throughputWindow(
   }
   if (days === 0) return { ...window, versions: [], uncounted: 0 }
   const cutAfter = toEngineDate(new Date(window.startMs))
-  const cutTotal = await countStarted(client, { processDefinitionKey: key, startedAfter: cutAfter })
+  const cutTotal = await countProcessStarted(client, process, cutAfter)
   const cut = await countCohorts(client, started, cutAfter, cutTotal)
   return { ...window, versions: withCohort(started, cut), uncounted: cut.uncounted }
 }
@@ -230,13 +254,15 @@ function countsPerElement(rows: HistoryStatsRow[]): Map<string, ElementCounts> {
   return byElement
 }
 
-async function readThroughput(client: Client, key: string, nowMs: number): Promise<Throughput> {
-  const [diagram, versions] = await Promise.all([
-    // Primary: an unknown key is a not-found error, never a view of zeros.
-    fetchLatestDefinition(client, key),
-    fetchDefinitionVersions(client, key),
-  ])
-  const window = await throughputWindow(client, key, versions, nowMs)
+async function readThroughput(
+  client: Client,
+  { key, tenantId }: ThroughputProcess,
+  nowMs: number,
+): Promise<Throughput> {
+  // Primary: an unknown key or tenant is a not-found error, never a view of zeros.
+  const process = await readProcessVersions(client, key, tenantId)
+  const { latest: diagram, versions } = process
+  const window = await throughputWindow(client, process, nowMs)
   const startedAfter = toEngineDate(new Date(window.startMs))
   const [perVersion, bpmnXml, historyRecorded] = await Promise.all([
     // In turn, so a failed read stops the rest instead of loading the engine for nothing.
@@ -258,8 +284,9 @@ async function readThroughput(client: Client, key: string, nowMs: number): Promi
     )
   return {
     processDefinitionKey: key,
+    ...(process.tenantId === null ? {} : { tenantId: process.tenantId }),
     source: "history",
-    diagramDefinitionId: diagram.id || null,
+    diagramDefinitionId: diagram.id,
     diagramVersion: diagram.version,
     versionCount: versions.length,
     versionsRead: window.versions.length,
@@ -274,19 +301,27 @@ async function readThroughput(client: Client, key: string, nowMs: number): Promi
   }
 }
 
+/** The process a throughput reads: a key, in the tenant named, else the one the key names. */
+export interface ThroughputProcess {
+  readonly key: string
+  readonly tenantId?: string | undefined
+}
+
 /**
- * The process flow's "Throughput": what the instances started in the last 30 days passed at each
- * element, every version that started any summed onto the latest diagram. Kept per engine client,
- * caller, key and window for the hour, so only the first open of a key per hour and replica reads
- * the engine; a failed read is not kept.
+ * The process flow's "Throughput": what the instances of one process (a key in one tenant)
+ * started in the last 30 days passed at each element, every version of it that started any summed
+ * onto its latest diagram. Kept per engine client, caller, key, tenant asked for and window for the
+ * hour, so only the first open of a process per hour and replica reads the engine; a failed read is
+ * not kept.
  */
 export function readActivityThroughput(
   client: Client,
-  key: string,
+  process: ThroughputProcess,
   nowMs: number,
 ): Promise<Throughput> {
   const window = windowStart(nowMs, THROUGHPUT_WINDOW_DAYS)
-  return throughputCache(client, JSON.stringify([key, window]), () =>
-    readThroughput(client, key, nowMs),
+  const asked = [process.key, process.tenantId ?? null, window]
+  return throughputCache(client, JSON.stringify(asked), () =>
+    readThroughput(client, process, nowMs),
   )
 }

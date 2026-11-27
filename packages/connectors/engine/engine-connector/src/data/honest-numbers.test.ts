@@ -35,6 +35,8 @@ import {
   incidentScan,
   KEY_LOOKUP,
   V1_CALL_ACTIVITIES,
+  LATEST_LOOKUP,
+  VERSIONS_LOOKUP,
 } from "./honest-numbers.test-support.js"
 import { COPY_CASES, HISTORY_ENRICHMENT } from "./honest-numbers.copies.test-support.js"
 import { ACTIVITY_PAGE_CASES } from "./honest-numbers.activity-page.test-support.js"
@@ -95,7 +97,7 @@ const incidentDetailEnrichment = {
 // The diagram names the elements and says which of them it draws.
 const activityStatistics = (source: "runtime" | "history"): Case => ({
   run: (client) => buildActivityStatisticsData(client, { processDefinitionKey: WORLD.key, source }),
-  unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
+  unknown: { read: VERSIONS_LOOKUP, reply: NO_ROWS },
   enrichment: {
     [`GET /process-definition/${WORLD.latestDefinitionId}/xml`]: (data: {
       activities: Array<{ inDiagram: unknown; activityName: unknown }>
@@ -259,7 +261,7 @@ const CASES: Record<string, Case> = {
   },
   buildProcessIncidentsData: {
     run: processIncidents,
-    unknown: { read: KEY_LOOKUP, reply: NO_ROWS },
+    unknown: { read: LATEST_LOOKUP, reply: NO_ROWS },
     enrichment: processIncidentsXml,
   },
   // More incidents than the scan holds: per-activity counts from the statistics.

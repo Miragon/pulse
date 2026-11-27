@@ -61,6 +61,22 @@ describe("a tile's target on the cockpit's routes", () => {
       },
     ],
     [
+      "a summary row of a tenant: the process in that tenant (F17b)",
+      {
+        kind: "instances",
+        engine: "prod-a",
+        bpmnProcessId: "invoice",
+        tenantId: "north",
+        filter: { scope: "withIncident" },
+      },
+      {
+        section: "process-detail",
+        processDefinitionKey: "invoice",
+        tenantId: "north",
+        focus: "incidents",
+      },
+    ],
+    [
       "an engine's count: its overview",
       { kind: "instances", engine: "prod-a", filter: { scope: "running" } },
       { section: "overview" },

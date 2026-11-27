@@ -20,6 +20,7 @@ import {
 import { useState } from "react"
 import {
   LIST_PAGE_SIZE,
+  type ListTenant,
   type ProcessInstanceRow,
   type ProcessInstancesData,
 } from "../../view-models.js"
@@ -46,18 +47,28 @@ type InstancesFilterArgs = Partial<ProcessInstancesFilters> & {
 }
 
 /**
+ * The route's scope: a key's instances, narrowed to the runs in one tenant (null: none) where a
+ * process whose key holds others opened them.
+ */
+interface InstancesScope {
+  processDefinitionKey?: string | undefined
+  onlyTenant?: ListTenant | undefined
+}
+
+/**
  * Server-side filters, so the scope and the search cover the whole result set, not the loaded
  * page. The route's engine and process scope every page, never the default engine. The feed maps
  * `false` onto its complement, so the Suspended scope sends `suspended: true` alone.
  */
 function instancesFilterArgs(
   engine: string,
-  processDefinitionKey: string | undefined,
+  { processDefinitionKey, onlyTenant }: InstancesScope,
   activeChip: InstanceChip,
 ): InstancesFilterArgs {
   // No definition scope: the engine-wide list the overview KPI drills into.
   const args: InstancesFilterArgs = { engine }
   if (processDefinitionKey) args.processDefinitionKey = processDefinitionKey
+  if (processDefinitionKey && onlyTenant !== undefined) args.onlyTenant = onlyTenant
   if (activeChip === CHIP_SUSPENDED) args.suspended = true
   if (activeChip === CHIP_INCIDENTS) args.withIncidents = true
   return args
@@ -100,14 +111,15 @@ function instanceColumns(t: T, scoped: boolean, actions: boolean): ListTableColu
 function useInstancesList(
   initialData: ProcessInstancesData | null,
   engine: string,
-  processDefinitionKey: string | undefined,
+  scope: InstancesScope,
 ) {
   const [activeChip, setActiveChip] = useState<InstanceChip>(CHIP_ALL)
+  const tenant = scope.onlyTenant === undefined ? "*" : scope.onlyTenant
   const list = usePagedListView<ProcessInstanceRow, ProcessInstancesData>({
     initialData,
-    key: ["engine:process-instances", engine, processDefinitionKey ?? null],
+    key: ["engine:process-instances", engine, scope.processDefinitionKey ?? null, tenant],
     tool: ENGINE_PROCESS_INSTANCES_DATA,
-    args: instancesFilterArgs(engine, processDefinitionKey, activeChip),
+    args: instancesFilterArgs(engine, scope, activeChip),
     searchArg: "search",
     filtersActive: activeChip !== CHIP_ALL,
     pageSize: LIST_PAGE_SIZE,
@@ -228,6 +240,7 @@ function useRowDrills() {
       go({
         type: "process-detail",
         processDefinitionKey: instance.processDefinitionKey,
+        ...(instance.tenantId === undefined ? {} : { tenantId: instance.tenantId }),
         label: instance.processDefinitionName ?? undefined,
       })
     },
@@ -283,15 +296,18 @@ function InstanceRows({
 export function ProcessInstancesView({
   data: initialData = null,
   processDefinitionKey,
+  onlyTenant,
   engine,
 }: {
   data?: ProcessInstancesData | null
   processDefinitionKey?: string
+  /** The tenant a process opened its instances in (null: none); absent, every tenant's. */
+  onlyTenant?: ListTenant
   engine: string
 }) {
   const t = useT()
   const handOffs = useHandOffsShown()
-  const list = useInstancesList(initialData, engine, processDefinitionKey)
+  const list = useInstancesList(initialData, engine, { processDefinitionKey, onlyTenant })
   const { paged } = list
   // The page on screen, its filters the echo of that page, never the request: an in-flight or
   // failed query still shows the previous result.
@@ -339,6 +355,7 @@ export function ProcessInstancesView({
 export function ProcessInstancesWidget(props: {
   data: ProcessInstancesData | null
   processDefinitionKey?: string
+  onlyTenant?: ListTenant
   engine: string
 }) {
   return <ProcessInstancesView {...props} />

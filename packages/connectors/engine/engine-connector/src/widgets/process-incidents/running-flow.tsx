@@ -10,11 +10,20 @@ import { ActivityValues } from "./activity-values.js"
 import { describeRunningFlow, runningDecorations } from "./running.js"
 
 /** Under the cockpit's Refresh (`engine:`), scoped to the route's engine and process. */
-function useRunningData(processDefinitionKey: string, engine: string) {
+function useRunningData(
+  processDefinitionKey: string,
+  tenantId: string | undefined,
+  engine: string,
+) {
   return useToolQuery<ActivityStatisticsData>(
-    ["engine:activity-statistics", engine, processDefinitionKey],
+    ["engine:activity-statistics", engine, processDefinitionKey, tenantId ?? null],
     ENGINE_ACTIVITY_STATISTICS_DATA,
-    { processDefinitionKey, source: "runtime", engine },
+    {
+      processDefinitionKey,
+      ...(tenantId === undefined ? {} : { tenantId }),
+      source: "runtime",
+      engine,
+    },
   )
 }
 
@@ -25,17 +34,20 @@ function useRunningData(processDefinitionKey: string, engine: string) {
  */
 export function RunningFlow({
   processDefinitionKey,
+  tenantId,
   engine,
   toolbar,
 }: {
   processDefinitionKey: string
+  /** The process's tenant, where it has one. */
+  tenantId?: string | undefined
   engine: string
   /** The flow's mode switch with this mode's caption. */
   toolbar: (caption: string) => ReactNode
 }) {
   const t = useT()
   const { context } = useHandOff()
-  const running = useRunningData(processDefinitionKey, engine)
+  const running = useRunningData(processDefinitionKey, tenantId, engine)
   const data = running.data
   const decorations = useMemo(() => runningDecorations(data?.activities ?? []), [data?.activities])
 

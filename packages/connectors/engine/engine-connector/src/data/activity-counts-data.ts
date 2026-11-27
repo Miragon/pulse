@@ -25,10 +25,11 @@ import { fetchRootCauses, type IncidentRow, scanIncidents } from "./incident-sca
 import { SCREEN_FLOOR_MS } from "./screens/screen-floor.js"
 
 /**
- * A process's counts per activity (`engine_activity_counts`), the cockpit's element counts: with
- * no version, every deployed version summed onto the latest diagram, as the process flow's
- * "Running" reads them; with one, that version's on its own diagram, as the web app's process
- * screen reads it. Per element the tokens without those a root incident raised there holds, the
+ * A key's counts per activity (`engine_activity_counts`), the element counts the cockpit reads too:
+ * with no version, every deployed version of the key in every tenant summed onto its newest
+ * version's diagram (the process flow's "Running" sums one process's, a key in one tenant, so the
+ * two agree on an engine without tenants); with one, that version's on its own diagram, as the web
+ * app's process screen reads it. Per element the tokens without those a root incident raised there holds, the
  * open root incidents raised there and, apart, the incidents of the instances it called, its jobs
  * without retries (`readElementCounts`, on its floor of 30 s per caller), and its open user tasks
  * with the oldest (a count per user task that holds a token). The decorations are the screens'

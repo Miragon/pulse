@@ -189,6 +189,7 @@ const CLUSTER: ClusterDetailData = {
   latestIncident: null,
   // Two processes: no single one for the bar to open, so its one action is the hand-off.
   processDefinitionKeys: ["shipping", "returns"],
+  process: null,
   representativeMessage: "Connection timeout",
   incidents: [],
   totalMatching: 0,

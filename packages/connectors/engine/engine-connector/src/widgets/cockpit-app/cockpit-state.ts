@@ -74,7 +74,7 @@ export type CockpitAction =
   | { type: "boot"; engineId: string | null; view: CockpitView | null }
   | { type: "enter-engine"; id: string }
   | { type: "switch-engine"; id: string }
-  | { type: "process-gone"; engineId: string; processDefinitionKey: string }
+  | { type: "process-gone"; engineId: string; process: KeptProcess }
   | { type: "processes-kept" }
   | { type: "to-fleet" }
   | { type: "to-landing" }
@@ -183,7 +183,8 @@ function rescopesJobs(stack: readonly CockpitView[], view: CockpitView): boolean
   return (
     view.section === "jobs" &&
     top?.section === "jobs" &&
-    top.processDefinitionKey === view.processDefinitionKey
+    top.processDefinitionKey === view.processDefinitionKey &&
+    top.onlyTenant === view.onlyTenant
   )
 }
 
@@ -192,7 +193,7 @@ function withScope(state: CockpitState, view: CockpitView): CockpitState {
   return { ...withStack(state, [...state.stack.slice(0, -1), view]), moved: "replace" }
 }
 
-/** The views an engine switch keeps beyond the head section: the ones a process key addresses. */
+/** The views an engine switch keeps beyond the head section: the ones a process addresses. */
 function isKeyed(view: CockpitView): boolean {
   return (
     view.section === "process-detail" ||
@@ -214,36 +215,63 @@ function switchedStack(stack: readonly CockpitView[]): CockpitView[] {
   return [head, ...(end < 0 ? below : below.slice(0, end))]
 }
 
-/** The process keys of the views an engine switch keeps, which the new engine must deploy. */
-export function keptProcessKeys(stack: readonly CockpitView[]): string[] {
-  const keys = switchedStack(stack).flatMap((view) =>
-    "processDefinitionKey" in view && view.processDefinitionKey ? [view.processDefinitionKey] : [],
-  )
-  return [...new Set(keys)]
+/**
+ * A process a kept view addresses: its key, and the tenant the view names (null: the process without
+ * one), none where the view names none: the key's process in any tenant then.
+ */
+export interface KeptProcess {
+  readonly key: string
+  readonly tenantId?: string | null
 }
 
-/** The name the trail gives a process key (its process view's label), else the key. */
-function processNameIn(stack: readonly CockpitView[], key: string): string {
+/**
+ * The process a view addresses by its key: in the tenant a process's view names, or the one its
+ * list is narrowed to (null: none); none for a view of no key.
+ */
+function processOf(view: CockpitView): KeptProcess | undefined {
+  if (!("processDefinitionKey" in view) || !view.processDefinitionKey) return undefined
+  const key = view.processDefinitionKey
+  const tenantId =
+    "tenantId" in view ? view.tenantId : "onlyTenant" in view ? view.onlyTenant : undefined
+  return tenantId === undefined ? { key } : { key, tenantId }
+}
+
+/** Whether `view` addresses the process `kept`. */
+function addresses(view: CockpitView, kept: KeptProcess): boolean {
+  const process = processOf(view)
+  return process?.key === kept.key && process.tenantId === kept.tenantId
+}
+
+/** The processes of the views an engine switch keeps, which the new engine must deploy. */
+export function keptProcesses(stack: readonly CockpitView[]): KeptProcess[] {
+  const kept = new Map<string, KeptProcess>()
+  for (const view of switchedStack(stack)) {
+    const process = processOf(view)
+    if (process) kept.set(JSON.stringify([process.key, process.tenantId]), process)
+  }
+  return [...kept.values()]
+}
+
+/** The name the trail gives a process (its process view's label), else its key. */
+function processNameIn(stack: readonly CockpitView[], kept: KeptProcess): string {
   for (const view of stack) {
-    if (view.section === "process-detail" && view.processDefinitionKey === key && view.label) {
+    if (view.section === "process-detail" && addresses(view, kept) && view.label) {
       return view.label
     }
   }
-  return key
+  return kept.key
 }
 
 /** The process the new engine does not deploy: the head section, said under the head. */
-function withoutProcess(state: CockpitState, engineId: string, key: string): CockpitState {
+function withoutProcess(state: CockpitState, engineId: string, kept: KeptProcess): CockpitState {
   const { scope, stack } = state
-  const holds = stack.some(
-    (view) => "processDefinitionKey" in view && view.processDefinitionKey === key,
-  )
+  const holds = stack.some((view) => addresses(view, kept))
   if (scope.kind !== "engine" || scope.engineId !== engineId || !holds) return state
   return {
     ...state,
     stack: [stack[0]],
     seededKey: null,
-    processGone: { engineId, process: processNameIn(stack, key) },
+    processGone: { engineId, process: processNameIn(stack, kept) },
     moved: "replace",
     checkProcesses: false,
   }
@@ -325,10 +353,10 @@ export function cockpitReducer(state: CockpitState, action: CockpitAction): Cock
       // leaves never reach the next.
       return {
         ...movedTo({ kind: "engine", engineId: action.id }, switchedStack(state.stack)),
-        checkProcesses: keptProcessKeys(state.stack).length > 0,
+        checkProcesses: keptProcesses(state.stack).length > 0,
       }
     case "process-gone":
-      return withoutProcess(state, action.engineId, action.processDefinitionKey)
+      return withoutProcess(state, action.engineId, action.process)
     case "processes-kept":
       return { ...state, checkProcesses: false }
     case "to-fleet":

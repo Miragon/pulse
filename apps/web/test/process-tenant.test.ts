@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { screenUrlOf, viewRouteOf } from "../src/router/routes.js"
+import { screenOf, screenUrlOf, urlOf, viewRouteOf } from "../src/router/routes.js"
 import { processArgsOf, screenProcessOf } from "../src/screens/process/screen-process.js"
 import { targetUrl } from "../src/screens/slots.js"
 
@@ -90,5 +90,42 @@ describe("the process screen's read of a process in a tenant", () => {
       engine: E,
       process: "label",
     })
+  })
+})
+
+describe("the cockpit's drill to a process in a tenant, the place the page claims (F17b)", () => {
+  const place = { view: "process-detail", engine: E, processDefinitionKey: "invoice" }
+
+  it("opens the process screen in the drill's tenant at the process's address with `?tenant=`", () => {
+    const north = { ...place, tenantId: "north" }
+    expect(screenOf(north)).toEqual({
+      kind: "process",
+      engine: E,
+      process: "invoice",
+      tenantId: "north",
+      filter: RUNNING,
+    })
+    expect(urlOf(north)).toBe("/app/engines/prod-a/processes/invoice?tenant=north")
+    const focused = urlOf({ ...north, focus: "incidents" })
+    expect(focused).toBe("/app/engines/prod-a/processes/invoice?tenant=north&scope=incident")
+    expect(route(focused).screen).toMatchObject({
+      tenantId: "north",
+      filter: { scope: "withIncident" },
+    })
+  })
+
+  it("opens a process's instances in its tenant, the process without one at the key's address", () => {
+    const instances = { view: "process-instances", engine: E, processDefinitionKey: "invoice" }
+    const south = { ...instances, onlyTenant: "south" }
+    expect(screenOf(south)).toMatchObject({ tenantId: "south" })
+    expect(urlOf(south)).toBe("/app/engines/prod-a/instances?process=invoice&tenant=south")
+    const none = { ...instances, onlyTenant: null }
+    expect(screenOf(none)).not.toHaveProperty("tenantId")
+    expect(urlOf(none)).toBe("/app/engines/prod-a/instances?process=invoice")
+    expect(urlOf(place)).toBe("/app/engines/prod-a/processes/invoice")
+    // A tenant that is no text is no address's: the cockpit's query, for the tool to refuse.
+    expect(urlOf({ ...place, tenantId: 7 })).toBe(
+      "/app/cockpit?view=process-detail&engine=prod-a&processDefinitionKey=invoice&tenantId=7",
+    )
   })
 })

@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react"
-import type { CockpitView } from "../view-models.js"
+import type { CockpitView, ListTenant } from "../view-models.js"
 
 // The cockpit binds this to its client-side router, so a drill navigates without an LLM round-trip.
 export type NavIntent =
@@ -11,18 +11,27 @@ export type NavIntent =
       incidentType: string
       messageSignature?: string
     } & Labelled)
-  | ({ type: "process-detail"; processDefinitionKey: string } & Labelled)
-  | { type: "process-instances"; processDefinitionKey?: string }
-  | ({ type: "process-incidents"; processDefinitionKey: string } & Labelled)
+  | ({ type: "process-detail" } & ProcessRef & Labelled)
+  | { type: "process-instances"; processDefinitionKey?: string; onlyTenant?: ListTenant }
+  | ({ type: "process-incidents" } & ProcessRef & Labelled)
   | ({ type: "instance-detail"; processInstanceId: string } & Labelled)
   | ({ type: "incident-detail"; incidentId: string } & Labelled)
-  | { type: "jobs"; processDefinitionKey?: string; failedOnly?: boolean }
+  | { type: "jobs"; processDefinitionKey?: string; onlyTenant?: ListTenant; failedOnly?: boolean }
   // A board's tile: a route of one of the board's engines, which the cockpit then shows.
   | { type: "board-target"; engine: string; view: CockpitView }
 
 // #322 U13: the breadcrumb name; without one the drill shows the id.
 interface Labelled {
   label?: string
+}
+
+/**
+ * A process: its key, and its tenant where the drill knows one (a process without a tenant names
+ * none); without one the process route reads the process the key names (`ProcessTenants`).
+ */
+interface ProcessRef {
+  processDefinitionKey: string
+  tenantId?: string
 }
 
 export type OnNavigate = (intent: NavIntent) => void

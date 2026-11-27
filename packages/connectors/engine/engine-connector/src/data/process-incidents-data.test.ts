@@ -79,8 +79,9 @@ describe("buildProcessIncidentsData: key-wide (#335 N60)", () => {
         "/process-instance/count",
       ].sort(),
     )
+    // The key's latest per tenant: one read, as the latest alone was, uncapped by tenant.
     expect(queriesOf(requests, "/process-definition")).toEqual([
-      { key: KEY, latestVersion: "true", sortBy: "version", sortOrder: "desc", maxResults: "1" },
+      { key: KEY, latestVersion: "true", sortBy: "version", sortOrder: "desc" },
     ])
   })
 

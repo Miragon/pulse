@@ -100,6 +100,12 @@ export interface ClusterIncidentRow {
   incidentTimestamp: string
 }
 
+/** A process a cluster lies in: its key, and its tenant where it has one. */
+export interface ClusterProcess {
+  processDefinitionKey: string
+  tenantId?: string
+}
+
 /**
  * One cause's root incidents. Without a message filter and with no copy in the scan the counts are
  * `/incident/count` totals; otherwise an unvouched count is null.
@@ -118,6 +124,12 @@ export interface ClusterDetailData extends ClusterCounts {
   latestIncident: string | null
   /** Distinct process definition keys of the scanned incidents, most-affected first. */
   processDefinitionKeys: string[]
+  /**
+   * The one process its scanned incidents lie in, which its View process opens: their one key, in
+   * their versions' one tenant where they have one. Null where they lie in several processes,
+   * name no key, or a version's tenant went unread.
+   */
+  process: ClusterProcess | null
   representativeMessage: string | null
   /** Most recent first. */
   incidents: ClusterIncidentRow[]

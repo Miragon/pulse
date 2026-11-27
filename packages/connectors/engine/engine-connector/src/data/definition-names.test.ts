@@ -163,6 +163,7 @@ describe("fetchDefinitionsById", () => {
     expect(byId.get("order:2:d2")).toEqual({
       id: "order:2:d2",
       key: "order",
+      tenantId: null,
       name: "Order",
       version: 2,
     })

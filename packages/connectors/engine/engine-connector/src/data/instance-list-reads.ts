@@ -25,6 +25,8 @@ export interface RawInstance {
   definitionId?: string | null
   businessKey?: string | null
   suspended?: boolean | null
+  /** The instance's tenant: its version's, or one a tenant id provider gave a shared version's. */
+  tenantId?: string | null
 }
 
 /** c7-core's reads of an instance body over `client`: its count, and its rows in the list's order. */

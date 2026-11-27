@@ -19,12 +19,15 @@ import type {
   IncidentsDashboardProcess,
 } from "../../view-models.js"
 
-import { useNav } from "../navigation.js"
+import { type NavIntent, useNav } from "../navigation.js"
 import { ENGINE_INCIDENTS_DATA } from "../../tool-names.js"
 import { useHandOff, useHandOffsShown, type HandOff } from "../lib/hand-off.js"
 import { MoreActions } from "../lib/more-actions.js"
 import { useT } from "../../messages/use-t.js"
 import { ActivityTable } from "./activity-table.js"
+import { processNameInTenant } from "../lib/process-name.js"
+import { cardIdOf, filterProcesses } from "./process-search.js"
+import { ProcessTitle } from "./process-title.js"
 import { dashboardScope, incidentsFeed } from "./scope.js"
 import { TimeAgo } from "./time-ago.js"
 
@@ -46,8 +49,13 @@ export function processRootCauseHandOff(
   const { incidentType } = dashboardScope(filters)
   return {
     intent: "askAi.incidents.processRootCause",
-    ids: { engine, processDefinitionKey: process.processDefinitionKey, incidentType },
-    // All versions of the key (#335 N61); null facts are left out, never a 0.
+    ids: {
+      engine,
+      processDefinitionKey: process.processDefinitionKey,
+      tenantId: process.tenantId,
+      incidentType,
+    },
+    // All versions of the process (#335 N61); null facts are left out, never a 0.
     facts: {
       countScope: "allVersions",
       latestVersion: process.latestVersion,
@@ -59,23 +67,6 @@ export function processRootCauseHandOff(
     },
     untrusted: [{ label: "processName", text: process.processDefinitionName }],
   }
-}
-
-/**
- * The group's name in its toggle: the full process name, never cut, its key quiet in mono after
- * it, so the toggle is named by the process.
- */
-function ProcessTitle({ process }: { process: IncidentsDashboardProcess }) {
-  return (
-    <span className="text-dense min-w-0 font-semibold break-words">
-      {process.processDefinitionName ?? process.processDefinitionKey}
-      {process.processDefinitionName && (
-        <span className="text-muted-foreground text-small ms-2 font-mono font-normal">
-          {process.processDefinitionKey}
-        </span>
-      )}
-    </span>
-  )
 }
 
 /**
@@ -102,7 +93,7 @@ function ProcessSummary({
   const { ask } = useHandOff()
   const handOffs = useHandOffsShown()
   const cockpitUrl = process.cockpitUrl
-  const name = process.processDefinitionName ?? process.processDefinitionKey
+  const name = processNameInTenant(process, t)
   const facts = [
     process.affectedActivityCount === null
       ? `${formatCount(null)} ${t("incidentsList.activitiesLabel")}`
@@ -190,30 +181,14 @@ function ActivityList({
   )
 }
 
-function matchesSearch(activity: IncidentsDashboardActivity, q: string): boolean {
-  return (
-    (activity.activityName ?? "").toLowerCase().includes(q) ||
-    activity.activityId.toLowerCase().includes(q) ||
-    (activity.representativeMessage ?? "").toLowerCase().includes(q)
-  )
-}
-
-/** The search narrows the list, never the numbers: a sum over a partial scan would understate. */
-function filterProcesses(
-  processes: IncidentsDashboardProcess[],
-  search: string,
-): IncidentsDashboardProcess[] {
-  const q = search.trim().toLowerCase()
-  return processes
-    .map<IncidentsDashboardProcess | null>((p) => {
-      const processMatches =
-        (p.processDefinitionName ?? "").toLowerCase().includes(q) ||
-        p.processDefinitionKey.toLowerCase().includes(q)
-      if (q.length === 0 || processMatches) return p
-      const activities = p.activities.filter((a) => matchesSearch(a, q))
-      return activities.length === 0 ? null : { ...p, activities }
-    })
-    .filter((p): p is IncidentsDashboardProcess => p !== null)
+/** What a card opens: its process, its key in its tenant, its incidents in focus. */
+function processIncidentsOf(process: IncidentsDashboardProcess): NavIntent {
+  return {
+    type: "process-incidents",
+    processDefinitionKey: process.processDefinitionKey,
+    ...(process.tenantId === undefined ? {} : { tenantId: process.tenantId }),
+    label: process.processDefinitionName ?? undefined,
+  }
 }
 
 /** One widget so the search stays with the list. */
@@ -259,14 +234,6 @@ function IncidentProcessListView({
     })
   }
 
-  function openDetail(process: IncidentsDashboardProcess) {
-    go({
-      type: "process-incidents",
-      processDefinitionKey: process.processDefinitionKey,
-      label: process.processDefinitionName ?? undefined,
-    })
-  }
-
   return (
     <WidgetShell
       header={
@@ -295,10 +262,10 @@ function IncidentProcessListView({
         ) : (
           filteredProcesses.map((p) => (
             <GroupCard
-              key={p.processDefinitionKey}
+              key={cardIdOf(p)}
               as="h3"
-              expanded={expanded.has(p.processDefinitionKey)}
-              onToggle={() => toggleExpanded(p.processDefinitionKey)}
+              expanded={expanded.has(cardIdOf(p))}
+              onToggle={() => toggleExpanded(cardIdOf(p))}
               title={<ProcessTitle process={p} />}
               summary={(toggle) => (
                 <ProcessSummary
@@ -307,7 +274,7 @@ function IncidentProcessListView({
                   engineId={engine}
                   vendor={data.engineVendor}
                   filters={data.filters}
-                  onOpenDetail={() => openDetail(p)}
+                  onOpenDetail={() => go(processIncidentsOf(p))}
                 />
               )}
             >

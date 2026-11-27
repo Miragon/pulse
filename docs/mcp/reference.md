@@ -17,13 +17,13 @@ BPM operations across these domains (`category`): `engines`, `process-definition
 - **Engines:** `list_engines` (each with its `dialect`), `engine_status` (one engine's triage:
   findings, counts, the live verdict from its open root incidents by `ENGINE_HEALTH_*` and findings)
 - **Process definitions:** `list_process_definitions`, `get_process_definition_xml`
-- **Process numbers**, every version of a key: `engine_process_stats` (now: running, open root
-  incidents, with incident, jobs without retries, open tasks, started and ended in 24 h; per day or
-  hour of a `timeZone` (a bare date: that zone's day), at most 48 buckets: started, ended and ended
-  per end event, the median and P90 duration (nearest rank) overall and per end event, unknown past
-  50,000 instances; an explicit `from` cut down, `to` up to a whole minute or now (`range.cut`), one
-  build at a time per engine) and `engine_activity_counts` (per activity the cockpit's diagram
-  counts, open user tasks and the oldest, each kind's latest incident, diagram decorations;
+- **Process numbers**, every version of a key in every tenant: `engine_process_stats` (now:
+  running, open root incidents, with incident, jobs without retries, open tasks, started and ended
+  in 24 h; per day or hour of a `timeZone` (a bare date: that zone's day), at most 48 buckets:
+  started, ended and ended per end event, the median and P90 duration (nearest rank) overall and per
+  end event, unknown past 50,000 instances; an explicit `from` cut down, `to` up to a whole minute
+  or now (`range.cut`), one build per engine at a time) and `engine_activity_counts` (per activity
+  the diagram counts, open user tasks and the oldest, each kind's latest incident, decorations;
   `version` counts one on its own diagram). Each figure is the engine's count, `{ atLeast }` where
   history may be removed (`history.keptFrom`), `null` where none is written (`history.recorded`). No
   XML (`definitionId` names the diagram): a page loads in 3 calls, each kept up to 30 s per caller
@@ -52,13 +52,13 @@ BPM operations across these domains (`category`): `engines`, `process-definition
   rounded, since the MCP SDK parses a call before the server sees it. The server instructions ask
   for the string and the JSON text
 - **View:** `open_cockpit`, the operations cockpit and the module's one view: `view` opens it on the
-  overview (default), the landing (`landing`, without `engine`: the engines and the server's boards
-  to pick from, the [web app](../web/index.md)'s `/app`), the incidents, a failure cluster, a
-  process, its instances, an instance, an incident, the jobs or an instance's history; the result
-  carries that view's facts as compact JSON. A process's flow shows its open incidents or, as
-  **Running**, what runs at each element now, every deployed version summed onto the latest diagram;
-  as **Throughput · 30 days**, what the instances started in the last 30 days passed per element,
-  from the engine's history (the app-only `engine_activity_statistics_data`, `source` `history`)
+  overview (default; a row per process, a key in two tenants two), the landing (`landing`, without
+  `engine`: engines and boards, the [web app](../web/index.md)'s `/app`), the incidents (a card per
+  process), a failure cluster, a process (a key in one tenant: `tenantId` as on the screens), its
+  instances, an instance, an incident, the jobs or a history, its facts as compact JSON. A process
+  reads its versions in its tenant, and lists its runs there (`onlyTenant`) where its key is in other
+  tenants too: **Running** what runs at each element now, every version summed onto its latest
+  diagram, **Throughput · 30 days** what its instances started in 30 days passed, from the history
 - **Boards:** with `ENGINE_BOARDS_DIR`, `list_engines` names them, `open_cockpit` (`view` `board`,
   its id) shows one, built by `engine_board_data` ([Boards](boards.md), [Camunda 8](camunda8.md))
 - **Screens and boards as JSON** (`screens`): `engine_get_screen` (`screen` `engine`; `process` with

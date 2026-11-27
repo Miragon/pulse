@@ -5,7 +5,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Per activity of a process, the cockpit's diagram counts: running tokens, open user tasks (and the oldest), open root incidents, incidents of called instances, jobs without retries, each kind's latest incident; plus the diagram's decorations. definitionId names the diagram counted on (XML: engine_get_process_definition_xml).",
+    "description": "Per activity, over every version in every tenant: running tokens, open user tasks (and the oldest), open root incidents, incidents of called instances, jobs without retries, each kind's latest incident; plus the diagram's decorations. definitionId names the diagram counted on (XML: engine_get_process_definition_xml).",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -74,6 +74,11 @@
         "processDefinitionKey": {
           "description": "Process definition key",
           "type": "string"
+        },
+        "tenantId": {
+          "description": "The process's tenant; omitted: none, else the key's first tenant by id.",
+          "minLength": 1,
+          "type": "string"
         }
       },
       "required": [
@@ -99,7 +104,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the process flow: what runs at each element of a process now, or what the instances started in the last 30 days passed there, over every deployed version. Prefer engine_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for the process flow: what runs at each element of a process (a key in one tenant) now, or what the instances started in the last 30 days passed there, over every deployed version. Prefer engine_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -114,11 +119,16 @@
           "type": "string"
         },
         "source": {
-          "description": "runtime = what runs at each element now, summed over every deployed version; history = what the instances started in the last 30 days passed (history level activity or higher)",
+          "description": "runtime = what runs at each element now, summed over every deployed version of the process; history = what the instances started in the last 30 days passed (history level activity or higher)",
           "enum": [
             "runtime",
             "history"
           ],
+          "type": "string"
+        },
+        "tenantId": {
+          "description": "The process's tenant; omitted: none, else the key's first tenant by id.",
+          "minLength": 1,
           "type": "string"
         }
       },
@@ -1064,6 +1074,18 @@
           "maximum": 100,
           "type": "integer"
         },
+        "onlyTenant": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Beside processDefinitionKey: the runs in this tenant, null: in none."
+        },
         "processDefinitionKey": {
           "description": "Filter by process definition key",
           "type": "string"
@@ -1864,6 +1886,11 @@
           "description": "instance-detail, history (required).",
           "type": "string"
         },
+        "tenantId": {
+          "description": "process-detail.",
+          "minLength": 1,
+          "type": "string"
+        },
         "view": {
           "enum": [
             "overview",
@@ -1906,7 +1933,7 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
-    "description": "Internal JSON feed (no UI) for the unified definition view: header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer engine_open_cockpit.",
+    "description": "Internal JSON feed (no UI) for the unified definition view of one process, a key in one tenant: header, KPIs (incl. failed jobs), BPMN overlays, activity-grouped incidents. Prefer engine_open_cockpit.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1918,6 +1945,11 @@
         },
         "processDefinitionKey": {
           "description": "Process definition key to drill into",
+          "type": "string"
+        },
+        "tenantId": {
+          "description": "The process's tenant; omitted: none, else the key's first tenant by id.",
+          "minLength": 1,
           "type": "string"
         }
       },
@@ -1971,6 +2003,18 @@
           "exclusiveMinimum": 0,
           "maximum": 100,
           "type": "integer"
+        },
+        "onlyTenant": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Beside processDefinitionKey: the runs in this tenant, null: in none."
         },
         "processDefinitionKey": {
           "description": "Process definition key whose instances to list. Omit for ALL running instances engine-wide.",

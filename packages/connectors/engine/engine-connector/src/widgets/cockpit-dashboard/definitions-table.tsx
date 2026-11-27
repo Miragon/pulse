@@ -25,6 +25,23 @@ import {
 
 const PAGE_SIZE = 50
 
+/** A process of the overview as its table's row: its tenant and its key's sharing where it has them. */
+function tableRowOf(row: ReturnType<typeof buildRows>[number]): ProcessDefinitionsTableRow {
+  return {
+    id: row.id,
+    key: row.key,
+    ...(row.tenantId === undefined ? {} : { tenantId: row.tenantId }),
+    ...(row.sharesKey ? { sharesKey: row.sharesKey } : {}),
+    name: row.name,
+    version: row.latestVersion,
+    counts: {
+      instances: row.instances,
+      failedJobs: row.failedJobs,
+      totalIncidents: row.totalIncidents,
+    },
+  }
+}
+
 /**
  * Client-side search and paging on purpose: `/process-definition/statistics` is uncapped, has
  * no filter/offset params, and engine-side paging would lose the issue-first sort.
@@ -55,17 +72,7 @@ function ProcessDefinitionsSection({ view }: { view: ViewDataResult<CockpitDashb
     )
   }
 
-  const allRows: ProcessDefinitionsTableRow[] = buildRows(data).map((row) => ({
-    id: row.id,
-    key: row.key,
-    name: row.name,
-    version: row.latestVersion,
-    counts: {
-      instances: row.instances,
-      failedJobs: row.failedJobs,
-      totalIncidents: row.totalIncidents,
-    },
-  }))
+  const allRows = buildRows(data).map(tableRowOf)
   const filtered = debouncedSearch
     ? allRows.filter(
         (row) =>
@@ -100,11 +107,14 @@ function ProcessDefinitionsSection({ view }: { view: ViewDataResult<CockpitDashb
         rows={rows}
         ariaLabel={t("cockpitDefs.tableAria")}
         emptyText={debouncedSearch ? t("cockpitDefs.noMatch") : t("cockpitDefs.emptyState")}
-        // The row opens its process; its instances are the one further action at its end.
+        // The row opens its process, its key in its tenant; its instances are the one further
+        // action at its end: its key's, narrowed to its tenant (none for a row without one) only
+        // where the key holds other processes, as the row's counts are.
         onOpen={(row) =>
           go({
             type: "process-detail",
             processDefinitionKey: row.key,
+            ...(row.tenantId === undefined ? {} : { tenantId: row.tenantId }),
             label: row.name ?? undefined,
           })
         }
@@ -113,7 +123,13 @@ function ProcessDefinitionsSection({ view }: { view: ViewDataResult<CockpitDashb
             type="button"
             variant="outline"
             size="xs"
-            onClick={() => go({ type: "process-instances", processDefinitionKey: row.key })}
+            onClick={() =>
+              go({
+                type: "process-instances",
+                processDefinitionKey: row.key,
+                ...(row.sharesKey ? { onlyTenant: row.tenantId ?? null } : {}),
+              })
+            }
             aria-label={t("cockpitDefs.viewInstancesAria", { name: row.name ?? row.key })}
           >
             {t("cockpitDefs.instancesAction")}

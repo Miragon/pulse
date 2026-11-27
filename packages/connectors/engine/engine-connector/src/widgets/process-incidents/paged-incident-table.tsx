@@ -22,6 +22,8 @@ const GROUP_GROUND = "bg-muted [--table-surface:var(--muted)]"
 /** Where a group's incidents lie, and what a row opens. */
 interface PagedIncidentTableProps {
   processDefinitionKey: string
+  /** The process's tenant, where it has one. */
+  tenantId?: string | undefined
   activityId: string
   /** The route's engine: a page never reads the default engine. */
   engine: string
@@ -35,14 +37,20 @@ interface PagedIncidentTableProps {
  */
 function useActivityIncidents({
   processDefinitionKey,
+  tenantId,
   activityId,
   engine,
 }: PagedIncidentTableProps): PagedViewData<IncidentInstance, ActivityIncidentsData> {
   return useCursorViewData<IncidentInstance, ActivityIncidentsData>({
     initialData: null,
-    key: ["engine:activity-incidents", engine, processDefinitionKey, activityId],
+    key: ["engine:activity-incidents", engine, processDefinitionKey, tenantId ?? null, activityId],
     tool: ENGINE_ACTIVITY_INCIDENTS_DATA,
-    args: { processDefinitionKey, activityId, engine },
+    args: {
+      processDefinitionKey,
+      ...(tenantId === undefined ? {} : { tenantId }),
+      activityId,
+      engine,
+    },
     pageSize: INCIDENT_PAGE_SIZE,
     ready: true,
     selectItems: (d) => d.incidents,

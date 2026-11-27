@@ -6,7 +6,10 @@ import { selectedEntity } from "../nav-core.js"
 import type { BoardsOnlyEngine } from "./boards-only.js"
 import type { ServerBoards } from "./landing.js"
 
-/** The view was navigated client-side: no chat turn tells the model. */
+/**
+ * The view was navigated client-side: no chat turn tells the model. A list narrowed to a tenant
+ * names it (`onlyTenant`), the runs in none as `withoutTenantId`, since an absent id names nothing.
+ */
 export function cockpitContext(engineId: string, current: CockpitView): ViewContext {
   const selected = selectedEntity(current)
   return {
@@ -19,8 +22,13 @@ export function cockpitContext(engineId: string, current: CockpitView): ViewCont
       incidentId: selected.incidentId,
       processInstanceId: selected.processInstanceId,
       processDefinitionKey: selected.processDefinitionKey,
+      tenantId: selected.tenantId,
+      onlyTenant: selected.onlyTenant,
     },
-    facts: { view: current.section },
+    facts: {
+      view: current.section,
+      ...(selected.onlyTenant === null ? { withoutTenantId: true } : {}),
+    },
   }
 }
 

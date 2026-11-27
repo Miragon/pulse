@@ -39,6 +39,7 @@ export function describeThroughputFlow(data: ActivityThroughputData): ViewContex
     ids: {
       engine: data.engineId,
       processDefinitionKey: data.processDefinitionKey,
+      tenantId: data.tenantId,
       diagramDefinitionId: data.diagramDefinitionId,
     },
     facts: {

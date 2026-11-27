@@ -31,6 +31,7 @@ const CLUSTER: ClusterDetailData = {
   firstSeen: "2026-06-11T08:00:00.000Z",
   latestIncident: "2026-06-11T14:00:00.000Z",
   processDefinitionKeys: ["shipping"],
+  process: { processDefinitionKey: "shipping" },
   representativeMessage: "Connection timeout to WMS after 30000ms",
   incidents: [
     {
@@ -152,6 +153,7 @@ describe("ClusterDetailWidget (fixture render)", () => {
     const named: ClusterDetailData = {
       ...CLUSTER,
       processDefinitionKeys: ["shipping", "returns"],
+      process: null,
       incidents: CLUSTER.incidents.map((row) => ({
         ...row,
         processDefinitionName: "Ship order",
@@ -200,7 +202,7 @@ describe("ClusterDetailWidget (fixture render)", () => {
   it("opens no process the scan cannot name", () => {
     render(
       <TestViewHost>
-        <Widget data={{ ...CLUSTER, processDefinitionKeys: ["(unknown)"] }} />
+        <Widget data={{ ...CLUSTER, processDefinitionKeys: ["(unknown)"], process: null }} />
       </TestViewHost>,
     )
     expect(screen.queryByRole("button", { name: "View process" })).toBeNull()

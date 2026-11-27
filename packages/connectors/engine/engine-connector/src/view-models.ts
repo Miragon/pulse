@@ -19,10 +19,18 @@ export const LIST_PAGE_SIZE = 50
 export const HISTORY_PAGE_SIZE = 100
 
 /** Counts span all versions: old versions keep running after a redeploy. */
+/** One process of the overview's table: a key in one tenant, summed over its versions there. */
 export interface DefinitionStat {
   /** Id of the latest version, the row's link target. */
   id: string
   key: string
+  /** Its tenant, where it has one. */
+  tenantId?: string
+  /**
+   * Where its key is deployed in other tenants too (other processes of the key): its instances
+   * then open in its tenant, as its counts narrow; absent, a list of its key is its list.
+   */
+  sharesKey?: true
   name: string | null
   latestVersion: number
   instances: number
@@ -36,7 +44,7 @@ export interface DefinitionStat {
 
 export interface CockpitDashboardData {
   summary: {
-    /** Deployed definition KEYS (not versions). */
+    /** Deployed processes, each a key in one tenant (not versions). */
     totalDefinitions: number
     totalRunningInstances: number
     totalFailedJobs: number
@@ -92,6 +100,8 @@ export interface ProcessInstanceRow {
   businessKey: string | null
   /** Resolved, never parsed from a generated definition id (long keys): null when unresolvable. */
   processDefinitionKey: string | null
+  /** The tenant of the version it runs on, where it has one: its process is the key in it. */
+  tenantId?: string
   /** The name of the definition this instance runs on; null without one or unread. */
   processDefinitionName: string | null
   version: number | null
@@ -150,18 +160,34 @@ export type CockpitView =
   | {
       section: "process-detail"
       processDefinitionKey: string
+      /** The process's tenant; without it the process the key names (`ProcessTenants`). */
+      tenantId?: string
       focus?: "incidents"
       label?: string
     }
-  | { section: "process-instances"; processDefinitionKey?: string }
+  | { section: "process-instances"; processDefinitionKey?: string; onlyTenant?: ListTenant }
   | { section: "instance-detail"; processInstanceId: string; label?: string }
   | { section: "incident-detail"; incidentId: string; label?: string }
-  | { section: "jobs"; processDefinitionKey?: string; failedOnly?: boolean }
+  | {
+      section: "jobs"
+      processDefinitionKey?: string
+      onlyTenant?: ListTenant
+      failedOnly?: boolean
+    }
   | { section: "history"; processInstanceId: string }
   | { section: "board"; board: string; label?: string }
   | { section: "landing" }
 
 export type CockpitSection = CockpitView["section"]
+
+/**
+ * The tenant a list of a key's runs (its instances, its jobs) is narrowed to (`onlyTenant`): the
+ * runs in it, null for the runs in none; absent, the key spans every tenant. A process whose key
+ * holds other processes opens its lists in its tenant, a process alone by its key, so a list shows
+ * what the process's counts count. A name of its own: `tenantId` is a process's tenant on every
+ * tool.
+ */
+export type ListTenant = string | null
 
 /**
  * The sections of the app's own routes, which open no engine of the cockpit: a board reads the
@@ -225,6 +251,8 @@ export interface CockpitAppData {
 export interface ProcessInstancesData {
   /** Null → the engine-wide list (no definition scope). */
   processDefinitionKey: string | null
+  /** The tenant the key's list is narrowed to (null: none); absent where it spans every tenant. */
+  onlyTenant?: ListTenant
   processDefinitionName: string | null
   /** Total matching instances on the engine (may exceed `instances.length`). */
   totalCount: number
@@ -311,6 +339,11 @@ export interface InstanceDetailData {
    * that read fails (enrichment: no drill to the process, never the UUID as a key).
    */
   definitionKey: string | null
+  /**
+   * The tenant of the version it runs on, where it has one and it was read (enrichment): its
+   * process is the key in that tenant.
+   */
+  tenantId?: string
   activityTree: ActivityTree | null
   variables: Record<string, VariableValue>
   /**
@@ -406,18 +439,21 @@ export interface IncidentsDashboardActivity extends IncidentActivityFacts {
  * One process definition KEY with open root incidents. Every count spans all versions; a call
  * activity's copy of a called instance's incident counts in the called process.
  */
+/** A card of the incidents dashboard: one process, a key in one tenant, summed over its versions. */
 export interface IncidentsDashboardProcess {
   processDefinitionKey: string
+  /** Its tenant, where it has one: the process is the key in it. */
+  tenantId?: string
   processDefinitionName: string | null
   latestVersion: number
   runningInstances: number
-  /** Exact open root incidents of the key (definition statistics, `rootIncidents=true`). */
+  /** Exact open root incidents of the process (definition statistics, `rootIncidents=true`). */
   incidentCount: number
   /** How many of `incidentCount` the per-activity breakdown covers (the recency scan's share). */
   scannedIncidentCount: number
-  /** Distinct activities; null unless the breakdown covers every root incident of the key. */
+  /** Distinct activities; null unless the breakdown covers every root incident of the process. */
   affectedActivityCount: number | null
-  /** Null when none of the key's root incidents is within the scan. */
+  /** Null when none of the process's root incidents is within the scan. */
   latestIncident: string | null
   cockpitUrl: string | null
   activities: IncidentsDashboardActivity[]
@@ -443,18 +479,22 @@ export interface IncidentsDashboardData extends EngineVendorInfo {
 
 export interface IncidentsByProcess {
   processDefinitionKey: string
+  /** Its tenant, where it has one: the process is the key in it. */
+  tenantId?: string
   processDefinitionName: string | null
   incidentCount: number
 }
 
 export interface ProcessIncidentsActivity extends IncidentActivityFacts {
-  /** Exact open root incidents raised at this activity over every version of the key. */
+  /** Exact open root incidents raised at this activity over every version of the process. */
   incidentCount: number
 }
 
-/** One page of an activity's incident rows (engine_activity_incidents_data). */
+/** One page of an activity's incident rows (engine_activity_incidents_data), of one process. */
 export interface ActivityIncidentsData {
   processDefinitionKey: string
+  /** The process's tenant, where it has one. */
+  tenantId?: string
   activityId: string
   /** The requested page of its open root incidents, its multi-instance body's included, newest first. */
   incidents: IncidentInstance[]
@@ -470,21 +510,29 @@ export interface ActivityIncidentsData {
 }
 
 /**
- * Counts span all versions; only the diagram is one (`diagramVersion`, latest over every tenant).
- * Its incidents are open root incidents: a call activity's copy of a called instance's incident
- * counts in the called process.
+ * One process, a key in one tenant: counts span all its versions; only the diagram is one
+ * (`diagramVersion`, its latest). Its incidents are open root incidents: a call activity's copy of
+ * a called instance's incident counts in the called process.
  */
 export interface ProcessIncidentsData extends EngineVendorInfo {
   processDefinitionKey: string
+  /** Its tenant, where it has one: the one the view was opened in, else the one the key names. */
+  tenantId?: string
+  /**
+   * Where its key is deployed in other tenants too (other processes of the key): its counts are
+   * then narrowed to its tenant and its versions, and its lists open in its tenant; absent, every
+   * read is its key's, and so are its lists.
+   */
+  sharesKey?: true
   processDefinitionName: string | null
   diagramVersion: number
   /** Null when unreadable; `BpmnDiagram` reads the XML by this id from `engine_bpmn_xml_data`. */
   diagramDefinitionId: string | null
   cockpitUrl: string | null
   runningInstances: number
-  /** Open root incidents of the key (definition statistics, `rootIncidents=true`). */
+  /** Open root incidents of the process (definition statistics, `rootIncidents=true`). */
   incidentCount: number
-  /** Jobs with no retries left, over every version of the key. */
+  /** Jobs with no retries left, over every version of the process. */
   failedJobs: number
   /** Activities in the diagram; null when the diagram is unavailable. */
   totalActivityCount: number | null
@@ -497,101 +545,6 @@ export interface ProcessIncidentsData extends EngineVendorInfo {
   /** When the server read these numbers (ISO), for the view's "As of"; absent in an older payload. */
   fetchedAt?: string
   engineId?: string
-}
-
-/**
- * One element of a process right now, summed over every version of its key, as the shared process
- * screen counts a version's elements (its badges).
- */
-export interface ActivityStatisticsActivity {
-  activityId: string
-  /** Its name in the drawn diagram; null when the diagram does not name it or is unreadable. */
-  activityName: string | null
-  /** False when only older versions have it, so the drawn diagram cannot show it; null when the diagram is unreadable. */
-  inDiagram: boolean | null
-  /** Tokens at the element now, without those a root incident raised there holds. */
-  running: number
-  /** Jobs there with no retries left. */
-  failedJobs: number
-  /** Open root incidents raised there, every type. */
-  incidents: number
-  /**
-   * Open incidents of the instances a call activity called (the copies it holds of their root
-   * incidents): shown apart and quiet, never part of the incident count.
-   */
-  incidentsInCalledInstances: number
-}
-
-/**
- * What runs at each element of a process now (engine_activity_statistics_data): every deployed
- * version is read and summed per element, drawn on the latest version's diagram.
- */
-export interface ActivityStatisticsData {
-  processDefinitionKey: string
-  source: "runtime"
-  /** The version the elements are drawn on: the latest over every tenant, as the process view's. */
-  diagramDefinitionId: string | null
-  diagramVersion: number
-  /** Deployed versions of the key, every one read: the version scope the counts name. */
-  versionCount: number
-  /** Elements with anything there, most running first. */
-  activities: ActivityStatisticsActivity[]
-  engineId: string
-}
-
-export interface ActivityThroughputActivity {
-  activityId: string
-  /** Its name in the drawn diagram; null when the diagram does not name it or is unreadable. */
-  activityName: string | null
-  /** False when only older versions have it, so the drawn diagram cannot show it; null when the diagram is unreadable. */
-  inDiagram: boolean | null
-  /** The window's instances' finished activity instances there (canceled included): the heat. */
-  passed: number
-  /** Their activity instances still open there. */
-  running: number
-  /** Of the finished, the canceled ones. */
-  canceled: number
-}
-
-/**
- * What the instances started in the window passed at each element (engine_activity_statistics_data,
- * `source: "history"`): a cohort, so an instance started before the window counts nowhere, read
- * from the engine's history per version that started any, summed onto the latest diagram.
- */
-export interface ActivityThroughputData {
-  processDefinitionKey: string
-  source: "history"
-  /** The version the elements are drawn on: the latest over every tenant, as the process view's. */
-  diagramDefinitionId: string | null
-  diagramVersion: number
-  /** Deployed versions of the key. */
-  versionCount: number
-  /** The versions that started an instance in the window: the version scope the counts name. */
-  versionsRead: number
-  /** The window's start (ISO), on the hour; now when the window has 0 days. */
-  startedAfter: string
-  /**
-   * The window in days: 30, or the shorter history time to live of a version that ran in it or
-   * could have (deployed since its start, or the latest then); 0: the engine keeps no history of
-   * the process, and nothing was read.
-   */
-  windowDays: number
-  /** True when a version's history time to live cut the window below 30 days. */
-  cappedByHistoryTimeToLive: boolean
-  /** Instances started in the window, over the versions read. */
-  instanceCount: number
-  /**
-   * The key's instances started in the window on no version read: older versions past the counted
-   * ones, or history a deleted deployment left. Not in any figure; the view says how many.
-   */
-  uncountedInstances: number
-  /** False: the engine writes no history; null: unknown. Asked only when the window holds no instance. */
-  historyRecorded: boolean | null
-  /** When the engine was read (ISO): the server answers from that read for up to an hour. */
-  readAt: string
-  /** Elements the window's instances passed, most passed first. */
-  activities: ActivityThroughputActivity[]
-  engineId: string
 }
 
 export interface IncidentDetailData extends EngineVendorInfo {
@@ -643,4 +596,5 @@ export interface IncidentDetailData extends EngineVendorInfo {
 // Re-exported so every consumer keeps one import path.
 export type * from "./view-models.health.js"
 export type * from "./view-models.jobs.js"
+export type * from "./view-models.flow.js"
 export type * from "./view-models.incidents.js"

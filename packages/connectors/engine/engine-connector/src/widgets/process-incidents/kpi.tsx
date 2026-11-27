@@ -4,7 +4,7 @@ import { AlarmCount } from "../lib/alarm-count.js"
 import { useNav } from "../navigation.js"
 import { useT } from "../../messages/use-t.js"
 import { diagramActivityFraction } from "./activity-scope.js"
-import { useDefinitionData, type DefinitionScope } from "./feed.js"
+import { listsOf, useDefinitionData, type DefinitionScope } from "./feed.js"
 
 export function ProcessDefinitionKpi(scope: DefinitionScope) {
   const t = useT()
@@ -50,8 +50,7 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
     {
       label: t("procIncKpi.running"),
       value: formatNumber(data.runningInstances),
-      onClick: () =>
-        go({ type: "process-instances", processDefinitionKey: data.processDefinitionKey }),
+      onClick: () => go({ type: "process-instances", ...listsOf(data) }),
       // WCAG 2.5.3: named by its visible label and value.
       actionHint: t("procIncKpi.runningAria", { name: title }),
     },
@@ -71,8 +70,7 @@ export function ProcessDefinitionKpi(scope: DefinitionScope) {
         </AlarmCount>
       ),
       // The drill shows what the cell counts: this process's jobs without retries.
-      onClick: () =>
-        go({ type: "jobs", processDefinitionKey: data.processDefinitionKey, failedOnly: true }),
+      onClick: () => go({ type: "jobs", ...listsOf(data), failedOnly: true }),
       actionHint: t("procIncKpi.failedJobsAria", { name: title }),
     },
     activitiesCell,

@@ -50,8 +50,8 @@ server image builds the page beside the server and serves it from `/app/web`.
   the version, the instance list's scope, element, exact business key and variable conditions (a
   date as its instant with its offset),
   `scope=incident` the old address of its incidents in focus too), `instances` (the engine's
-  instances; `?process=<key>`, the old address of a process's instances, gives way to the process's
-  own), `instances/<id>` (the page's instance screen below;
+  instances; `?process=<key>` with the `&tenant=<id>` a cockpit's drill names, the old address of a
+  process's instances, gives way to the process's own), `instances/<id>` (the instance screen below;
   `?tab=history|incidents|waiting|variables`: its tab, `?tab=history` the cockpit's history),
   `instances/<id>/incidents/<id>` (the instance screen with that root incident in focus), `incidents`,
   `incidents/cause` (`?activity=…&type=…&signature=…`) and `jobs` (`?process=<key>&failed=true`),

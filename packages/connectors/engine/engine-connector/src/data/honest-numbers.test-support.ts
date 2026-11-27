@@ -49,6 +49,18 @@ export interface Case extends BuildCase {
 /** The lookup of a key's latest version: where it lists none, no version of the key is deployed. */
 export const KEY_LOOKUP = "GET /process-definition?key&latestVersion&maxResults&sortBy&sortOrder"
 
+/**
+ * The lookup of a key's versions, newest first (`fetchDefinitionVersions`, a process flow's read of
+ * its key in one tenant): where it lists none, no version of the key is deployed.
+ */
+export const VERSIONS_LOOKUP = "GET /process-definition?key&sortBy&sortOrder"
+
+/**
+ * The lookup of a key's latest version per tenant (`fetchLatestVersions`, the process view's read
+ * of its key in one tenant): where it lists none, no version of the key is deployed.
+ */
+export const LATEST_LOOKUP = "GET /process-definition?key&latestVersion&sortBy&sortOrder"
+
 const engines: FakeEngine[] = []
 
 /** Closes the engines of the builds so far: each test file's `afterEach`. */

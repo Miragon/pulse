@@ -66,20 +66,33 @@ async function readBpmnXml(
   }
 }
 
+/** The process of the version an instance runs on: its key, and its tenant where it has one. */
+interface InstanceProcess {
+  key: string | null
+  tenantId?: string
+}
+
 /**
  * ENRICHMENT, for the drill to the process and the cockpit links: a bare generated id costs one
  * read of that one definition (never the engine-wide statistics, since an instance has one key);
- * a failed read is no drill and no link, never the UUID as a key.
+ * a failed read is no drill and no link, never the UUID as a key. The process's tenant is its
+ * version's, never the instance's (a shared version runs instances a tenant id provider gave a
+ * tenant): an instance of no tenant runs a version of none, and only an instance that names one
+ * costs that read of its version, so an engine without tenants is asked nothing more; a failed
+ * read names no tenant, so the drill names the key alone.
  */
-async function instanceDefinitionKey(
+async function instanceProcess(
   client: Client,
   definitionId: string | undefined,
-): Promise<string | null> {
-  if (!definitionId) return null
+  instanceTenantId: string | null | undefined,
+): Promise<InstanceProcess> {
+  if (!definitionId) return { key: null }
   const inId = definitionKeyInId(definitionId)
-  if (inId !== null) return inId
+  if (inId !== null && !instanceTenantId) return { key: inId }
   const byId = await optional(fetchDefinitionsById(client, [definitionId]))
-  return byId?.get(definitionId)?.key || null
+  const version = byId?.get(definitionId)
+  const key = inId ?? (version?.key || null)
+  return version?.tenantId ? { key, tenantId: version.tenantId } : { key }
 }
 
 /**
@@ -127,16 +140,18 @@ export async function buildInstanceDetailData(
       getTasksCount({ client, query: byInstance }).then(countOf),
     ])
 
-  const definitionId = (instance as { definitionId?: string } | null)?.definitionId
-  const [{ bpmnXml, unreadable }, defKey, historic, rootCauses] = await Promise.all([
+  const { definitionId, tenantId: instanceTenantId } =
+    (instance as { definitionId?: string; tenantId?: string | null } | null) ?? {}
+  const [{ bpmnXml, unreadable }, process, historic, rootCauses] = await Promise.all([
     readBpmnXml(client, definitionId),
-    instanceDefinitionKey(client, definitionId),
+    instanceProcess(client, definitionId, instanceTenantId),
     readHistoricInstance(client, id),
     // A copy at a call activity holds no message: its root incident in the called instance does.
     fetchRootCauses(client, incidents),
   ])
   // The diagram names the process and each incident's element (no extra read).
   const diagramNames = bpmnXml ? readBpmnNames(bpmnXml) : null
+  const defKey = process.key
 
   const openTasks: InstanceDetailData["openTasks"] = await Promise.all(
     openTasksRaw.map(async (task) => ({
@@ -182,6 +197,7 @@ export async function buildInstanceDetailData(
     // Its own name, else its pool's.
     processDefinitionName: diagramNames && defKey ? bpmnProcessNameOf(diagramNames, defKey) : null,
     definitionKey: defKey,
+    ...(process.tenantId === undefined ? {} : { tenantId: process.tenantId }),
     callerInstanceId: historic.callerInstanceId,
     startTime: historic.startTime,
     activityTree: activityTree as unknown as InstanceDetailData["activityTree"],

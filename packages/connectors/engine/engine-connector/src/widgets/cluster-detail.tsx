@@ -40,7 +40,6 @@ import {
   clusterKeyParts,
   clusterScanComplete,
   remediationHandOff,
-  UNKNOWN_KEY,
 } from "./remediation.js"
 import { AlarmCount } from "./lib/alarm-count.js"
 import { useActionAllowed } from "./lib/engine-action.js"
@@ -108,12 +107,6 @@ function clusterProcesses(data: ClusterDetailData, unknown: string): string {
   )
 }
 
-/** The one process the cluster names, whose view the bar opens; null for several or an unknown one. */
-function singleProcess(data: ClusterDetailData): string | null {
-  const [key, ...more] = data.processDefinitionKeys
-  return key !== undefined && more.length === 0 && key !== UNKNOWN_KEY ? key : null
-}
-
 /** When the cluster began, relative to now, the whole instant in its title. */
 function FirstSeen({ at }: { at: string }) {
   const t = useT()
@@ -130,7 +123,8 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
   const { ask } = useHandOff()
   // A hand-off the host hides and no process to open: the bar has no action group.
   const handOffs = useHandOffsShown()
-  const processKey = singleProcess(data)
+  // The one process the cluster lies in, its key in its versions' tenant; none for several.
+  const { process } = data
   const canFix = useActionAllowed("engine_set_job_retries", engineId)
   const handOff = remediationHandOff(
     {
@@ -172,9 +166,9 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
       }
       freshness={<FreshnessStamp at={data.fetchedAt} />}
       actions={
-        (processKey !== null || handOffs) && (
+        (process !== null || handOffs) && (
           <>
-            {processKey !== null && (
+            {process !== null && (
               <Button
                 type="button"
                 variant="toolbar"
@@ -182,8 +176,8 @@ function ClusterHeader({ data, engineId }: { data: ClusterDetailData; engineId: 
                 onClick={() =>
                   go({
                     type: "process-detail",
-                    processDefinitionKey: processKey,
-                    label: processNameOf(data, processKey) ?? undefined,
+                    ...process,
+                    label: processNameOf(data, process.processDefinitionKey) ?? undefined,
                   })
                 }
               >

@@ -38,6 +38,7 @@ export const deSweep: MessageCatalog = {
   "cockpitDefs.colProcess": "Prozess",
   "cockpitDefs.colRunning": "Laufend",
   "cockpitDefs.colLatestVersion": "Neueste Version",
+  "cockpitDefs.colTenant": "Mandant",
   "cockpitDefs.deployedHint": "{count} bereitgestellt · Zahlen über alle Versionen",
   "cockpitDefs.emptyState":
     "Noch kein Prozess bereitgestellt. Sobald du ein BPMN-Modell bereitstellst, steht es hier.",
@@ -48,6 +49,7 @@ export const deSweep: MessageCatalog = {
   "cockpitDefs.noData": "Keine Daten verfügbar",
   "cockpitDefs.noMatch": "Keine Prozesse passen zum Filter.",
   "cockpitDefs.rowLabel": "Prozess {name}",
+  "cockpitDefs.rowLabelInTenant": "Prozess {name} des Mandanten {tenant}",
   "cockpitDefs.searchLabel": "Nach Name oder Key filtern",
   "cockpitDefs.searchPlaceholder": "Nach Name oder Key filtern…",
   "cockpitDefs.tableAria":
@@ -345,6 +347,7 @@ export const deSweep: MessageCatalog = {
   "procIncFlow.valuesColRunning": "Laufend",
   "procIncFlow.valuesTitle": "Werte je Aktivität",
   "procIncHeader.allVersions": "alle Versionen",
+  "procIncHeader.tenant": ({ tenant }) => `Mandant ${String(tenant)}`,
   "procIncHeader.lastEvent": "letztes Ereignis {time}",
   "procIncHeader.loading": "Wird geladen…",
   "procIncHeader.noData": "Keine Daten verfügbar",

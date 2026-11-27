@@ -38,6 +38,7 @@ export const enSweep: MessageCatalog = {
   "cockpitDefs.colProcess": "Process",
   "cockpitDefs.colRunning": "Running",
   "cockpitDefs.colLatestVersion": "Latest version",
+  "cockpitDefs.colTenant": "Tenant",
   "cockpitDefs.deployedHint": "{count} deployed · counts span all versions",
   "cockpitDefs.emptyState":
     "No process deployed yet. Once you deploy a BPMN model, it shows up here.",
@@ -48,6 +49,7 @@ export const enSweep: MessageCatalog = {
   "cockpitDefs.noData": "No data available",
   "cockpitDefs.noMatch": "No processes match the filter.",
   "cockpitDefs.rowLabel": "Process {name}",
+  "cockpitDefs.rowLabelInTenant": "Process {name} of tenant {tenant}",
   "cockpitDefs.searchLabel": "Filter by name or key",
   "cockpitDefs.searchPlaceholder": "Filter by name or key…",
   "cockpitDefs.tableAria":
@@ -341,6 +343,7 @@ export const enSweep: MessageCatalog = {
   "procIncFlow.valuesColRunning": "Running",
   "procIncFlow.valuesTitle": "Values per activity",
   "procIncHeader.allVersions": "all versions",
+  "procIncHeader.tenant": ({ tenant }) => `Tenant ${String(tenant)}`,
   "procIncHeader.lastEvent": "last event {time}",
   "procIncHeader.loading": "Loading…",
   "procIncHeader.noData": "No data available",
