@@ -88,6 +88,8 @@ export const enSweep: MessageCatalog = {
   "engineHealth.statusWarning": "Degraded",
   // Two figures after it, started then completed: "Started and completed (24h): 44 · 41".
   "engineHealth.throughput24h": "Started and completed (24h):",
+  "engineHealth.throughput24hNoHistory":
+    "This engine records no history, so started and completed (24h) are not counted. That needs history level activity or higher.",
   "fleet.engineCount": ({ count, list }) =>
     `${countOf(count, "engine", "engines")} · ${String(list)}`,
   "fleet.fleetAnalyses.copyHint": "Copy a prompt, then the AI runs the analysis in your chat",

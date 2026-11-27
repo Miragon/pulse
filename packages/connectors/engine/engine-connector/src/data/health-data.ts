@@ -9,10 +9,8 @@ import {
   isRootIncident,
   latestEngineDate,
   rootIncidentCounts,
-  toEngineDate,
   type VerdictThresholds,
 } from "@miragon/pulse-c7-core"
-import { getHistoricProcessInstancesCount } from "@miragon/pulse-c7-client/sdk"
 import type { EngineHealthCluster, EngineHealthData } from "../view-models.js"
 import {
   HOUR_MS,
@@ -33,6 +31,7 @@ import {
   type NamesByDefinition,
 } from "./definition-info.js"
 import { DAY_MS } from "./engine-reads.js"
+import { readStartedAndCompleted } from "./started-completed.js"
 
 const MAX_CLUSTERS = 6
 
@@ -182,6 +181,40 @@ function rootsSince(roots: IncidentLike[], coverage: ScanCoverage, sinceMs: numb
   }).length
 }
 
+/** The processes' numbers, exact: the definition statistics' (`rootIncidents=true`), never the scan's. */
+function processCounts(statsByKey: Map<string, KeyStats>) {
+  const keyStats = [...statsByKey.values()]
+  return {
+    totalIncidents: keyStats.reduce((sum, k) => sum + k.incidentCount, 0),
+    affectedDefinitions: keyStats.filter((k) => k.incidentCount > 0).length,
+    runningInstances: keyStats.reduce((sum, k) => sum + k.instances, 0),
+    totalDefinitions: statsByKey.size,
+  }
+}
+
+/**
+ * The top causes, named, and the activities of every cause, from the scan's root incidents: the
+ * activities are exact only when the scan read every incident, else null.
+ */
+async function readCauses(
+  client: Client,
+  roots: IncidentLike[],
+  coverage: ScanCoverage,
+  statsByKey: Map<string, KeyStats>,
+): Promise<{ clusters: EngineHealthCluster[]; affectedActivities: number | null }> {
+  // A bare generated definition id (long keys) carries no parseable key.
+  const { byCluster, activitySet } = clusterIncidents(roots, definitionKeyResolver(statsByKey))
+  const ranked = topClusters(byCluster)
+  const names = await fetchNamesByDefinition(
+    client,
+    ranked.map((c) => c.sampleDefinitionId),
+  )
+  return {
+    clusters: toClusterList(ranked, coverage, { names, statsByKey }),
+    affectedActivities: coverage.complete ? activitySet.size : null,
+  }
+}
+
 /**
  * Deterministic, no LLM: the widget hands each cluster to the host agent on demand. Its incident
  * counts are open ROOT incidents (owner decision D2, amended on 2026-11-19): the definition
@@ -194,63 +227,40 @@ export async function buildEngineHealthData(
   engineId: string,
   thresholds: VerdictThresholds = DEFAULT_VERDICT_THRESHOLDS,
 ): Promise<EngineHealthData> {
-  // History filters take the engine's date format (REST contract).
-  const startMs = Date.now()
-  const dayAgoParam = toEngineDate(new Date(startMs - DAY_MS))
-
   // Deliberately NO .catch(() => []) on the verdict inputs: a down engine must
-  // be a tool error, never a confident "ok" verdict. The throughput counts are
-  // optional, since history level "none" is a healthy engine. Totals come from
+  // be a tool error, never a confident "ok" verdict. The day's started and completed instances
+  // are enrichment, since history level "none" is a healthy engine. Totals come from
   // statistics; the capped scan feeds the clusters and the verdict's lower bounds.
-  const [incidents, statsByKey, startedRes, completedRes] = await Promise.all([
+  const [incidents, statsByKey, day] = await Promise.all([
     scanOpenIncidents(client),
     fetchStatsByKey(client, {}),
-    getHistoricProcessInstancesCount({ client, query: { startedAfter: dayAgoParam } }).catch(
-      () => null,
-    ),
-    getHistoricProcessInstancesCount({ client, query: { finishedAfter: dayAgoParam } }).catch(
-      () => null,
-    ),
+    readStartedAndCompleted(client, Date.now() - DAY_MS),
   ])
-
   const nowMs = Date.now()
-
-  const keyStats = [...statsByKey.values()]
-  const runningInstances = keyStats.reduce((sum, k) => sum + k.instances, 0)
-  const totalIncidents = keyStats.reduce((sum, k) => sum + k.incidentCount, 0)
-  const affectedDefinitions = keyStats.filter((k) => k.incidentCount > 0).length
-
   const coverage = scanCoverage(incidents)
   const roots = incidents.filter(isRootIncident)
-  // A bare generated definition id (long keys) carries no parseable key.
-  const { byCluster, activitySet } = clusterIncidents(roots, definitionKeyResolver(statsByKey))
-  const ranked = topClusters(byCluster)
-  const names = await fetchNamesByDefinition(
-    client,
-    ranked.map((c) => c.sampleDefinitionId),
-  )
-  const clusters = toClusterList(ranked, coverage, { names, statsByKey })
-  // The affected activities are exact only when the scan read every incident.
-  const affectedActivities = coverage.complete ? activitySet.size : null
+  const processes = processCounts(statsByKey)
+  const { clusters, affectedActivities } = await readCauses(client, roots, coverage, statsByKey)
 
   // c7-core's verdict over the open root incidents, as engine_status judges: the processes' of
   // the statistics and, of the scan, those outside any process and the largest cause over root
   // incidents alone, lower bounds that never raise a false "critical". The verdict travels as
   // data; each reader words it.
-  const status = engineVerdict(rootIncidentCounts(totalIncidents, incidents), thresholds)
+  const status = engineVerdict(rootIncidentCounts(processes.totalIncidents, incidents), thresholds)
 
   return {
     status,
     statusRule: healthVerdictRule(thresholds),
     summary: {
-      totalIncidents,
+      totalIncidents: processes.totalIncidents,
       lastHourIncidents: rootsSince(roots, coverage, nowMs - HOUR_MS),
       affectedActivities,
-      affectedDefinitions,
-      runningInstances,
-      totalDefinitions: statsByKey.size,
-      started24h: startedRes?.count ?? null,
-      completed24h: completedRes?.count ?? null,
+      affectedDefinitions: processes.affectedDefinitions,
+      runningInstances: processes.runningInstances,
+      totalDefinitions: processes.totalDefinitions,
+      started24h: day.started,
+      completed24h: day.completed,
+      historyRecorded: day.historyRecorded,
     },
     clusters,
     fetchedAt: new Date(nowMs).toISOString(),

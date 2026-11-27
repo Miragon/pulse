@@ -70,6 +70,7 @@ const healthOf = (engine: unknown): EngineHealthData => ({
     totalDefinitions: 1,
     started24h: null,
     completed24h: null,
+    historyRecorded: null,
   },
   clusters: [],
   fetchedAt: "2026-06-11T14:05:00.000Z",

@@ -138,6 +138,7 @@ export const COCKPIT_ROUTES: { readonly [S in CockpitSection]: CockpitRoute<S> }
         totalDefinitions: s.totalDefinitions,
         started24h: s.started24h,
         completed24h: s.completed24h,
+        historyRecorded: s.historyRecorded,
         totalFailedJobs: definitions.summary.totalFailedJobs,
         topCluster: top
           ? {

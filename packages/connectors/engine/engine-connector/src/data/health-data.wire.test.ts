@@ -93,6 +93,7 @@ describe("buildEngineHealthData: exact totals", () => {
       totalDefinitions: 2,
       started24h: 12,
       completed24h: 12,
+      historyRecorded: true,
     })
     // The verdict judges the same two root incidents: no count of every open incident is read.
     expect(engine.requests.filter((r) => r.path === "/incident/count")).toEqual([])

@@ -92,16 +92,16 @@ assistant reads are English; it still answers you in your language.
   or ask for "the same thing but for the last 7 days."
 - Combine tools. "Find failed instances from yesterday, then retry the
   transient ones" works as a single sentence (the retry needs `operations`).
-- Failed jobs and failed external tasks clear by a retry, not by marking them
-  resolved: the incident views offer **Retry** for them and **Mark as
-  resolved** only for custom incidents. Batch actions (batch retries,
-  migrations) only queue work: ask for the batch status afterwards. Completing a task that was delegated in
-  Tasklist hands it back to its owner, and the task stays open.
+- Failed jobs and failed external tasks clear by a retry, not by marking them resolved: the incident
+  views offer **Retry** for them and **Mark as resolved** only for custom incidents. Batch actions
+  (batch retries, migrations) only queue work: ask for the batch status afterwards. Completing a
+  task that was delegated in Tasklist hands it back to its owner, and the task stays open.
 - An engine has one live verdict: the engine overview and `engine_status` rate it ok, warning or
   critical (by default critical at 50 open root incidents, never a call activity's copy, or 25 of
   one cause) and count one cause alike (activity, type, masked message); `engine_status` also judges
   overdue jobs, workers and batches. Incident history, resolved ones included, answers "has this
-  activity failed before?".
+  activity failed before?". The overview's "Started and completed (24h)" reads the history: while
+  an instance runs, an engine that writes none (history level NONE) says so instead of 0 · 0.
 - Camunda 7 copies an incident of a called instance to each call activity above it, without a
   message. "Incidents" are open root incidents on every view, as in the web app and Pulse for VS
   Code: a copy counts in the called process, never twice, and is no row of a process, an activity
