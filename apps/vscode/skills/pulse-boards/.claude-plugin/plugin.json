@@ -1,6 +1,6 @@
 {
   "name": "pulse-boards",
-  "version": "0.34.0",
+  "version": "0.35.0",
   "description": "Write and check Pulse board files (*.board.json): read-only counters, instance lists, incident summaries, incident lists and process diagrams over your Camunda 7, CIB seven, Operaton and Camunda 8 engines, shown by Pulse for VS Code, Pulse for Orca and the Pulse MCP server.",
   "author": {
     "name": "Miragon GmbH",

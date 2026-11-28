@@ -1,6 +1,6 @@
 {
   "name": "@miragon/pulse-c8-core",
-  "version": "0.34.0",
+  "version": "0.35.0",
   "description": "The core of the Camunda 8 dialect family (the Orchestration Cluster REST API, from 8.9 on, read-only): C8Runtime, which answers the engine contract of @miragon/pulse-engine-core and decides each failure's kind (C8Failures), over the REST client with its checked views and a transport port that carries fields only (CamundaTransport, CamundaFailure), with the readers and the mappings onto the contract's read models. Each surface brings its own wire and words its own failures. Its one runtime dependency is @miragon/pulse-engine-core.",
   "license": "MIT",
   "keywords": [

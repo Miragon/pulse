@@ -1,5 +1,57 @@
 # Changelog
 
+## [0.35.0](https://github.com/Miragon/pulse/compare/v0.34.0...v0.35.0) (2026-11-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** in a repository whose project file's default names a profile your config file holds too, a command without --profile, PULSE_CLI_PROFILE or a URL no longer runs against your own defaultProfile (when that is another profile) but fails with CONFIG (exit 3). Name the profile with --profile or PULSE_CLI_PROFILE, or give a URL; making it your defaultProfile with `pulse config use <profile>` works too, and then applies outside the repository as well.
+* **engine-core,c7-core,c8-core,screens,web:** engine-core's `DefinitionRef`, `CalledProcess` and `CalledInstance` require `tenantId`; `ProcessRuntime.listVersions` takes the tenant and `getCalledProcesses` the calling version's id and tenant. c7-core's `DefinitionRow` requires `tenantId`. c8-core's `C8Runtime` follows the contract: `listVersions(bpmnProcessId, tenantId)`, and `getCalledProcesses` takes a `CallingVersion` instead of a version's id.
+* **c7-core,engine-connector,cli:** @miragon/pulse-c7-core's rootIncidentCounts takes the open incidents read as { items, truncated } (a ListResult) instead of a bare array, so its count outside any process can say where it is a lower bound; RootIncidentCounts gains outsideAnyProcess.
+* **c7-core,engine-connector,cli:** `definitionStatus`, `unknownKeys` and `groupIncidents` of `@miragon/pulse-c7-core/testing` take the parsed statistics rows (`definitionStatisticsOf`), and `readStatus` fails a statistics answer it cannot read as the reason `unexpected-answer` instead of reading a row without its definition under the key its id names, and a batch count it cannot read the same way instead of as 0. `StatusData.batches.running` counts every running batch, no longer the first 100.
+* **c7-core,engine-connector:** @miragon/pulse-c7-core no longer exports engineInstanceSearch, which built the search's OR query without the flags; searchedInstances(filters, term) builds the bodies with them, and countSearchedInstances and pageSearchedInstances read them.
+
+### Features
+
+* **board,runtime-view:** a deadline per engine on every board build ([#736](https://github.com/Miragon/pulse/issues/736)) ([243cd9f](https://github.com/Miragon/pulse/commit/243cd9f8a1e265ccf2e7090b010bf1b354c568b5))
+* **engine-core,c7-core,c8-core,screens,web:** a process is a key in one tenant, on every screen and in the editors ([#740](https://github.com/Miragon/pulse/issues/740)) ([582cdfc](https://github.com/Miragon/pulse/commit/582cdfc0bece88ead2aa91bf4b9a59b39237e365))
+
+
+### Bug Fixes
+
+* bump distroless/nodejs24-debian13 in /apps/cli ([#707](https://github.com/Miragon/pulse/issues/707)) ([b95f285](https://github.com/Miragon/pulse/commit/b95f28593585ac633149b88717d5a0fa00e569d7))
+* bump the npm-dependencies group across 2 directories with 18 updates ([#683](https://github.com/Miragon/pulse/issues/683)) ([6192b57](https://github.com/Miragon/pulse/commit/6192b577ea17373bcebdaaff1c93d303bda554cd))
+* bump the npm-dependencies group across 3 directories with 6 updates ([#709](https://github.com/Miragon/pulse/issues/709)) ([3187115](https://github.com/Miragon/pulse/commit/31871152722edc129637d7299d0abec823891e13))
+* bump the vscode group across 1 directory with 2 updates ([#623](https://github.com/Miragon/pulse/issues/623)) ([ed523ea](https://github.com/Miragon/pulse/commit/ed523eac71570f3856f93e91e6df35c41466796e))
+* **c7-core,c7-client,engine-connector:** an instance's history comes in one total order, each step once across pages ([#727](https://github.com/Miragon/pulse/issues/727)) ([6ea3d4c](https://github.com/Miragon/pulse/commit/6ea3d4cd2a5a705f6959488b71a4e7e3b1e76043))
+* **c7-core,engine-connector,cli:** one fold of the definition statistics on every surface, and the status counts its batches ([#726](https://github.com/Miragon/pulse/issues/726)) ([a71e920](https://github.com/Miragon/pulse/commit/a71e92023e31cc3e1467567c58921001a4935e6a))
+* **c7-core,engine-connector,cli:** the root incidents outside any process are a count of their own on engine_status, the CLI's status, the overview's health and the verdict feed ([#735](https://github.com/Miragon/pulse/issues/735)) ([babbac2](https://github.com/Miragon/pulse/commit/babbac255adb1d8700c31579163549e847bbe8ca))
+* **c7-core,engine-connector,widget-shell:** an activity's incidents page by cursor with Load more, a call activity never read whole per page ([#730](https://github.com/Miragon/pulse/issues/730)) ([a31617c](https://github.com/Miragon/pulse/commit/a31617ce47311c11dd08ebee6ce066c41d71e9f5))
+* **c7-core,engine-connector:** With incident under a search counts and lists only the instances with an open incident ([#720](https://github.com/Miragon/pulse/issues/720)) ([1cd284a](https://github.com/Miragon/pulse/commit/1cd284acef9272c489ae12600091b5b37610438f))
+* **c7-core,screens:** the instance screen keeps every root incident, a multi-instance body's on its element, and counts cut lists as lower bounds ([#729](https://github.com/Miragon/pulse/issues/729)) ([15efcc1](https://github.com/Miragon/pulse/commit/15efcc1da42260a94b0e21865d19216d6852b7e4))
+* **c7-core:** a multi-instance body counts on its element, and an incident outside any process fails no search ([#722](https://github.com/Miragon/pulse/issues/722)) ([d1c0ba1](https://github.com/Miragon/pulse/commit/d1c0ba18f44ee7978db58ea7d5c8771df4c0ed8f))
+* **c7-core:** a run of more than 500 tied incidents pages at plain offsets, no request over 500 rows ([#724](https://github.com/Miragon/pulse/issues/724)) ([3cbd1d9](https://github.com/Miragon/pulse/commit/3cbd1d90dff00530047f0e167a27f19355eda62e))
+* **c7-core:** no request to the history carries more than 500 instance ids ([#721](https://github.com/Miragon/pulse/issues/721)) ([c94c082](https://github.com/Miragon/pulse/commit/c94c0828f0c203aa47340a51b485eaa005ccb18d))
+* **c7-core:** the status triage reads its 2,000 newest incidents in a total order ([#728](https://github.com/Miragon/pulse/issues/728)) ([829e03e](https://github.com/Miragon/pulse/commit/829e03ed1613bab65eec90b701ba9453e13fca7b))
+* **cli:** a project default your file replaces fails loud, plan-migration replaces only with --replace, a throttled token endpoint is RETRY_LATER ([#745](https://github.com/Miragon/pulse/issues/745)) ([073dfa5](https://github.com/Miragon/pulse/commit/073dfa5a07c7a1b8f8cedc5ddf07d296c8f3c391))
+* **deps:** lucide-react 1.79.0 in every package and template ([#742](https://github.com/Miragon/pulse/issues/742)) ([1f95e21](https://github.com/Miragon/pulse/commit/1f95e211fd12f9d47dd908ea0e836ec0e8bef6df))
+* **engine-connector,c7-core,cli,c7-adapter:** the overview's last hour, activities and top failures count the processes' root incidents alone, held by a recorded status world ([#739](https://github.com/Miragon/pulse/issues/739)) ([f0e9170](https://github.com/Miragon/pulse/commit/f0e9170550b402d4751f1098f155e3640e095793))
+* **engine-connector,web:** the chat cockpit reads a process, a key in one tenant, on its process view, overview, incidents, lists and drills ([#741](https://github.com/Miragon/pulse/issues/741)) ([337f3d0](https://github.com/Miragon/pulse/commit/337f3d0efa232073ed9c32deb33ca4654cdcbab8))
+* **engine-connector:** element counts read only held versions, each floor bounded per caller ([#737](https://github.com/Miragon/pulse/issues/737)) ([ab1b8c8](https://github.com/Miragon/pulse/commit/ab1b8c86af91cccb723ff76085c093d7c9cdc84f))
+* **engine-connector:** engine_process_stats keys its floor on the range it reads, cut to whole minutes, and builds one at a time per engine ([#738](https://github.com/Miragon/pulse/issues/738)) ([d6e52bd](https://github.com/Miragon/pulse/commit/d6e52bd9edd7356437e3ef016c30a9292aab386d))
+* **engine-connector:** one statistics read per engine and caller in 30 s, the health floored on it ([#734](https://github.com/Miragon/pulse/issues/734)) ([e9b2f84](https://github.com/Miragon/pulse/commit/e9b2f849f84e6d6893d26946c0b3773d5b5b731c))
+* **engine-connector:** the overview at history level none says the engine writes no history while an instance runs ([#725](https://github.com/Miragon/pulse/issues/725)) ([b06ffaf](https://github.com/Miragon/pulse/commit/b06ffaf7ab1766b0d2001f5150c0635ac9565700))
+* **ui,widget-shell:** artifact refusals worded for whoever can act, permanent engine and process refusals, one icon context across the browser bundles ([#714](https://github.com/Miragon/pulse/issues/714)) ([f5a8cc3](https://github.com/Miragon/pulse/commit/f5a8cc3435b32be251d2ad62ed883d485072826f))
+* **web:** one read per engine at a time on the start page and the search, and a down engine said at once on both ([#723](https://github.com/Miragon/pulse/issues/723)) ([0a6d820](https://github.com/Miragon/pulse/commit/0a6d820909d0ea9dc4dd3bfb9418d5da3d81f1fd))
+* **widget-shell,ui,templates:** an artifact page's gate stays closed, its end events keep a lower bound, and Try again keeps the focus ([#706](https://github.com/Miragon/pulse/issues/706)) ([b57c171](https://github.com/Miragon/pulse/commit/b57c171927dc01a3aa291c1a50c9ad805a095ced))
+
+
+### Performance Improvements
+
+* **c7-core:** a process list and a version list read only what they show, an incident and a call only the versions they name ([#732](https://github.com/Miragon/pulse/issues/732)) ([9a69e88](https://github.com/Miragon/pulse/commit/9a69e88e29c55cb1334d9ad7a391733422bf22b2))
+* **c8-core:** call targets read the latest versions of the processes a version calls, by their ids ([#718](https://github.com/Miragon/pulse/issues/718)) ([eec49af](https://github.com/Miragon/pulse/commit/eec49af6d395f99b0ad802d8be0f275d4b6af7a1))
+* **http:** maskJsonText masks an error answer in one pass, each secret form compiled once ([#719](https://github.com/Miragon/pulse/issues/719)) ([7124227](https://github.com/Miragon/pulse/commit/7124227b84a49635c2f4ad0a99690e8672440bb0))
+
 ## [0.34.0](https://github.com/Miragon/pulse/compare/v0.33.0...v0.34.0) (2026-11-26)
 
 
