@@ -5,9 +5,11 @@
  * wins. Its profiles are merged with those of the user's config file: the user's profile wins on a
  * name clash (a developer overrides one locally), the project's default wins (in the repository
  * its default applies) as long as it is a profile of the project file: its defaultProfile, else
- * its only profile. A project file is shared and is read under the credential policy `none` of
- * @miragon/pulse-profile: a profile that names a credential, a secret or the variable that holds
- * one, or a secret header is refused, so no resolver ever reads a variable the repository chose.
+ * its only profile. A default the user's file replaces gives none (unless it is the user's default
+ * too), never the user's default. A project file is shared and is read under the credential
+ * policy `none` of @miragon/pulse-profile: a profile that names a credential, a secret or the
+ * variable that holds one, or a secret header is refused, so no resolver ever reads a variable the
+ * repository chose.
  * Credentials come from the environment (PULSE_CLI_TOKEN, PULSE_CLI_TOKEN_COMMAND,
  * PULSE_CLI_PASSWORD, PULSE_CLI_OAUTH_CLIENT_SECRET) or the user's own config file. So a cloned
  * repository can neither run code through pulse nor send a variable of its choice to the URL it
@@ -306,30 +308,49 @@ interface Project {
 
 type Defaults = Pick<LoadedConfig, "defaultProfile" | "defaultProblem">
 
+interface MergedDefault {
+  readonly defaults: Defaults
+  /** The default is the project file's (`LoadedConfig.project.defaultProfile`). */
+  readonly fromProject: boolean
+}
+
+/**
+ * The default the project file names (`name`) when the user's file replaces that profile: the
+ * user's own default when it names the same profile, else none (`overridden`), never the user's
+ * other default.
+ */
+function overriddenDefault(user: LoadedConfig | undefined, project: Project, name: string) {
+  if (given(user?.defaultProfile) === name) return { defaultProfile: name }
+  const only = given(project.file.defaultProfile) === undefined
+  return { defaultProblem: { overridden: name, only, project: project.source.path } }
+}
+
 /**
  * The default of the merged configuration: the project's when it is one of `fromProject` (the
- * project's profiles the user does not override), none with the project's problem, else the
- * user's. `chosen` is the project's default as `projectDefault` gives it.
+ * project's profiles the user does not override), none with the project's problem or when the
+ * user's file replaces it (`overriddenDefault`), and the user's only when the project names no
+ * default. `chosen` is the project's default as `projectDefault` gives it.
  */
 function mergedDefault(
   user: LoadedConfig | undefined,
   project: Project,
   fromProject: readonly string[],
-): { readonly defaults: Defaults; readonly fromProject: boolean } {
+): MergedDefault {
   const chosen = projectDefault(project.file)
   if (chosen.problem !== undefined) {
     const defaultProblem = { problem: chosen.problem, project: project.source.path }
     return { defaults: { defaultProblem }, fromProject: false }
   }
   const name = chosen.name
-  if (name !== undefined && fromProject.includes(name)) {
-    return { defaults: { defaultProfile: name }, fromProject: true }
+  if (name === undefined) {
+    const own = compact({
+      defaultProfile: user?.defaultProfile,
+      defaultProblem: user?.defaultProblem,
+    })
+    return { defaults: own, fromProject: false }
   }
-  const own = compact({
-    defaultProfile: user?.defaultProfile,
-    defaultProblem: user?.defaultProblem,
-  })
-  return { defaults: own, fromProject: false }
+  if (fromProject.includes(name)) return { defaults: { defaultProfile: name }, fromProject: true }
+  return { defaults: overriddenDefault(user, project, name), fromProject: false }
 }
 
 /** The refused profiles of both files: the user's, and the project's the user does not override. */
@@ -346,8 +367,9 @@ function mergedRefused(user: LoadedConfig | undefined, project: Project, own: re
  * merged in. A profile of the user's file replaces the project's profile of the same name as a
  * whole, problems included. The project's default (projectDefault) wins over the user's, but
  * only for a profile that comes from the project file: a repository never makes a profile of the
- * user's (e.g. "prod") the default, and a defaultProfile of the project that names none of its
- * profiles leaves no default instead of falling back to the user's.
+ * user's (e.g. "prod") the default, and a default of the project that names none of its profiles,
+ * or one the user's file replaces, leaves no default instead of falling back to the user's (the
+ * user's own default of that name aside, which the user chose).
  */
 export function mergeProject(
   user: LoadedConfig | undefined,

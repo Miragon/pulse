@@ -160,6 +160,31 @@ describe("OAuth provider: proactive refresh", () => {
     })
   })
 
+  it("keeps a valid token past a throttled endpoint, and fails an expired one with RETRY_LATER", async () => {
+    const events: unknown[] = []
+    const valid = setup(undefined, { deps: { trace: (event) => events.push(event) } })
+    valid.idp.queue("token", new Response("", { status: 429, headers: { "retry-after": "5" } }))
+    valid.clock = T0 + 280_000
+    await expect(headersOf(valid.provider())).resolves.toEqual({
+      Authorization: "Bearer cached-access",
+    })
+    expect(events.at(-1)).toMatchObject({
+      message: expect.stringMatching(
+        /^Refreshing the access token failed \(The authorization server limits the requests: HTTP 429 Too Many Requests\); using the cached one/,
+      ) as unknown,
+    })
+    const expired = setup()
+    expired.idp.queue("token", new Response("", { status: 408 }))
+    expired.clock = T0 + 300_000
+    expect(await rejection(headersOf(expired.provider()))).toMatchObject({
+      code: "RETRY_LATER",
+      exitCode: 8,
+      message: "The authorization server cannot answer now: HTTP 408 Request Timeout",
+      details: { hint: "Retry later; the login is kept." },
+    })
+    expect(expired.stored()).toMatchObject({ refreshToken: "cached-refresh" })
+  })
+
   it("does not fall back for an expired token or a rejected login", async () => {
     const expired = setup()
     expired.idp.queue("token", connectionRefused())

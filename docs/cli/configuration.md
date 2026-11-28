@@ -141,9 +141,9 @@ pulse config path --project
 
 - Its profiles join yours. On a name clash your own profile wins as a whole. The project's
   `defaultProfile`, without one its only profile, wins inside the repository, so a bare
-  `pulse status` reaches its engine unless `PULSE_CLI_URL` is set. A `defaultProfile` that names
-  none of its profiles, or an only profile without a valid name, leaves no default (a command
-  needs `--profile`, `PULSE_CLI_PROFILE` or a URL), never yours.
+  `pulse status` reaches its engine unless `PULSE_CLI_URL` is set. One that names none of its
+  profiles or has no valid name, or one your file replaces (unless it is your `defaultProfile`
+  too), leaves no default (a command needs `--profile`, `PULSE_CLI_PROFILE` or a URL), never yours.
 - A project file names engines, never credentials: a profile with a password, secret, token,
   their `*Env` variable or a secret header is refused, so no command reads a variable a
   repository chose. Credentials come from the environment

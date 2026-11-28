@@ -88,6 +88,9 @@ export function fakeFileSystem(tree: FakeTree): FileSystem {
       return Promise.resolve(file.data)
     },
     writeFile(path, data, options) {
+      // like Node's "wx": any entry at the path, a dangling link too, fails an exclusive write
+      const taken = pathKind(tree, path) !== "missing" || tree.links.has(withoutSlash(path))
+      if (options?.exclusive === true && taken) return Promise.reject(fsError("EEXIST", path))
       if (dirs.has(path)) return Promise.reject(fsError("EISDIR", path))
       const mode = options?.mode ?? files.get(path)?.mode
       files.set(path, mode === undefined ? { data: toBytes(data) } : { data: toBytes(data), mode })

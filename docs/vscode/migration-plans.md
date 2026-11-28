@@ -19,8 +19,9 @@ versions of the process (the target defaults to the latest), applies `--unmap <s
 `--map <source>=<target>`, has the engine check the result and writes
 `.pulse/migrations/invoice-v1-to-v2.migration.json`, or the `.migration.json` path of
 `--plan-file`. It changes nothing on the engine, so a read-only profile is enough; when the engine
-finds problems, it still writes the file and exits with code 9. Edited by hand in
-`.pulse/migrations/`, the file gets completion and checks from its schema:
+finds problems, it still writes the file and exits with code 9. A file already there, edited or
+not, it replaces only with `--replace`. Edited by hand in `.pulse/migrations/`, the file gets
+completion and checks from its schema:
 
 ```json
 {

@@ -390,14 +390,14 @@ describe("mergeProject", () => {
   })
 
   it("never makes a profile of the user's the default", () => {
-    // the project names a profile the user also has (e.g. "prod"): the user's default applies
+    // the project names a profile the user also has (e.g. "prod"): none (project-shared.test.ts)
     const file: ConfigFile = { defaultProfile: "prod", profiles: { prod: { url: "http://evil" } } }
     const user: ConfigFile = {
       defaultProfile: "mine",
       profiles: { prod: { url: "https://prod" }, mine: {} },
     }
     expect(mergeProject(user, { source, file })).toEqual({
-      defaultProfile: "mine",
+      defaultProblem: { overridden: "prod", only: false, project: source.path },
       profiles: { prod: { url: "https://prod" }, mine: {} },
       project: { source, profiles: [], defaultProfile: false },
     })

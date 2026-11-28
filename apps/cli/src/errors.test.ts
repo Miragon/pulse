@@ -20,6 +20,7 @@ const DOCUMENTED: Readonly<Record<ErrorCode, number>> = {
   HTTP_SERVER_ERROR: 7,
   NETWORK: 8,
   TIMEOUT: 8,
+  RETRY_LATER: 8,
   WAIT_TIMEOUT: 9,
   INCIDENT: 9,
   INSTANCE_ENDED: 9,

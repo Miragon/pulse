@@ -13,7 +13,7 @@ import {
 } from "@miragon/pulse-profile"
 import type { PulseCliError } from "../errors.js"
 import { configError } from "./config-error.js"
-import { AUTH_TYPES, ENV, FLAVORS, type LoadedConfig } from "./types.js"
+import { AUTH_TYPES, type DefaultProblem, ENV, FLAVORS, type LoadedConfig } from "./types.js"
 
 /** The problems of a profile as one text: the format's sentences in order. */
 export function describeProblems(problems: readonly Problem[]): string {
@@ -179,8 +179,48 @@ export function settledTwiceError(
   )
 }
 
-/** A command needs the default profile, and the defaultProfile of a file cannot give one. */
-export function defaultProfileError(problem: Problem, project?: string): PulseCliError {
+type Overridden = Extract<DefaultProblem, { overridden: string }>
+
+/**
+ * The project's default names a profile the user's config file replaces as a whole: the sentence
+ * of a problem, naming the profile (a valid name: `projectDefault` gives no other).
+ */
+function overriddenSentence({ overridden, only }: Overridden): string {
+  const named = only ? "its only profile is" : "defaultProfile names"
+  return `${named} "${overridden}", a profile your config file holds too and replaces as a whole.`
+}
+
+/**
+ * The default the user's file replaces: CONFIG, naming the profile to choose, never another, and
+ * only ways out that change nothing outside the repository (`config use` would change your
+ * default everywhere).
+ */
+function overriddenError(broken: Overridden): PulseCliError {
+  const name = broken.overridden
+  return configError(
+    `The default profile of ${fileOf(broken)} cannot be used: ${overriddenSentence(broken)}`,
+    `Choose a profile with --profile or ${ENV.profile} (--profile ${name} takes yours), or give --url, which selects no profile.`,
+  )
+}
+
+/**
+ * The notice of an edit of the user's config file after which the repository has no default: why
+ * (`broken`, the merged default's problem, of the project file `project`) and the ways out. Your
+ * own default of the project's name, the one way out that is no flag, applies everywhere.
+ */
+export function noDefaultNotice(broken: DefaultProblem, project: string): string {
+  const ways =
+    "overridden" in broken
+      ? `Use --profile or ${ENV.profile}, or make "${broken.overridden}" your default everywhere with \`pulse config use ${broken.overridden}\`.`
+      : `Use --profile, ${ENV.profile} or \`pulse config use <profile> --project\`.`
+  const why = "overridden" in broken ? overriddenSentence(broken) : describeProblem(broken.problem)
+  return `Notice: in this repository the project file ${project} gives no default: ${why} ${ways}`
+}
+
+/** A command needs the default profile, and the default of a file cannot give one. */
+export function defaultProfileError(broken: DefaultProblem): PulseCliError {
+  if ("overridden" in broken) return overriddenError(broken)
+  const { problem, project } = broken
   const use =
     project === undefined
       ? "`pulse config use <profile>`"
@@ -191,10 +231,18 @@ export function defaultProfileError(problem: Problem, project?: string): PulseCl
   )
 }
 
+/** The notice of a project default the user's file replaces, if the configuration has one. */
+function overriddenNotice(config: LoadedConfig): string[] {
+  const broken = config.defaultProblem
+  if (broken === undefined || !("overridden" in broken)) return []
+  return [`the project file ${broken.project}: ${overriddenSentence(broken)}`]
+}
+
 /**
  * What `config list` and `config show` report on stderr besides the profiles: the notes on each
- * file's root (an unknown key, a defaultProfile that gives no default) and the profiles whose name
- * is no valid name (never shown, so they are not listed). `userPath` is the user's config file.
+ * file's root (an unknown key, a defaultProfile that gives no default), a project default the
+ * user's file replaces and the profiles whose name is no valid name (never shown, so they are not
+ * listed). `userPath` is the user's config file.
  */
 export function fileNotices(config: LoadedConfig | undefined, userPath: string): string[] {
   if (config === undefined) return []
@@ -214,5 +262,5 @@ export function fileNotices(config: LoadedConfig | undefined, userPath: string):
       ([name, problems]) =>
         `${fileNamed(fromProject.includes(name))}: ${describeProblems(problems)}`,
     )
-  return [...notes, ...unnamed].map((notice) => `Notice: ${notice}`)
+  return [...notes, ...overriddenNotice(config), ...unnamed].map((notice) => `Notice: ${notice}`)
 }

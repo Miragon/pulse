@@ -72,8 +72,8 @@ validation problems).
 | 4    | 401, 403, `LOGIN_REQUIRED` (a person must log in), `LOGIN_FAILED`, `TOKEN_EXPIRED` (a bearer token expired)                |
 | 5    | not found (404)                                                                                                            |
 | 6    | other 4xx: the engine rejected the request                                                                                 |
-| 7    | engine error (5xx)                                                                                                         |
-| 8    | network error or timeout                                                                                                   |
+| 7    | engine error (5xx), also the token endpoint's 5xx                                                                          |
+| 8    | network error or timeout, also `RETRY_LATER`: the token endpoint's 429, 408 or 425                                         |
 | 9    | expected state not reached (workflow commands): `WAIT_TIMEOUT`, `INCIDENT`, `INSTANCE_ENDED`, `JOB_FAILED`, `CHECK_FAILED` |
 
 Camunda 7 engines report many rule violations as HTTP 500 (exit 7), e.g. a task that is already

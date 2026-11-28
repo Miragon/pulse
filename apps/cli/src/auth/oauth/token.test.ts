@@ -320,6 +320,29 @@ describe("a refused token request", () => {
     expect(exchange.details.hint).toBe("Retry later.")
   })
 
+  it.each([
+    [429, { "retry-after": "30" }, "limits the requests: HTTP 429 Too Many Requests"],
+    [408, {}, "cannot answer now: HTTP 408 Request Timeout"],
+    [425, {}, "cannot answer now: HTTP 425"],
+  ])(
+    "maps %i to RETRY_LATER, exit 8, keeping the login on refresh",
+    async (status, headers, what) => {
+      const refresh = await refusal(new Response("", { status, headers }))
+      expect(refresh).toMatchObject({
+        code: "RETRY_LATER",
+        exitCode: 8,
+        message: `The authorization server ${what}`,
+      })
+      expect(refresh.details).toMatchObject({
+        status,
+        request: { method: "POST", url: TOKEN_ENDPOINT },
+        hint: "Retry later; the login is kept.",
+      })
+      const exchange = await refusal(tokenJson({ error: "slow_down" }, status), "exchange")
+      expect(exchange).toMatchObject({ code: "RETRY_LATER", details: { hint: "Retry later." } })
+    },
+  )
+
   it("maps redirects and answers without a JSON error to CONFIG", async () => {
     const redirect = await refusal(
       new Response("", { status: 302, headers: { location: "https://elsewhere" } }),

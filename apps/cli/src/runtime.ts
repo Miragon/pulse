@@ -22,8 +22,16 @@ export interface DirectoryEntry {
 
 export interface FileSystem {
   readFile(path: string): Promise<Uint8Array>
-  /** With a `mode`, a private file: written atomically, never readable with another mode. */
-  writeFile(path: string, data: string | Uint8Array, options?: { mode?: number }): Promise<void>
+  /**
+   * With a `mode`, a private file: written atomically, never readable with another mode. With
+   * `exclusive`, a new file only: an entry already at `path` (a symbolic link too) is left as it
+   * is and fails the write with the code EEXIST.
+   */
+  writeFile(
+    path: string,
+    data: string | Uint8Array,
+    options?: { mode?: number; exclusive?: boolean },
+  ): Promise<void>
   /** Creates the directory and its parents; `mode` applies to the directories it creates. */
   mkdir(path: string, options?: { mode?: number }): Promise<void>
   exists(path: string): Promise<boolean>

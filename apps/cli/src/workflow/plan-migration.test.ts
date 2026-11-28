@@ -24,6 +24,7 @@ const BASE: PlanMigrationOptions = {
   target: 2,
   map: [],
   unmap: [],
+  replace: false,
   dryRun: false,
 }
 
@@ -181,10 +182,11 @@ describe("planMigration", () => {
     )
   })
 
-  it("replaces a regular file and says so; writes --plan-file without creating a folder", async () => {
-    const { run, runtime } = setup(planEngine(), { files: { [PATH]: "old" } })
-    const replaced = await run()
+  it("replaces a regular file with --replace and says so; writes --plan-file without creating a folder", async () => {
+    const { run, runtime, written } = setup(planEngine(), { files: { [PATH]: "old" } })
+    const replaced = await run({ replace: true })
     expect(replaced.kind === "view" && replaced.view.replaced).toBe(true)
+    expect(written()).toContain('"bpmnProcessId": "invoice"')
     expect(runtime.dirs.has(".pulse/migrations")).toBe(true)
     const own = setup(planEngine(), { dirs: ["plans"] })
     const result = await own.run({ planFile: "plans/invoice.migration.json" })
@@ -216,6 +218,8 @@ describe("planMigration", () => {
     const { server, run, runtime } = setup()
     expect(await run({ dryRun: true, target: undefined })).toEqual({
       kind: "dry-run",
+      // the latest version, which only the engine names, decides the default file name
+      plan: { planFile: null, exists: null },
       requests: [
         {
           operationId: "getProcessDefinitions",

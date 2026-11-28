@@ -217,8 +217,8 @@ Errors are one JSON line on stderr, its last line (\`-o table\` prints readable 
 | 4    | auth failed: 401, 403, \`LOGIN_REQUIRED\` (a person must log in), \`LOGIN_FAILED\`, \`TOKEN_EXPIRED\`        |
 | 5    | not found (404)                                                                                        |
 | 6    | other 4xx: the engine rejected the request, read \`engineMessage\`                                       |
-| 7    | engine error (5xx)                                                                                     |
-| 8    | network error or timeout                                                                               |
+| 7    | engine error (5xx), also the token endpoint's 5xx                                                      |
+| 8    | network error or timeout, also \`RETRY_LATER\`: the token endpoint's 429, 408 or 425                     |
 | 9    | expected state not reached: \`WAIT_TIMEOUT\`, \`INCIDENT\`, \`INSTANCE_ENDED\`, \`JOB_FAILED\`, \`CHECK_FAILED\` |
 
 Read \`hint\` first: it names the fix (\`pulse describe ...\`, \`--yes\`, \`--no-validate\`, the

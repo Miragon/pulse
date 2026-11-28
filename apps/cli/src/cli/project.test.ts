@@ -287,7 +287,7 @@ describe("config set|unset|use|delete --project", () => {
     const mine = await sequence(runtime, ["config", "set", "mine", "--url", "http://mine/x"])
     expect(mine.code).toBe(0)
     expect(mine.stderr).toBe(
-      `Notice: in this repository the defaultProfile of the project file ${PROJECT} ("svc") wins; use --profile, PULSE_CLI_PROFILE or \`pulse config use <profile> --project\`.\n`,
+      `Notice: in this repository the default of the project file ${PROJECT} ("svc") wins; use --profile, PULSE_CLI_PROFILE or \`pulse config use <profile> --project\`.\n`,
     )
     const set = await sequence(runtime, [
       "config",
@@ -316,8 +316,10 @@ describe("config set|unset|use|delete --project", () => {
         profiles: { mine: { url: BASE_URL }, prod: { url: "https://prod/x" } },
       }),
     }
+    // nor falls back to your default (project-default.test.ts)
     const show = await cli(["config", "show"], { files })
-    expect(JSON.parse(show.stdout)).toMatchObject({ profile: "mine", profileFile: CONFIG_PATH })
+    expect(show.code).toBe(3)
+    expect(errorOf(show.stderr).message).toContain('defaultProfile names "prod", a profile your')
     const foreign = { [PROJECT]: json5({ defaultProfile: "prod", profiles: {} }) }
     const refused = await cli(["task", "list"], { files: { ...files, ...foreign } })
     expect(refused.code).toBe(3)

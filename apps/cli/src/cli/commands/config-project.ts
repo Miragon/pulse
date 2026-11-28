@@ -5,16 +5,18 @@
  */
 
 import { configError } from "../../config/config-error.js"
-import { readConfigFile, writeConfigFile } from "../../config/file.js"
+import { pathModule, readConfigFile, writeConfigFile } from "../../config/file.js"
+import { noDefaultNotice, type ProfileOrigin } from "../../config/profile-problems.js"
 import {
   findProjectFile,
+  mergeProject,
   PROJECT_FILE,
   projectWriteError,
   readProjectFile,
+  userDefault,
 } from "../../config/project.js"
-import type { ProfileOrigin } from "../../config/profile-problems.js"
 import { storedProfile } from "../../config/resolve.js"
-import { type ConfigFile, ENV } from "../../config/types.js"
+import { type ConfigFile, ENV, type ProjectSource } from "../../config/types.js"
 import { usageError } from "../../errors.js"
 import type { Runtime } from "../../runtime.js"
 import { isExplicit, projectFileOf, userConfig } from "../config-files.js"
@@ -31,7 +33,7 @@ export interface EditTarget {
   /** The user's file was named by `--config` or PULSE_CLI_CONFIG. */
   readonly explicit?: boolean
   /** The project file in effect, read best effort, when the edit writes the user's file. */
-  readonly other?: { readonly path: string; readonly file: ConfigFile }
+  readonly other?: { readonly source: ProjectSource; readonly file: ConfigFile }
 }
 
 function noProjectDirectory(runtime: Runtime) {
@@ -46,7 +48,9 @@ async function projectInEffect(runtime: Runtime, flag: string | undefined) {
   try {
     const found = await projectFileOf(runtime, flag)
     if (found?.exists !== true) return undefined
-    return { path: found.path, file: await readProjectFile(runtime.fs, found.path) }
+    const { path } = found
+    const source = { path, directory: pathModule(runtime.platform).dirname(path) }
+    return { source, file: await readProjectFile(runtime.fs, path) }
   } catch {
     return undefined
   }
@@ -117,7 +121,7 @@ export function checkUserProfile(target: EditTarget, file: ConfigFile | undefine
   if (target.project || other === undefined || storedProfile(file, name) !== undefined) return
   if (storedProfile(other.file, name) === undefined) return
   throw configError(
-    `Profile "${name}" is a profile of the project file ${other.path}, not of your config file`,
+    `Profile "${name}" is a profile of the project file ${other.source.path}, not of your config file`,
     `Add --project to change the project file; \`pulse config set ${name} <options>\` without it creates a profile of your own that overrides the project's.`,
   )
 }
@@ -129,16 +133,36 @@ function overrideNotice(other: Other, name: string, before?: ConfigFile, after?:
   const added =
     storedProfile(before, name) === undefined && storedProfile(after, name) !== undefined
   if (!added || storedProfile(other.file, name) === undefined) return undefined
-  return `Notice: profile "${name}" of your config file now overrides the profile of the same name in the project file ${other.path} as a whole: none of the project's settings of "${name}" apply. Add --project to change the project's profile instead.`
+  return `Notice: profile "${name}" of your config file now overrides the profile of the same name in the project file ${other.source.path} as a whole: none of the project's settings of "${name}" apply. Add --project to change the project's profile instead.`
 }
 
-/** The user's file got another default, but the project file's default wins in the repository. */
+/** The default a command in the repository sees with the user's file `file` (mergeProject). */
+function repositoryDefault(other: Other, file: ConfigFile | undefined) {
+  const user = file === undefined ? undefined : { ...file, ...userDefault(file) }
+  const merged = mergeProject(user, other)
+  return {
+    defaultProfile: merged?.defaultProfile,
+    defaultProblem: merged?.defaultProblem,
+    fromProject: merged?.project?.defaultProfile === true,
+  }
+}
+
+/**
+ * The edit changed the user's default or the repository's, and in the repository the user's
+ * default does not apply: the project's default wins, or the merge gives none (noDefaultNotice).
+ */
 function defaultNotice(other: Other, before: ConfigFile | undefined, after: ConfigFile) {
-  const projectDefault = other.file.defaultProfile?.trim() ?? ""
-  if (after.defaultProfile === before?.defaultProfile || projectDefault === "") return undefined
-  // a profile of the user's file of the same name takes the project's default away
-  if (storedProfile(after, projectDefault) !== undefined) return undefined
-  return `Notice: in this repository the defaultProfile of the project file ${other.path} ("${projectDefault}") wins; use --profile, ${ENV.profile} or \`pulse config use <profile> --project\`.`
+  const now = repositoryDefault(other, after)
+  const was = repositoryDefault(other, before)
+  const changed = after.defaultProfile !== before?.defaultProfile
+  if (!changed && JSON.stringify(was) === JSON.stringify(now)) return undefined
+  const project = now.defaultProblem?.project
+  if (now.defaultProblem !== undefined && project !== undefined) {
+    return noDefaultNotice(now.defaultProblem, project)
+  }
+  const wins = now.fromProject ? now.defaultProfile : undefined
+  if (wins === undefined || wins === after.defaultProfile) return undefined
+  return `Notice: in this repository the default of the project file ${other.source.path} ("${wins}") wins; use --profile, ${ENV.profile} or \`pulse config use <profile> --project\`.`
 }
 
 /** Notices after an edit of the user's file next to a project file. */

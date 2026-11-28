@@ -1,7 +1,8 @@
 /**
  * What a project file hands a command: no key of a secret or of the variable that holds one (the
  * profile stays refused, and no reader can reach a variable the repository chose), and a default
- * of its own or none, never the user's, also when its only profile has no valid name.
+ * of its own or none, never the user's, also when its only profile has no valid name or the
+ * user's file replaces its default (the user's own default of that name aside).
  */
 
 import { SECRET_KEYS, VARIABLE_KEYS } from "@miragon/pulse-profile"
@@ -64,5 +65,35 @@ describe("a project file", () => {
       `The default profile of the project file ${path} cannot be used: The profile's name is not valid (it is not shown): use letters, digits, ".", "_" and "-", starting with a letter or digit.`,
     )
     expect(selectProfile({ profile: "prod" }, {}, merged).name).toBe("prod")
+  })
+
+  it("gives no default when the user's file replaces it, never the user's other one", () => {
+    const user: ConfigFile = {
+      defaultProfile: "mine",
+      profiles: { prod: { url: "https://prod" }, mine: {} },
+    }
+    const profiles = { prod: { url: ENGINE_URL } }
+    const overridden = { overridden: "prod", only: false, project: path }
+    const named = mergeProject(user, { source, file: { defaultProfile: "prod", profiles } })
+    expect(named?.defaultProfile).toBeUndefined()
+    expect(named?.defaultProblem).toEqual(overridden)
+    const only = mergeProject(user, { source, file: { profiles } })
+    expect(only?.defaultProblem).toEqual({ ...overridden, only: true })
+    expect(mergeProject({ profiles: user.profiles }, { source, file: { profiles } })).toMatchObject(
+      {
+        defaultProblem: { ...overridden, only: true },
+      },
+    )
+    // the user's own default of that name is the user's choice: it stays, as the user's
+    const agreed = mergeProject(
+      { ...user, defaultProfile: " prod " },
+      { source, file: { profiles } },
+    )
+    expect(agreed).toMatchObject({ defaultProfile: "prod", project: { defaultProfile: false } })
+    expect(agreed?.defaultProblem).toBeUndefined()
+    expect(selectProfile({}, {}, agreed)).toMatchObject({
+      name: "prod",
+      profile: user.profiles.prod,
+    })
   })
 })

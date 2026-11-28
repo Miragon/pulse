@@ -63,7 +63,8 @@ Next:
 - **`status`** groups incidents by cause with the MCP cockpit's mask (ids, numbers and quoted
   values masked) and is critical from 50 open root incidents, 25 of one cause or an overdue job.
 - `advance` needs `--activity-id` when the instance waits at several places; the error lists them.
-- `plan-migration` writes its file on engine problems too; `--out-file` writes the view.
+- `plan-migration` writes its file on engine problems too and replaces one only with `--replace`;
+  `--dry-run` names it only with the target version or `--plan-file`; `--out-file` writes the view.
 - Options worth knowing: `inspect --history --stacktrace` (the path in start order, each step once),
   `wait --until ended|incident|task[:key]|activity:<id>` and `--batch <id>`,
   `advance --bpmn-error <code>` or `--fail <message>`, `retry --now`, `deploy --start-key <key>`

@@ -122,8 +122,8 @@ describe("root help texts", () => {
       "     TOKEN_EXPIRED",
       "  5  not found (404)",
       "  6  other 4xx: the engine rejected the request",
-      "  7  engine error (5xx)",
-      "  8  network error or timeout",
+      "  7  engine error (5xx), also the token endpoint's 5xx",
+      "  8  network error or timeout, RETRY_LATER (the token endpoint's 429, 408, 425)",
       "  9  the process did not reach the expected state (WAIT_TIMEOUT, INCIDENT,",
       "     INSTANCE_ENDED, JOB_FAILED, CHECK_FAILED)",
     ])
