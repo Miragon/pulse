@@ -1,3 +1,4 @@
+import { camunda8Reads } from "./lib/shared/camunda8-scope.js"
 import { MAX_PAGE_SIZE } from "./schemas/index.js"
 import { MAX_VARIABLE_VALUE_CHARS } from "./lib/mcp/variable-truncation.js"
 import type { EngineToolset } from "./lib/mcp/toolsets.js"
@@ -130,24 +131,23 @@ const BOARD_RULE =
   "numbers."
 
 /**
- * Only on a server with a Camunda 7 and a Camunda 8 engine: what reads the latter, what not. The
- * screen tool reads one too, as the web app's screen feeds do (owner decision 2026-11-24, #666).
+ * Only on a server with a Camunda 7 and a Camunda 8 engine: what reads the latter by the marks
+ * (`camunda8Reads`: the screen and board tools, owner decision 2026-11-24, #666, and the cockpit's
+ * views), and that the rest refuse it as the default; their enums offer it nowhere else.
  */
-const BOARDS_ONLY_RULE =
-  "- Camunda 8 engines (dialect c8 in engine_list_engines) show on boards only (engine_open_cockpit " +
-  "with view board); engine_get_screen reads them too, other tools offer none and refuse a c8 " +
-  "default: ENGINE_DIALECT_NOT_SERVED."
+const CAMUNDA_8_RULE =
+  `- Camunda 8 engines (dialect c8 in engine_list_engines): ${camunda8Reads("them", "them")}; ` +
+  "other tools refuse a c8 default: ENGINE_DIALECT_NOT_SERVED."
 
-/** A server of Camunda 8 engines alone: the tools it registers show them, nothing else. */
+/** A server of Camunda 8 engines alone: the tools it registers read them, nothing else. */
 const CAMUNDA_8_SERVER_RULE =
-  "- Its engines (dialect c8 in engine_list_engines) show on boards only: engine_open_cockpit with " +
-  "view board shows one, landing the engines and boards to pick from; in its facts null is " +
-  "unknown, never 0."
+  `- Its engines (dialect c8 in engine_list_engines): ${camunda8Reads("them", "them")}; in its ` +
+  "facts null is unknown, never 0."
 
 /** The rules of a server without a Camunda 7 engine: only what its tools and feeds do. */
 function camunda8Instructions(input: EngineInstructionsInput): string {
   return [
-    "engine (Camunda 8, which this server reads on boards):",
+    "engine (Camunda 8, read-only):",
     CAMUNDA_8_SERVER_RULE,
     ...(input.hasBoards === true ? [BOARD_RULE] : []),
     HAND_OFF_RULE,
@@ -179,7 +179,7 @@ export function engineInstructions(input: EngineInstructionsInput): string {
     // Which tool answers "how is the engine": the triage for the model, the cockpit for the user.
     "- Engine state: engine_status triages, engine_open_cockpit shows the user.",
     ...(input.hasBoards === true ? [BOARD_RULE] : []),
-    ...(dialects.includes("c8") ? [BOARDS_ONLY_RULE] : []),
+    ...(dialects.includes("c8") ? [CAMUNDA_8_RULE] : []),
     HAND_OFF_RULE,
     remediationRule(input.toolset),
   ].join("\n")

@@ -66,5 +66,5 @@ the engines of this server", and its tiles stay empty.
 
 A board reads a Camunda 8 cluster from 8.9 on beside the other engines, with the tiles and numbers
 the editors show; its `camunda8` profile names the cluster and the server's own client
-([Camunda 8](camunda8.md)). A cluster's tiles show their counts, rows and diagram and open nothing,
-since no other view of the server reads Camunda 8, and a cluster that fails shows in its place.
+([Camunda 8](camunda8.md)). A cluster's tiles show their counts, rows and diagram; in the chat they
+open nothing, in the web app its screens, and a cluster that fails shows in its place.

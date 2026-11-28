@@ -401,10 +401,10 @@ describe("createPlugin over Camunda 8 profiles and the boards that name them", (
         .map((part) => ("text" in part ? part.text : ""))
         .join("")
     expect(await status("c8")).toContain(
-      "This server reads a Camunda 8 engine on boards only: engine_list_engines lists the boards that name it, and engine_open_cockpit with view board shows one.",
+      "On this server engine_get_screen and engine_get_board read a Camunda 8 engine, engine_open_cockpit shows it (view board or landing); engine_list_engines lists the boards that name it.",
     )
     expect(await status("lone")).toContain(
-      'This server reads a Camunda 8 engine on boards only, and no board names "lone" yet;',
+      'no board names "lone" yet, the server\'s operator adds one.',
     )
     const picker = await recording.tool(ENGINE_OPEN_COCKPIT).call({})
     expect(picker.structuredContent).toEqual({

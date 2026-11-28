@@ -222,8 +222,9 @@ describe("a camunda8 profile: served, and every Camunda 7 path refuses it before
     }
     const refusal =
       '[ENGINE_DIALECT_NOT_SERVED] Engine "c8" is a Camunda 8 engine, and this tool or view ' +
-      "reads the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. This " +
-      'server reads a Camunda 8 engine on boards only, and no board names "c8" yet; the ' +
+      "reads the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. On " +
+      "this server engine_get_screen and engine_get_board read a Camunda 8 engine, " +
+      'engine_open_cockpit shows it (view board or landing); no board names "c8" yet, the ' +
       "server's operator adds one."
     const list = JSON.parse(await text(ENGINE_LIST_ENGINES)) as {
       engines: Array<{ id: string; dialect: string }>

@@ -41,10 +41,11 @@ import { ERROR_PATH_C8_DIR, expectReadmeMatches, modelResult, OUTPUT_DIR } from 
  * Error-path goldens of Camunda 8 (T0): what the server reports when a Camunda 8 cluster's call
  * fails, through the real app (`createApp`) against a loopback cluster whose token endpoint sits
  * at Keycloak's path on the same origin, under a clock the test holds (`Date`, which the token
- * source and the board's floor read). The server reads such an engine on boards only, so each case
- * opens a board over that one engine (`engine_open_cockpit` view `board`): the facts the model
- * reads (its engine's state and failure code), the board the view renders (the failure's message
- * with its hint) and the requests the cluster and its token endpoint saw. The case names and the
+ * source and the board's floor read). The chat's cockpit shows such an engine on boards only, so
+ * each case opens a board over that one engine (`engine_open_cockpit` view `board`) unless it names
+ * its own probes: the facts the model reads (its engine's state and failure code), the board the
+ * view renders (the failure's message with its hint) and the requests the cluster and its token
+ * endpoint saw. The case names and the
  * answers are error-cases-c8.ts's, a copy of the C8 adapter's; each probe names the adapter's
  * call whose failure it must equal (`matches`), which scripts/error-path-goldens.test.mjs holds
  * case by case. `__golden__/error-paths-c8/README.md` says per case what is pinned and why.
@@ -110,6 +111,13 @@ const board = (atSecond?: number, matches: AdapterCall = "describeEngine"): Prob
 
 const BOARD_PROBE = board()
 const DETAIL: AdapterCall = `getInstanceDetail ${INSTANCE_KEY}`
+
+/** The world's instance by its key, as the model reads it: its instance screen as JSON. */
+const INSTANCE_PROBE: Probe = {
+  tool: "engine_get_screen",
+  arguments: { engine: ENGINE, screen: "instance", processInstanceId: INSTANCE_KEY },
+  matches: DETAIL,
+}
 
 /** The diagram's XML feed, the one read of a key the server takes: no key, no request. */
 const xmlOf = (id: string, matches: AdapterCall = `getInstanceDetail ${id}`): Probe => ({
@@ -187,12 +195,7 @@ const SHARED: readonly PinnedCase[] = [
     engine: restRoot(always(outsideV2), ""),
     probes: [BOARD_PROBE, XML_PROBE],
   },
-  {
-    name: "missing-resource",
-    engine: restRoot(always(missingInstance)),
-    // No tool reads an instance by key on a server of Camunda 8 engines alone (tools-c8-*.json).
-    probes: [board(undefined, DETAIL)],
-  },
+  { name: "missing-resource", engine: restRoot(always(missingInstance)), probes: [INSTANCE_PROBE] },
   {
     name: "engine-text-echoes-secret-basic",
     engine: restRoot(always(echoesSecrets)),
@@ -313,8 +316,10 @@ const textOf = (result: unknown): string =>
 /** What a probe gives: a board's facts and view, any other tool's result as the model reads it. */
 function outcomeOf(probe: Probe, result: Awaited<ReturnType<BootedServer["client"]["callTool"]>>) {
   if (probe.tool !== "engine_open_cockpit") {
+    // A tool error leads with its failure's kind (`[misconfigured]`); a code of the server's own
+    // (`[UNKNOWN_INSTANCE]`, its words for an instance the engine answers none of) is no failure.
     const failure =
-      result.isError === true ? (/^\[([^\]]+)\]/.exec(textOf(result))?.[1] ?? null) : null
+      result.isError === true ? (/^\[([a-z]\w*)\]/.exec(textOf(result))?.[1] ?? null) : null
     return { failure, result: modelResult(result) }
   }
   const view = (result.structuredContent as { start: { data: BoardView } }).start.data

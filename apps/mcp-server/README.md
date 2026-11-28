@@ -92,7 +92,7 @@ Keycloak, Microsoft Entra ID, ADFS and other identity providers:
 
 - claude.ai and ChatGPT reach only a public HTTPS URL, not `localhost`; Claude Desktop needs a
   bridge, as [Usage](https://miragon.github.io/pulse/mcp/usage#connect-your-assistant) shows.
-- Works with Operaton, CIB seven and Camunda 7; a Camunda 8 cluster it shows on boards in the chat and whole in its web app, read-only ([Camunda 8](https://miragon.github.io/pulse/mcp/camunda8)).
+- Works with Operaton, CIB seven and Camunda 7; a Camunda 8 cluster it reads read-only: on boards in the chat, where the model reads its screens as JSON too, and whole in its web app ([Camunda 8](https://miragon.github.io/pulse/mcp/camunda8)).
 - Modules for your own systems next to Pulse's: [Build your own server](https://miragon.github.io/pulse/mcp/build-your-own).
 - Pulse also runs in your terminal and in VS Code: [Pulse](../../README.md).
 

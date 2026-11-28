@@ -58,6 +58,8 @@ export const PATH_RULES = [
   // A generic extra-file of release-please: lint:github holds the version it marks (the release
   // tag a copy of the template is cloned from) to the release's.
   { pattern: /^docs\/mcp\/claude-artifacts\.md$/, scopes: ["brand", "typescript"] },
+  // Read by the engine module's camunda8-scope.test.ts: its table names what the marks serve.
+  { pattern: /^docs\/mcp\/camunda8\.md$/, scopes: ["brand", "typescript"] },
   { pattern: /^docs\//, scopes: ["brand"] },
   // Read by scripts/server-env-names.test.mjs.
   { pattern: /^\.env\.example$/, scopes: ["typescript"] },

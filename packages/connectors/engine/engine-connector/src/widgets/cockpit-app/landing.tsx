@@ -96,9 +96,9 @@ function EngineRow(props: EngineRowProps) {
 }
 
 /**
- * An engine the server reads on boards only: the row reads nothing and has no verdict, so no dot;
- * its mark is an engine's, never a board's, and it says what the engine runs and whether a board
- * shows it, neutral.
+ * An engine the chat's cockpit shows on boards only: the row reads nothing and has no verdict, so
+ * no dot; its mark is an engine's, never a board's, and it says what the engine runs and whether a
+ * board shows it, neutral.
  */
 function BoardsOnlyEngineRow({ engine, ...props }: EngineRowProps & { engine: BoardsOnlyEngine }) {
   const locale = useLocale()

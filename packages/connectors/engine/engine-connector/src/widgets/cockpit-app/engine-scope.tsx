@@ -26,8 +26,8 @@ import { type BoardsOnlyEngine, boardsOnlyOf } from "./boards-only.js"
 import type { Cockpit } from "./use-cockpit.js"
 
 /**
- * What the model hears of an open engine: its refused profile, its dialect the server reads on
- * boards only, or the view on screen.
+ * What the model hears of an open engine: its refused profile, its dialect the chat's cockpit
+ * shows on boards only, or the view on screen.
  */
 function engineContextOf(
   engineId: string,
@@ -52,9 +52,9 @@ interface EngineScopeProps {
  * NavProvider is the client-side navigation seam: widgets call `useNav()`, which resolves to this
  * in-app router instead of a chat follow-up. The head names the engine, so the views leave it out
  * of their own meta line. A crashing view never takes the cockpit down, a refused engine shows
- * once, and so does one the server shows on boards only. The view frame's main holds the cockpit,
- * so the route renders no main of its own. The region is busy while the head's Refresh reads its
- * feeds again.
+ * once, and so does one the chat's cockpit shows on boards only. The view frame's main holds the
+ * cockpit, so the route renders no main of its own. The region is busy while the head's Refresh
+ * reads its feeds again.
  */
 function EngineRouteRegion({
   cockpit,

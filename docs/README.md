@@ -1,8 +1,8 @@
 # Pulse docs
 
 Pulse reaches your Camunda 7, CIB seven and Operaton engines from your AI chat, your browser, your
-terminal, VS Code and Orca; it also reads Camunda 8 in VS Code, Orca and the web app, and on boards
-in the chat.
+terminal, VS Code and Orca; it also reads Camunda 8 in VS Code, Orca and the web app, and in the
+chat on boards and as JSON screens for the model.
 
 | Page                       | What it covers                                                   |
 | -------------------------- | ---------------------------------------------------------------- |

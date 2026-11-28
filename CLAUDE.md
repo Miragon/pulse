@@ -90,10 +90,17 @@ Three axes decide where code goes, and they stay apart:
   `EngineProvider` (invariant 8), never a package or an app.
 - **Dialect** (an engine API family): one package family under `packages/connectors/<dialect>/`
   whose core implements engine-core's contract: `c7` (the Camunda 7 REST API all three vendors
-  serve) and `c8` (Camunda 8's Orchestration Cluster REST API, read-only; the server offers it in
-  the engine list, the boards, the web app's screens and their JSON for the model, the chat's
-  views on boards only: `docs/mcp/camunda8.md`). `DIALECT_FAMILIES` and `ENGINE_DIALECTS` in `.dependency-cruiser.cjs`
-  name them. A new dialect is a family, never an MCP server app or a module of its own.
+  serve) and `c8` (Camunda 8's Orchestration Cluster REST API, read-only; the server offers it
+  where a mark names it: the engine list, the boards, the web app's screens and their JSON for the
+  model, of the chat's cockpit the board and the landing; the instructions, the refusal, the boot's
+  warning and the table of `docs/mcp/camunda8.md` name what a server of clusters alone lists,
+  `packages/connectors/engine/engine-connector/src/camunda8-scope.test.ts`, and
+  `scripts/camunda8-scope.test.mjs` fails on a clause of the Markdown, the `.env.example` files,
+  the docs site's config, the module's texts, widget-shell's error words or the tools/list goldens
+  that keeps Camunda 8 to boards in a phrase `scripts/camunda8-scope.mjs` lists without naming the
+  chat's cockpit, or says the chat reads it as JSON where no tool does).
+  `DIALECT_FAMILIES` and `ENGINE_DIALECTS` in `.dependency-cruiser.cjs` name them. A new dialect
+  is a family, never an MCP server app or a module of its own.
 - **Interface** (how a person or an agent reaches an engine): an app under `apps/` with its own
   agent file. Apps never import each other, and no package imports an app; what the editor hosts
   share is the runtime view and the adapters, private packages only they bundle.

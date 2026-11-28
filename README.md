@@ -43,10 +43,11 @@ Three clients work on the same engines; pick the one that fits where you work.
 
 The VS Code extension and [Pulse for Orca](apps/orca/README.md) also read Camunda 8 clusters from
 8.9 on, without writing ([Camunda 8](https://miragon.github.io/pulse/vscode/camunda8)); the MCP
-server shows them on boards in the chat and reads them whole in its web app
-([on the server](https://miragon.github.io/pulse/mcp/camunda8)). The server's image also holds a
-[web app](apps/web/README.md): the cockpit and the boards as pages under `/app`, read-only, for
-people who sign in through the server's identity provider instead of a chat.
+server shows them on boards in the chat, where the model reads their screens as JSON too, and
+reads them whole in its web app ([on the server](https://miragon.github.io/pulse/mcp/camunda8)).
+The server's image also holds a [web app](apps/web/README.md): the cockpit and the boards as pages
+under `/app`, read-only, for people who sign in through the server's identity provider instead of
+a chat.
 
 ## Get started
 

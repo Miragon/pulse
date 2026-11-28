@@ -6,9 +6,9 @@ What the server reports when a Camunda 8 cluster's call fails, pinned byte for b
 (`ENGINE_BOARDS_DIR`), against a loopback engine
 (`apps/mcp-server/test/engine-goldens/fake-c8-cluster.ts`) that is the cluster and, at Keycloak's
 path on the same origin, its token endpoint, under a clock the test holds (`Date`, which the token
-source's hold and renewal and the board's floor read). The chat shows a Camunda 8 engine on boards
-only, so each case opens that board (`engine_open_cockpit` view `board`) unless it names its
-own probes. The cases and the answers that make them are
+source's hold and renewal and the board's floor read). The chat's cockpit shows a Camunda 8 engine
+on boards only, so each case opens that board (`engine_open_cockpit` view `board`) unless it names
+its own probes. The cases and the answers that make them are
 `apps/mcp-server/test/engine-goldens/error-cases-c8.ts`, a copy of the C8 adapter's
 (`packages/connectors/c8/c8-adapter/test/goldens/error-cases.ts`), and the world they build on is
 `apps/mcp-server/test/engine-goldens/c8-cluster-world.ts`, a copy of the adapter's world; the
@@ -30,14 +30,16 @@ stand sorted. Ports read `127.0.0.1:<port>`. The golden file sorts every object'
 
 The same failure per case: `matches` names the C8 adapter's call (`describeEngine`, or
 `getInstanceDetail` with its key) at the same second, and `scripts/error-path-goldens.test.mjs`
-holds the probe's `failure` (the board's engine's failure code, else none) to that call's failure
-in the adapter's golden of the same case, for every case both surfaces pin. A board's engine
-fails at its first read, the cluster's version, as `describeEngine` does, and so does the
-diagram's XML feed, whose tool error leads with the failure's code. Where the adapter asks for an
-instance alone, the board's version read passes as the adapter's does, and neither fails; the
-server reads no Camunda 8 instance by its key. A cluster without secondary storage passes the
-version read and fails the board's engine at its definitions, as the adapter's instance read
-fails.
+holds the probe's `failure` (the board's engine's failure code, the failure a tool error leads
+with, else none) to that call's failure in the adapter's golden of the same case, for every case
+both surfaces pin. A board's engine fails at its first read, the cluster's version, as
+`describeEngine` does, and so does the diagram's XML feed, whose tool error leads with the
+failure's code. Where the adapter asks for an instance alone, the board's version read passes as
+the adapter's does, and neither fails; the model reads an instance by its key on its instance
+screen (`engine_get_screen`), whose code for an instance the cluster knows not
+(`UNKNOWN_INSTANCE`) is no failure, as the adapter's read returns none. A cluster without
+secondary storage passes the version read and fails the board's engine at its definitions, as
+the adapter's instance read fails.
 
 Never edit a golden by hand. An intended change runs
 `pnpm --fail-if-no-match --filter @miragon/pulse-mcp-server golden:update` (refused in CI) and
@@ -61,7 +63,7 @@ these goldens. A later step that changes one names itself in its row's last colu
 | `unauthorized-bearer` | pinned | client credentials: the token endpoint issues a token, the cluster refuses it with a 401 without a body: `unauthorized` with the hint to check the client's rights and `auth.audience`, a changed client ID or secret in the profile or its variable; the token is younger than 30 s, so one request goes out | none planned |
 | `unauthorized-passthrough` | not reachable | the server forwards no caller's token to a Camunda 8 cluster: a `camunda8` profile signs in with none, Basic or client credentials | |
 | `wrong-rest-root` | pinned | the url lacks `/v2`, and the cluster answers `/topology` with its own 404: `misconfigured` with the `/v2` hint alone, never the Camunda 7 root hint; the diagram's XML feed fails alike, its tool error `[misconfigured]` with the hint after the message | 8.11: the XML feed's probe |
-| `missing-resource` | pinned | the cluster knows no instance `9007199254740993`, which the server never asks for: the board is ready, and a server of Camunda 8 engines alone lists no tool that reads an instance by key (`tools-c8-*.json`), so none can ask | none planned |
+| `missing-resource` | pinned | the cluster knows no instance `9007199254740993`: its instance screen (`engine_get_screen`) reads the cluster's version, asks for the instance by its key and answers `UNKNOWN_INSTANCE`, no failure, as the adapter's `getInstanceDetail` returns no detail | #694: the instance screen |
 | `engine-text-echoes-secret-basic` | pinned | a 500 whose detail echoes the Basic value, the password, a token and a client secret: `engineFailure`, the configured password and Basic value read `***`, the rest stays, the message on one line and cut after 500 characters | none planned |
 | `engine-text-echoes-secret-bearer` | pinned | the same 500 to the token the endpoint issued: the token and the client secret read `***`, though the secret went to the token endpoint alone | none planned |
 | `deadline-exceeded` | pinned | a cluster that never answers, the profile's `timeout` 300 ms: `unreachable`, the deadline named | none planned |

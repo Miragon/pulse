@@ -96,7 +96,7 @@ function cockpitMoves(
   dispatch: Dispatch<CockpitAction>,
 ): CockpitMoves {
   // The cross-engine view reads every engine itself, so two it reads whole are all it needs; one
-  // the server shows on boards only it names and leaves out.
+  // the chat's cockpit shows on boards only it names and leaves out.
   const offerFleet = engines.filter(readsWhole).length > 1
   return {
     enterEngine: (id) => dispatch({ type: "enter-engine", id }),

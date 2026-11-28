@@ -1,3 +1,4 @@
+import { camunda8Views } from "../../lib/shared/camunda8-scope.js"
 import { enginesByEnvironment } from "../../lib/shared/environments.js"
 import type { ViewContext } from "../lib/hand-off.js"
 import type { CockpitView } from "../../view-models.js"
@@ -49,21 +50,22 @@ export function refusedEngineContext(engineId: string): ViewContext {
 }
 
 /**
- * The open engine speaks another dialect, which the server reads on boards only
+ * The open engine speaks another dialect, which the chat's cockpit shows on boards only
  * (`BoardsOnlyEngineGate`): the view reads nothing of it and names the boards that show it, by
- * their ids, so the model offers no work on it here, since every other read of it is refused.
+ * their ids. The server still reads its screens and boards as JSON for the chat, by the tools the
+ * module instructions name (a model context names none, scripts/hand-off-refs.test.mjs), so the
+ * model is not told to refuse them; the views that show it here are its marks'
+ * (`camunda8Views`), as the instructions name them.
  */
 export function boardsOnlyEngineContext(engineId: string, engine: BoardsOnlyEngine): ViewContext {
   return {
     summary:
-      "The operator opened an engine in the engine cockpit that the server reads on boards " +
-      "only (it speaks another engine API than the cockpit's views read): the view reads " +
-      "nothing of it and lists the boards that name it, if any. Offer no analysis or change on " +
-      "this engine; a board that names it shows its numbers, and another engine can still be " +
-      "opened.",
+      "The operator opened an engine in the engine cockpit that speaks another engine API: the " +
+      "cockpit shows it on boards only and lists the boards that name it. Its screens and " +
+      "boards still reach the chat as JSON.",
     ids: { engine: engineId },
     facts: {
-      boardsOnly: true,
+      cockpitViews: camunda8Views(),
       dialect: engine.dialect,
       boardCount: engine.boards.length,
       ...(engine.boards.length > 0 ? { boards: [...engine.boards] } : {}),
@@ -94,7 +96,7 @@ export function landingContext(
         boards: boards.boards.map((board) => board.id),
         refusedBoards: boards.refusedBoards.map((board) => board.id),
       }),
-      // The engines the server shows on boards only: a call of another view to one is refused.
+      // The engines the chat's cockpit shows on boards only: another view's call to one is refused.
       ...(boardsOnly.length > 0 ? { boardsOnlyEngines: [...boardsOnly] } : {}),
     },
   }

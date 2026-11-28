@@ -12,7 +12,7 @@ export type CockpitEngine = Pick<
   environment?: string
 }
 
-/** A dialect the server reads on boards only. */
+/** A dialect the chat's cockpit shows on boards only. */
 type BoardsOnlyDialect = Exclude<EngineDialect, "c7">
 
 /** Its product and its web app by their names, the same in every language. */

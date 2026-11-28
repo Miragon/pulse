@@ -36,6 +36,9 @@ export const ENGINE_SCREEN_INCIDENT_TEXT_DATA = "engine_screen_incident_text_dat
 export const ENGINE_SCREEN_FIND_DATA = "engine_screen_find_data"
 export const ENGINE_SCREEN_VERDICT_DATA = "engine_screen_verdict_data"
 export const ENGINE_LIST_ENGINES = "engine_list_engines"
+// The screens and boards as JSON for the model (#666), which the Camunda 8 scope names.
+export const ENGINE_GET_SCREEN = "engine_get_screen"
+export const ENGINE_GET_BOARD = "engine_get_board"
 // The toolset may not register these, so widgets ask `*_widget_actions_data` which exist.
 // `src/widget-actions.test.ts` fails on an in-widget write missing here.
 export const ENGINE_WIDGET_ACTIONS = [

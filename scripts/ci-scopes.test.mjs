@@ -171,6 +171,10 @@ describe("scopesFor: prose reaches only the checks that read it", () => {
     assert.deepEqual(scopes("docs/mcp/claude-artifacts.md"), ["brand", "typescript"])
   })
 
+  it("runs the engine module's tests for the Camunda 8 page, whose table they hold to the marks", () => {
+    assert.deepEqual(scopes("docs/mcp/camunda8.md"), ["brand", "typescript"])
+  })
+
   it("runs pulse-ui's tests for the glossary page, which they generate and hold to the data", () => {
     assert.deepEqual(scopes("docs/glossary.md"), ["brand", "typescript"])
     assert.deepEqual(scopes("docs/overview.md"), ["brand"])

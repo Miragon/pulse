@@ -269,7 +269,7 @@ export function historyOf(reports: readonly Report[]): Array<Readonly<Record<str
   )
 }
 
-/** An engine the server reads on boards only (Camunda 8), as the start data and the list name it. */
+/** An engine the chat's cockpit shows on boards only (Camunda 8), as the start data and list name it. */
 export const ON_BOARDS: CockpitEngineInfo = {
   id: "orders-c8",
   environment: "default",

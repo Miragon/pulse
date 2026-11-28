@@ -1,9 +1,9 @@
 # Pulse MCP server
 
 The Pulse MCP server lets Claude, ChatGPT or any other MCP client read and operate your Camunda 7,
-CIB seven and Operaton engines, shows Camunda 8 clusters on boards in the chat and whole in its web
-app, and answers with widgets in the chat. It starts read-only; writes need a toolset you name.
-Commands and configs call the server `pulse`.
+CIB seven and Operaton engines, reads Camunda 8 clusters on boards and as JSON screens in the chat
+and whole in its web app, and answers with widgets in the chat. It starts read-only; writes need a
+toolset you name. Commands and configs call the server `pulse`.
 
 ![An incident in the chat, explained with a widget](../assets/chat-incident.png)
 
@@ -12,7 +12,7 @@ Commands and configs call the server `pulse`.
 | [Getting started](./getting-started.md)       | Connect your Claude to the public playground, then run the server on your own engine        |
 | [Usage](./usage.md)                           | Connect an assistant, what to ask, language and theme                                       |
 | [Boards](./boards.md)                         | A board in the chat and the cockpit, the server's board files, one shared with the editors  |
-| [Camunda 8](./camunda8.md)                    | A Camunda 8 cluster on boards in the chat, whole in the web app: its profile, client, tests |
+| [Camunda 8](./camunda8.md)                    | A Camunda 8 cluster on boards and as JSON in the chat, whole in the web app, and its tests  |
 | [Claude artifacts](./claude-artifacts.md)     | Live pages in claude.ai on Pulse: the template, the Claude Code plugin, publishing          |
 | [Web app](../web/index.md)                    | The server's views as pages in a browser, signed in through its OAuth provider              |
 | [Reference](./reference.md)                   | Every tool, the toolsets and the common settings                                            |

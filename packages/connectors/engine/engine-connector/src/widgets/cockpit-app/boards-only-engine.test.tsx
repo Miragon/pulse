@@ -21,10 +21,10 @@ import { CockpitApp } from "./app.js"
 afterEach(cleanup)
 
 /**
- * An engine of another dialect (Camunda 8), which the server reads on boards only: the start data
- * and the engine list name its dialect, its web app and the boards that name it. Each of its
- * routes is ONE state that reads nothing, its landing row reads nothing and shows no verdict, and
- * the cross-engine view leaves it out and names it.
+ * An engine of another dialect (Camunda 8), which the chat's cockpit shows on boards only: the
+ * start data and the engine list name its dialect, its web app and the boards that name it. Each
+ * of its routes is ONE state that reads nothing, its landing row reads nothing and shows no
+ * verdict, and the cross-engine view leaves it out and names it.
  */
 
 const C7 = { id: "prod-a", environment: "default", dialect: "c7" } as const
@@ -143,7 +143,7 @@ function renderCockpit({
 const gate = () => document.querySelector<HTMLElement>("[data-slot='boards-only-engine']")
 const landingRow = (name: RegExp) => screen.findByRole("button", { name })
 
-describe("an engine the server reads on boards only: its routes' one state", () => {
+describe("an engine the chat's cockpit shows on boards only: its routes' one state", () => {
   it("names the boards that show it, each a way in, its web app and the way back, reading nothing", async () => {
     const { contexts, readsOf } = renderCockpit({ engines: [C7, ON_BOARDS] })
     fireEvent.click(await screen.findByRole("button", { name: /^orders-c8\b/ }))
@@ -159,10 +159,11 @@ describe("an engine the server reads on boards only: its routes' one state", () 
     expect(operate.getAttribute("href")).toBe("https://operate.example/operate")
     // No section of the engine reads it: every read of it would be refused.
     expect(readsOf("orders-c8")).toEqual([])
-    await waitFor(() => expect(contexts.at(-1)).toContain("boardsOnly=true"))
+    // The views that show it here (its mark's), and no refusal of the JSON the chat still reads.
+    await waitFor(() => expect(contexts.at(-1)).toContain('cockpitViews=["board","landing"]'))
     expect(contexts.at(-1)).toContain('dialect="c8"')
     expect(contexts.at(-1)).toContain('boards=["invoices"]')
-    expect(contexts.at(-1)).not.toMatch(/engine_\w+/)
+    expect(contexts.at(-1)).not.toMatch(/engine_\w+|Offer no analysis/)
     fireEvent.click(within(boards).getByRole("button", { name: /^Invoices\b/ }))
     expect(await screen.findByRole("heading", { level: 1, name: "Invoices" })).toBeTruthy()
   })
@@ -283,7 +284,7 @@ describe("an engine the server reads on boards only: its routes' one state", () 
   })
 })
 
-describe("an engine the server reads on boards only, on the landing", () => {
+describe("an engine the chat's cockpit shows on boards only, on the landing", () => {
   it.each([
     [ON_BOARDS, "Camunda 8, on boards"],
     [ON_NO_BOARD, "Camunda 8, on no board yet"],
@@ -309,7 +310,7 @@ describe("an engine the server reads on boards only, on the landing", () => {
   })
 })
 
-describe("an engine the server reads on boards only, in the cross-engine view", () => {
+describe("an engine the chat's cockpit shows on boards only, in the cross-engine view", () => {
   it("is left out of its reads and sums, and named in one line", async () => {
     const second = { ...C7, id: "prod-b" }
     const billing = { ...ON_NO_BOARD, id: "billing-c8" }

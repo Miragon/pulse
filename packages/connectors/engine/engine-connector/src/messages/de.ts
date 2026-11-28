@@ -66,8 +66,9 @@ export const de: MessageCatalog = {
   // Nach einem Engine-Wechsel: der Prozess der Ansicht ist auf der neuen Engine nicht da.
   "cockpit.processGone": ({ process, engineId }) =>
     `${String(process)} ist auf ${String(engineId)} nicht bereitgestellt.`,
-  // Eine Engine eines anderen Dialekts, die der Server nur auf Boards liest: ihre Zeile auf der
-  // Landing, der eine Zustand ihrer Routen (BoardsOnlyEngineGate) und die Zeile der Übersicht.
+  // Eine Engine eines anderen Dialekts, die das Cockpit im Chat nur auf Boards zeigt: ihre Zeile
+  // auf der Landing, der eine Zustand ihrer Routen (BoardsOnlyEngineGate) und die Zeile der
+  // Übersicht.
   "cockpit.landing.status.onBoards": ({ product }) => `${String(product)}, auf Boards`,
   "cockpit.landing.status.onNoBoard": ({ product }) => `${String(product)}, noch auf keinem Board`,
   "cockpit.boardsOnly.title": ({ engine, product }) =>

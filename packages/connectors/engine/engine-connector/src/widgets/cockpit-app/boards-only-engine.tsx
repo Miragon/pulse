@@ -17,8 +17,8 @@ interface GateProps {
 }
 
 /**
- * An engine the server reads on boards only (another dialect: `boardsOnly`, from the start data)
- * is the view's ONE state on every route: no section mounts, since every read of it would be
+ * An engine the chat's cockpit shows on boards only (another dialect: `boardsOnly`, from the start
+ * data) is the view's ONE state on every route: no section mounts, since every read of it would be
  * refused alike. The state reads nothing either: it names the boards that show the engine, each a
  * way in, or says that none does yet, and leads to the engine's own web app where its profile
  * names one. The way back to the chooser is the head's trail, whose first crumb is "All engines"

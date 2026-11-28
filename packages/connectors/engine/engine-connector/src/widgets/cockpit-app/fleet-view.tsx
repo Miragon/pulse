@@ -39,8 +39,8 @@ function fleetFailuresHandOff({ engineIds, environments }: Fleet): HandOff {
 }
 
 /**
- * The engines the server shows on boards only, one line per product, which the view leaves out
- * of its reads and sums: none of its reads would be served.
+ * The engines the chat's cockpit shows on boards only, one line per product, which the view leaves
+ * out of its reads and sums: none of its reads would be served.
  */
 function BoardsOnlyLine({ engines }: { engines: readonly CockpitEngine[] }) {
   const t = useT()
@@ -78,8 +78,8 @@ function EngineIdInLine({ id, last }: { id: string; last: boolean }) {
 /**
  * An overview, not a scoreboard: engines host different processes, so ranking them by
  * rate or duration would rank their process mixes. It reads and sums only the engines every route
- * reads; one the server shows on boards only it names in a line. Each engine is a row of its
- * table, which opens it: no card repeats its numbers (N8).
+ * reads; one the chat's cockpit shows on boards only it names in a line. Each engine is a row of
+ * its table, which opens it: no card repeats its numbers (N8).
  */
 export function FleetView({
   engines: all,
