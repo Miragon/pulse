@@ -835,12 +835,14 @@ jobs:
         run: npm install --global --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code@stable
 
       # Every source the marketplace lists, as a plugin and, from the folder holding it, as its
-      # skills: a source the marketplace names that is gone fails here.
+      # skills: a source the marketplace names that is gone fails here. A plugin it installs from
+      # this repository at a release's tag (pulse-artifact, a git-subdir source) is validated in
+      # its folder here, as the next release tags it.
       - name: Validate the marketplace, its plugins and their skills
         run: |
           claude --version
           claude plugin validate --strict .
-          mapfile -t sources < <(jq -r '.plugins[].source' .claude-plugin/marketplace.json)
+          mapfile -t sources < <(jq -r '.plugins[].source | if type == "string" then . else "./" + .path end' .claude-plugin/marketplace.json)
           if [ "${#sources[@]}" -eq 0 ]; then
             echo "::error::.claude-plugin/marketplace.json lists no plugin"
             exit 1

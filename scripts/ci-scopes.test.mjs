@@ -450,6 +450,7 @@ describe("scopesFor: paths outside the packages", () => {
   })
 
   it("runs the template's job for the Claude artifact's code and fixtures, the TypeScript job for its agent file and README", () => {
+    // The page as it ships (src/page.html) also by the MCP server's plugin test: no font host.
     for (const file of [
       "templates/claude-artifact/src/app.tsx",
       "templates/claude-artifact/src/page.html",

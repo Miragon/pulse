@@ -8,18 +8,21 @@ import { isModelVisible, toolNamesIn, type WireTool } from "./golden.js"
  * claude.ai that read an engine through the Pulse MCP server). Its root is the skill directory
  * skills/pulse-artifact, as the CLI's pulse-cli is, so it holds no package.json (Claude Code
  * would install its dependencies into the plugin); .claude-plugin/plugin.json carries this app's
- * version and release-please bumps it with the app; the repository's marketplace
- * (.claude-plugin/marketplace.json) lists it. The skill starts a copy of the template
- * templates/claude-artifact, which an installed plugin does not hold, so it names its GitHub URL
- * too, and hands over to the copy's agent file (templates/claude-artifact/CLAUDE.md), which
- * carries the rules in the version the copy pins; both name only tools a page may call: model
- * tools of the read-only floor.
+ * version and release-please bumps it with the app. The repository's marketplace
+ * (.claude-plugin/marketplace.json) installs it from the tag of that release, which release-please
+ * bumps too, so the skill a person installs is always the one of the tagged release whose template
+ * it clones, never one on main that names what the release lacks. The skill starts a copy of the
+ * template templates/claude-artifact, which an installed plugin does not hold, so it names its
+ * GitHub URL at that tag too, and reaches this repository's content by no other ref; it hands over
+ * to the copy's agent file (templates/claude-artifact/CLAUDE.md), which carries the rules in the
+ * version the copy pins; both name only tools a page may call: model tools of the read-only floor.
  */
 
 const REPO_ROOT = path.join(import.meta.dirname, "..", "..", "..")
 const PLUGIN_DIR = "apps/mcp-server/skills/pulse-artifact"
 const TEMPLATE = "templates/claude-artifact"
-const TEMPLATE_URL = `https://github.com/Miragon/pulse/tree/main/${TEMPLATE}`
+/** The repository the marketplace installs the plugin from, as a git URL. */
+const REPOSITORY_GIT = "https://github.com/Miragon/pulse.git"
 /** The copy's agent file the skill hands over to: the rules and the tools a page calls. */
 const TEMPLATE_AGENT_FILE = `${TEMPLATE}/CLAUDE.md`
 
@@ -50,6 +53,9 @@ const APP = JSON.parse(read("apps/mcp-server/package.json")) as {
   readonly license: string
 }
 const SKILL = read(`${PLUGIN_DIR}/SKILL.md`)
+/** The tag of the release this plugin is: the one the marketplace installs it from. */
+const TAG = `v${PLUGIN.version}`
+const TEMPLATE_URL = `https://github.com/Miragon/pulse/tree/${TAG}/${TEMPLATE}`
 
 /** Every Markdown file of the plugin a session reads: the skill and its references, if any. */
 const REFERENCES = path.join(REPO_ROOT, PLUGIN_DIR, "references")
@@ -59,6 +65,51 @@ const SKILL_FILES = [
     .filter((name) => name.endsWith(".md"))
     .map((name) => `${PLUGIN_DIR}/references/${name}`),
 ]
+/** The skill and every file under its references/, whatever its kind and however deep. */
+const SHIPPED_FILES = [
+  `${PLUGIN_DIR}/SKILL.md`,
+  ...(fs.existsSync(REFERENCES) ? fs.readdirSync(REFERENCES, { recursive: true }) : [])
+    .map((name) => `${PLUGIN_DIR}/references/${String(name)}`)
+    .filter((file) => fs.statSync(path.join(REPO_ROOT, file)).isFile()),
+]
+
+/** The characters that end a ref in a link: a path's `/`, a blank, an anchor, a query, a quote. */
+const REF = String.raw`([^\s/)#?"'\x60<>]*)`
+/** This repository in a URL, never a longer name (`Miragon/pulse-starter`). */
+const REPOSITORY = String.raw`miragon\/pulse(?:\.git)?(?![\w.-])`
+
+/**
+ * Where `text` reaches this repository's content by another ref than the release `v<version>`,
+ * one entry each: a GitHub link (tree, blob, raw), a raw.githubusercontent.com or jsDelivr link at
+ * another ref or at none (jsDelivr's npm links of the Pulse libraries at another version), and a
+ * `git clone` of the repository without `--branch v<version>`.
+ */
+function unpinnedRefs(text: string, version: string): string[] {
+  const tag = `v${version}`
+  const links: readonly (readonly [RegExp, string])[] = [
+    [new RegExp(String.raw`github\.com\/miragon\/pulse\/(?:tree|blob|raw)\/${REF}`, "gi"), tag],
+    [
+      new RegExp(
+        String.raw`raw\.githubusercontent\.com\/miragon\/pulse\/(?:refs\/tags\/)?${REF}`,
+        "gi",
+      ),
+      tag,
+    ],
+    [new RegExp(String.raw`jsdelivr\.net\/gh\/${REPOSITORY}(?:@${REF})?`, "gi"), tag],
+    [new RegExp(String.raw`jsdelivr\.net\/npm\/@miragon\/pulse-[\w-]+(?:@${REF})?`, "gi"), version],
+  ]
+  const found = links.flatMap(([link, ref]) =>
+    [...text.matchAll(link)].filter((match) => match[1] !== ref).map((match) => match[0]),
+  )
+  const pinned = (words: readonly string[]) =>
+    words.some((word, i) => (word === "--branch" || word === "-b") && words[i + 1] === tag) ||
+    words.includes(`--branch=${tag}`)
+  const clones = [...text.matchAll(/git clone\b[^\n]*/g)]
+    .map((match) => match[0])
+    .filter((line) => new RegExp(`github\\.com[/:]${REPOSITORY}`, "i").test(line))
+    .filter((line) => !pinned(line.split(/\s+/)))
+  return [...found, ...clones]
+}
 
 const READ_ONLY_FLOOR = JSON.parse(
   read("apps/mcp-server/test/__golden__/tools-read-only.json"),
@@ -114,14 +165,79 @@ describe(`the plugin root ${PLUGIN_DIR}`, () => {
     // a skills/ folder beside a root SKILL.md would hide the root skill
     expect(exists(`${PLUGIN_DIR}/skills`)).toBe(false)
   })
+})
 
-  it("is listed in the repository's marketplace from this directory", () => {
-    const marketplace = JSON.parse(read(".claude-plugin/marketplace.json")) as {
-      readonly plugins: readonly { readonly name: string; readonly source: string }[]
+describe("the marketplace's entry of pulse-artifact", () => {
+  const marketplace = JSON.parse(read(".claude-plugin/marketplace.json")) as {
+    readonly plugins: readonly { readonly name: string; readonly [key: string]: unknown }[]
+  }
+  const entry = marketplace.plugins.find((plugin) => plugin.name === PLUGIN.name)
+
+  it("installs this directory from the tag of the release this plugin is", () => {
+    expect(entry?.source).toEqual({
+      source: "git-subdir",
+      url: REPOSITORY_GIT,
+      path: PLUGIN_DIR,
+      ref: TAG,
+    })
+    expect(exists(PLUGIN_DIR)).toBe(true)
+  })
+
+  it("has its tag bumped by release-please with the release, the v kept", () => {
+    // release-please's json updater replaces the version inside the value, so `v0.34.0` becomes
+    // `v0.35.0`, and the merge of the Release PR names the tag its release creates.
+    const config = JSON.parse(read("release-please-config.json")) as {
+      readonly packages: Record<string, { readonly "extra-files"?: readonly ExtraFile[] }>
     }
-    const entry = marketplace.plugins.find((plugin) => plugin.name === PLUGIN.name)
-    expect(entry?.source).toBe(`./${PLUGIN_DIR}`)
-    expect(exists(entry?.source ?? "")).toBe(true)
+    expect(config.packages["."]?.["extra-files"]).toContainEqual({
+      type: "json",
+      path: ".claude-plugin/marketplace.json",
+      jsonpath: `$.plugins[?(@.name==='${PLUGIN.name}')].source.ref`,
+    })
+  })
+
+  it("carries the plugin's description, which a listing shows before the plugin is fetched", () => {
+    expect(entry?.description).toBe(PLUGIN.description)
+  })
+
+  it("names the release the skill clones and links, and reaches this repository by no other ref", () => {
+    expect(SKILL).toContain(`--branch ${TAG} https://github.com/Miragon/pulse`)
+    expect(SKILL).toContain(`/tree/${TAG}/`)
+    const refused = SHIPPED_FILES.flatMap((file) =>
+      unpinnedRefs(read(file), PLUGIN.version).map((ref) => `${file}: ${ref}`),
+    )
+    expect(refused).toEqual([])
+    const versions = [...SKILL.matchAll(/@miragon\/pulse-[\w-]+@(\d+\.\d+\.\d+)/g)].map((m) => m[1])
+    expect(new Set(versions)).toEqual(new Set([PLUGIN.version]))
+  })
+
+  it("refuses a link or a clone at another ref, and none at the tag, so the check above can fail", () => {
+    const planted =
+      "https://github.com/Miragon/pulse/tree/main/packages/core/ui#use-in-a-page-without-a-build, " +
+      "and `git clone https://github.com/Miragon/pulse` (main)"
+    expect(unpinnedRefs(planted, "0.34.0")).toEqual([
+      "github.com/Miragon/pulse/tree/main",
+      "git clone https://github.com/Miragon/pulse` (main)",
+    ])
+    const others = [
+      "https://github.com/miragon/pulse/blob/v0.33.0/README.md",
+      "https://raw.githubusercontent.com/Miragon/pulse/refs/heads/main/x.md",
+      "https://cdn.jsdelivr.net/gh/Miragon/pulse/templates/x.js",
+      "https://cdn.jsdelivr.net/gh/Miragon/pulse@main/x.js",
+      "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@latest/dist/browser/pulse-ui.js",
+      "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui/dist/browser/pulse-ui.js",
+      "git clone --depth 1 --branch v0.33.0 https://github.com/Miragon/pulse.git",
+    ]
+    for (const line of others) expect(unpinnedRefs(line, "0.34.0"), line).toHaveLength(1)
+    const atTheTag = [
+      "https://github.com/Miragon/pulse/tree/v0.34.0/templates/claude-artifact",
+      "https://raw.githubusercontent.com/Miragon/pulse/refs/tags/v0.34.0/x.md",
+      "https://cdn.jsdelivr.net/gh/Miragon/pulse@v0.34.0/x.js",
+      "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.34.0/dist/browser/pulse-ui.js",
+      "git clone --depth 1 --branch v0.34.0 https://github.com/Miragon/pulse",
+      "git clone https://github.com/Miragon/pulse-starter and https://github.com/Miragon/pulse-starter/tree/main",
+    ].join("\n")
+    expect(unpinnedRefs(atTheTag, "0.34.0")).toEqual([])
   })
 })
 
@@ -208,5 +324,32 @@ describe(`${PLUGIN_DIR}/evals`, () => {
     })
     expect(tags.filter((tag) => tag === "trigger").length).toBeGreaterThanOrEqual(3)
     expect(tags.filter((tag) => tag === "no-trigger").length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+/** The template's page as it ships, which `pnpm build` copies into dist/index.html. */
+const PAGE = `${TEMPLATE}/src/page.html`
+/** Every host a page's markup names, by `https://`, `http://` or `//`, a stylesheet's too. */
+const hostsIn = (html: string) =>
+  [...html.matchAll(/(?:https?:)?\/\/([^/"'\s)]+)/gi)].map((match) => match[1] ?? "")
+
+describe(`the template's page as it ships, ${PAGE}`, () => {
+  it("links no font host, nor any other: it renders in the viewer's system font", () => {
+    // Geist from Google Fonts is a copy's opt-in (the template's README, "Geist"), since it sends
+    // every viewer's IP address to Google, and the copy's own bundle test lets that link through:
+    // the page the template ships links none (owner decision 2026-11-26, N10 of #693).
+    expect(hostsIn(read(PAGE))).toEqual([])
+  })
+
+  it("reads a host by a scheme or none, in a link or a stylesheet, so the check above can fail", () => {
+    const geist =
+      '<link rel="preconnect" href="https://fonts.googleapis.com" />\n' +
+      "<style>@import url(//fonts.gstatic.com/s/geist.woff2);</style>\n" +
+      '<link rel="stylesheet" href="HTTP://fonts.googleapis.com/css2?family=Geist" />'
+    expect(hostsIn(geist)).toEqual([
+      "fonts.googleapis.com",
+      "fonts.gstatic.com",
+      "fonts.googleapis.com",
+    ])
   })
 })

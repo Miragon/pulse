@@ -97,6 +97,9 @@ export const PATH_RULES = [
   // agent file names, and lint:github holds the release tag the README marks (a generic
   // extra-file of release-please); docs-refs reads both in its always-on job.
   { pattern: /^templates\/claude-artifact\/(?:CLAUDE|README)\.md$/, scopes: ["typescript"] },
+  // The Claude artifact's page as the template ships it: the MCP server's plugin test (the
+  // TypeScript job) reads that it links no font host; the template's own job builds and tests it.
+  { pattern: /^templates\/claude-artifact\/src\/page\.html$/, scopes: ["template", "typescript"] },
   { pattern: /^templates\/.*\.(?:md|png|jpe?g|gif|webp)$/, scopes: [] },
   // The token drift scan (pulse-ui) reads them; the template's own job tests them.
   { pattern: /^templates\//, scopes: ["template", "typescript"] },

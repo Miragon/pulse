@@ -15,7 +15,8 @@ coverage/
 # own after copying it out (its Dockerfile expects one).
 templates/composed-server/pnpm-lock.yaml
 # The Claude artifact template (templates/claude-artifact): its install, outside the workspace,
-# writes a lockfile of its own, and `pnpm shot` its screenshots.
+# writes a lockfile of its own, which a copy commits and this repository does not (release-please
+# bumps the template's pins), and `pnpm shot` its screenshots.
 templates/claude-artifact/pnpm-lock.yaml
 templates/claude-artifact/shots/
 miranum-ai/

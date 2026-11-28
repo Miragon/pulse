@@ -30,6 +30,11 @@ const MCP_RUNTIME_LITERALS = [
   "notifications/initialized",
   "jsonrpc",
 ]
+/** The hosts Google Fonts serves Geist from: its stylesheet's and its font files'. */
+const GOOGLE_FONTS = new Set(["fonts.googleapis.com", "fonts.gstatic.com"])
+/** Every host a page's markup names, by `https://`, `http://` or `//`. */
+const hostsOf = (html: string) =>
+  [...html.matchAll(/(?:https?:)?\/\/([^/"'\s]+)/g)].map((match) => match[1] ?? "")
 const read = (name: string) => readFileSync(join(DIST, name), "utf8")
 const kb = (name: string) => Math.round(statSync(join(DIST, name)).size / 1024)
 
@@ -57,9 +62,18 @@ describe("dist/", () => {
     expect(html.match(/<script/g)).toHaveLength(1)
   })
 
-  it("index.html loads nothing from a host the artifact's CSP refuses: fonts from Google Fonts only", () => {
-    const hosts = [...read("index.html").matchAll(/https?:\/\/([^/"'\s]+)/g)].map((m) => m[1])
-    expect(new Set(hosts)).toEqual(new Set(["fonts.googleapis.com", "fonts.gstatic.com"]))
+  it("index.html loads nothing from another host, but Google Fonts where Geist is opted in", () => {
+    // The page renders in the system font. Geist is an opt-in (README.md, "Geist"), the one host
+    // besides the page's own files that the artifact's CSP lets a stylesheet and its fonts come
+    // from; every other host is refused here, as the CSP would refuse it in claude.ai.
+    expect(hostsOf(read("index.html")).filter((host) => !GOOGLE_FONTS.has(host))).toEqual([])
+  })
+
+  it("the host check reads a host by a scheme or none, so the check above can fail", () => {
+    const html =
+      '<link href="https://cdn.jsdelivr.net/x.css"><script src="//unpkg.com/y.js"></script>' +
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist" />'
+    expect(hostsOf(html)).toEqual(["cdn.jsdelivr.net", "unpkg.com", "fonts.googleapis.com"])
   })
 
   it("app.js is one classic script: no import, no export, no import.meta", () => {

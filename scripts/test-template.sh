@@ -184,9 +184,15 @@ git_artifact add -A
   pnpm test
 )
 
-# A copy commits no lockfile: its .gitignore ignores pnpm-lock.yaml with the rest of what
-# install, build and test write, so any untracked file git lists here is one too many.
-LEFT="$(git_artifact ls-files --others --exclude-standard)"
+# pnpm-lock.yaml is the one new file a copy commits, so the page it publishes builds from the
+# packages its first install resolved: its .gitignore ignores the rest of what install, build and
+# test write, and must not ignore the lockfile.
+UNTRACKED="$(git_artifact ls-files --others --exclude-standard)"
+if ! grep -qx 'pnpm-lock.yaml' <<<"$UNTRACKED"; then
+  echo "test-template: templates/claude-artifact/.gitignore ignores pnpm-lock.yaml, which a copy commits" >&2
+  exit 1
+fi
+LEFT="$(grep -vx 'pnpm-lock.yaml' <<<"$UNTRACKED" || true)"
 if [[ -n "$LEFT" ]]; then
   echo "test-template: install, build, typecheck and test left files that templates/claude-artifact/.gitignore does not ignore, so a fresh copy shows them as changes:" >&2
   echo "$LEFT" >&2

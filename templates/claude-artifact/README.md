@@ -29,17 +29,20 @@ pnpm dev
 
 <!-- x-release-please-end -->
 
+Commit the `pnpm-lock.yaml` the first install writes, so every later install, and the page you
+publish, builds from the same packages.
+
 `pnpm dev` serves the page on the recorded answers in `fixtures/`, replayed in place of the
 artifact's connector (`fixtures/dev.tsx`), so it needs no engine and no server. `?lang=de` shows
 it in German, `?fail=engine_process_stats` fails that tool with a server's error,
 `?fail=needs_reauth` refuses every call with that code, `?fail=engine_process_stats:unavailable`
-refuses one tool, and `?delay=800` shows the loading states. The codes are the page's (the table
-under [Publish](#publish) maps the runtime's onto them).
+refuses one tool, and `?delay=800` shows the loading states. The codes are the page's, onto which
+widget-shell's README maps the runtime's (see [Publish](#publish)).
 
 | Command                       | What it does                                                                          |
 | ----------------------------- | ------------------------------------------------------------------------------------- |
 | `pnpm dev`                    | The page on the fixtures, reloading on every change                                   |
-| `pnpm record`                 | One load's three calls against a Pulse MCP server, written to `fixtures/<key>.json`   |
+| `pnpm record`                 | One load's three calls against a Pulse MCP server, kept to what the page reads        |
 | `pnpm shot`                   | Screenshots in light, dark and the OS's dark, at 1240 and 390 px, into `shots/`       |
 | `pnpm build`                  | `dist/index.html`, `dist/app.js` and `dist/pulse-ui.css`, the three files you publish |
 | `pnpm typecheck`, `pnpm test` | Types, the data rules, the page on the fixtures, the bundle and the brand gates       |
@@ -57,14 +60,23 @@ under [Publish](#publish) maps the runtime's onto them).
    pnpm record -- --process orders  # another key
    ```
 
-   The recorder (`scripts/record.ts`) runs every read once, the clock fixed at its start and the
-   days in this machine's time zone (`--time-zone Europe/Berlin` names another). Ids change with
-   every start of an engine: record the whole dashboard again rather than join two recordings,
-   then delete `fixtures/miraveloLeasing.json`. A recording holds the engine's answers as they
-   came: record against a test engine, or leave it out of what you commit.
+   The recorder (`scripts/record.ts`) refuses a page that calls a tool the server does not mark
+   read-only, then runs every read once, the clock fixed at its start and the days in this
+   machine's time zone (`--time-zone Europe/Berlin` names another), and writes
+   `fixtures/<key>.json`. Ids change with every start of an engine: record the whole dashboard
+   again rather than join two recordings, then delete `fixtures/miraveloLeasing.json`. A
+   recording keeps only the fields the page reads (`src/data/recorded-reads.ts`): an incident's
+   message, the diagram's documentation and an annotation's text replaced or dropped unless
+   `pnpm record -- --keep-text`, which the recording then says (`keepText`); the diagram always
+   without its extension elements and attributes and the bodies of its scripts, conditions, timers
+   and expressions, whom a task assigns among them.
+   Ids, names and numbers stay as they came, so record against a test engine.
+   `pnpm record -- --from fixtures/<key>.json` records the reads again from an earlier recording,
+   kept to what the page reads now.
 
 3. Edit the sections in `src/sections/`. Their reads live in `src/data/process-dashboard.ts`,
-   which the recorder runs too: record again after you change a read.
+   which the recorder runs too: record again after you change a read. A field a section starts to
+   read joins `src/data/recorded-reads.ts`, and `pnpm typecheck` names one that does not.
 4. Look at the page: `pnpm exec playwright install --with-deps chromium` once, then `pnpm shot`
    (and `pnpm shot -- --locale de`), and check every screenshot in `shots/`. Where Playwright
    cannot download its Chromium, `CHROME_PATH=/usr/bin/google-chrome pnpm shot` takes yours.
@@ -99,21 +111,30 @@ answer 30 seconds per caller. The reads are Camunda 7's (CIB seven, Operaton, Ca
    exactly the tools of `PAGE_TOOLS` in `src/page.config.ts`. The runtime refuses a call to a
    tool it does not name.
 
-The runtime's refusals reach the page as pulse-ui's page error codes, which `?fail=` takes too;
-what the viewer is told for each is widget-shell's (its README's "A Claude artifact"):
+The runtime's refusals reach the page as pulse-ui's page error codes, which `?fail=` takes too.
+Which runtime code becomes which page code, and what the viewer is told for each, is the table of
+widget-shell's README, "A Claude artifact"
+(`node_modules/@miragon/pulse-widget-shell/README.md`, the version this copy pins). A tool's own
+error and any other code reach the page as the server's error, which widget-shell's
+`describeError` words; `?fail=<tool>` fails a tool so.
 
-| The runtime's code                     | The page's code      |
-| -------------------------------------- | -------------------- |
-| `needs_reauth`                         | `needs_reauth`       |
-| `server_not_connected`                 | `not_connected`      |
-| `selection_required`                   | `selection_required` |
-| `not_in_manifest`, `blocked_by_policy` | `not_allowed`        |
-| `approval_required`                    | `approval_required`  |
-| `server_unavailable`                   | `unavailable`        |
+## Geist
 
-A page published without the `mcp` capability is `not_declared`, a page outside an artifact
-`not_connected`. A tool's own error and any other code reach the page as the server's error,
-which widget-shell's `describeError` words; `?fail=<tool>` fails a tool so.
+The page renders in the viewer's system font. For Geist, the font of the Pulse look, add Google
+Fonts' stylesheet to `src/page.html`, before `pulse-ui.css`; the artifact's content security
+policy lets no other host serve a font, and `test/bundle.test.ts` refuses any other host:
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400;600&display=swap"
+/>
+```
+
+Every viewer's browser then loads the font from Google, and Google receives the viewer's IP
+address with it: check that against your privacy policy (in the EU, the GDPR) before you publish.
 
 ## Rules the tests hold
 
@@ -123,5 +144,9 @@ product's words in both catalogs, and no class beyond `pulse-ui.css`. The theme'
 light and dark is pulse-ui's to hold, since a page cannot change it.
 `test/app.test.tsx` mounts the page as the artifact does on the fixtures and holds a load to three
 calls, `test/bundle.test.ts` `dist/app.js` to one classic script without the MCP client or the
-fixtures. How a section reads, the gate, the Refresh and the runtime's caller are widget-shell's,
-held by its own tests. `CLAUDE.md` names the rules a test cannot hold.
+fixtures and `dist/index.html` to no host but Google Fonts', and `test/fixtures.test.ts` each
+recording to what recording it again (`--from`) keeps: the fields the page reads, nothing the
+diagram's engine runs, and an incident's message or the diagram's documentation as it came only
+where the recording says `keepText`. How a section reads, the gate, the Refresh, the recorder
+and the runtime's caller are widget-shell's, held by its own tests. `CLAUDE.md` names the rules a
+test cannot hold.

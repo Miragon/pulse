@@ -3,7 +3,8 @@
 // caller, on the recording's clock and time zone. Never part of dist/app.js.
 // `?fail=engine_process_stats,engine_activity_counts` fails those tools with a server's error,
 // `?fail=needs_reauth` refuses every call with that code (`?fail=engine_process_stats:unavailable`
-// one tool; the codes are pulse-ui's page error codes, README.md maps the runtime's onto them),
+// one tool; the codes are pulse-ui's page error codes, onto which widget-shell's README maps the
+// runtime's),
 // `?delay=800` slows every answer, `?lang=de` renders German.
 import { mountClaudeArtifact } from "@miragon/pulse-widget-shell/claude-artifact"
 import { playRecording } from "@miragon/pulse-widget-shell/widgets"

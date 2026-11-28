@@ -58,13 +58,26 @@ export {
 } from "./page-reads/index.js"
 export {
   playRecording,
-  recordToolCalls,
   type PlayedCall,
   type PlayedRecording,
   type PlayRecordingOptions,
   type RecordedToolCall,
   type ToolRecording,
 } from "./recording.js"
+export {
+  pageToolRefusals,
+  recordToolCalls,
+  type LackingPath,
+  type ListedTool,
+  type RecordToolCallsOptions,
+  type ToolCallRecorder,
+} from "./record-tool-calls.js"
+export {
+  recordedRead,
+  type AnswerPath,
+  type RecordedRead,
+  type RecordedReadOf,
+} from "./recorded-answer.js"
 export { ViewStack, type ViewComponent, type ViewMap, type ViewProps } from "./views.js"
 export { ViewErrorBoundary } from "./view-error-boundary.js"
 export {

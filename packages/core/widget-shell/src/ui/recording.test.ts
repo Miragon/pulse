@@ -1,14 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { ToolResult } from "../protocol/tool-result.js"
-import type { ToolCaller } from "./browser-view-host.js"
 import { PageCallError } from "./page-reads/page-call-error.js"
 import { createPageReader } from "./page-reads/page-reader.js"
-import { playRecording, recordToolCalls, type PlayedCall, type ToolRecording } from "./recording.js"
+import { playRecording, type PlayedCall, type ToolRecording } from "./recording.js"
 
 /**
  * A page's calls recorded once and replayed: the replay finds an answer by tool, arguments and
  * connection, fails what `fail` names, refuses an undeclared tool, and says a call it has no
- * answer for; the recorder keeps each answer small.
+ * answer for (the recorder's own suite: record-tool-calls.test.ts).
  */
 
 const stats = { structuredContent: { asOf: "2026-11-25T09:00:00.000Z", running: 3 } }
@@ -154,77 +153,5 @@ describe("playRecording", () => {
       code: "not_allowed",
     })
     expect([reader.timeZone, reader.now()]).toEqual([played.timeZone, played.now()])
-  })
-})
-
-describe("recordToolCalls", () => {
-  it("records each answered call kept small: structured data, else the text parts, isError kept", async () => {
-    const live = vi.fn<ToolCaller>(async (tool) => {
-      if (tool === "structured") {
-        return { structuredContent: { a: 1 }, content: [{ type: "text", text: "summary" }] }
-      }
-      if (tool === "text") {
-        return { content: [{ type: "image" }, { type: "text", text: '{"b":2}' }, { type: "text" }] }
-      }
-      if (tool === "error") {
-        return {
-          isError: true,
-          structuredContent: { x: 1 },
-          content: [{ type: "text", text: "boom" }],
-        }
-      }
-      if (tool === "empty") return {}
-      if (tool === "null")
-        return { structuredContent: null, content: [{ type: "text", text: "t" }] }
-      throw new PageCallError("not_allowed", "no")
-    })
-    const { callTool, calls } = recordToolCalls(live)
-    const full = await callTool("structured", { q: 1 })
-    expect(full.content).toEqual([{ type: "text", text: "summary" }])
-    await callTool("text", {}, { connector: "Acme CRM", refresh: true })
-    await callTool("error", {})
-    await callTool("empty", {})
-    await callTool("null", {})
-    await expect(callTool("refused", {})).rejects.toBeInstanceOf(PageCallError)
-    expect(live).toHaveBeenCalledWith("text", {}, { connector: "Acme CRM", refresh: true })
-    expect(calls).toEqual([
-      { tool: "structured", arguments: { q: 1 }, result: { structuredContent: { a: 1 } } },
-      {
-        tool: "text",
-        arguments: {},
-        result: {
-          content: [
-            { type: "text", text: '{"b":2}' },
-            { type: "text", text: "" },
-          ],
-        },
-        connector: "Acme CRM",
-      },
-      {
-        tool: "error",
-        arguments: {},
-        result: { isError: true, content: [{ type: "text", text: "boom" }] },
-      },
-      { tool: "empty", arguments: {}, result: { content: [] } },
-      { tool: "null", arguments: {}, result: { content: [{ type: "text", text: "t" }] } },
-    ])
-  })
-
-  it("writes what playRecording reads", async () => {
-    const live: ToolCaller = async (tool, args) => ({ structuredContent: { tool, args } })
-    const recorder = recordToolCalls(live)
-    const reader = createPageReader(recorder.callTool)
-    const first = await reader.call("engine_process_stats", { b: 1, a: 2 })
-    await reader.call("crm_accounts", {}, { connector: "Acme CRM" })
-    const replay = playRecording(
-      { asOf: "2026-11-25T09:00:00.000Z", timeZone: "UTC", calls: recorder.calls },
-      { connector: "Pulse" },
-    )
-    const again = createPageReader(replay.callTool)
-    expect(await again.call("engine_process_stats", { a: 2, b: 1 })).toEqual(first)
-    expect(await again.call("crm_accounts", {}, { connector: "Acme CRM" })).toEqual({
-      tool: "crm_accounts",
-      args: {},
-    })
   })
 })
