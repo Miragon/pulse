@@ -46,7 +46,7 @@ Works of others in the view bundle:
   get-nonce 1.0.1                                MIT                      the view bundle
   ids 3.0.2                                      MIT                      the view bundle
   inherits-browser 0.1.0                         ISC                      the view bundle
-  lucide-react 1.78.0                            ISC                      the view bundle
+  lucide-react 1.79.0                            ISC                      the view bundle
   min-dash 5.1.0                                 MIT                      the view bundle
   min-dom 5.3.0                                  MIT                      the view bundle
   moddle 8.2.1                                   MIT                      the view bundle
@@ -1922,7 +1922,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 
 ================================================================================
-lucide-react 1.78.0
+lucide-react 1.79.0
 Licence: ISC
 In: the view bundle
 Source: https://github.com/lucide-icons/lucide

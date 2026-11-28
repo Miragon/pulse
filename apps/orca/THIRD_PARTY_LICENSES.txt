@@ -44,7 +44,7 @@ Works of others in the bundles:
   esbuild 0.28.2                                 MIT                      the webview
   ids 3.0.2                                      MIT                      the webview
   inherits-browser 0.1.0                         ISC                      the webview
-  lucide-react 1.78.0                            ISC                      the webview
+  lucide-react 1.79.0                            ISC                      the webview
   min-dash 5.1.0                                 MIT                      the worker and the webview
   min-dom 5.3.0                                  MIT                      the webview
   moddle 8.2.1                                   MIT                      the worker and the webview
@@ -1441,7 +1441,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 
 ================================================================================
-lucide-react 1.78.0
+lucide-react 1.79.0
 Licence: ISC
 In: the webview
 Source: https://github.com/lucide-icons/lucide

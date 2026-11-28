@@ -475,7 +475,7 @@ for every workspace package.
      never a "Live" pill.
    - **Icons are Lucide**, never glyphs or emoji, through `Icon` (sizes: the density section),
      the stroke through lucide's `strokeWidth`, never CSS. Every package importing `lucide-react`
-     and every host bundle pin the SAME exact version (today `1.78.0`), or pnpm resolves a second
+     and every host bundle pin the SAME exact version (today `1.79.0`), or pnpm resolves a second
      pulse-ui and widget-shell and splits the React contexts.
    - **Actions and hand-offs.** A view's actions are ONE group in `WidgetHeader` `actions`,
      toolbar buttons (`variant="toolbar"`, `size="sm"`) ordered: deterministic steps, the engine's

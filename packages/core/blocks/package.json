@@ -67,7 +67,7 @@
     "@types/react": "19.3.3",
     "@types/react-dom": "19.3.0",
     "happy-dom": "21.0.4",
-    "lucide-react": "1.78.0",
+    "lucide-react": "1.79.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "typescript": "6.0.3",
