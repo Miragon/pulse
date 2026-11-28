@@ -104,6 +104,24 @@ describe("the REST client of a cluster", () => {
     ])
   })
 
+  test("reads the versions of a process with a version tag, the tag a filter of the search", async () => {
+    const { camunda, client } = clientWith([
+      {
+        route: "POST /process-definitions/search",
+        answer: page([definition("2", "order", 2, { versionTag: "v2" })]),
+      },
+    ])
+
+    expect((await client.versionsTagged("order", "v2")).map((row) => row.key)).toEqual(["2"])
+    expect(camunda.bodiesOf("POST /process-definitions/search")).toEqual([
+      {
+        filter: { processDefinitionId: "order", versionTag: "v2" },
+        sort: [{ field: "version", order: "DESC" }],
+        page: { limit: 500 },
+      },
+    ])
+  })
+
   test("reads one definition by its key, and none that is missing", async () => {
     const { camunda, client } = clientWith([
       { route: "GET /process-definitions/1", answer: definition("1", "order", 3) },

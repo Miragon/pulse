@@ -10,12 +10,20 @@ import { DefinitionRefs } from "../mapping/definition-refs.js"
 import { Tenants } from "../mapping/tenants.js"
 import type { CamundaClient, DefinitionView } from "../rest/index.js"
 import type { Diagrams } from "./diagrams.js"
+import { TaggedVersions } from "./tagged-versions.js"
 
 const FEEL = "="
 const LATEST = "latest"
+const VERSION_TAG = "versionTag"
 
 interface ProcessCall extends CallActivityText {
   readonly processId: string
+}
+
+interface CallTargets {
+  readonly latest: readonly DefinitionView[]
+  readonly tagged: TaggedVersions
+  readonly tenantId: TenantId | null
 }
 
 export class CalledProcessReader {
@@ -34,8 +42,12 @@ export class CalledProcessReader {
         call.processId !== undefined && !call.processId.startsWith(FEEL),
     )
     const latest = await this.client.latestOf(CalledProcessReader.boundToTheLatest(calls))
-    const inTenant = latest.filter((definition) => Tenants.same(definition.tenantId, tenantId))
-    return Promise.all(calls.map((call) => this.calledBy(call, inTenant, tenantId)))
+    const targets: CallTargets = {
+      latest: latest.filter((definition) => Tenants.same(definition.tenantId, tenantId)),
+      tagged: new TaggedVersions(this.client),
+      tenantId,
+    }
+    return Promise.all(calls.map((call) => this.calledBy(call, targets)))
   }
 
   private static boundToTheLatest(calls: readonly ProcessCall[]): readonly string[] {
@@ -43,37 +55,33 @@ export class CalledProcessReader {
     return [...new Set(latest.map((call) => call.processId))]
   }
 
-  private async calledBy(
-    call: ProcessCall,
-    latest: readonly DefinitionView[],
-    tenantId: TenantId | null,
-  ): Promise<CalledProcess> {
-    const definition = await this.definitionStartedBy(call, latest, tenantId)
+  private async calledBy(call: ProcessCall, targets: CallTargets): Promise<CalledProcess> {
+    const definition = await CalledProcessReader.definitionStartedBy(call, targets)
     return {
       elementId: ElementId(call.elementId),
       bpmnProcessId: BpmnProcessId(call.processId),
-      tenantId,
+      tenantId: targets.tenantId,
       ...(definition === undefined ? {} : { definition: DefinitionRefs.of(definition) }),
     }
   }
 
-  private async definitionStartedBy(
+  private static async definitionStartedBy(
     call: ProcessCall,
-    latest: readonly DefinitionView[],
-    tenantId: TenantId | null,
+    { latest, tagged, tenantId }: CallTargets,
   ): Promise<DefinitionView | undefined> {
     if (call.binding === LATEST) {
       return latest
         .filter((definition) => definition.bpmnProcessId === call.processId)
         .toSorted((left, right) => right.version - left.version)[0]
     }
-    if (call.binding !== "versionTag" || call.versionTag === undefined) {
+    const { versionTag } = call
+    if (call.binding !== VERSION_TAG || versionTag === undefined) {
       return undefined
     }
-    const versions = await this.client.versionsOf(call.processId)
+    const versions = await tagged.of(call.processId, versionTag)
     return versions.find(
       (definition) =>
-        definition.versionTag === call.versionTag && Tenants.same(definition.tenantId, tenantId),
+        definition.versionTag === versionTag && Tenants.same(definition.tenantId, tenantId),
     )
   }
 }

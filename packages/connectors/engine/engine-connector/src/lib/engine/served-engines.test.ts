@@ -98,12 +98,12 @@ describe("engineServing: the call-time net", () => {
     [
       "a board names it",
       ["orders"],
-      `${SENT} This server reads a Camunda 8 engine on boards only: engine_list_engines lists the boards that name it, and engine_open_cockpit with view board shows one.`,
+      `${SENT} On this server engine_get_screen and engine_get_board read a Camunda 8 engine, engine_open_cockpit shows it (view board or landing); engine_list_engines lists the boards that name it.`,
     ],
     [
       "no board names it",
       [],
-      `${SENT} This server reads a Camunda 8 engine on boards only, and no board names "c8" yet; the server's operator adds one.`,
+      `${SENT} On this server engine_get_screen and engine_get_board read a Camunda 8 engine, engine_open_cockpit shows it (view board or landing); no board names "c8" yet, the server's operator adds one.`,
     ],
   ])("refuses an engine of a dialect the mark does not serve when %s", (_, boards, text) => {
     const { registry, runtime } = mixed({ boards })

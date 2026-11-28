@@ -84,6 +84,17 @@ export class RestCamundaClient implements CamundaClient {
     )
   }
 
+  versionsTagged(bpmnProcessId: string, versionTag: string): Promise<readonly DefinitionView[]> {
+    return this.search.allAfter(
+      "/process-definitions/search",
+      {
+        filter: { processDefinitionId: bpmnProcessId, versionTag },
+        sort: [{ field: "version", order: "DESC" }],
+      },
+      (json) => CamundaViews.definition(json),
+    )
+  }
+
   definition(key: string): Promise<DefinitionView | undefined> {
     return this.search.unlessMissing(async () =>
       CamundaViews.definition(

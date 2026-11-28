@@ -1,13 +1,12 @@
 # Camunda 8
 
 The server reads Camunda 8 clusters from 8.9 on, through the Orchestration Cluster REST API
-(`/v2`), on [boards](boards.md): a board shows a cluster's counts, lists and diagram beside the
-numbers of your Camunda 7, CIB seven and Operaton engines, in the chat and in the [web
-app](../web/index.md). It reads and never writes. In the chat the engine list, the board and its
-diagram read a cluster, the model reads its screens and boards as JSON, and every other tool, feed
-and view of the cockpit reads the Camunda 7 REST API. The web app reads a cluster whole on its screens (processes, instances, incidents), its
-incidents and jobs views Camunda 7's alone, as the editors do ([in the
-editors](../vscode/camunda8.md)).
+(`/v2`), and never writes. A [board](boards.md) shows a cluster's counts, lists and diagram beside
+the numbers of your Camunda 7, CIB seven and Operaton engines, in the chat and in the [web
+app](../web/index.md); in the chat the model reads its screens and boards as JSON too, and every
+other tool, feed and view of the cockpit reads the Camunda 7 REST API. The web app reads a cluster
+whole on its screens (processes, instances, incidents), its incidents and jobs views Camunda 7's
+alone, as the editors do ([in the editors](../vscode/camunda8.md)).
 
 ## What a server offers
 
@@ -28,18 +27,19 @@ startup what it offers: a tool registers only where a configured engine serves i
 where that engine's profile is not `readOnly`), and its `engine` parameter offers only those
 engines. Beside Camunda 7 engines every tool stays, the Camunda 7 tools offer those engines alone
 and the cockpit every engine; a server of clusters alone lists those above in every toolset, with
-no write and no prompt. The instructions tell the model which engines show on boards only.
+no write and no prompt. The instructions, the refusal below, the startup warning and this table
+name what reads a cluster, held to the marks by `packages/connectors/engine/engine-connector/src/camunda8-scope.test.ts`.
 
 A call without `engine` goes to the default engine. Where that is a cluster, a Camunda 7 tool
 refuses it with `ENGINE_DIALECT_NOT_SERVED` before it sends anything, never on another engine, and
-says that boards show the cluster; the server warns at startup about such a default. In the cockpit
-a cluster has no Overview, Incidents or Jobs tab but one state: the boards that show it, or that
-none does yet, and with `cockpitUrl` a link to Operate's start page, never to an instance in it. In
-the chat a board's tiles of a cluster open nothing, the cross-engine view names the clusters it
-leaves out, and a view of one engine refuses a cluster (`ENGINE_DIALECT_NOT_SERVED`). In the web app
+says what reads the cluster instead and which boards name it; the server warns at startup about
+such a default. In the cockpit a cluster has no Overview, Incidents or Jobs tab but one state: the
+boards that show it, or that none does yet, and with `cockpitUrl` a link to Operate's start page,
+never to an instance in it. In the chat a board's tiles of a cluster open nothing, the cross-engine
+view names the clusters it leaves out, and a view of one engine refuses a cluster. In the web app
 the start page lists it with its figures and no verdict (the server decides none for a cluster),
-`/app/engines/<cluster>` shows its processes (incidents at their instances), a board's tiles open its
-screens, and its incidents and jobs pages refuse it.
+`/app/engines/<cluster>` shows its processes (incidents at their instances), a board's tiles open
+its screens, and its incidents and jobs pages refuse it.
 
 ## A profile
 

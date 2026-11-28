@@ -3,72 +3,28 @@
   "probes": [
     {
       "arguments": {
-        "board": "cluster",
-        "view": "board"
+        "engine": "c8",
+        "processInstanceId": "9007199254740993",
+        "screen": "instance"
       },
-      "board": {
-        "asOf": "2026-11-15T09:00:00.000Z",
-        "engines": [
-          {
-            "name": "c8",
-            "product": "Camunda 8",
-            "state": "ready",
-            "totals": {
-              "running": 0,
-              "withIncident": 0
-            },
-            "version": "8.9.28"
-          }
-        ],
-        "notes": [],
-        "rows": [
-          [
-            {
-              "groups": [
-                {
-                  "engine": "c8",
-                  "instances": [],
-                  "total": {
-                    "count": 0
-                  }
-                }
-              ],
-              "kind": "instanceList",
-              "widget": {
-                "columns": [
-                  "businessKey",
-                  "process",
-                  "state",
-                  "startedAt"
-                ],
-                "engines": [
-                  "c8"
-                ],
-                "filter": {
-                  "process": "pulse-order",
-                  "state": "running"
-                },
-                "title": "Orders",
-                "widget": "instanceList"
-              }
-            }
-          ]
-        ],
-        "title": "Cluster"
-      },
-      "facts": [
-        "{\"view\":\"board\",\"board\":\"cluster\",\"title\":\"Cluster\",\"asOf\":\"2026-11-15T09:00:00.000Z\",\"engines\":[{\"name\":\"c8\",\"state\":\"ready\",\"product\":\"Camunda 8\",\"running\":0,\"withIncident\":0}],\"tiles\":[{\"kind\":\"instanceList\",\"title\":\"Orders\",\"process\":\"pulse-order\",\"shown\":0,\"groups\":[{\"engine\":\"c8\",\"total\":0}]}]}"
-      ],
       "failure": null,
       "matches": "getInstanceDetail 9007199254740993",
+      "result": {
+        "content": [
+          {
+            "textLines": [
+              "[UNKNOWN_INSTANCE] Instance \"9007199254740993\" is not on engine \"c8\", neither running nor ended."
+            ],
+            "type": "text"
+          }
+        ],
+        "isError": true
+      },
       "sent": [
         "GET /v2/topology",
-        "POST /v2/process-definitions/search",
-        "POST /v2/process-definitions/statistics/process-instances",
-        "POST /v2/process-instances/search",
-        "POST /v2/process-instances/search"
+        "GET /v2/process-instances/9007199254740993"
       ],
-      "tool": "engine_open_cockpit"
+      "tool": "engine_get_screen"
     }
   ],
   "profile": {

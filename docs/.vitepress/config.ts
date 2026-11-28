@@ -13,7 +13,7 @@ export default miragonDocs({
   title: "Miragon",
   siteTitle: "Pulse",
   description:
-    "Pulse: operate and analyse your Camunda 7, CIB seven and Operaton engines from your AI chat, the web app, your terminal and your editor, and read your Camunda 8 clusters in your editor, the web app and on boards.",
+    "Pulse: operate and analyse your Camunda 7, CIB seven and Operaton engines from your AI chat, the web app, your terminal and your editor, and read your Camunda 8 clusters in your editor, the web app and the chat.",
   productPage: "https://miragon.ai/tools/pulse/",
   footerMessage: "Released under the MIT License.",
 

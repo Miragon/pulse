@@ -27,7 +27,7 @@ import {
  * on the page, no Try again. The main deployment reads test:host's board files over the stub
  * engine and the broken one (`fixtures/boards`); the short one has one engine and no board; the
  * camunda8 one reads a board over the stub engine and a Camunda 8 cluster
- * (`fixtures/camunda8-boards`), which the server reads on boards only.
+ * (`fixtures/camunda8-boards`), which the chat's cockpit shows on boards only.
  */
 
 const TITLE = "Invoice operations"

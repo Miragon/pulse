@@ -122,7 +122,7 @@ lists what still differs. The decisions are in `apps/vscode/docs/adr/ui-foundati
 | System                | Purpose                                                                  | Default endpoint                     |
 | --------------------- | ------------------------------------------------------------------------ | ------------------------------------ |
 | Camunda 7 / CIB seven | The BPM engine itself: process definitions, instances, tasks, incidents. | `http://localhost:8410/engine-rest`  |
-| Camunda 8             | A cluster's REST API and its token endpoint, read for boards.            | the profile's `url`, ending in `/v2` |
+| Camunda 8             | A cluster's REST API and its token endpoint, for boards and screens.     | the profile's `url`, ending in `/v2` |
 
 ## Data flow
 

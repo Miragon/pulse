@@ -7,7 +7,7 @@ import { type FakeC8Cluster, startC8Cluster } from "./engine-goldens/fake-c8-clu
 import { GOLDEN_DIR, isModelVisible } from "./golden.js"
 
 /**
- * The server serves a Camunda 8 engine on boards only, and offers it nowhere else (each tool's,
+ * The server serves a Camunda 8 engine where a mark names its dialect, nowhere else (each tool's,
  * feed's and route's mark, invariants 1 and 2): the real boot over a camunda8 profile of the client
  * credentials grant, the full surface (admin, deployments allowed), a loopback cluster and token
  * endpoint that count every request. Every tool and feed of the admin golden is classified here, so
@@ -66,9 +66,9 @@ const SHOP = "shop"
 
 const REFUSAL =
   '[ENGINE_DIALECT_NOT_SERVED] Engine "c8" is a Camunda 8 engine, and this tool or view reads ' +
-  "the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. This server " +
-  'reads a Camunda 8 engine on boards only, and no board names "c8" yet; the server\'s ' +
-  "operator adds one."
+  "the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. On this " +
+  "server engine_get_screen and engine_get_board read a Camunda 8 engine, engine_open_cockpit " +
+  'shows it (view board or landing); no board names "c8" yet, the server\'s operator adds one.'
 
 interface JsonSchema {
   type?: string

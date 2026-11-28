@@ -4,19 +4,22 @@
 [![CI](https://github.com/Miragon/pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/Miragon/pulse/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/Miragon/pulse)](LICENSE)
 
-The neutral core of Pulse's engine family: the contract every engine dialect implements, the
-shared language of the dialects Pulse speaks. Camunda 7 family engines (Operaton,
-CIB seven, Camunda 7) and Camunda 8 hold the same runtime data, named, numbered and paged
-differently. This package fixes the questions Pulse asks a process engine and the words of the
-answers, in Pulse's own vocabulary: process, version, instance and element ids, read models,
-queries, bulk operations, migration plans and one error. Each dialect answers them with an
-implementation of its own, and the conformance kit proves that it means the same thing. Below
-1.0: pin the exact version and update all `@miragon/pulse-*` packages together.
+The neutral core of Pulse's engine family: the contract of the engine dialects, the shared
+language of the dialects Pulse speaks. Camunda 7 family engines (Operaton, CIB seven, Camunda 7)
+and Camunda 8 hold the same runtime data, named, numbered and paged differently. This package
+fixes the questions Pulse asks a process engine and the words of the answers, in Pulse's own
+vocabulary: process, version, instance and element ids, read models, queries, bulk operations,
+migration plans and one error. Both dialects answer the reads with an implementation of their own,
+and the conformance kit proves that they mean the same thing; the writes, the bulk operations and
+the migration plans, answered by Camunda 7 alone, and the tenants, whose laws run on Camunda 7
+alone while c8-core maps a cluster's tenants, stand here ahead of that rule, as
+[the admission rule](#the-admission-rule) lists. Below 1.0: pin the exact version and update all
+`@miragon/pulse-*` packages together.
 
 The engine family is the neutral layer above the dialects: its module, the MCP server's engine
 module, serves every dialect, and this package is its core. A dialect (Camunda 7 REST, and
-Camunda 8's REST API, which the editor hosts read) is a family of its own whose core or adapter
-implements this contract.
+Camunda 8's REST API, read-only) is a family of its own whose core or adapter implements this
+contract, Camunda 8's its reads.
 
 ## Install
 
@@ -66,7 +69,8 @@ exactly their laws (the package's `test/`).
 
 - **`.`:** the ports `ProcessRuntime` (17 methods, from `describeEngine` to `checkMigration?`,
   three of them optional) and `ProcessCommands` (6 writes: retry an incident, set a variable, move a
-  token, cancel and migrate instances in bulk, stop a bulk operation); the branded ids
+  token, cancel and migrate instances in bulk, stop a bulk operation; Camunda 7's alone, as the
+  admission rule's table lists); the branded ids
   (`InstanceId("…")`, `DefinitionId`, `BpmnProcessId`, `TenantId`, `ElementId` and more); the
   read models, every one that names a version or a process key with its tenant (`tenantId`, null
   for none, never `""` or a default id: a process is a key in one tenant, owner decision of
@@ -180,56 +184,58 @@ triage, verdicts and which recovery to offer.
 
 ## The admission rule
 
-A port, read model or rule enters `@miragon/pulse-engine-core` when two dialects answer it with the
-same meaning, proven by the conformance laws on both. It stays narrow: a further rule (the verdict,
-the message signature, durations) moves here only when a second dialect needs it in the CLI or the
-MCP server. It is imported where a dialect is implemented (the `src` of a dialect's core, its main
-entry alone and never from the core's `./testing`: c7-core applies `RootCauses` and its `./runtime`
-answers `ProcessRuntime`, c8-core's `C8Runtime` answers it too; the C7 and C8 adapters of the
-editor hosts), where the runtime view of
-Pulse for VS Code and Pulse for Orca reads the answers, which keeps no contract of its own, and in
-the board builder of `@miragon/pulse-board`, its main entry alone. The engine connector, the MCP
-server's module, runs it in its server layers, its main entry alone, admitted for the server's
-boards (the owner's decision of 2026-11-16, the case #488 names: a second interface needs the same
-use case with the same rules). The Pulse CLI reaches it through c7-core; importing it directly waits
-until the CLI serves a second dialect, an admission decision in review.
+A port, read model or rule stands in `@miragon/pulse-engine-core` when both dialects answer it with
+the same meaning, proven by a law of the conformance kit that both run. The read laws run on
+Camunda 7 (Operaton and CIB seven over the C7 adapter's and the MCP server's wires) and on
+Camunda 8 (a local cluster over the C8 adapter's and the MCP server's wires); the command and
+tenant laws run on Camunda 7 alone. What stands here ahead of that, the table lists, each with why
+and the laws that admit it once both dialects run them; a further entry ahead of the rule is the
+owner's decision in review, as a row of the table. A rule only one dialect's surfaces apply (the
+verdict, the message signature, durations) stays in that dialect's core until the other answers it
+too. `FailingRuntime`, the contract's own runtime that refuses every call with one error, answers
+no engine and stands outside the rule, as the `./testing` entry does.
+`scripts/engine-core-admission.test.mjs` holds every export of the main entry and each member of
+`ProcessRuntime` to one of these, by the topics the kit names its laws by (`definitions:`,
+`incidents:` …): a proof by laws one dialect runs alone fails, and so does a row whose laws both
+run.
 
-The open root incidents of a process and a version (`incidents`) entered by the rule on
-2026-11-21: both dialects answer them with the same meaning, and their laws pass on the fake, on
-Operaton and CIB seven over the C7 adapter's and the MCP server's wires, and on a local Camunda 8
-cluster over the C8 adapter's and the MCP server's wires.
+| Admitted ahead                                                                                                                              | Answered by                                                            | Why it stands here                                                                                                                                                                                                                                                        | Admitted once both run                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `ProcessCommands`, `VariableChange`, `TokenMove`, `CancelOptions`, `MoveReasons`                                                            | Camunda 7; Camunda 8 is read-only in Pulse                             | The writes of Pulse for VS Code and Pulse for Orca: their runtime view writes through one port for every dialect, and `MoveReasons` is its rule of a token move's reason                                                                                                  | `commands:`                                                            |
+| `BulkOperation`, `BulkFailure`, `BulkOperationKind`, `BulkOperationId`, `ProcessRuntime.getBulkOperation`, `ProcessRuntime.getBulkFailures` | Camunda 7; Camunda 8 answers no operation and no failure               | The progress of the bulk writes above, which the runtime view reads through the read port                                                                                                                                                                                 | `bulk:`                                                                |
+| `MigrationPlan`, `MigrationCheck`, `MigrationProblem`, `ElementMapping`, `ProcessRuntime.proposeMigration`, `ProcessRuntime.checkMigration` | Camunda 7; Camunda 8 leaves the optional pair out                      | The plan the editors check before a migration; the pair entered as optional before the first release, on the evidence of the Camunda 8 adapter's branch (#543), so that adapter landed without a break                                                                    | `migration:`, on a runtime that declares the pair                      |
+| `TenantId`, `ProcessTenants`, `TenantReads`, `TenantVersions`                                                                               | Camunda 7; c8-core maps a cluster's tenants over a fake transport only | The owner's decision of 2026-11-26 that the tenant is part of a process's identity: a version, a process and a call name their tenant (`tenantId`), Camunda 8's default tenant (`<default>`) read as none, and `ProcessTenants` picks the process a key names without one | `tenants:`, on a cluster with tenants in the C8 adapter's suite (#531) |
 
-Three admissions came ahead of the rule, by the owner's decision:
+Entered by the rule: the open root incidents of a process and a version (`incidents`) on
+2026-11-21, their laws passing on the fake, on Operaton and CIB seven and on a local Camunda 8
+cluster over the wires above. Three answers Camunda 8 needs entered ahead before the first release
+(a count that may be a lower bound, the failure `unsupported` and the declared variable
+conditions) and stand by the rule since the read laws passed on Camunda 8 (2026-11-17 and
+2026-11-21). `RootCauses` moved here from c7-core, which applies it as c8-core does; the law
+"incidents: details name their root cause in one line and point at a line of their text" holds
+both to the bounds of its reading, and its `lineOf` keeps c7-core's (no line without a
+`Caused by:` line, by the owner's decision). A breaking change for an implementation outside this
+repository came with the tenants: `DefinitionRef`, `CalledProcess` and `CalledInstance` require
+`tenantId`, `listVersions` and `getCalledProcesses` take the tenant.
 
-- The four answers Camunda 8 needs (a count that may be a lower bound, the failure `unsupported`,
-  the declared variable conditions and migration planning as an optional pair) entered before
-  the first release, on the evidence of the Camunda 8 adapter's branch (#543), so that adapter
-  lands without a break. Here the laws run them on the fake and the C7 adapter, which count
-  exactly, answer every condition and plan migrations; the saboteurs prove the other side.
-- `RootCauses` moved here from c7-core, since that branch copies its `of` character for
-  character. Its `lineOf` keeps c7-core's reading, no line without a `Caused by:` line (by the
-  owner's decision), where the copy points at the first non-blank line; the law "incidents: details
-  name their root cause in one line and point at a line of their text" holds every adapter to
-  the bounds both readings keep.
-- The tenant of a version, a process and a call (`tenantId`, `TenantId`) and `ProcessTenants`,
-  by the decision of 2026-11-26 that the tenant is part of a process's identity: Camunda 7 names a
-  version's tenant id or none, Camunda 8 its tenant id, its default tenant (`<default>`) read as
-  none, and a call resolves in its caller's tenant (Camunda 7 unless the call activity names its
-  own, `calledElementTenantId`). The tenant laws pass on the fake and on Operaton and CIB seven
-  over the C7 adapter's and the MCP server's wires; c8-core maps the tenants over a fake transport
-  only. The admission stays open until the tenant laws pass on a Camunda 8 cluster that runs with
-  tenants in the C8 adapter's suite (#531). A breaking change for an implementation outside this
-  repository: `DefinitionRef`, `CalledProcess` and `CalledInstance` require `tenantId`,
-  `listVersions` and `getCalledProcesses` take the tenant.
-
-The repository holds that to its import graph (`engine-core-consumers` in its
+It is imported where a dialect is implemented (the `src` of a dialect's core, its main entry alone
+and never from the core's `./testing`: c7-core applies `RootCauses` and its `./runtime` answers
+`ProcessRuntime`, c8-core's `C8Runtime` answers it too; the C7 and C8 adapters of the editor
+hosts), where the runtime view of Pulse for VS Code and Pulse for Orca reads the answers, which
+keeps no contract of its own, and in the board builder of `@miragon/pulse-board`, its main entry
+alone. The engine connector, the MCP server's module, runs it in its server layers, its main entry
+alone, admitted for the server's boards (the owner's decision of 2026-11-16, the case #488 names:
+a second interface needs the same use case with the same rules). The Pulse CLI reaches it through
+c7-core; importing it directly waits until the CLI serves a second dialect, an admission decision
+in review. The repository holds that to its import graph (`engine-core-consumers` in its
 dependency-cruiser config) and the package to its own modules (`family-core-is-a-leaf`).
 
 ## Stability
 
 Below 1.0 without a stability promise: the laws and the fake follow Pulse for VS Code, and a new
-question its views need lands here first, as a port, a read model, a law and a saboteur. A change
-that breaks an implementation says so in the changelog.
+question its views need lands as a port, a read model, a law and a saboteur by the admission rule,
+ahead of it only as a row of its table. A change that breaks an implementation says so in the
+changelog.
 
 ## Help and feedback
 
@@ -246,10 +252,11 @@ Two rules hold this package on top of the repository's.
 The three rules, `RootCauses`, `ValueKinds` and `MoveReasons`, are mutation-tested every night in
 the repository (StrykerJS over `src/model/root-causes.ts`, `value-kinds.ts` and `move-reasons.ts`
 against the package's own tests; owner decision 2026-11-09). They are the contract's rules a
-dialect applies: `RootCauses` in all three interfaces of Pulse (the CLI and the MCP server reach it
-through c7-core), `ValueKinds` and `MoveReasons` today in the editor hosts alone, the runtime
-view's core and the C7 adapter. A surviving mutant is a wrong rule wherever one runs. Nothing else of the package
-is mutated. Locally: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
+dialect applies: `RootCauses` in all three interfaces of Pulse (the CLI reaches it through c7-core,
+the MCP server through c7-core and c8-core), `ValueKinds` in c7-core and c8-core (a variable's
+kind) and the runtime view's core, `MoveReasons` in the editor hosts alone, the runtime view's
+core and the C7 adapter. A surviving mutant is a wrong rule wherever one runs. Nothing else of the
+package is mutated. Locally: `pnpm --fail-if-no-match --filter @miragon/pulse-engine-core exec stryker run`.
 
 ### Style
 

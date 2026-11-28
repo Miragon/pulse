@@ -166,8 +166,8 @@ describe("an engine of another dialect in the registry", () => {
 
   const SENT =
     'Engine "c8" is a Camunda 8 engine, and this tool or view reads the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent.'
-  const ON_BOARDS = `${SENT} This server reads a Camunda 8 engine on boards only: engine_list_engines lists the boards that name it, and engine_open_cockpit with view board shows one.`
-  const ON_NO_BOARD = `${SENT} This server reads a Camunda 8 engine on boards only, and no board names "c8" yet; the server's operator adds one.`
+  const ON_BOARDS = `${SENT} On this server engine_get_screen and engine_get_board read a Camunda 8 engine, engine_open_cockpit shows it (view board or landing); engine_list_engines lists the boards that name it.`
+  const ON_NO_BOARD = `${SENT} On this server engine_get_screen and engine_get_board read a Camunda 8 engine, engine_open_cockpit shows it (view board or landing); no board names "c8" yet, the server's operator adds one.`
 
   it("builds its runtime factory at boot, with the boards that name it, and no client", () => {
     const { registry, contractRuntime } = contractRegistry({ boards: ["orders"] })

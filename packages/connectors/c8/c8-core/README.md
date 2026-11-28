@@ -58,9 +58,11 @@ reads and gives one failure the same kind.
   offset up to 10,000 rows, and a search over keys asks for at most 1,000 at a time, as does the
   search for the latest versions of the processes a diagram's calls name (`latestOf`, by their
   ids, never every process of the cluster), which sends nothing for no id, since a cluster reads
-  an empty `$in` as no condition. A lookup by
-  key reads a 404 with the title `NOT_FOUND` as none, and so a key the transport refuses as a path
-  value before sending it (`.`, `..`, an empty segment); any other failure fails the read.
+  an empty `$in` as no condition. A call bound to a version tag asks for its process's versions
+  with that tag, the tag a filter of the search (`versionsTagged`, never every version of the
+  process), once per process and tag of the calling version's diagram. A lookup by key reads a 404
+  with the title `NOT_FOUND` as none, and so a key the transport refuses as a path value before
+  sending it (`.`, `..`, an empty segment); any other failure fails the read.
 - **The readers (`src/reading`) and mappings (`src/mapping`).** One reader per question of the
   contract (definitions and versions, diagrams, element statistics, called processes, instances and
   their counts, an instance's detail and wait states, incidents, variable names) and the version

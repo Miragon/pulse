@@ -22,6 +22,7 @@ export interface CamundaClient {
   latestDefinitions(): Promise<readonly DefinitionView[]>
   latestOf(bpmnProcessIds: readonly string[]): Promise<readonly DefinitionView[]>
   versionsOf(bpmnProcessId: string): Promise<readonly DefinitionView[]>
+  versionsTagged(bpmnProcessId: string, versionTag: string): Promise<readonly DefinitionView[]>
   definition(key: string): Promise<DefinitionView | undefined>
   processStatistics(): Promise<readonly ProcessStatisticsView[]>
   versionStatistics(bpmnProcessId: string): Promise<readonly VersionStatisticsView[]>

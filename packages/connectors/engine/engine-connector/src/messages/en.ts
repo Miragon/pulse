@@ -69,8 +69,8 @@ export const en: MessageCatalog = {
   // After an engine switch: the process the view showed is not on the new engine.
   "cockpit.processGone": ({ process, engineId }) =>
     `${String(process)} isn't deployed on ${String(engineId)}.`,
-  // An engine of another dialect, which the server reads on boards only: its landing row, the one
-  // state of its routes (BoardsOnlyEngineGate) and the cross-engine view's line.
+  // An engine of another dialect, which the chat's cockpit shows on boards only: its landing row,
+  // the one state of its routes (BoardsOnlyEngineGate) and the cross-engine view's line.
   "cockpit.landing.status.onBoards": ({ product }) => `${String(product)}, on boards`,
   "cockpit.landing.status.onNoBoard": ({ product }) => `${String(product)}, on no board yet`,
   "cockpit.boardsOnly.title": ({ engine, product }) =>

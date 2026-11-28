@@ -72,7 +72,7 @@ const EN: ErrorLabels = {
   // Neutral: the words name no dialect, the server's text under Details does.
   notServed: {
     title: () => "This view doesn't read this engine",
-    hint: () => "This server shows it on boards only. Ask in the chat which boards show it.",
+    hint: () => "Pulse shows it here on boards. Ask in the chat about it or its boards.",
   },
   signedOut: {
     title: () => "You're signed out",
@@ -171,7 +171,7 @@ const DE: ErrorLabels = {
   },
   notServed: {
     title: () => "Diese Ansicht liest diese Engine nicht",
-    hint: () => "Dieser Server zeigt sie nur auf Boards. Frag im Chat, welche Boards sie zeigen.",
+    hint: () => "Pulse zeigt sie hier auf Boards. Frag im Chat nach ihr oder ihren Boards.",
   },
   signedOut: {
     title: () => "Du bist abgemeldet",

@@ -44,9 +44,11 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   (`@miragon/pulse-orca`), the editor hosts of the runtime view
 - `packages/connectors/engine/engine-connector/`: the engine module, the one MCP module of every
   dialect: tools, widget tools, widgets, the web app's screen feeds
-- `packages/connectors/engine/engine-core/`: `@miragon/pulse-engine-core`, the contract every
-  dialect implements (`ProcessRuntime`, `ProcessCommands`, ids, read models, `RuntimeError`,
-  `RootCauses`) and its conformance kit (`/testing`)
+- `packages/connectors/engine/engine-core/`: `@miragon/pulse-engine-core`, the contract of the
+  dialects (`ProcessRuntime`, `ProcessCommands`, ids, read models, `RuntimeError`, `RootCauses`),
+  whose reads both answer while the writes, bulk operations and migration plans (Camunda 7's
+  alone) and the tenants (their laws on Camunda 7 alone) stand ahead of its admission rule (its
+  README's table), and its conformance kit (`/testing`)
 - `packages/connectors/c7/`: the Camunda 7 REST family: `c7-client` (the generated SDK), `c7-core`
   (the pure rules, the one spec and its routes, the contract's reads in `./runtime`) and the
   editor hosts' private `c7-adapter`
@@ -90,10 +92,17 @@ Three axes decide where code goes, and they stay apart:
   `EngineProvider` (invariant 8), never a package or an app.
 - **Dialect** (an engine API family): one package family under `packages/connectors/<dialect>/`
   whose core implements engine-core's contract: `c7` (the Camunda 7 REST API all three vendors
-  serve) and `c8` (Camunda 8's Orchestration Cluster REST API, read-only; the server offers it in
-  the engine list, the boards, the web app's screens and their JSON for the model, the chat's
-  views on boards only: `docs/mcp/camunda8.md`). `DIALECT_FAMILIES` and `ENGINE_DIALECTS` in `.dependency-cruiser.cjs`
-  name them. A new dialect is a family, never an MCP server app or a module of its own.
+  serve) and `c8` (Camunda 8's Orchestration Cluster REST API, read-only; the server offers it
+  where a mark names it: the engine list, the boards, the web app's screens and their JSON for the
+  model, of the chat's cockpit the board and the landing; the instructions, the refusal, the boot's
+  warning and the table of `docs/mcp/camunda8.md` name what a server of clusters alone lists,
+  `packages/connectors/engine/engine-connector/src/camunda8-scope.test.ts`, and
+  `scripts/camunda8-scope.test.mjs` fails on a clause of the Markdown, the `.env.example` files,
+  the docs site's config, the module's texts, widget-shell's error words or the tools/list goldens
+  that keeps Camunda 8 to boards in a phrase `scripts/camunda8-scope.mjs` lists without naming the
+  chat's cockpit, or says the chat reads it as JSON where no tool does).
+  `DIALECT_FAMILIES` and `ENGINE_DIALECTS` in `.dependency-cruiser.cjs` name them. A new dialect
+  is a family, never an MCP server app or a module of its own.
 - **Interface** (how a person or an agent reaches an engine): an app under `apps/` with its own
   agent file. Apps never import each other, and no package imports an app; what the editor hosts
   share is the runtime view and the adapters, private packages only they bundle.
@@ -110,9 +119,10 @@ its second consumer or ahead of it) and `-adapter` (the contract for the editor 
 engine-core's conformance kit on a real engine; Camunda 8's locally only until #531). Family code
 stays in its family; `packages/core/` holds what every family builds on. engine-core stays narrow:
 a port, read model or rule enters it when two dialects answer it with the same meaning, proven by
-the conformance laws on both (what the owner admitted ahead of that, its README lists); ports only
-the editor hosts need (`EngineAdapter`, the engine's web UI, the local model) stay in the runtime
-view's `src/ports`. The CLI importing it waits until it serves a second dialect.
+the conformance laws on both (what stands there ahead of that, the table of its README lists,
+`scripts/engine-core-admission.test.mjs`); ports only the editor hosts need (`EngineAdapter`, the
+engine's web UI, the local model) stay in the runtime view's `src/ports`. The CLI importing it
+waits until it serves a second dialect.
 
 ### What the surfaces share
 

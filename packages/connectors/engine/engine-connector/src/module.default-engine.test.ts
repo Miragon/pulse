@@ -62,7 +62,7 @@ describe("ENGINE_DEFAULT and defaultProfile", () => {
     const said = (env: NodeJS.ProcessEnv) =>
       engineModule.bootWarnings(env).filter((warning) => warning.includes("Camunda 8"))
     const tail =
-      '"c8", a Camunda 8 engine, which this server reads on boards only: a tool called without engine goes to it and refuses with ENGINE_DIALECT_NOT_SERVED, never to another engine.'
+      '"c8", a Camunda 8 engine: engine_get_screen and engine_get_board read it, engine_open_cockpit shows it (view board or landing), and every other tool called without engine goes to it and refuses with ENGINE_DIALECT_NOT_SERVED, never to another engine.'
     expect(said({ ENGINES_JSON: JSON.stringify({ defaultProfile: "c8", profiles }) })).toEqual([
       `defaultProfile names ${tail}`,
     ])

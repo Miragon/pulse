@@ -5,6 +5,7 @@ import { createPlugin } from "./plugin.js"
 import { DEFAULT_ENGINE_FLAVOR, providerForEntry } from "./providers/index.js"
 import { engineToolsets } from "./lib/mcp/toolsets.js"
 import { engineInstructions } from "./instructions.js"
+import { camunda8Reads } from "./lib/shared/camunda8-scope.js"
 import { engineConfigErrorText } from "./engine-config-error.js"
 import type { BoardFiles } from "./board-files.js"
 import { loadEngineBoards } from "./engine-boards.js"
@@ -158,30 +159,31 @@ function ignoredSingleEngineWarning(env: NodeJS.ProcessEnv): string[] {
   ]
 }
 
-/** True for an engine of another dialect than the Camunda 7 REST API's, which only boards read. */
-const readOnBoardsOnly = (engine: EngineEntry): boolean => providerForEntry(engine).dialect !== "c7"
+/** True for an engine of another dialect than the Camunda 7 REST API's (Camunda 8). */
+const ofAnotherDialect = (engine: EngineEntry): boolean => providerForEntry(engine).dialect !== "c7"
 
 /**
- * A default engine that only boards read (Camunda 8) beside a Camunda 7 one: every tool of the
- * latter called without `engine` goes to it and refuses, never to another engine (allowed, the
- * operator's choice, and said once here). Without a Camunda 7 engine no such tool registers.
+ * A default engine of another dialect (Camunda 8) beside a Camunda 7 one: every tool of the latter
+ * called without `engine` goes to it and refuses, never to another engine (allowed, the operator's
+ * choice, and said once here), while the tools its marks name read it (`camunda8Reads`). Without a
+ * Camunda 7 engine no such tool registers.
  */
-function boardsOnlyDefaultWarning(
+function otherDialectDefaultWarning(
   profiles: EngineProfiles,
   explicit: string | undefined,
 ): string[] {
-  if (profiles.engines.every(readOnBoardsOnly)) return []
+  if (profiles.engines.every(ofAnotherDialect)) return []
   const named = explicit || profiles.defaultProfile
   const only = profiles.profileCount === 1 ? profiles.engineIds[0] : undefined
   const id = named ?? only
   const engine = profiles.engines.find((entry) => entry.id === id)
-  if (engine === undefined || !readOnBoardsOnly(engine)) return []
+  if (engine === undefined || !ofAnotherDialect(engine)) return []
   const which =
     named === undefined
       ? "The only profile is"
       : `${explicit ? "ENGINE_DEFAULT" : "defaultProfile"} names`
   return [
-    `${which} "${engine.id}", a ${providerForEntry(engine).branding.displayName} engine, which this server reads on boards only: a tool called without engine goes to it and refuses with ENGINE_DIALECT_NOT_SERVED, never to another engine.`,
+    `${which} "${engine.id}", a ${providerForEntry(engine).branding.displayName} engine: ${camunda8Reads("it", "it")}, and every other tool called without engine goes to it and refuses with ENGINE_DIALECT_NOT_SERVED, never to another engine.`,
   ]
 }
 
@@ -197,7 +199,7 @@ function profileWarnings(env: NodeJS.ProcessEnv): string[] {
       `${explicit ? "ENGINE_DEFAULT" : "defaultProfile"} names "${String(fallback)}", whose profile is refused: a call without engine fails with ENGINE_PROFILE_REFUSED until the profile is fixed, and never goes to another engine.`,
     )
   }
-  warnings.push(...boardsOnlyDefaultWarning(profiles, explicit))
+  warnings.push(...otherDialectDefaultWarning(profiles, explicit))
   const passthrough = profiles.engines.filter((e) => e.auth?.type === "passthrough")
   if (passthrough.length > 0) {
     warnings.push(

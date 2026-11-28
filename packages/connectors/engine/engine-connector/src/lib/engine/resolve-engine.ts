@@ -7,6 +7,7 @@ import type {
   ContractEngineProvider,
   EngineEntry,
 } from "../../engine-provider.js"
+import { camunda8Reads } from "../shared/camunda8-scope.js"
 import { providerForEntry } from "../../providers/index.js"
 import type { EngineDialect } from "../../view-models.js"
 import { PROFILE_REFUSED, profileRefusalText } from "../shared/profile-refusal.js"
@@ -205,18 +206,22 @@ const DIALECT_APIS: Readonly<Record<EngineDialect, string>> = {
   c8: "Camunda 8's Orchestration Cluster REST API",
 }
 
-/** Where the server reads an engine of another dialect: on the boards that name it. */
-function boardsOnlyWhere(engineId: string, product: string, boards: readonly string[]): string {
+/**
+ * What reads an engine of another dialect (Camunda 8) instead, by the marks (`camunda8Reads`), and
+ * the boards that name it, or that none does yet.
+ */
+function readsInstead(engineId: string, product: string, boards: readonly string[]): string {
+  const reads = `On this server ${camunda8Reads(`a ${product} engine`, "it")}`
   return boards.length > 0
-    ? `This server reads a ${product} engine on boards only: engine_list_engines lists the boards that name it, and engine_open_cockpit with view board shows one.`
-    : `This server reads a ${product} engine on boards only, and no board names "${engineId}" yet; the server's operator adds one.`
+    ? `${reads}; engine_list_engines lists the boards that name it.`
+    : `${reads}; no board names "${engineId}" yet, the server's operator adds one.`
 }
 
 /**
  * A call of a tool, a feed, an engine view of the cockpit or a write on an engine whose dialect it
  * does not serve (its mark, `dialects`): refused before anything is sent, never rerouted. The
- * server reads an engine of another dialect on boards alone (`resolveRuntimeEngine`), so the text
- * names where: the boards that name it, or that none does yet.
+ * server reads an engine of another dialect through the engine contract alone
+ * (`resolveRuntimeEngine`), so the text names what does: its tools and views, and its boards.
  */
 export class EngineDialectNotServedError extends Error {
   readonly code = "ENGINE_DIALECT_NOT_SERVED" as const
@@ -225,7 +230,7 @@ export class EngineDialectNotServedError extends Error {
     const product = backend.provider.branding.displayName
     const reads = dialects.map((dialect) => DIALECT_APIS[dialect]).join(" or ")
     const where =
-      backend.dialect === "c7" ? "" : ` ${boardsOnlyWhere(engineId, product, backend.boards)}`
+      backend.dialect === "c7" ? "" : ` ${readsInstead(engineId, product, backend.boards)}`
     super(
       `Engine "${engineId}" is a ${product} engine, and this tool or view reads ${reads}, so nothing was sent.${where}`,
     )

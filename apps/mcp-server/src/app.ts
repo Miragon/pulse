@@ -8,9 +8,9 @@ const PACKAGE_ROOT = path.join(import.meta.dirname, "..")
 
 /**
  * The preamble of the server `instructions`, deliberately short and factual, and true on every
- * configuration: what the engines of a deployment are (Camunda 7, CIB seven, Operaton, Camunda 8
- * on boards) the engine module's own snippet says by the dialects configured. Each active module
- * appends its own snippet (engine routing, dates, tool families, health routing;
+ * configuration: what the engines of a deployment are (Camunda 7, CIB seven, Operaton, Camunda 8)
+ * and what reads them the engine module's own snippet says by the dialects configured. Each active
+ * module appends its own snippet (engine routing, dates, tool families, health routing;
  * `ComposableModule.instructions`), and the tool descriptions carry the per-tool details.
  */
 export const SERVER_INSTRUCTIONS =

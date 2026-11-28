@@ -221,7 +221,7 @@ describe("tools/list golden contract per toolset", () => {
       for (const text of [preamble, server.client.getServerVersion()?.description ?? ""]) {
         expect(text).not.toMatch(/Camunda|CIB seven|Operaton/)
       }
-      expect(engine).toMatch(/^engine \(Camunda 8, which this server reads on boards\):/)
+      expect(engine).toMatch(/^engine \(Camunda 8, read-only\):/)
     } finally {
       await server.close()
     }

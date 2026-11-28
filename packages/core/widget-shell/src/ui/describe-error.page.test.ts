@@ -27,7 +27,7 @@ const INVALID_VIEW =
 const signedOut = () => new WebApiError(401, { code: "signed_out", message: "No session." })
 /** What the engine module answers for a call that does not read its engine's dialect. */
 const NOT_SERVED =
-  '[ENGINE_DIALECT_NOT_SERVED] Engine "orders-c8" is a Camunda 8 engine, and this tool or view reads the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. This server reads a Camunda 8 engine on boards only, and no board names "orders-c8" yet; the server\'s operator adds one.'
+  '[ENGINE_DIALECT_NOT_SERVED] Engine "orders-c8" is a Camunda 8 engine, and this tool or view reads the Camunda 7 REST API (Camunda 7, CIB seven, Operaton), so nothing was sent. On this server engine_get_screen and engine_get_board read a Camunda 8 engine, engine_open_cockpit shows it (view board or landing); no board names "orders-c8" yet, the server\'s operator adds one.'
 
 const CHAT = { en: /\bchat\b/i, de: /\bChat\b/ } as const
 
@@ -133,11 +133,11 @@ describe("the refusals no retry changes", () => {
     // screens of its own, which its start page leads to (the state's link).
     expect(leadsToStartPage("notServed")).toBe(true)
     expect(describeError(NOT_SERVED, "en")).toMatchObject({
-      hint: "This server shows it on boards only. Ask in the chat which boards show it.",
+      hint: "Pulse shows it here on boards. Ask in the chat about it or its boards.",
     })
     expect(describeError(NOT_SERVED, "de")).toMatchObject({
       title: "Diese Ansicht liest diese Engine nicht",
-      hint: "Dieser Server zeigt sie nur auf Boards. Frag im Chat, welche Boards sie zeigen.",
+      hint: "Pulse zeigt sie hier auf Boards. Frag im Chat nach ihr oder ihren Boards.",
     })
     expect(describeError(NOT_SERVED, "de", PAGE)).toMatchObject({
       hint: "Pulse zeigt ihre Prozesse und Instanzen auf eigenen Seiten. Öffne die Engine über die Startseite von Pulse.",

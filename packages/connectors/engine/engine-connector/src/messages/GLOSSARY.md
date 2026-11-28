@@ -85,7 +85,7 @@ Zahlen: ein Builder über einem Lesezugriff. Die Tabelle steht einmal in pulse-u
 | Zeitpunkt, zu dem eine Ansicht gelesen wurde (⁵) | Stand („Stand 08:00“)                                                           | Zuletzt aktualisiert      | As of („As of 08:00“)                                                | Last updated          |
 | Name eines Boards, den kein Profil trägt         | gehört nicht zu den Engines dieses Servers                                      | nicht konfiguriert        | is not among the engines of this server                              | not configured        |
 | Board-Datei, die kein Board ergibt (⁶)           | Datei abgelehnt („Datei abgelehnt: 1 Problem“)                                  | ungültig, fehlerhaft      | file refused („file refused: 1 problem“)                             | invalid, broken       |
-| Engine, die der Server nur auf Boards liest (⁷)  | auf Boards („Camunda 8, auf Boards“, „noch auf keinem Board“)                   | –                         | on boards („Camunda 8, on boards“, „on no board yet“)                | –                     |
+| Engine, die das Cockpit nur auf Boards zeigt (⁷) | auf Boards („Camunda 8, auf Boards“, „noch auf keinem Board“)                   | –                         | on boards („Camunda 8, on boards“, „on no board yet“)                | –                     |
 | Web-App einer Camunda-8-Engine (⁷)               | Operate („In Operate öffnen“)                                                   | Cockpit                   | Operate („Open in Operate“)                                          | Cockpit               |
 | Aktivitäten oder Prozesse mit Incidents (⁸)      | Betroffene Aktivitäten, Betroffene Prozesse                                     | Aktivitäten betroffen     | Affected activities, Affected processes                              | Activities affected   |
 | Incidents, die in einer Stunde dazukamen (⁸)     | Neu in der letzten Stunde (der Wert ohne Plus), keine Zahl über einen Tag       | +24 Std., Neu in 24 Std.  | New in the last hour (the value without a plus), no count over a day | +24h, New in 24h      |
@@ -114,8 +114,9 @@ das der Server nicht nutzt, mit demselben Ton (warning) und demselben Icon. Eine
 „ungültig“ und „fehlerhaft“ gibt es nicht: ein ungültiger Wert und ein fehlerhaftes Modell sind
 andere Sachen.
 
-(⁷) Eine Engine eines anderen Dialekts (Camunda 8) liest der Server nur auf Boards. Jede Route des
-Cockpits zeigt für sie einen Zustand, der nichts liest (`BoardsOnlyEngineGate`): die Boards, die sie
+(⁷) Eine Engine eines anderen Dialekts (Camunda 8) zeigt das Cockpit im Chat nur auf Boards (das
+Modell liest ihre Screens als JSON, die Web-App sie ganz). Jede Route des Cockpits zeigt für sie
+einen Zustand, der nichts liest (`BoardsOnlyEngineGate`): die Boards, die sie
 nennen, sonst dass noch keines sie nennt, und Operate, wo ihr Profil eine Adresse nennt. Ihre Zeile
 auf der Landing nennt das Produkt und ob ein Board sie zeigt, ohne Urteil und ohne Punkt; die
 Engine-übergreifende Übersicht lässt sie weg und nennt sie in einer Zeile. Produkt und Web-App

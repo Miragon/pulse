@@ -136,7 +136,7 @@ describe("CockpitApp opens a board", () => {
 
   // No view of the cockpit reads an engine of another dialect (ROUTE_DIALECTS), so a board offers
   // no way into one: its tiles' rows, counts, summary rows and diagram and its chip open nothing.
-  it("an engine the server reads on boards only: its tiles and its chip open nothing here", async () => {
+  it("an engine the chat's cockpit shows on boards only: its tiles and its chip open nothing here", async () => {
     const c8 = {
       id: "prod-a",
       environment: "default",

@@ -580,8 +580,8 @@ point 10: the screens' JSON forms as data for any page.
      its delta of `mcp-app.js`. The chat changes only where the owner decided it: root incidents
      (D2) and the diagram's theme (point 7).
   5. **Camunda 8.** The screens serve every dialect: the web app shows a Camunda 8 engine whole once
-     its screens open to Camunda 8, its operations views stay Camunda 7's, and the chat keeps showing
-     a Camunda 8 engine on boards only (`BoardsOnlyEngineGate`). Executed on 2026-11-21: the page's
+     its screens open to Camunda 8, its operations views stay Camunda 7's, and the chat's cockpit
+     keeps showing a Camunda 8 engine on boards only (`BoardsOnlyEngineGate`). Executed on 2026-11-21: the page's
      navigation opens a Camunda 8 engine's processes (its engine, process and instance screens, an
      incident at its instance) and no incidents or jobs; where the page shows its place itself the
      cockpit names the place whole, so a board's tiles and chip and the landing's row open the

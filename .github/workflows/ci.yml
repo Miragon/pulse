@@ -446,12 +446,12 @@ jobs:
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm format:check
 
-      - name: Repo-wide guards (docs-refs, old-names, pnpm filters)
+      - name: Repo-wide guards (docs-refs, old-names, the Camunda 8 scope, pnpm filters)
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         env:
           NODE_OPTIONS: --test-reporter=spec --test-reporter-destination=stdout --test-reporter=${{ github.workspace }}/scripts/gha-test-reporter.mjs --test-reporter-destination=stdout
         run: |
-          node --test scripts/docs-refs.test.mjs scripts/old-names.test.mjs
+          node --test scripts/docs-refs.test.mjs scripts/old-names.test.mjs scripts/camunda8-scope.test.mjs
           pnpm lint:package-scripts
 
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}

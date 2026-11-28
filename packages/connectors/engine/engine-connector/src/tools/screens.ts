@@ -21,6 +21,7 @@ import { contractToolError } from "../lib/engine/runtime-errors.js"
 import type { EngineToolRegistrar } from "../lib/engine/served-engines.js"
 import { engineParamShape } from "../lib/engine/with-engine.js"
 import { getBoardInput, getScreenInput, type ScreenKind } from "../schemas/index.js"
+import { ENGINE_GET_BOARD, ENGINE_GET_SCREEN } from "../tool-names.js"
 import { EVERY_DIALECT } from "../view-models.dialects.js"
 
 /** What a call asks of a screen: the screen and the ids of the tool's input. */
@@ -93,7 +94,7 @@ function targetOf(args: ScreenArgs): ScreenFormTarget {
 /** The screen and board tools, the board's over `boards` (none without ENGINE_BOARDS_DIR). */
 export function registerScreenTools(register: EngineToolRegistrar, boards?: BoardFiles): void {
   register({
-    name: "engine_get_screen",
+    name: ENGINE_GET_SCREEN,
     category: "screens",
     description:
       "A web app screen as JSON data, no UI, in the form @miragon/pulse-blocks renders: engine " +
@@ -113,7 +114,7 @@ export function registerScreenTools(register: EngineToolRegistrar, boards?: Boar
   })
 
   register({
-    name: "engine_get_board",
+    name: ENGINE_GET_BOARD,
     category: "screens",
     description:
       "A board as JSON data, no UI, in the form @miragon/pulse-blocks renders, read from the " +

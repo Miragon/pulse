@@ -113,7 +113,7 @@ export interface ProcessInstanceRow {
 
 /**
  * The API family an engine speaks: `c7` the Camunda 7 REST API every route of the cockpit reads,
- * `c8` Camunda 8's Orchestration Cluster REST API, which the server reads on boards only.
+ * `c8` Camunda 8's Orchestration Cluster REST API, which the cockpit shows on boards only.
  */
 export type EngineDialect = "c7" | "c8"
 

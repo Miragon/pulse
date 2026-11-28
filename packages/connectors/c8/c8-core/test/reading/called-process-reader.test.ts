@@ -90,7 +90,52 @@ describe("the called processes", () => {
         page: { limit: 500 },
       },
       {
-        filter: { processDefinitionId: "label" },
+        filter: { processDefinitionId: "label", versionTag: "stable" },
+        sort: [{ field: "version", order: "DESC" }],
+        page: { limit: 500 },
+      },
+    ])
+  })
+
+  test("ask for the versions of a process with a tag once per tag, never for every version", async () => {
+    const tagged = (id: string, tag: string) => `<bpmn:callActivity id="${id}">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="label" bindingType="versionTag" versionTag="${tag}" />
+      </bpmn:extensionElements></bpmn:callActivity>`
+    const { camunda, reader } = readerWith([
+      {
+        route: "GET /process-definitions/100/xml",
+        answer: `<bpmn:definitions xmlns:zeebe="z">
+          ${tagged("First", "stable")}${tagged("Second", "stable")}${tagged("Third", "next")}
+        </bpmn:definitions>`,
+      },
+      {
+        route: "POST /process-definitions/search",
+        when: (body) => body.includes('"versionTag":"stable"'),
+        answer: page([
+          definition("31", "label", 4, { versionTag: "stable", tenantId: "other" }),
+          definition("30", "label", 3, { versionTag: "stable" }),
+          definition("20", "label", 2, { versionTag: "stable" }),
+        ]),
+      },
+      { route: "POST /process-definitions/search", answer: page([]) },
+    ])
+
+    const calls = await reader.read({ id: DefinitionId("100"), tenantId: null })
+
+    expect(calls.map((call) => [call.elementId, call.definition?.id])).toEqual([
+      ["First", "30"],
+      ["Second", "30"],
+      ["Third", undefined],
+    ])
+    expect(camunda.bodiesOf("POST /process-definitions/search")).toEqual([
+      {
+        filter: { processDefinitionId: "label", versionTag: "stable" },
+        sort: [{ field: "version", order: "DESC" }],
+        page: { limit: 500 },
+      },
+      {
+        filter: { processDefinitionId: "label", versionTag: "next" },
         sort: [{ field: "version", order: "DESC" }],
         page: { limit: 500 },
       },

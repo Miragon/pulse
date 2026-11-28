@@ -30,11 +30,11 @@ export function engineViewArgs(engineId: string, view: CockpitView): Record<stri
 }
 
 /**
- * Where the cockpit is. An engine without sections (one the server shows on boards only, or whose
- * profile it refused) is named by its id alone, never as a route that refuses it: the web app
- * starts such an address on the landing, which every server's tool takes (on a server of Camunda 8
- * clusters alone it takes no `engine`), and the place leads on to the engine's one state (the
- * entry's memo, a page's start).
+ * Where the cockpit is. An engine without sections (one the chat's cockpit shows on boards only, or
+ * whose profile the server refused) is named by its id alone, never as a route that refuses it:
+ * the web app starts such an address on the landing, which every server's tool takes (on a server
+ * of Camunda 8 clusters alone it takes no `engine`), and the place leads on to the engine's one
+ * state (the entry's memo, a page's start).
  */
 export function placeArgsOf(state: CockpitState, sectionless: boolean): Record<string, unknown> {
   const { scope, stack } = state

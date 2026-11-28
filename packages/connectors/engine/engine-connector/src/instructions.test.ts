@@ -64,12 +64,13 @@ describe("engineModule.instructions", () => {
   })
 
   // Only a server with a Camunda 8 engine says what reads it: elsewhere the line would cost every
-  // deployment. Its characters are the char budget instructions-camunda8 of the server app.
-  it("says where a Camunda 8 engine shows and that the rest neither offer nor take it, only with one", () => {
+  // deployment. Its characters are the char budget instructions-camunda8 of the server app; what it
+  // names, the marks (camunda8-scope.test.ts).
+  it("says what reads a Camunda 8 engine and that the rest refuse it as the default, only with one", () => {
     const rule =
-      "- Camunda 8 engines (dialect c8 in engine_list_engines) show on boards only " +
-      "(engine_open_cockpit with view board); engine_get_screen reads them too, other tools offer " +
-      "none and refuse a c8 default: ENGINE_DIALECT_NOT_SERVED.\n"
+      "- Camunda 8 engines (dialect c8 in engine_list_engines): engine_get_screen and " +
+      "engine_get_board read them, engine_open_cockpit shows them (view board or landing); other " +
+      "tools refuse a c8 default: ENGINE_DIALECT_NOT_SERVED.\n"
     const c8 = { id: "c8", baseUrl: "https://c8.example/v2", flavor: "camunda8" }
     const withC8 = engineModule.instructions({ engines: [TWO[0], c8], toolset: "read-only" })
     expect(withC8).toContain(rule)
@@ -85,9 +86,9 @@ describe("engineModule.instructions", () => {
     expect(refused).not.toContain("Camunda 8 engines")
   })
 
-  // A server of Camunda 8 engines alone registers five tools and feeds: its rules name what they
-  // do and nothing of Camunda 7's tools, whatever its toolset.
-  it("a server of Camunda 8 engines alone: says what shows them, and nothing of Camunda 7", () => {
+  // A server of Camunda 8 engines alone registers four tools and nine feeds: its rules name what
+  // they do and nothing of Camunda 7's tools, whatever its toolset.
+  it("a server of Camunda 8 engines alone: says what reads them, and nothing of Camunda 7", () => {
     const c8 = { id: "c8", baseUrl: "https://c8.example/v2", flavor: "camunda8" }
     const lines = (toolset: string, boards = false) =>
       engineModule
@@ -98,8 +99,8 @@ describe("engineModule.instructions", () => {
         })
         .split("\n")
     expect(lines("admin")).toEqual([
-      "engine (Camunda 8, which this server reads on boards):",
-      "- Its engines (dialect c8 in engine_list_engines) show on boards only: engine_open_cockpit with view board shows one, landing the engines and boards to pick from; in its facts null is unknown, never 0.",
+      "engine (Camunda 8, read-only):",
+      "- Its engines (dialect c8 in engine_list_engines): engine_get_screen and engine_get_board read them, engine_open_cockpit shows them (view board or landing); in its facts null is unknown, never 0.",
       expect.stringMatching(/^- Widget hand-offs /),
     ])
     expect(lines("read-only")).toEqual(lines("admin"))
@@ -109,7 +110,12 @@ describe("engineModule.instructions", () => {
         .join("\n")
         .match(/engine_[a-z_]+/g),
     )
-    expect([...tools].sort()).toEqual(["engine_list_engines", "engine_open_cockpit"])
+    expect([...tools].sort()).toEqual([
+      "engine_get_board",
+      "engine_get_screen",
+      "engine_list_engines",
+      "engine_open_cockpit",
+    ])
   })
 
   it("several engines with a default: names the ids and the default engine", () => {
