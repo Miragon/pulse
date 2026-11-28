@@ -175,6 +175,11 @@
           "type": "generic",
           "path": "apps/mcp-server/skills/pulse-artifact/SKILL.md"
         },
+        {
+          "type": "json",
+          "path": ".claude-plugin/marketplace.json",
+          "jsonpath": "$.plugins[?(@.name==='pulse-artifact')].source.ref"
+        },
         { "type": "generic", "path": "docs/mcp/claude-artifacts.md" },
         { "type": "generic", "path": "templates/claude-artifact/README.md" },
         {

@@ -1,6 +1,6 @@
 ---
 name: pulse-artifact
-description: Build a Claude artifact on Pulse, a live page in claude.ai (a dashboard, view or report on a Camunda 7, Operaton or CIB seven process engine) that reads the engine through the Pulse MCP server as the viewer's connector, starting from a copy of the Pulse template on the pulse-ui components, whose agent file carries the rules and the publish checklist. Use it whenever such a page over an engine, its processes, incidents, instances or tasks is asked for.
+description: Build a Claude artifact on Pulse, a live page in claude.ai (a dashboard, view or report on a Camunda 7, Operaton or CIB seven process engine, or on the screens and boards of a Camunda 8 cluster) that reads the engine through the Pulse MCP server as the viewer's connector, starting from a copy of the Pulse template on the pulse-ui components, whose agent file carries the rules and the publish checklist. Use it whenever such a page over an engine, its processes, incidents, instances or tasks is asked for.
 ---
 
 # Claude artifacts on Pulse
@@ -12,17 +12,18 @@ dashboard, a view, a report. It reads with the viewer's sign-in and toolset and 
 **Use this skill** for such a page, built from the template and published as an artifact.
 **Not for:** an answer in the chat (call the engine tools, or open the cockpit with
 `engine_open_cockpit`), changing an engine (the chat or the Pulse CLI), a page unrelated to a
-process engine, BPMN modelling, or a Camunda 8 cluster: the template reads Camunda 7 REST engines
-(Operaton, CIB seven, Camunda 7), and a Camunda 8 engine refuses its calls.
+process engine, or BPMN modelling.
 
 ## Get the template
 
-The template is `templates/claude-artifact` in the Pulse repository
-(https://github.com/Miragon/pulse/tree/main/templates/claude-artifact). This plugin holds no copy
-of it and installs from `main`, while the template builds on the libraries of the release its pins
-name on npm: clone that release, never `main`.
+Every page starts from the template, `templates/claude-artifact` in the Pulse repository. This
+plugin holds no copy of it: the plugin is the one of a release, which the marketplace installs
+from the release's tag, and the template builds on that release's libraries on npm. Clone the
+same release, never `main`:
 
 <!-- x-release-please-start-version -->
+
+The template of this release: https://github.com/Miragon/pulse/tree/v0.34.0/templates/claude-artifact
 
 ```sh
 git clone --depth 1 --branch v0.34.0 https://github.com/Miragon/pulse
@@ -38,6 +39,16 @@ The example is a dashboard of the playground's `miraveloLeasing` process, read i
 of another process, or of another kind, starts from it too and keeps its sections, reads, tests
 and scripts, on widget-shell's page reads; a tool it calls beyond these joins `PAGE_TOOLS` first.
 
+## On a Camunda 8 cluster
+
+The template's three tools read the Camunda 7 REST API (Operaton, CIB seven, Camunda 7), and the
+server serves them for such engines alone, so on a Camunda 8 cluster their calls fail. What a page
+reads of a cluster are the JSON forms of the web app's screens and of the boards, which the server
+serves for every engine: `engine_get_screen` (`screen` `engine`, `process` or `instance`) and
+`engine_get_board`, each answer with its `formatVersion`. Such a page starts from the template
+too: these tools take the place of the three in `PAGE_TOOLS` and `src/data/recorded-reads.ts`,
+and its sections read them.
+
 ## Then read the copy
 
 Read the copy's `CLAUDE.md`, then its `README.md`, before you change anything. They are written
@@ -47,18 +58,20 @@ another version, they win.
 - `CLAUDE.md`: the artifact runtime's rules, the values a copy sets (the process, the connector
   and the tools the page calls), the data rules, which tool feeds which section, the look, where
   the components are documented, and the checklist from the recording to the publish.
-- `README.md`: the commands, recording your own process, how the page reads and what the tests
-  hold.
+- `README.md`: the commands, recording your own process, how the page reads, the font and what
+  the tests hold.
 
 Follow the checklist to its end: the page reads nothing until its `mcp` capability is declared
 after the first publish.
 
-## Without a build
+## Without a build, an option
 
-A page of a few panels can skip the template: one module script loads pulse-ui's browser bundle,
-its stylesheet and widget-shell's page reads for a Claude artifact from jsDelivr, all at the
-version of the release above, never `latest`, and the page ships no file of its own, in a chat and
-published alike:
+Offer a page without a build only when one is asked for and its version is one the host accepts.
+Such a page loads pulse-ui's browser bundle, its stylesheet and widget-shell's page reads for a
+Claude artifact from jsDelivr at this release's version, never `latest`. Claude Code's artifact
+tool loads a library only at a version published at least two weeks before, so look up when this
+one was (`npm view @miragon/pulse-widget-shell time --json`), and build from the template while
+it is younger:
 
 <!-- x-release-please-start-version -->
 
@@ -73,21 +86,17 @@ import {
 } from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.34.0/dist/browser/claude-artifact.js"
 ```
 
+The whole page and its rules: widget-shell's README of this release,
+https://github.com/Miragon/pulse/tree/v0.34.0/packages/core/widget-shell#use-in-a-page-without-a-build
+
 <!-- x-release-please-end -->
 
 Each section reads with `useSectionRead(key, (reader) => reader.call(tool, args))` and renders
 through pulse-ui's `SectionState`, `PageGate` around the sections says a refused connector once,
-and `mountClaudeArtifact(App, { connector: "<the connector's display name>" })` mounts the page,
-whose caller alone speaks to `window.claude`. `pulse-ui-css.js` puts pulse-ui's stylesheet into
-the page as a `<style>` at the end of `<head>`, since a chat artifact loads no stylesheet from a
-CDN, so the page links no `pulse-ui.css`, only Geist from Google Fonts as the pulse-ui README
-says. A style of the page's own (a brand's override of the roles, say) goes into its `<body>`,
-never its `<head>`, where the kit's rules would win over it. Take React and the kit from that
-`pulse-ui.js` only, and load all three from one CDN at one version.
-The widget-shell README shows the whole page
-(https://github.com/Miragon/pulse/tree/main/packages/core/widget-shell#use-in-a-page-without-a-build),
-the pulse-ui README what the bundle and the stylesheet hold
-(https://github.com/Miragon/pulse/tree/main/packages/core/ui#use-in-a-page-without-a-build). After
-the first publish, declare `mcp` for that connector with exactly the tools the page calls, and load
-the `artifact-capabilities` skill before you declare. The template's data rules and its look hold
-here too; its three files and its classic script do not.
+and `mountClaudeArtifact(App, { connector: "<the connector's display name>" })` mounts the page.
+`pulse-ui-css.js` puts the kit's stylesheet into the page, so the page links none and renders in
+the viewer's system font. Take React and the kit from that `pulse-ui.js` only, and load all three
+from one CDN at one version. After the first publish, declare `mcp` for that connector with
+exactly the tools the page calls, and load the `artifact-capabilities` skill before you declare.
+The template's data rules and its look hold here too; its three files and its classic script do
+not.

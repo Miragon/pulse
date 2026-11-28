@@ -710,8 +710,9 @@ a tag follows whoever controls the action's repository (`checkActionPins`).
   (`extra-files` in `release-please-config.json`), the release tag the artifact docs clone
   `templates/claude-artifact` from and the pulse-ui and widget-shell version a page without a
   build loads from jsDelivr (a generic file's marked versions, held to the release by
-  `pnpm lint:github`). Merging it creates the release; every publish job waits for approval of
-  the `release` environment.
+  `pnpm lint:github`), and the tag `.claude-plugin/marketplace.json` installs `pulse-artifact`
+  from (its `source.ref`). Merging it creates the release; every publish job waits for approval
+  of the `release` environment.
 - **npm:** the twelve libraries and `@miragon/pulse-cli` publish with OIDC trusted publishing (no
   token, provenance attached), packed by `pnpm pack`. A package new to npm is published once by
   hand and gets its trusted publisher before the release that first publishes it. The server app,

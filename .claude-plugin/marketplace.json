@@ -12,7 +12,13 @@
     },
     {
       "name": "pulse-artifact",
-      "source": "./apps/mcp-server/skills/pulse-artifact"
+      "description": "Build Claude artifacts on Pulse: live pages in claude.ai (dashboards, views and reports on Camunda 7, Operaton and CIB seven process engines) that read the engine through the Pulse MCP server, from a copy of the claude-artifact template whose agent file carries the artifact rules, the data rules and the publish checklist.",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/Miragon/pulse.git",
+        "path": "apps/mcp-server/skills/pulse-artifact",
+        "ref": "v0.34.0"
+      }
     },
     {
       "name": "pulse-boards",
