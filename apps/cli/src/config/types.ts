@@ -276,10 +276,23 @@ export interface ProjectSource {
 }
 
 /**
+ * Why the default profile cannot be used although a file names one: a defaultProfile that is no
+ * string, no valid name or, in a project file, none of its own profiles (`problem`, with the
+ * project file that names it; absent: the user's config file); or the profile a project file's
+ * default names (its defaultProfile, else its `only` profile) that a profile of the user's config
+ * file replaces (`overridden`), which is no default of the project's any more and never falls back
+ * to the user's. A command without --profile fails then.
+ */
+export type DefaultProblem =
+  | { readonly problem: Problem; readonly project?: string }
+  | { readonly overridden: string; readonly only: boolean; readonly project: string }
+
+/**
  * The profiles a command sees: the config file named by `--config` or
  * PULSE_CLI_CONFIG, else the project file merged with the user's config file (the user's profile
- * wins on a name clash; the project's defaultProfile wins when it names a profile of the project
- * file that the user's file does not override). Never written to a file.
+ * wins on a name clash; the project's default wins when it names a profile of the project file
+ * that the user's file does not override, and gives none when it does, unless it is the user's
+ * default too). Never written to a file.
  */
 export interface LoadedConfig extends ConfigFile {
   /** Where the profiles of the config file come from (`config:<path>`, `LoginKey.origin`). */
@@ -295,12 +308,8 @@ export interface LoadedConfig extends ConfigFile {
     /** What is off at the project file's root besides its profiles. */
     readonly notes?: readonly Problem[]
   }
-  /**
-   * Why the default profile cannot be used although a file names one (a defaultProfile that is
-   * no string, no valid name or, in a project file, none of its own profiles), and the project
-   * file that names it (absent: the user's config file). A command without --profile fails then.
-   */
-  readonly defaultProblem?: { readonly problem: Problem; readonly project?: string }
+  /** Why the default profile cannot be used although a file names one (`DefaultProblem`). */
+  readonly defaultProblem?: DefaultProblem
 }
 
 /** Values given on the command line (raw strings, validated during resolution). */

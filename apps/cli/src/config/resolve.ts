@@ -105,7 +105,7 @@ function profileName(
   const fromEnv = nonEmpty(env[ENV.profile])
   if (fromEnv !== undefined) return { name: fromEnv, origin: "env" }
   const broken = file?.defaultProblem
-  if (broken !== undefined) throw defaultProfileError(broken.problem, broken.project)
+  if (broken !== undefined) throw defaultProfileError(broken)
   const fallback = nonEmpty(file?.defaultProfile)
   return fallback === undefined ? undefined : { name: fallback, origin: "default" }
 }
