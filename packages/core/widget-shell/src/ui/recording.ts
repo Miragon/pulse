@@ -1,8 +1,8 @@
 /**
- * A page's tool calls recorded once against a live server and replayed without one: the format's
- * writer (`recordToolCalls`, which a recorder runs in Node under `createPageReader`) and its reader
- * (`playRecording`, a caller for a page's dev build, its tests and its screenshots). Outside
- * page-reads/: a page that reads live never holds it.
+ * A page's tool calls recorded once against a live server and replayed without one: the format and
+ * its reader (`playRecording`, a caller for a page's dev build, its tests and its screenshots),
+ * whose writer is `recordToolCalls` (record-tool-calls.ts, which a recorder runs in Node under
+ * `createPageReader`). Outside page-reads/: a page that reads live never holds it.
  */
 import { hashKey } from "@tanstack/react-query"
 import { PAGE_ERROR_CODES, type PageErrorCode } from "@miragon/pulse-ui"
@@ -11,7 +11,7 @@ import type { ToolCaller } from "./browser-view-host.js"
 import { PageCallError } from "./page-reads/page-call-error.js"
 import type { ToolCallOptions } from "./view-host.js"
 
-/** One call of a recording, its answer as the server sent it, kept small. */
+/** One call of a recording, its answer as the page's read keeps it (`recordToolCalls`). */
 export interface RecordedToolCall {
   readonly tool: string
   readonly arguments: Readonly<Record<string, unknown>>
@@ -130,39 +130,4 @@ export function playRecording(
     )
   }
   return { callTool, timeZone: recording.timeZone, now: () => new Date(asOf) }
-}
-
-/** A result as a recording keeps it: its structured data, else its text parts, `isError` kept. */
-function compact(result: ToolResult): ToolResult {
-  if (!result.isError && result.structuredContent != null) {
-    return { structuredContent: result.structuredContent }
-  }
-  const content = (result.content ?? [])
-    .filter((part) => part.type === "text")
-    .map((part) => ({ type: "text", text: part.text ?? "" }))
-  return result.isError ? { isError: true, content } : { content }
-}
-
-/**
- * Records every call that `callTool` answers, in the order answered, kept small (`compact`): the
- * calls of a recording, which a recorder sorts and writes with its `asOf` and zone. A call to
- * another connection than the caller's own keeps its name; a refused call records nothing.
- */
-export function recordToolCalls(callTool: ToolCaller): {
-  readonly callTool: ToolCaller
-  readonly calls: RecordedToolCall[]
-} {
-  const calls: RecordedToolCall[] = []
-  const recording: ToolCaller = async (tool, args, options) => {
-    const result = await callTool(tool, args, options)
-    const connector = options?.connector
-    calls.push({
-      tool,
-      arguments: args,
-      result: compact(result),
-      ...(connector === undefined ? {} : { connector }),
-    })
-    return result
-  }
-  return { callTool: recording, calls }
 }

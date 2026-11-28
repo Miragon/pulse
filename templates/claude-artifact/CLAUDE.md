@@ -64,7 +64,9 @@ connector's name when you do not know it. The page's title is in `src/page.html`
 | `engine_get_process_definition_xml` | `processDefinitionId`, the `definitionId` of the counts          | Diagram                               |
 
 `src/data/process-dashboard.ts` runs these reads, typed with the fields the page reads, and the
-recorder runs the same reads: record again after you change one.
+recorder runs the same reads: record again after you change one. A recording keeps those fields
+and nothing else (`src/data/recorded-reads.ts`, whose type check fails until a field a section
+starts to read joins it), and the recorder refuses a tool the server does not mark read-only.
 
 ## The look
 
@@ -101,7 +103,8 @@ A search from the copy's root skips pnpm's symlink: search `node_modules/@mirago
 ## Checklist
 
 1. Set the values of `src/page.config.ts`, then `pnpm record` against a Pulse MCP server with a
-   test engine (a recording holds the engine's answers as they came) and delete
+   test engine (a recording keeps the ids, names and numbers the page reads as they came, an
+   incident's message only with `--keep-text`, which it then says as `keepText`) and delete
    `fixtures/miraveloLeasing.json`.
 2. Edit the sections in `src/sections/` on `pnpm dev`.
 3. `pnpm shot` and `pnpm shot -- --locale de`, then look at every screenshot in `shots/`: overflow,

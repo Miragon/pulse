@@ -39,7 +39,7 @@ under [Publish](#publish) maps the runtime's onto them).
 | Command                       | What it does                                                                          |
 | ----------------------------- | ------------------------------------------------------------------------------------- |
 | `pnpm dev`                    | The page on the fixtures, reloading on every change                                   |
-| `pnpm record`                 | One load's three calls against a Pulse MCP server, written to `fixtures/<key>.json`   |
+| `pnpm record`                 | One load's three calls against a Pulse MCP server, kept to what the page reads        |
 | `pnpm shot`                   | Screenshots in light, dark and the OS's dark, at 1240 and 390 px, into `shots/`       |
 | `pnpm build`                  | `dist/index.html`, `dist/app.js` and `dist/pulse-ui.css`, the three files you publish |
 | `pnpm typecheck`, `pnpm test` | Types, the data rules, the page on the fixtures, the bundle and the brand gates       |
@@ -57,14 +57,23 @@ under [Publish](#publish) maps the runtime's onto them).
    pnpm record -- --process orders  # another key
    ```
 
-   The recorder (`scripts/record.ts`) runs every read once, the clock fixed at its start and the
-   days in this machine's time zone (`--time-zone Europe/Berlin` names another). Ids change with
-   every start of an engine: record the whole dashboard again rather than join two recordings,
-   then delete `fixtures/miraveloLeasing.json`. A recording holds the engine's answers as they
-   came: record against a test engine, or leave it out of what you commit.
+   The recorder (`scripts/record.ts`) refuses a page that calls a tool the server does not mark
+   read-only, then runs every read once, the clock fixed at its start and the days in this
+   machine's time zone (`--time-zone Europe/Berlin` names another), and writes
+   `fixtures/<key>.json`. Ids change with every start of an engine: record the whole dashboard
+   again rather than join two recordings, then delete `fixtures/miraveloLeasing.json`. A
+   recording keeps only the fields the page reads (`src/data/recorded-reads.ts`): an incident's
+   message, the diagram's documentation and an annotation's text replaced or dropped unless
+   `pnpm record -- --keep-text`, which the recording then says (`keepText`); the diagram always
+   without its extension elements and attributes and the bodies of its scripts, conditions, timers
+   and expressions, whom a task assigns among them.
+   Ids, names and numbers stay as they came, so record against a test engine.
+   `pnpm record -- --from fixtures/<key>.json` records the reads again from an earlier recording,
+   kept to what the page reads now.
 
 3. Edit the sections in `src/sections/`. Their reads live in `src/data/process-dashboard.ts`,
-   which the recorder runs too: record again after you change a read.
+   which the recorder runs too: record again after you change a read. A field a section starts to
+   read joins `src/data/recorded-reads.ts`, and `pnpm typecheck` names one that does not.
 4. Look at the page: `pnpm exec playwright install --with-deps chromium` once, then `pnpm shot`
    (and `pnpm shot -- --locale de`), and check every screenshot in `shots/`. Where Playwright
    cannot download its Chromium, `CHROME_PATH=/usr/bin/google-chrome pnpm shot` takes yours.
@@ -123,5 +132,8 @@ product's words in both catalogs, and no class beyond `pulse-ui.css`. The theme'
 light and dark is pulse-ui's to hold, since a page cannot change it.
 `test/app.test.tsx` mounts the page as the artifact does on the fixtures and holds a load to three
 calls, `test/bundle.test.ts` `dist/app.js` to one classic script without the MCP client or the
-fixtures. How a section reads, the gate, the Refresh and the runtime's caller are widget-shell's,
-held by its own tests. `CLAUDE.md` names the rules a test cannot hold.
+fixtures, and `test/fixtures.test.ts` each recording to what recording it again (`--from`)
+keeps: the fields the page reads, nothing the diagram's engine runs, and an incident's message or
+the diagram's documentation as it came only where the recording says `keepText`. How a section
+reads, the gate, the Refresh, the recorder and the runtime's caller are widget-shell's, held by
+its own tests. `CLAUDE.md` names the rules a test cannot hold.

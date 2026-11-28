@@ -16,7 +16,8 @@ import type { ToolName } from "../page.config.ts"
 /** The reader of the page's calls: a call names only a tool of `PAGE_TOOLS`. */
 type Reader = PageReader<ToolName>
 
-// The answers, the fields the page reads (the tools answer more).
+// The answers, the fields the page reads (the tools answer more), which a recording keeps and
+// nothing else (src/data/recorded-reads.ts).
 
 /** `engine_process_stats` per day: the process's numbers now and per day of the viewer's zone. */
 export interface ProcessStats {
@@ -109,6 +110,11 @@ export interface ActivityCounts {
   activities: ActivityRow[]
 }
 
+/** `engine_get_process_definition_xml`: the XML of a version's diagram; null without one. */
+export interface DiagramXml {
+  bpmn20Xml?: string | null
+}
+
 /** The process's diagram: the counts and the XML of the version they are drawn on. */
 export interface DiagramData {
   counts: ActivityCounts
@@ -137,10 +143,9 @@ export function readActivities(reader: Reader, key: string): Promise<ActivityCou
 /** The counts and the XML of the diagram they name, the latest version's. */
 export async function readDiagram(reader: Reader, key: string): Promise<DiagramData> {
   const counts = await readActivities(reader, key)
-  const answer = await reader.call<{ bpmn20Xml?: string | null }>(
-    "engine_get_process_definition_xml",
-    { processDefinitionId: counts.definitionId },
-  )
+  const answer = await reader.call<DiagramXml>("engine_get_process_definition_xml", {
+    processDefinitionId: counts.definitionId,
+  })
   // No output golden pins this answer (scripts/artifact-tools.test.mjs), so a renamed field fails
   // the section loud instead of drawing no diagram; null is an engine without the XML.
   if (!("bpmn20Xml" in answer)) {
