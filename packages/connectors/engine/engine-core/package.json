@@ -1,7 +1,7 @@
 {
   "name": "@miragon/pulse-engine-core",
   "version": "0.34.0",
-  "description": "The neutral core of the engine family of Pulse: the contract every dialect implements (the read and write ports ProcessRuntime and ProcessCommands, their ids, read models, queries and failure kinds, and RootCauses, the root-cause rule of every dialect), and in ./testing the conformance kit with its laws, its fixed world and an in-memory fake engine. No runtime dependency.",
+  "description": "The neutral core of the engine family of Pulse: the contract of its dialects (the read port ProcessRuntime, whose reads both dialects answer, the write port ProcessCommands, their ids, read models, queries and failure kinds, and RootCauses, the root-cause rule of every dialect; the writes, bulk operations and migration plans, answered by Camunda 7 alone, and the tenants, whose laws run on Camunda 7 alone, stand ahead of the admission rule, as the README lists), and in ./testing the conformance kit with its laws, its fixed world and an in-memory fake engine. No runtime dependency.",
   "license": "MIT",
   "keywords": [
     "bpmn",

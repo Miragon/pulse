@@ -44,9 +44,11 @@ as pages of the server, a CLI and two editor hosts for the same engines.
   (`@miragon/pulse-orca`), the editor hosts of the runtime view
 - `packages/connectors/engine/engine-connector/`: the engine module, the one MCP module of every
   dialect: tools, widget tools, widgets, the web app's screen feeds
-- `packages/connectors/engine/engine-core/`: `@miragon/pulse-engine-core`, the contract every
-  dialect implements (`ProcessRuntime`, `ProcessCommands`, ids, read models, `RuntimeError`,
-  `RootCauses`) and its conformance kit (`/testing`)
+- `packages/connectors/engine/engine-core/`: `@miragon/pulse-engine-core`, the contract of the
+  dialects (`ProcessRuntime`, `ProcessCommands`, ids, read models, `RuntimeError`, `RootCauses`),
+  whose reads both answer while the writes, bulk operations and migration plans (Camunda 7's
+  alone) and the tenants (their laws on Camunda 7 alone) stand ahead of its admission rule (its
+  README's table), and its conformance kit (`/testing`)
 - `packages/connectors/c7/`: the Camunda 7 REST family: `c7-client` (the generated SDK), `c7-core`
   (the pure rules, the one spec and its routes, the contract's reads in `./runtime`) and the
   editor hosts' private `c7-adapter`
@@ -117,9 +119,10 @@ its second consumer or ahead of it) and `-adapter` (the contract for the editor 
 engine-core's conformance kit on a real engine; Camunda 8's locally only until #531). Family code
 stays in its family; `packages/core/` holds what every family builds on. engine-core stays narrow:
 a port, read model or rule enters it when two dialects answer it with the same meaning, proven by
-the conformance laws on both (what the owner admitted ahead of that, its README lists); ports only
-the editor hosts need (`EngineAdapter`, the engine's web UI, the local model) stay in the runtime
-view's `src/ports`. The CLI importing it waits until it serves a second dialect.
+the conformance laws on both (what stands there ahead of that, the table of its README lists,
+`scripts/engine-core-admission.test.mjs`); ports only the editor hosts need (`EngineAdapter`, the
+engine's web UI, the local model) stay in the runtime view's `src/ports`. The CLI importing it
+waits until it serves a second dialect.
 
 ### What the surfaces share
 
