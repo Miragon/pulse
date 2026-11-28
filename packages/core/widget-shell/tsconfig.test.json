@@ -4,9 +4,11 @@
   // They run in Node and hand Chromium callbacks that run in the page, so they see Node's globals
   // and the DOM's, which src/ keeps apart (tsconfig.json, tsconfig.widgets.json). `tsc` builds
   // src/ alone, so a build without the repository's scripts/ (the server image's) compiles none of
-  // them.
+  // them. A suite that holds a README to the code it describes imports that code from src/ui,
+  // whose modules import the view runtime's .tsx.
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "jsx": "react-jsx",
     "noEmit": true,
     "rootDir": ".",
     "lib": ["ES2022", "DOM", "DOM.Iterable"]

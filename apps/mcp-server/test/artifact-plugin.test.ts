@@ -210,3 +210,30 @@ describe(`${PLUGIN_DIR}/evals`, () => {
     expect(tags.filter((tag) => tag === "no-trigger").length).toBeGreaterThanOrEqual(2)
   })
 })
+
+/** The template's page as it ships, which `pnpm build` copies into dist/index.html. */
+const PAGE = `${TEMPLATE}/src/page.html`
+/** Every host a page's markup names, by `https://`, `http://` or `//`, a stylesheet's too. */
+const hostsIn = (html: string) =>
+  [...html.matchAll(/(?:https?:)?\/\/([^/"'\s)]+)/gi)].map((match) => match[1] ?? "")
+
+describe(`the template's page as it ships, ${PAGE}`, () => {
+  it("links no font host, nor any other: it renders in the viewer's system font", () => {
+    // Geist from Google Fonts is a copy's opt-in (the template's README, "Geist"), since it sends
+    // every viewer's IP address to Google, and the copy's own bundle test lets that link through:
+    // the page the template ships links none (owner decision 2026-11-26, N10 of #693).
+    expect(hostsIn(read(PAGE))).toEqual([])
+  })
+
+  it("reads a host by a scheme or none, in a link or a stylesheet, so the check above can fail", () => {
+    const geist =
+      '<link rel="preconnect" href="https://fonts.googleapis.com" />\n' +
+      "<style>@import url(//fonts.gstatic.com/s/geist.woff2);</style>\n" +
+      '<link rel="stylesheet" href="HTTP://fonts.googleapis.com/css2?family=Geist" />'
+    expect(hostsIn(geist)).toEqual([
+      "fonts.googleapis.com",
+      "fonts.gstatic.com",
+      "fonts.googleapis.com",
+    ])
+  })
+})

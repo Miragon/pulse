@@ -169,9 +169,10 @@ of its own:
   | Position | `overflow-hidden`, `overflow-auto`, `overflow-x-auto`, `relative`, `sticky`, `top-0`, `sr-only`                                                                                                                                                                                     |
 
   It sets the body in the kit's font on the 13 px step, unlayered, so a host's reset before it
-  (a Claude artifact's skeleton) does not win. Geist comes from Google Fonts by a `<link>` of the
-  page (`family=Geist:wght@400;600;700&family=Geist+Mono:wght@400;600`); without it the system
-  font renders.
+  (a Claude artifact's skeleton) does not win. Without a font of the page's own the system font
+  renders. Geist is an opt-in by a `<link>` of the page to Google Fonts
+  (`family=Geist:wght@400;600;700&family=Geist+Mono:wght@400;600`), through which Google receives
+  every viewer's IP address.
 
 The page is light or dark by the root's `data-theme` (`"light"` or `"dark"`), as an MCP host and
 a Claude artifact write it. With none of `data-theme`, `data-cd-theme` and `data-theme-mode` on

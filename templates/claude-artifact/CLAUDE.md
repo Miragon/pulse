@@ -21,9 +21,9 @@ connector's name when you do not know it. The page's title is in `src/page.html`
 - **One classic script.** The artifact runs in a sandboxed frame whose origin is `null`, where a
   module script from the page's own files may fail on CORS: never add `type="module"` and never
   split the bundle (`test/bundle.test.ts`).
-- **Content security policy.** Stylesheets load only from the page's files and Google Fonts
-  (Geist), and no fetch, XHR or WebSocket reaches any host: everything ships in the three files,
-  and the engine comes only through the connector.
+- **Content security policy.** Stylesheets and fonts load only from the page's files and Google
+  Fonts, and no fetch, XHR or WebSocket reaches any host: everything ships in the three files, and
+  the engine comes only through the connector.
 - **One door to the runtime.** `src/artifact.tsx` mounts the page with widget-shell's
   `mountClaudeArtifact`, whose caller alone speaks to `window.claude`: never call the runtime from
   the page. Its contract, as a probe verified it, with its date, is in
@@ -89,6 +89,9 @@ starts to read joins it), and the recorder refuses a tool the server does not ma
 - **Numbers stay neutral.** Tiles carry no tint; an alarming count is a `CountFigure` with its
   `situation` and `label`. Charts draw at most two series on the blue ramp, red only for
   incidents, never green.
+- **The system font.** The page renders in the viewer's system font. Geist is an opt-in
+  (README.md, "Geist") that sends every viewer's IP address to Google: add it only when whoever
+  publishes the page asks for it.
 - **Words** in English and German after `navigator.language`, the same keys in both catalogs of
   `src/messages.ts`, the product's terms from `PRODUCT_GLOSSARY` (the brand test holds both).
   German says du, AI and „CIB seven“; neither language uses a dash as a connector; English is
@@ -109,7 +112,7 @@ A search from the copy's root skips pnpm's symlink: search `node_modules/@mirago
 2. Edit the sections in `src/sections/` on `pnpm dev`.
 3. `pnpm shot` and `pnpm shot -- --locale de`, then look at every screenshot in `shots/`: overflow,
    collisions, contrast and a failure where data belongs.
-4. `pnpm build`, `pnpm typecheck` and `pnpm test` pass.
+4. `pnpm build`, `pnpm typecheck` and `pnpm test` pass; commit `pnpm-lock.yaml` with the rest.
 5. Publish `dist/index.html` with `dist/app.js` and `dist/pulse-ui.css`, then declare `mcp` from
    `src/page.config.ts`.
 6. Open it in claude.ai, allow the access when claude.ai asks, and hold its numbers to the
