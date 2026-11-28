@@ -44,7 +44,7 @@ Works of others in the page:
   get-nonce 1.0.1                                MIT                      the page
   ids 3.0.2                                      MIT                      the page
   inherits-browser 0.1.0                         ISC                      the page
-  lucide-react 1.78.0                            ISC                      the page
+  lucide-react 1.79.0                            ISC                      the page
   min-dash 5.1.0                                 MIT                      the page
   min-dom 5.3.0                                  MIT                      the page
   moddle 8.2.1                                   MIT                      the page
@@ -1270,7 +1270,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 
 ================================================================================
-lucide-react 1.78.0
+lucide-react 1.79.0
 Licence: ISC
 In: the page
 Source: https://github.com/lucide-icons/lucide

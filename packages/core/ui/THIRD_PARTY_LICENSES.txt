@@ -49,7 +49,7 @@ Works of others in the browser bundle:
   get-nonce 1.0.1                                MIT                      dist/browser/pulse-ui.js
   ids 3.0.2                                      MIT                      dist/browser/pulse-ui-bpmn.js
   inherits-browser 0.1.0                         ISC                      dist/browser/pulse-ui-bpmn.js
-  lucide-react 1.78.0                            ISC                      dist/browser/pulse-ui.js, dist/browser/lucide.js and dist/browser/pulse-ui-bpmn.js
+  lucide-react 1.79.0                            ISC                      dist/browser/pulse-ui.js, dist/browser/lucide.js and dist/browser/pulse-ui-bpmn.js
   min-dash 5.1.0                                 MIT                      dist/browser/pulse-ui-bpmn.js
   min-dom 5.3.0                                  MIT                      dist/browser/pulse-ui-bpmn.js
   moddle 8.2.1                                   MIT                      dist/browser/pulse-ui-bpmn.js
@@ -1357,7 +1357,7 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 
 ================================================================================
-lucide-react 1.78.0
+lucide-react 1.79.0
 Licence: ISC
 In: dist/browser/pulse-ui.js, dist/browser/lucide.js and dist/browser/pulse-ui-bpmn.js
 Source: https://github.com/lucide-icons/lucide

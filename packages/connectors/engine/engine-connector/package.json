@@ -101,7 +101,7 @@
     "@types/react-dom": "19.3.0",
     "bpmn-js": "18.31.1",
     "happy-dom": "21.0.4",
-    "lucide-react": "1.78.0",
+    "lucide-react": "1.79.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "testcontainers": "12.2.2",
