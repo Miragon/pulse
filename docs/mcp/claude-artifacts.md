@@ -19,7 +19,7 @@ later and pnpm 10.32.1:
 <!-- x-release-please-start-version -->
 
 ```sh
-git clone --depth 1 --branch v0.34.0 https://github.com/Miragon/pulse
+git clone --depth 1 --branch v0.35.0 https://github.com/Miragon/pulse
 cp -r pulse/templates/claude-artifact my-dashboard
 cd my-dashboard
 pnpm install
@@ -69,14 +69,14 @@ browser bundle, its stylesheet and widget-shell's page reads from jsDelivr at th
 <!-- x-release-please-start-version -->
 
 ```js
-import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.34.0/dist/browser/pulse-ui.js"
-import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.34.0/dist/browser/pulse-ui-css.js"
+import * as ui from "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.35.0/dist/browser/pulse-ui.js"
+import "https://cdn.jsdelivr.net/npm/@miragon/pulse-ui@0.35.0/dist/browser/pulse-ui-css.js"
 import {
   mountClaudeArtifact,
   PageGate,
   usePageReads,
   useSectionRead,
-} from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.34.0/dist/browser/claude-artifact.js"
+} from "https://cdn.jsdelivr.net/npm/@miragon/pulse-widget-shell@0.35.0/dist/browser/claude-artifact.js"
 ```
 
 <!-- x-release-please-end -->
