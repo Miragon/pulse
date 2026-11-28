@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { portOf } from "../../test/support/engine-port.js"
 import type { FakeServer } from "../../test/support/fake-fetch.js"
-import { fakeRuntime, type FakeRuntimeOptions } from "../../test/support/fake-runtime.js"
+import { fakeRuntime, type FakeRuntimeOptions, fileText } from "../../test/support/fake-runtime.js"
 import { PLAN_PATH, planEngine, sentRoutes } from "../../test/support/plan-migration-engine.js"
 import type { FileSystem } from "../runtime.js"
 import { planMigration, type PlanMigrationOptions } from "./plan-migration.js"
@@ -12,6 +12,7 @@ const BASE: PlanMigrationOptions = {
   target: 2,
   map: [],
   unmap: [],
+  replace: false,
   dryRun: false,
 }
 const LOOKUPS = ["GET /process-definition", "GET /process-definition"]
@@ -36,6 +37,13 @@ function setup(
 }
 
 const MOVE = "Move it out of the way, or name another path with --plan-file."
+const EXISTS = {
+  code: "USAGE",
+  exitCode: 2,
+  details: {
+    hint: "Add --replace to replace it (edits made in the file are lost), or name another path with --plan-file.",
+  },
+}
 
 describe("planMigration command line", () => {
   it.each([
@@ -184,6 +192,66 @@ describe("planMigration plan file", () => {
       message: `Cannot write ${OWN}: ${reason}`,
       details: { hint: OWN_FAILURE },
     })
+  })
+})
+
+describe("planMigration over a plan file already there", () => {
+  it("refuses it at --plan-file before any request, at the default path before the proposal", async () => {
+    const own = setup({ dirs: ["plans"], files: { [OWN]: "edited" } })
+    await expect(own.run({ planFile: OWN })).rejects.toMatchObject({
+      ...EXISTS,
+      message: `The plan file ${OWN} exists`,
+    })
+    expect(own.server.requests).toEqual([])
+    const chosen = setup({ files: { [PLAN_PATH]: "edited" } })
+    await expect(chosen.run()).rejects.toMatchObject({
+      ...EXISTS,
+      message: `The plan file ${PLAN_PATH} exists`,
+    })
+    expect(sentRoutes(chosen.server)).toEqual(LOOKUPS)
+    expect(fileText(chosen.runtime, PLAN_PATH)).toBe("edited")
+  })
+
+  it("refuses one that appeared since the check, right before the write", async () => {
+    let checks = 0
+    const { run, runtime } = setup({}, (fs) => ({
+      ...fs,
+      kind: (path) =>
+        path === PLAN_PATH && ++checks > 1 ? Promise.resolve("file") : fs.kind(path),
+    }))
+    await expect(run()).rejects.toMatchObject({ message: `The plan file ${PLAN_PATH} exists` })
+    expect(runtime.files.has(PLAN_PATH)).toBe(false)
+    // and one written after the last check, the link check right before the write
+    let links = 0
+    const late = setup({}, (fs) => ({
+      ...fs,
+      linked: async (path) => {
+        if (path === PLAN_PATH && ++links === 2) await fs.writeFile(path, "edited")
+        return fs.linked(path)
+      },
+    }))
+    const exists = { ...EXISTS, message: `The plan file ${PLAN_PATH} exists` }
+    await expect(late.run()).rejects.toMatchObject(exists)
+    expect(fileText(late.runtime, PLAN_PATH)).toBe("edited")
+  })
+
+  it("names the write with --dry-run, checked but for --replace, and sends nothing", async () => {
+    const { server, run, runtime } = setup({ files: { [PLAN_PATH]: "edited" } })
+    expect(await run({ dryRun: true })).toMatchObject({
+      kind: "dry-run",
+      plan: { planFile: PLAN_PATH, exists: true },
+    })
+    expect(fileText(runtime, PLAN_PATH)).toBe("edited")
+    const own = setup({ dirs: ["plans"] })
+    expect(await own.run({ dryRun: true, planFile: OWN })).toMatchObject({
+      plan: { planFile: OWN, exists: false },
+    })
+    expect(own.runtime.files.size).toBe(0)
+    const directory = setup({ dirs: [OWN] })
+    await expect(directory.run({ dryRun: true, planFile: OWN })).rejects.toMatchObject({
+      message: `${OWN} is a directory`,
+    })
+    expect([...server.requests, ...own.server.requests, ...directory.server.requests]).toEqual([])
   })
 })
 

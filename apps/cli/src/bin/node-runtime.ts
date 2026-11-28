@@ -139,6 +139,11 @@ async function writePrivateFile(path: string, data: string | Uint8Array, mode: n
   }
 }
 
+/** Creates the file `path` ("wx"): any entry there, a dangling symbolic link too, fails it (EEXIST). */
+async function writeNewFile(path: string, data: string | Uint8Array, mode: number | undefined) {
+  await writeFile(path, data, { flag: "wx", ...(mode === undefined ? {} : { mode }) })
+}
+
 /** Removes a file; false when it did not exist. */
 async function remove(path: string): Promise<boolean> {
   try {
@@ -208,7 +213,8 @@ const nodeFileSystem: FileSystem = {
   readFile: async (path) => new Uint8Array(await readFile(path)),
   async writeFile(path, data, options) {
     const mode = options?.mode
-    await (mode === undefined ? writeFile(path, data) : writePrivateFile(path, data, mode))
+    if (options?.exclusive === true) await writeNewFile(path, data, mode)
+    else await (mode === undefined ? writeFile(path, data) : writePrivateFile(path, data, mode))
   },
   async mkdir(path, options) {
     await mkdir(path, {

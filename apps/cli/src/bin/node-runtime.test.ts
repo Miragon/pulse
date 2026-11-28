@@ -111,10 +111,18 @@ describe.skipIf(process.platform === "win32")(
       },
     )
 
-    it("writes files without a mode in place", async () => {
+    it("writes files without a mode in place, exclusive ones only where nothing is", async () => {
       const path = join(dir, "out.bin")
       await fs.writeFile(path, Uint8Array.of(1, 2))
       expect([...(await readFile(path))]).toEqual([1, 2])
+      const refused = { code: "EEXIST" }
+      await expect(fs.writeFile(path, "x", { exclusive: true })).rejects.toMatchObject(refused)
+      expect([...(await readFile(path))]).toEqual([1, 2])
+      await symlink(join(dir, "missing.json"), join(dir, "dangling.json"))
+      const dangling = fs.writeFile(join(dir, "dangling.json"), "x", { exclusive: true })
+      await expect(dangling).rejects.toMatchObject(refused)
+      await fs.writeFile(join(dir, "new.json"), "x", { exclusive: true })
+      expect((await readdir(dir)).sort()).toEqual(["dangling.json", "new.json", "out.bin"])
     })
   },
 )

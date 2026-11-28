@@ -105,7 +105,17 @@ describe("pulse plan-migration", () => {
         "",
       ].join("\n"),
     )
-    const again = await cli(["plan-migration", "invoice", "1", "--out-file", "view.json"])
+    const refused = await cli(["plan-migration", "invoice", "1"])
+    expect(refused.code).toBe(2)
+    expect(errorOf(refused.stderr)).toMatchObject({ message: `The plan file ${PATH} exists` })
+    const again = await cli([
+      "plan-migration",
+      "invoice",
+      "1",
+      "--replace",
+      "--out-file",
+      "view.json",
+    ])
     expect(again.code).toBe(0)
     expect(
       JSON.parse(new TextDecoder().decode(runtime.files.get("view.json")?.data)),
@@ -134,7 +144,10 @@ describe("pulse plan-migration", () => {
     const { cli, engine, runtime } = setup()
     const result = await cli(["plan-migration", "invoice", "1", "--dry-run"])
     expect(result.code).toBe(0)
-    const view = JSON.parse(result.stdout) as { requests: { url: string }[] }
+    const view = JSON.parse(result.stdout) as { plan: unknown; requests: { url: string }[] }
+    expect(view.plan).toEqual({ planFile: null, exists: null })
+    const named = await cli(["plan-migration", "invoice", "1", "2", "--dry-run"])
+    expect(JSON.parse(named.stdout)).toMatchObject({ plan: { planFile: PATH, exists: false } })
     expect(view.requests.map((request) => request.url)).toEqual([
       "http://localhost:8080/engine-rest/process-definition?key=invoice&version=1&firstResult=0&maxResults=11",
       "http://localhost:8080/engine-rest/process-definition?key=invoice&latestVersion=true&firstResult=0&maxResults=11",

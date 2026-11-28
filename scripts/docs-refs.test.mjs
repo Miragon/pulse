@@ -650,7 +650,7 @@ const DOCS_BUDGETS = {
   "cli/index.md": 40,
   "cli/getting-started.md": 140,
   "cli/installation.md": 150,
-  "cli/workflow-commands.md": 70,
+  "cli/workflow-commands.md": 71,
   "cli/commands.md": 150,
   "cli/recipes.md": 110,
   "cli/output-and-errors.md": 90,

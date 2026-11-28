@@ -1,6 +1,6 @@
 /**
  * The action of `pulse plan-migration`: the key, the version arguments as whole numbers, the
- * lists of `--map` and `--unmap`, the read guard, then the plan file and its view.
+ * lists of `--map` and `--unmap`, `--replace`, the read guard, then the plan file and its view.
  */
 
 import { convertScalar } from "../../operation/values.js"
@@ -40,6 +40,7 @@ export async function runPlanMigration(run: WorkflowRun): Promise<void> {
     }),
     map: list(flags, "map"),
     unmap: list(flags, "unmap"),
+    replace: flags.replace === true,
     dryRun: run.session.globals.dryRun,
   }
   guard(run, "read")

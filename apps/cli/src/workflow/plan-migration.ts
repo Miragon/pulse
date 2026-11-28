@@ -4,7 +4,8 @@
  * @miragon/pulse-migration-plan, keyed by the process definition key and the two version numbers.
  * Only reads go to the engine, through c7-core's migration planning rules; the definition ids and
  * the engine's words stay in the view, never in the file. Engine problems still write the file,
- * then CHECK_FAILED.
+ * then CHECK_FAILED. A file already there is replaced only with --replace; `--dry-run` names the
+ * file it would write when the target version or --plan-file is given.
  */
 
 import * as core from "@miragon/pulse-c7-core"
@@ -41,6 +42,8 @@ export interface PlanMigrationOptions {
   readonly unmap: readonly string[]
   /** Without it, `.pulse/migrations/<key>-v<source>-to-v<target>.migration.json`. */
   readonly planFile?: string
+  /** `--replace`: a plan file already there is replaced, else the command refuses it. */
+  readonly replace: boolean
   readonly dryRun: boolean
 }
 
@@ -64,7 +67,7 @@ interface PlanProblemView {
 
 export interface PlanMigrationView {
   readonly planFile: string
-  /** The file was there and is replaced. */
+  /** The file was there and is replaced (`--replace`). */
   readonly replaced: boolean
   readonly bpmnProcessId: string
   readonly source: PlanSideView
@@ -193,6 +196,41 @@ function lookupRequests(options: PlanMigrationOptions): PlannedRequest[] {
   ]
 }
 
+/**
+ * The write `--dry-run` names (its `plan`): the plan file, checked as the command checks it but for
+ * --replace, and whether a file is there; both null while the latest version, which only the
+ * engine names, decides the default file name.
+ */
+interface PlanFileWrite {
+  readonly planFile: string | null
+  readonly exists: boolean | null
+}
+
+/** The plan file the command line names: `--plan-file`, else the default path of two versions. */
+function namedPlanFile(options: PlanMigrationOptions) {
+  if (options.planFile !== undefined) return { path: options.planFile, isDefault: false }
+  if (options.target === undefined) return undefined
+  const name = {
+    bpmnProcessId: options.key,
+    source: { version: options.source },
+    target: { version: options.target },
+  }
+  return { path: MigrationPlanFiles.pathOf(name), isDefault: true }
+}
+
+/** `--dry-run`: the two lookups and the write, checked; nothing is sent and nothing is written. */
+async function dryRun(
+  fs: FileSystem,
+  options: PlanMigrationOptions,
+): Promise<WorkflowResult<PlanMigrationView>> {
+  const named = namedPlanFile(options)
+  const plan: PlanFileWrite =
+    named === undefined
+      ? { planFile: null, exists: null }
+      : { planFile: named.path, exists: await checkPlanTarget(fs, { ...named, replace: true }) }
+  return { kind: "dry-run", plan, requests: lookupRequests(options) }
+}
+
 /** The proposal with the edits applied, and how many of its instructions a plan cannot hold. */
 async function plannedMappings(
   port: EnginePort,
@@ -235,8 +273,11 @@ export async function planMigration(
   options: PlanMigrationOptions,
 ): Promise<WorkflowResult<PlanMigrationView>> {
   const edits = checkedInput(options)
-  if (options.dryRun) return { kind: "dry-run", requests: lookupRequests(options) }
-  if (options.planFile !== undefined) await checkPlanTarget(deps.fs, options.planFile, false)
+  if (options.dryRun) return dryRun(deps.fs, options)
+  const { replace } = options
+  if (options.planFile !== undefined) {
+    await checkPlanTarget(deps.fs, { path: options.planFile, isDefault: false, replace })
+  }
   const [source, target] = await definitions(deps.port, options)
   const name = {
     bpmnProcessId: options.key,
@@ -244,13 +285,13 @@ export async function planMigration(
     target: { version: target.version },
   }
   const planFile = options.planFile ?? MigrationPlanFiles.pathOf(name)
-  const isDefault = options.planFile === undefined
-  if (isDefault) await checkPlanTarget(deps.fs, planFile, true)
+  const file = { path: planFile, isDefault: options.planFile === undefined, replace }
+  if (file.isDefault) await checkPlanTarget(deps.fs, file)
   const { mappings, leftOut } = await plannedMappings(deps.port, [source, target], edits)
   const plan = { sourceDefinitionId: source.id, targetDefinitionId: target.id, mappings }
   const found = await renderedAsync(core.checkMigrationPlan(deps.port, plan))
   const text = MigrationPlanText.of({ ...name, mappings })
-  const replaced = await writePlanFile(deps.fs, planFile, text, isDefault)
+  const replaced = await writePlanFile(deps.fs, file, text)
   const problems = found.map(problemView)
   const view: PlanMigrationView = {
     planFile,

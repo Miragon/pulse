@@ -311,6 +311,12 @@ exports[`workflow command describe > describes the options of plan-migration 1`]
       "required": false,
       "type": "string",
     },
+    {
+      "description": "Replace a plan file already there (edits made in it are lost); without it the command refuses one",
+      "flag": "--replace",
+      "required": false,
+      "type": "boolean",
+    },
   ],
 }
 `;
@@ -1097,15 +1103,16 @@ exports[`workflow command describe text > renders the description of plan-migrat
 
 DESCRIPTION
   Write a migration plan between two versions of a process as a file Pulse for VS Code edits
-  Effect: read; writes the plan file; nothing changes on the engine; --dry-run sends nothing and writes nothing
+  Effect: read; writes the plan file; nothing changes on the engine; --dry-run sends nothing, writes nothing and names the file in its plan when the target version or --plan-file is given
 
   Asks the engine for its mapping between two versions of a process (the target defaults to the
   latest version), applies --unmap and --map, has the engine check the result and writes it as a
   plan file keyed by the process definition key and the two version numbers, with no engine, no
   definition id and no instance in it (.pulse/migrations/<key>-v<source>-to-v<target>.migration.json
-  unless --plan-file names one). Pulse for VS Code edits the file in diagrams of both versions,
-  checked on an engine you pick. The command migrates nothing; when the engine finds problems it
-  still writes the file and exits with code 9 (CHECK_FAILED).
+  unless --plan-file names one), and replaces a file there only with --replace. Pulse for VS Code
+  edits the file in diagrams of both versions, checked on an engine you pick. The command migrates
+  nothing; when the engine finds problems it still writes the file and exits with code 9
+  (CHECK_FAILED).
 
 ARGUMENTS
   <key>     The process definition key, the BPMN process id the plan names
@@ -1119,6 +1126,8 @@ OPTIONS
   --unmap <source>         Leave out the engine's mapping of the element <source>; comma lists split
   --plan-file <path>       Where to write the plan, a path ending in .migration.json (default
                            .pulse/migrations/<key>-v<source>-to-v<target>.migration.json)
+  --replace                Replace a plan file already there (edits made in it are lost); without it
+                           the command refuses one
 
 REQUESTS
   getProcessDefinitions  pulse process-definition list
