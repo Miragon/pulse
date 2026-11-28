@@ -31,6 +31,7 @@ export type ErrorCode =
   | "HTTP_REDIRECT"
   | "NETWORK"
   | "TIMEOUT"
+  | "RETRY_LATER"
   | "INTERNAL"
   | "WAIT_TIMEOUT"
   | "INCIDENT"
@@ -58,6 +59,8 @@ const EXIT_CODE_BY_ERROR: Readonly<Record<ErrorCode, number>> = {
   HTTP_REDIRECT: EXIT_CODES.config,
   NETWORK: EXIT_CODES.network,
   TIMEOUT: EXIT_CODES.network,
+  // the authorization server asks to be asked later (429, 408, 425): it passes, like a timeout
+  RETRY_LATER: EXIT_CODES.network,
   INTERNAL: EXIT_CODES.internal,
   WAIT_TIMEOUT: EXIT_CODES.outcome,
   INCIDENT: EXIT_CODES.outcome,

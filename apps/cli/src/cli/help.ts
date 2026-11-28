@@ -104,8 +104,8 @@ const EXIT_CODE_MEANINGS: Readonly<Record<keyof typeof EXIT_CODES, string>> = {
   auth: "not authenticated or authorized (401, 403), LOGIN_REQUIRED, LOGIN_FAILED, TOKEN_EXPIRED",
   notFound: "not found (404)",
   client: "other 4xx: the engine rejected the request",
-  server: "engine error (5xx)",
-  network: "network error or timeout",
+  server: "engine error (5xx), also the token endpoint's 5xx",
+  network: "network error or timeout, RETRY_LATER (the token endpoint's 429, 408, 425)",
   outcome:
     "the process did not reach the expected state (WAIT_TIMEOUT, INCIDENT, INSTANCE_ENDED, JOB_FAILED, CHECK_FAILED)",
 }

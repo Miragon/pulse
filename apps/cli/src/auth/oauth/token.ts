@@ -163,15 +163,39 @@ function grantError(
       )
 }
 
+/** The details of an answer that passes by itself: its status, the request, retry later. */
+function laterDetails(failure: TokenFailure, grant: GrantKind, client: TokenClient) {
+  return {
+    status: Number(failure.status),
+    request: { method: "POST", url: shownUrl(client.endpoint.url) },
+    hint: grant === "refresh" ? "Retry later; the login is kept." : "Retry later.",
+  }
+}
+
+/**
+ * A 5xx, `unavailable` to the transport like a 408: HTTP_SERVER_ERROR, exit 7 like an engine's 5xx
+ * (as the exit code tables say), with the hint to retry later.
+ */
 function serverError(failure: TokenFailure, grant: GrantKind, client: TokenClient) {
   return new PulseCliError(
     "HTTP_SERVER_ERROR",
     `The authorization server failed: ${statusLine(statusOfFailure(failure))}`,
-    {
-      status: Number(failure.status),
-      request: { method: "POST", url: shownUrl(client.endpoint.url) },
-      hint: grant === "refresh" ? "Retry later; the login is kept." : "Retry later.",
-    },
+    laterDetails(failure, grant, client),
+  )
+}
+
+/**
+ * The endpoint asks to be asked later (@miragon/pulse-http/oauth's kinds below a 5xx): a 429
+ * (`rate-limited`), a 408 or a 425 (`unavailable`). RETRY_LATER, exit 8 like a network failure:
+ * nothing in the configuration is wrong, and the CLI sends the request once (no retry, so
+ * Retry-After is not read).
+ */
+function retryLater(failure: TokenFailure, grant: GrantKind, client: TokenClient) {
+  const what = failure.kind === "rate-limited" ? "limits the requests" : "cannot answer now"
+  return new PulseCliError(
+    "RETRY_LATER",
+    `The authorization server ${what}: ${statusLine(statusOfFailure(failure))}`,
+    laterDetails(failure, grant, client),
   )
 }
 
@@ -200,6 +224,9 @@ export function tokenError(
   if (isUnanswered(failure)) return unreachable(failure, "POST", client.endpoint, timeoutMs)
   if (failure.problem !== undefined) return answerError(failure)
   if (Number(failure.status) >= 500) return serverError(failure, grant, client)
+  if (failure.kind === "rate-limited" || failure.kind === "unavailable") {
+    return retryLater(failure, grant, client)
+  }
   const error = errorCodeOf(failure)
   if (error === undefined) return unexpected(failure, client)
   const detail = errorDetail(error, failure.description)
